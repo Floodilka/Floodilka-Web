@@ -207,3 +207,57 @@
   font-size: 18px;
 }
 
+.voice-channel-container {
+  margin-bottom: 4px;
+}
+
+.voice-users-list {
+  padding-left: 8px;
+  margin-top: 4px;
+}
+
+.voice-user {
+  display: flex;
+  align-items: center;
+  padding: 4px 8px;
+  margin: 2px 0;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+  cursor: pointer;
+}
+
+.voice-user:hover {
+  background-color: #393c43;
+}
+
+.voice-user-avatar-small {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #5865f2 0%, #4752c4 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 600;
+  font-size: 11px;
+  margin-right: 8px;
+  flex-shrink: 0;
+}
+
+.voice-user-name-small {
+  color: #b9bbbe;
+  font-size: 14px;
+  font-weight: 400;
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.voice-user-muted {
+  font-size: 14px;
+  margin-left: 4px;
+  flex-shrink: 0;
+}
+

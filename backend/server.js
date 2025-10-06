@@ -29,7 +29,7 @@ app.use(express.json());
 const channels = new Map();
 const messages = new Map();
 const onlineUsers = new Map(); // channelId -> Set of usernames
-const voiceUsers = new Map(); // channelId -> Map(socketId -> username)
+const voiceUsers = new Map(); // channelId -> Map(socketId -> {username, isMuted})
 
 // Создать дефолтные каналы
 const defaultTextChannelId = uuidv4();
@@ -263,7 +263,7 @@ io.on('connection', (socket) => {
       users = new Map();
       voiceUsers.set(channelId, users);
     }
-    users.set(socket.id, username);
+    users.set(socket.id, { username, isMuted: false });
 
     // Присоединиться к комнате
     socket.join(channelId);
@@ -271,7 +271,7 @@ io.on('connection', (socket) => {
     // Получить список других пользователей в канале
     const otherUsers = Array.from(users.entries())
       .filter(([id]) => id !== socket.id)
-      .map(([id, name]) => ({ id, username: name }));
+      .map(([id, data]) => ({ id, username: data.username, isMuted: data.isMuted }));
 
     // Отправить текущему пользователю список других пользователей
     socket.emit('voice:users', otherUsers);
@@ -279,8 +279,12 @@ io.on('connection', (socket) => {
     // Уведомить других пользователей о новом участнике
     socket.to(channelId).emit('voice:user-joined', {
       id: socket.id,
-      username
+      username,
+      isMuted: false
     });
+
+    // Отправить обновленный список всем пользователям для сайдбара
+    broadcastVoiceChannelUsers();
 
     console.log(`${username} присоединился к голосовому каналу ${channel.name}`);
   });
@@ -294,6 +298,28 @@ io.on('connection', (socket) => {
       users.delete(socket.id);
       socket.leave(channelId);
       socket.to(channelId).emit('voice:user-left', { id: socket.id });
+
+      // Обновить сайдбар у всех
+      broadcastVoiceChannelUsers();
+    }
+  });
+
+  // Изменить статус mute
+  socket.on('voice:mute-toggle', ({ channelId, isMuted }) => {
+    const users = voiceUsers.get(channelId);
+    if (users && users.has(socket.id)) {
+      const userData = users.get(socket.id);
+      userData.isMuted = isMuted;
+      users.set(socket.id, userData);
+
+      // Уведомить всех в канале
+      io.to(channelId).emit('voice:user-muted', {
+        id: socket.id,
+        isMuted
+      });
+
+      // Обновить сайдбар у всех
+      broadcastVoiceChannelUsers();
     }
   });
 
@@ -355,7 +381,25 @@ io.on('connection', (socket) => {
         socket.to(channelId).emit('voice:user-left', { id: socket.id });
       }
     });
+
+    // Обновить сайдбар у всех после отключения
+    broadcastVoiceChannelUsers();
   });
+
+  // Функция для отправки списка пользователей в голосовых каналах всем
+  function broadcastVoiceChannelUsers() {
+    const voiceChannelsData = {};
+
+    voiceUsers.forEach((users, channelId) => {
+      voiceChannelsData[channelId] = Array.from(users.entries()).map(([id, data]) => ({
+        id,
+        username: data.username,
+        isMuted: data.isMuted
+      }));
+    });
+
+    io.emit('voice:channels-update', voiceChannelsData);
+  }
 });
 
 server.listen(PORT, () => {

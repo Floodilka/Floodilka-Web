@@ -385,7 +385,16 @@ function VoiceChannel({ socket, channel, username }) {
       const audioTrack = localStreamRef.current.getAudioTracks()[0];
       if (audioTrack) {
         audioTrack.enabled = !audioTrack.enabled;
-        setIsMuted(!audioTrack.enabled);
+        const newMutedState = !audioTrack.enabled;
+        setIsMuted(newMutedState);
+
+        // Отправить статус на сервер
+        if (socket && channel) {
+          socket.emit('voice:mute-toggle', {
+            channelId: channel.id,
+            isMuted: newMutedState
+          });
+        }
       }
     }
   };

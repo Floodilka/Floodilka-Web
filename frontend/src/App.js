@@ -15,6 +15,7 @@ function App() {
   const [currentChannel, setCurrentChannel] = useState(null);
   const [messages, setMessages] = useState([]);
   const [users, setUsers] = useState([]);
+  const [voiceChannelUsers, setVoiceChannelUsers] = useState({}); // {channelId: [{id, username, isMuted}]}
   const [username, setUsername] = useState(null);
   const [showUsernameModal, setShowUsernameModal] = useState(true);
 
@@ -60,6 +61,10 @@ function App() {
       setUsers(newUsers);
     });
 
+    socket.on('voice:channels-update', (voiceData) => {
+      setVoiceChannelUsers(voiceData);
+    });
+
     socket.on('error', ({ message }) => {
       alert(`Ошибка: ${message}`);
     });
@@ -69,6 +74,7 @@ function App() {
       socket.off('messages:history');
       socket.off('message:new');
       socket.off('users:update');
+      socket.off('voice:channels-update');
       socket.off('error');
     };
   }, [socket]);
@@ -126,6 +132,7 @@ function App() {
       <ChannelList
         channels={channels}
         currentChannel={currentChannel}
+        voiceChannelUsers={voiceChannelUsers}
         onSelectChannel={handleChannelSelect}
         onCreateChannel={handleCreateChannel}
       />

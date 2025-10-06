@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import './ChannelList.css';
 
-function ChannelList({ channels, currentChannel, onSelectChannel, onCreateChannel }) {
+function ChannelList({ channels, currentChannel, voiceChannelUsers, onSelectChannel, onCreateChannel }) {
   const [showTextForm, setShowTextForm] = useState(false);
   const [showVoiceForm, setShowVoiceForm] = useState(false);
   const [newChannelName, setNewChannelName] = useState('');
@@ -130,16 +130,35 @@ function ChannelList({ channels, currentChannel, onSelectChannel, onCreateChanne
         )}
 
         <div className="channels">
-          {voiceChannels.map(channel => (
-            <div
-              key={channel.id}
-              className={`channel-item voice-channel ${currentChannel?.id === channel.id ? 'active' : ''}`}
-              onClick={() => onSelectChannel(channel)}
-            >
-              <span className="channel-icon">🔊</span>
-              <span className="channel-name">{channel.name}</span>
-            </div>
-          ))}
+          {voiceChannels.map(channel => {
+            const usersInChannel = voiceChannelUsers[channel.id] || [];
+
+            return (
+              <div key={channel.id} className="voice-channel-container">
+                <div
+                  className={`channel-item voice-channel ${currentChannel?.id === channel.id ? 'active' : ''}`}
+                  onClick={() => onSelectChannel(channel)}
+                >
+                  <span className="channel-icon">🔊</span>
+                  <span className="channel-name">{channel.name}</span>
+                </div>
+
+                {usersInChannel.length > 0 && (
+                  <div className="voice-users-list">
+                    {usersInChannel.map(user => (
+                      <div key={user.id} className="voice-user">
+                        <div className="voice-user-avatar-small">
+                          {user.username[0].toUpperCase()}
+                        </div>
+                        <span className="voice-user-name-small">{user.username}</span>
+                        {user.isMuted && <span className="voice-user-muted">🔇</span>}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       </div>
     </div>
