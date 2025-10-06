@@ -82,11 +82,14 @@ function App() {
   // Присоединиться к каналу при выборе
   useEffect(() => {
     if (socket && currentChannel && username) {
-      setMessages([]);
-      socket.emit('channel:join', {
-        channelId: currentChannel.id,
-        username
-      });
+      // Только для текстовых каналов
+      if (currentChannel.type === 'text') {
+        setMessages([]);
+        socket.emit('channel:join', {
+          channelId: currentChannel.id,
+          username
+        });
+      }
     }
   }, [socket, currentChannel, username]);
 
