@@ -55,7 +55,18 @@ function App() {
       .then(res => res.json())
       .then(data => {
         setServers(data);
-        // Автоматически выбрать первый сервер
+
+        // Попытаться восстановить последний выбранный сервер
+        const lastServerId = localStorage.getItem('lastServerId');
+        if (lastServerId && data.length > 0) {
+          const lastServer = data.find(s => s._id === lastServerId);
+          if (lastServer) {
+            setCurrentServer(lastServer);
+            return;
+          }
+        }
+
+        // Если не получилось восстановить, выбрать первый сервер
         if (data.length > 0 && !currentServer) {
           setCurrentServer(data[0]);
         }
@@ -168,6 +179,7 @@ function App() {
     // Очистить токен и данные пользователя
     localStorage.removeItem('token');
     localStorage.removeItem('user');
+    localStorage.removeItem('lastServerId');
 
     // Отключиться от голосового канала если подключен
     if (voiceDisconnectRef.current) {
@@ -194,6 +206,9 @@ function App() {
     setCurrentVoiceChannel(null);
     setMessages([]);
     setUsers([]);
+
+    // Сохранить выбранный сервер
+    localStorage.setItem('lastServerId', server._id);
   };
 
   const handleCreateServer = (serverData) => {
@@ -212,6 +227,9 @@ function App() {
       .then(newServer => {
         setServers(prev => [...prev, newServer]);
         setCurrentServer(newServer);
+
+        // Сохранить новый сервер как текущий
+        localStorage.setItem('lastServerId', newServer._id);
       })
       .catch(err => console.error('Ошибка создания сервера:', err));
   };

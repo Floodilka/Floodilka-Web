@@ -19,6 +19,20 @@
   position: relative;
 }
 
+/* Анимированный индикатор */
+.server-indicator {
+  position: absolute;
+  left: 0;
+  width: 4px;
+  height: 40px;
+  background: white;
+  border-radius: 0 4px 4px 0;
+  transform: translateY(-50%);
+  transition: top 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  pointer-events: none;
+  z-index: 1;
+}
+
 .server-icon {
   width: 48px;
   height: 48px;
@@ -67,17 +81,7 @@
   background: transparent;
 }
 
-.server-icon.active::before {
-  content: '';
-  position: absolute;
-  left: -12px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 8px;
-  height: 40px;
-  background: white;
-  border-radius: 0 4px 4px 0;
-}
+/* Убираем старый статичный индикатор */
 
 .server-icon-emoji {
   font-size: 24px;

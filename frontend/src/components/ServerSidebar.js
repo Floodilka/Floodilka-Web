@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import './ServerSidebar.css';
 import CreateServerModal from './CreateServerModal';
 
@@ -14,7 +14,10 @@ function ServerSidebar({ servers, currentServer, onSelectServer, onCreateServer 
   const [joinError, setJoinError] = useState('');
   const [joinLoading, setJoinLoading] = useState(false);
   const [menuPosition, setMenuPosition] = useState({ top: 0, left: 84 });
+  const [indicatorPosition, setIndicatorPosition] = useState(0);
+  const [showIndicator, setShowIndicator] = useState(false);
   const addButtonRef = useRef(null);
+  const serverRefs = useRef({});
 
   const handleMenuToggle = () => {
     if (!showActionMenu && addButtonRef.current) {
@@ -26,6 +29,21 @@ function ServerSidebar({ servers, currentServer, onSelectServer, onCreateServer 
     }
     setShowActionMenu(!showActionMenu);
   };
+
+  // Обновление позиции индикатора при смене сервера
+  useEffect(() => {
+    if (currentServer && serverRefs.current[currentServer._id]) {
+      const element = serverRefs.current[currentServer._id];
+      const rect = element.getBoundingClientRect();
+      const sidebar = element.closest('.server-list');
+      if (sidebar) {
+        const sidebarRect = sidebar.getBoundingClientRect();
+        const relativeTop = rect.top - sidebarRect.top + rect.height / 2;
+        setIndicatorPosition(relativeTop);
+        setShowIndicator(true);
+      }
+    }
+  }, [currentServer, servers]);
 
   const handleCreateServer = (serverData) => {
     onCreateServer(serverData);
@@ -74,12 +92,20 @@ function ServerSidebar({ servers, currentServer, onSelectServer, onCreateServer 
   return (
     <div className="server-sidebar">
       <div className="server-list">
+        {showIndicator && (
+          <div
+            className="server-indicator"
+            style={{ top: `${indicatorPosition}px` }}
+          />
+        )}
+
         {servers.map(server => {
           const isBase64Image = server.icon && server.icon.startsWith('data:image');
 
           return (
             <div
               key={server._id}
+              ref={el => serverRefs.current[server._id] = el}
               className={`server-icon ${currentServer?._id === server._id ? 'active' : ''}`}
               onClick={() => onSelectServer(server)}
               title={server.name}

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './ChannelList.css';
 import UserProfile from './UserProfile';
 
@@ -16,13 +16,56 @@ function ChannelList({ channels, currentTextChannel, currentVoiceChannel, voiceC
   const [inviteLoading, setInviteLoading] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  const handleGenerateInvite = async () => {
+  // Сбрасываем инвайт при смене сервера
+  useEffect(() => {
+    setInviteLink('');
+    setShowServerMenu(false);
+    setMenuClosing(false);
+  }, [currentServer?._id]);
+
+  const loadOrCreateInvite = async () => {
     if (!currentServer) return;
 
     setInviteLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${BACKEND_URL}/api/servers/${currentServer._id}/invites`, {
+
+      // Сначала попробуем загрузить существующие инвайты
+      const getResponse = await fetch(`${BACKEND_URL}/api/servers/${currentServer._id}/invites`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (getResponse.ok) {
+        const invites = await getResponse.json();
+        console.log('📩 Загружены инвайты:', invites);
+
+        // Ищем первый валидный инвайт
+        const validInvite = invites.find(invite => {
+          // Проверяем что инвайт не истёк
+          if (invite.expiresAt && new Date(invite.expiresAt) < new Date()) {
+            return false;
+          }
+          // Проверяем лимит использований
+          if (invite.maxUses !== null && invite.uses >= invite.maxUses) {
+            return false;
+          }
+          return true;
+        });
+
+        if (validInvite) {
+          // Используем существующий инвайт
+          console.log('✅ Используем существующий инвайт:', validInvite.code);
+          setInviteLink(validInvite.code);
+          setInviteLoading(false);
+          return;
+        }
+      }
+
+      // Если нет валидных инвайтов, создаём новый
+      console.log('➕ Создаём новый инвайт');
+      const createResponse = await fetch(`${BACKEND_URL}/api/servers/${currentServer._id}/invites`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -31,12 +74,13 @@ function ChannelList({ channels, currentTextChannel, currentVoiceChannel, voiceC
         body: JSON.stringify({})
       });
 
-      const data = await response.json();
-      if (response.ok) {
+      const data = await createResponse.json();
+      if (createResponse.ok) {
+        console.log('✅ Создан новый инвайт:', data.code);
         setInviteLink(data.code);
       }
     } catch (err) {
-      console.error('Ошибка создания инвайта:', err);
+      console.error('❌ Ошибка загрузки инвайта:', err);
     } finally {
       setInviteLoading(false);
     }
@@ -60,9 +104,9 @@ function ChannelList({ channels, currentTextChannel, currentVoiceChannel, voiceC
         setMenuClosing(false);
       }, 200); // Длительность анимации
     } else {
-      // Открытие
+      // Открытие - загружаем или создаём инвайт
       if (!inviteLink) {
-        handleGenerateInvite();
+        loadOrCreateInvite();
       }
       setShowServerMenu(true);
       setMenuClosing(false);
