@@ -209,7 +209,8 @@ function App() {
       socket.emit('message:send', {
         channelId: currentTextChannel.id,
         content,
-        username: user.displayName || user.username
+        username: user.displayName || user.username,
+        avatar: user.avatar
       });
     }
   };

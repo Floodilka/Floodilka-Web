@@ -187,6 +187,8 @@ io.on('connection', (socket) => {
     // Присоединиться к новому каналу
     currentChannel = channelId;
     currentUsername = username || `Гость${Math.floor(Math.random() * 1000)}`;
+    const currentAvatar = avatar; // Сохраняем аватар
+    socket.currentAvatar = avatar; // Сохраняем аватар в socket для использования в сообщениях
     socket.join(channelId);
 
     // Получить или создать Map пользователей для канала (теперь храним объекты)
@@ -215,7 +217,7 @@ io.on('connection', (socket) => {
   });
 
   // Отправить сообщение
-  socket.on('message:send', ({ channelId, content, username }) => {
+  socket.on('message:send', ({ channelId, content, username, avatar }) => {
     if (!channels.has(channelId)) {
       socket.emit('error', { message: 'Канал не найден' });
       return;
@@ -229,6 +231,7 @@ io.on('connection', (socket) => {
       id: uuidv4(),
       channelId,
       username: username || currentUsername || 'Аноним',
+      avatar: avatar || socket.currentAvatar || null, // Добавляем аватар
       content: content.trim(),
       timestamp: new Date().toISOString(),
       isSystem: false

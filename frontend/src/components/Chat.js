@@ -1,6 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import './Chat.css';
 
+const BACKEND_URL = window.location.hostname === 'localhost'
+  ? 'http://localhost:3001'
+  : `${window.location.protocol}//${window.location.hostname}`;
+
 function Chat({ channel, messages, username, onSendMessage }) {
   const [inputValue, setInputValue] = useState('');
   const messagesEndRef = useRef(null);
@@ -62,7 +66,22 @@ function Chat({ channel, messages, username, onSendMessage }) {
             className={`message ${message.isSystem ? 'system-message' : ''} ${message.username === username ? 'own-message' : ''}`}
           >
             <div className="message-avatar">
-              {message.isSystem ? '🤖' : message.username[0].toUpperCase()}
+              {message.isSystem ? (
+                '🤖'
+              ) : message.avatar ? (
+                <img 
+                  src={`${BACKEND_URL}${message.avatar}`} 
+                  alt={message.username}
+                  onError={(e) => {
+                    // Если изображение не загрузилось, показываем букву
+                    e.target.style.display = 'none';
+                    e.target.nextSibling.style.display = 'flex';
+                  }}
+                />
+              ) : null}
+              <div className="message-avatar-fallback" style={{ display: message.avatar ? 'none' : 'flex' }}>
+                {message.username[0].toUpperCase()}
+              </div>
             </div>
             <div className="message-content">
               <div className="message-header">
