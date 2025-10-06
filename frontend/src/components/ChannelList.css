@@ -1,0 +1,209 @@
+.channel-list {
+  width: 240px;
+  background-color: #2f3136;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid #202225;
+}
+
+.channel-list-header {
+  padding: 16px;
+  border-bottom: 1px solid #202225;
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.2);
+}
+
+.channel-list-header h2 {
+  color: #ffffff;
+  font-size: 16px;
+  font-weight: 700;
+  margin: 0;
+}
+
+.channels-section {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 0;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 16px;
+  margin-top: 8px;
+}
+
+.section-header span {
+  color: #8e9297;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+.add-channel-btn {
+  background: none;
+  border: none;
+  color: #8e9297;
+  font-size: 18px;
+  cursor: pointer;
+  padding: 0;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s;
+}
+
+.add-channel-btn:hover {
+  color: #dcddde;
+}
+
+.create-channel-form {
+  padding: 8px 16px;
+  background-color: #202225;
+  margin: 8px 8px 0 8px;
+  border-radius: 4px;
+}
+
+.create-channel-form input {
+  width: 100%;
+  padding: 8px;
+  background-color: #40444b;
+  border: none;
+  border-radius: 4px;
+  color: #dcddde;
+  font-size: 14px;
+  margin-bottom: 8px;
+  outline: none;
+}
+
+.create-channel-form input:focus {
+  background-color: #484c52;
+}
+
+.channel-type-selector {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.channel-type-selector label {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px;
+  background-color: #40444b;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.channel-type-selector label:hover {
+  background-color: #484c52;
+}
+
+.channel-type-selector input[type="radio"] {
+  margin: 0;
+  cursor: pointer;
+}
+
+.channel-type-selector span {
+  color: #dcddde;
+  font-size: 13px;
+}
+
+.form-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.form-buttons button {
+  flex: 1;
+  padding: 6px;
+  border: none;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.form-buttons button[type="submit"] {
+  background-color: #5865f2;
+  color: white;
+}
+
+.form-buttons button[type="submit"]:hover:not(:disabled) {
+  background-color: #4752c4;
+}
+
+.form-buttons button[type="submit"]:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.form-buttons button[type="button"] {
+  background-color: #40444b;
+  color: #dcddde;
+}
+
+.form-buttons button[type="button"]:hover {
+  background-color: #484c52;
+}
+
+.channels {
+  padding: 0 8px;
+}
+
+.channel-item {
+  display: flex;
+  align-items: center;
+  padding: 8px;
+  margin: 2px 0;
+  border-radius: 4px;
+  cursor: pointer;
+  color: #8e9297;
+  transition: all 0.2s;
+}
+
+.channel-item:hover {
+  background-color: #393c43;
+  color: #dcddde;
+}
+
+.channel-item.active {
+  background-color: #404449;
+  color: #ffffff;
+}
+
+.channel-icon {
+  font-size: 20px;
+  margin-right: 8px;
+  font-weight: 600;
+  color: #8e9297;
+}
+
+.channel-item.active .channel-icon {
+  color: #ffffff;
+}
+
+.channel-name {
+  font-size: 15px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.voice-section {
+  border-top: 1px solid #202225;
+  margin-top: 8px;
+  padding-top: 8px;
+}
+
+.voice-channel .channel-icon {
+  font-size: 18px;
+}
+
