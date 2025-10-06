@@ -19,10 +19,12 @@ sudo -u $USER npm install --production
 # Перезапуск или запуск приложения через PM2
 echo "🔄 Перезапуск приложения..."
 if sudo -u $USER pm2 list | grep -q "boltushka-backend"; then
-  # Если процесс существует - перезапускаем
-  sudo -u $USER pm2 restart boltushka-backend --update-env
+  # Если процесс существует - graceful reload
+  echo "♻️  Graceful reload (минимальный downtime)..."
+  sudo -u $USER pm2 reload boltushka-backend --update-env
 else
   # Если не существует - запускаем
+  echo "🚀 Первый запуск..."
   sudo -u $USER pm2 start server.js \
     --name boltushka-backend \
     --env production \

@@ -30,18 +30,22 @@ bash update.sh
 
 ## Последующие обновления
 
-После первоначальной настройки для обновления кода просто:
+### Быстрое обновление (рекомендуется)
 
 ```bash
-cd /var/www/boltushka/deployment
-bash update.sh
+cd /var/www/boltushka
+sudo bash deployment/update.sh
 ```
 
-Этот скрипт:
-1. Сохранит локальные изменения (если есть)
-2. Подтянет обновления из Git
-3. Обновит backend и frontend
-4. Перезапустит сервисы
+Этот скрипт автоматически:
+1. ✅ Сохранит локальные изменения (если есть)
+2. ✅ Подтянет обновления из Git
+3. ✅ Обнаружит изменения в nginx конфигурации
+4. ✅ Обновит nginx (если запущен с sudo)
+5. ✅ Обновит backend и frontend
+6. ✅ Перезапустит сервисы
+
+📖 **Подробная инструкция**: [QUICK-UPDATE.md](./QUICK-UPDATE.md)
 
 ## Полезные команды
 
@@ -189,3 +193,8 @@ bash deploy-frontend.sh
 ```
 FRONTEND_URL=https://boltushka.fitronyx.com
 ```
+
+## Документация
+
+- 📖 [QUICK-UPDATE.md](./QUICK-UPDATE.md) - Быстрое обновление и деплой
+- 🔧 [HOTFIX-UPLOADS.md](./HOTFIX-UPLOADS.md) - Hotfix для проблемы с загрузкой аватаров
