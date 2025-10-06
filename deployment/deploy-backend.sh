@@ -16,17 +16,18 @@ cd $APP_DIR
 echo "📦 Установка зависимостей..."
 sudo -u $USER npm install --production
 
-# Остановка предыдущей версии если запущена
-echo "🛑 Остановка предыдущей версии..."
-pm2 stop boltushka-backend || true
-pm2 delete boltushka-backend || true
-
-# Запуск приложения через PM2
-echo "▶️ Запуск приложения..."
-sudo -u $USER pm2 start server.js \
-  --name boltushka-backend \
-  --env production \
-  --max-memory-restart 500M
+# Перезапуск или запуск приложения через PM2
+echo "🔄 Перезапуск приложения..."
+if sudo -u $USER pm2 list | grep -q "boltushka-backend"; then
+  # Если процесс существует - перезапускаем
+  sudo -u $USER pm2 restart boltushka-backend --update-env
+else
+  # Если не существует - запускаем
+  sudo -u $USER pm2 start server.js \
+    --name boltushka-backend \
+    --env production \
+    --max-memory-restart 500M
+fi
 
 # Сохранение конфигурации PM2
 sudo -u $USER pm2 save

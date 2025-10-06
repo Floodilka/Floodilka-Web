@@ -7,7 +7,10 @@ import VoiceChannel from './components/VoiceChannel';
 import UserList from './components/UserList';
 import UsernameModal from './components/UsernameModal';
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:3001';
+// Автоматически определяем URL в зависимости от окружения
+const BACKEND_URL = window.location.hostname === 'localhost'
+  ? 'http://localhost:3001'
+  : `${window.location.protocol}//${window.location.hostname}`;
 
 function App() {
   const [socket, setSocket] = useState(null);
