@@ -1,23 +1,32 @@
 import React, { useState, useEffect, useRef } from 'react';
 import './VoiceChannel.css';
 
-function VoiceChannel({ socket, channel, username }) {
+function VoiceChannel({ socket, channel, username, globalMuted, globalDeafened, onDisconnectRef, onSpeakingUpdate }) {
   const [isConnected, setIsConnected] = useState(false);
-  const [isMuted, setIsMuted] = useState(false);
-  const [isDeafened, setIsDeafened] = useState(false);
   const [voiceUsers, setVoiceUsers] = useState([]);
   const [speakingUsers, setSpeakingUsers] = useState(new Set());
-  const [noiseSuppression, setNoiseSuppression] = useState(true);
-  const [echoCancellation, setEchoCancellation] = useState(true);
-  const [micSensitivity, setMicSensitivity] = useState(20); // Порог для определения речи
-  const [audioBitrate, setAudioBitrate] = useState(128000); // Битрейт в kbps
-  const [showSettings, setShowSettings] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
+
+  // Передать информацию о говорящих наверх для сайдбара
+  useEffect(() => {
+    if (onSpeakingUpdate) {
+      const allSpeaking = new Set(speakingUsers);
+      // Добавляем себя только если микрофон включен и говорим
+      if (isSpeaking && !globalMuted) {
+        allSpeaking.add('me');
+      }
+      onSpeakingUpdate(allSpeaking);
+    }
+  }, [speakingUsers, isSpeaking, globalMuted, onSpeakingUpdate]);
+
+  const [noiseSuppression] = useState(true);
+  const [echoCancellation] = useState(true);
+  const [micSensitivity] = useState(20); // Порог для определения речи
+  const [audioBitrate] = useState(128000); // Битрейт в kbps
 
   const localStreamRef = useRef(null);
   const peersRef = useRef({});
-  const audioContextRef = useRef(null);
-  const analyserRef = useRef(null);
-  const audioCheckIntervalRef = useRef(null);
+  const localAnalyserRef = useRef(null);
 
   // ICE серверы для WebRTC
   const iceServers = {
@@ -258,6 +267,35 @@ function VoiceChannel({ socket, channel, username }) {
     }
   };
 
+  const startLocalAudioAnalysis = (stream) => {
+    try {
+      const audioContext = new AudioContext();
+      const analyser = audioContext.createAnalyser();
+      const source = audioContext.createMediaStreamSource(stream);
+      source.connect(analyser);
+      analyser.fftSize = 512;
+
+      localAnalyserRef.current = analyser;
+
+      const dataArray = new Uint8Array(analyser.frequencyBinCount);
+
+      const checkMyAudioLevel = () => {
+        if (!localAnalyserRef.current) return;
+
+        analyser.getByteFrequencyData(dataArray);
+        const average = dataArray.reduce((a, b) => a + b) / dataArray.length;
+
+        // Показывать говорение только если микрофон включен
+        setIsSpeaking(!globalMuted && average > 20);
+
+        requestAnimationFrame(checkMyAudioLevel);
+      };
+      checkMyAudioLevel();
+    } catch (err) {
+      console.warn('Не удалось анализировать локальное аудио:', err);
+    }
+  };
+
   const playRemoteAudio = (stream, userId) => {
     // Создать аудио элемент для воспроизведения
     let audio = document.getElementById(`audio-${userId}`);
@@ -323,6 +361,9 @@ function VoiceChannel({ socket, channel, username }) {
       localStreamRef.current = processedStream;
       setIsConnected(true);
 
+      // Анализировать свой собственный микрофон
+      startLocalAudioAnalysis(stream);
+
       // Присоединиться к голосовому каналу
       socket.emit('voice:join', {
         channelId: channel.id,
@@ -384,6 +425,9 @@ function VoiceChannel({ socket, channel, username }) {
       localStreamRef.current = null;
     }
 
+    // Остановить анализатор
+    localAnalyserRef.current = null;
+
     // Закрыть все peer соединения
     Object.values(peersRef.current).forEach(peer => peer.close());
     peersRef.current = {};
@@ -395,298 +439,57 @@ function VoiceChannel({ socket, channel, username }) {
     });
 
     // Покинуть голосовой канал
-    socket.emit('voice:leave', { channelId: channel.id });
+    if (socket && channel) {
+      socket.emit('voice:leave', { channelId: channel.id });
+    }
 
     setIsConnected(false);
     setVoiceUsers([]);
     setSpeakingUsers(new Set());
+    setIsSpeaking(false);
   };
 
-  const toggleMute = () => {
-    if (isDeafened) return; // Нельзя размьютиться если deafened
-
-    if (localStreamRef.current) {
-      const audioTrack = localStreamRef.current.getAudioTracks()[0];
-      if (audioTrack) {
-        audioTrack.enabled = !audioTrack.enabled;
-        const newMutedState = !audioTrack.enabled;
-        setIsMuted(newMutedState);
-
-        // Отправить статус на сервер
-        if (socket && channel) {
-          socket.emit('voice:mute-toggle', {
-            channelId: channel.id,
-            isMuted: newMutedState
-          });
-        }
-      }
+  // Прокинуть функцию disconnect наверх для использования в профиле
+  useEffect(() => {
+    if (onDisconnectRef) {
+      onDisconnectRef.current = handleDisconnect;
     }
-  };
+  }, [onDisconnectRef]);
 
-  const toggleDeafen = () => {
-    const newDeafenedState = !isDeafened;
-    setIsDeafened(newDeafenedState);
+  // Синхронизация с глобальными состояниями
+  useEffect(() => {
+    if (!localStreamRef.current || !socket || !channel) return;
 
-    if (newDeafenedState) {
-      // При включении deafen - автоматически mute микрофон
-      if (localStreamRef.current && !isMuted) {
-        const audioTrack = localStreamRef.current.getAudioTracks()[0];
-        if (audioTrack) {
-          audioTrack.enabled = false;
-          setIsMuted(true);
+    const audioTrack = localStreamRef.current.getAudioTracks()[0];
+    if (audioTrack) {
+      audioTrack.enabled = !globalMuted;
 
-          socket.emit('voice:mute-toggle', {
-            channelId: channel.id,
-            isMuted: true
-          });
-        }
-      }
-
-      // Отключаем все входящие аудио потоки
-      voiceUsers.forEach(user => {
-        const audio = document.getElementById(`audio-${user.id}`);
-        if (audio) {
-          audio.muted = true;
-        }
-      });
-    } else {
-      // При выключении deafen - включаем все аудио обратно
-      voiceUsers.forEach(user => {
-        const audio = document.getElementById(`audio-${user.id}`);
-        if (audio) {
-          audio.muted = false;
-        }
-      });
-    }
-
-    // Отправить статус на сервер
-    if (socket && channel) {
-      socket.emit('voice:deafen-toggle', {
+      socket.emit('voice:mute-toggle', {
         channelId: channel.id,
-        isDeafened: newDeafenedState
+        isMuted: globalMuted
       });
     }
-  };
+  }, [globalMuted, socket, channel]);
 
-  // Применить настройки звука (требует переподключения)
-  const applyAudioSettings = async () => {
-    if (!isConnected || !localStreamRef.current) return;
+  useEffect(() => {
+    if (!socket || !channel) return;
 
-    try {
-      // Остановить старый поток
-      localStreamRef.current.getTracks().forEach(track => track.stop());
+    // Управление входящими аудио потоками
+    voiceUsers.forEach(user => {
+      const audio = document.getElementById(`audio-${user.id}`);
+      if (audio) {
+        audio.muted = globalDeafened;
+      }
+    });
 
-      // Получить новый поток с обновленными настройками
-      const constraints = {
-        audio: {
-          echoCancellation: echoCancellation,
-          noiseSuppression: noiseSuppression,
-          autoGainControl: true,
-          sampleRate: { ideal: 48000 },
-          sampleSize: { ideal: 16 },
-          channelCount: { ideal: 2 },
-          latency: { ideal: 0.01 },
-          volume: { ideal: 1.0 }
-        },
-        video: false
-      };
+    socket.emit('voice:deafen-toggle', {
+      channelId: channel.id,
+      isDeafened: globalDeafened
+    });
+  }, [globalDeafened, voiceUsers, socket, channel]);
 
-      const newStream = await navigator.mediaDevices.getUserMedia(constraints);
-      const processedStream = await processAudioStream(newStream);
-
-      localStreamRef.current = processedStream;
-
-      // Обновить треки во всех peer соединениях с новыми параметрами
-      Object.values(peersRef.current).forEach(peerConnection => {
-        const sender = peerConnection.getSenders().find(s => s.track?.kind === 'audio');
-        if (sender && processedStream.getAudioTracks()[0]) {
-          sender.replaceTrack(processedStream.getAudioTracks()[0]);
-
-          // Обновить параметры битрейта
-          const parameters = sender.getParameters();
-          if (!parameters.encodings) {
-            parameters.encodings = [{}];
-          }
-          parameters.encodings[0].maxBitrate = audioBitrate;
-          parameters.encodings[0].priority = 'high';
-          parameters.encodings[0].networkPriority = 'high';
-          sender.setParameters(parameters).catch(err =>
-            console.warn('Не удалось обновить параметры:', err)
-          );
-        }
-      });
-
-      alert('✅ Настройки звука применены! Качество улучшено.');
-    } catch (err) {
-      console.error('Ошибка применения настроек:', err);
-      alert('❌ Не удалось применить настройки звука');
-    }
-  };
-
-  return (
-    <div className="voice-channel">
-      <div className="voice-header">
-        <div className="voice-header-left">
-          <span className="voice-icon">🔊</span>
-          <h3>{channel.name}</h3>
-        </div>
-        {isConnected && (
-          <div className="voice-header-right">
-            <span className="live-indicator">В ЭФИРЕ</span>
-          </div>
-        )}
-      </div>
-
-      <div className="voice-content">
-        {!isConnected ? (
-          <div className="voice-connecting">
-            <div className="connecting-spinner">🎤</div>
-            <h3>Подключение...</h3>
-            <p>Разрешите доступ к микрофону</p>
-          </div>
-        ) : (
-          <div className="voice-active">
-            <div className="voice-users-list">
-              <h4>В голосовом канале ({voiceUsers.length + 1})</h4>
-
-              <div className="voice-user-item me">
-                <div className="voice-user-avatar">
-                  {username[0].toUpperCase()}
-                </div>
-                <div className="voice-user-info">
-                  <span className="voice-user-name">{username} (вы)</span>
-                  <span className="voice-user-status">
-                    {isDeafened ? '🔇 Не слышу' : isMuted ? '🔇 Выключен' : '🎤 Включен'}
-                  </span>
-                </div>
-              </div>
-
-              {voiceUsers.map(user => (
-                <div
-                  key={user.id}
-                  className={`voice-user-item ${speakingUsers.has(user.id) ? 'speaking' : ''}`}
-                >
-                  <div className="voice-user-avatar">
-                    {user.username[0].toUpperCase()}
-                  </div>
-                  <div className="voice-user-info">
-                    <span className="voice-user-name">{user.username}</span>
-                    <span className="voice-user-status">
-                      {speakingUsers.has(user.id) ? '🗣️ Говорит' : '🎧 Слушает'}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Настройки звука */}
-            <div className="voice-settings">
-              <button
-                className="settings-toggle"
-                onClick={() => setShowSettings(!showSettings)}
-              >
-                ⚙️ {showSettings ? 'Скрыть' : 'Настройки звука'}
-              </button>
-
-              {showSettings && (
-                <div className="settings-panel">
-                  <div className="setting-item">
-                    <label>
-                      <input
-                        type="checkbox"
-                        checked={noiseSuppression}
-                        onChange={(e) => setNoiseSuppression(e.target.checked)}
-                      />
-                      <span>🔊 Шумоподавление</span>
-                    </label>
-                  </div>
-
-                  <div className="setting-item">
-                    <label>
-                      <input
-                        type="checkbox"
-                        checked={echoCancellation}
-                        onChange={(e) => setEchoCancellation(e.target.checked)}
-                      />
-                      <span>🔄 Подавление эха</span>
-                    </label>
-                  </div>
-
-                  <div className="setting-item slider-item">
-                    <label>
-                      <span>🎚️ Чувствительность микрофона: {micSensitivity}</span>
-                      <input
-                        type="range"
-                        min="5"
-                        max="50"
-                        value={micSensitivity}
-                        onChange={(e) => setMicSensitivity(Number(e.target.value))}
-                      />
-                      <small>Низкая ← → Высокая</small>
-                    </label>
-                  </div>
-
-                  <div className="setting-item slider-item">
-                    <label>
-                      <span>🎵 Качество звука: {Math.round(audioBitrate / 1000)} kbps</span>
-                      <input
-                        type="range"
-                        min="64000"
-                        max="256000"
-                        step="8000"
-                        value={audioBitrate}
-                        onChange={(e) => setAudioBitrate(Number(e.target.value))}
-                      />
-                      <small>Экономный (64) ← → Высокое (256)</small>
-                    </label>
-                  </div>
-
-                  <button
-                    className="apply-settings-btn"
-                    onClick={applyAudioSettings}
-                  >
-                    🔄 Применить настройки
-                  </button>
-                </div>
-              )}
-            </div>
-
-            <div className="voice-controls">
-              <button
-                className={`voice-control-btn ${isMuted ? 'muted' : ''}`}
-                onClick={toggleMute}
-                title={isMuted ? 'Включить микрофон' : 'Выключить микрофон'}
-                disabled={isDeafened}
-              >
-                {isMuted ? '🔇' : '🎤'}
-              </button>
-              <button
-                className={`voice-control-btn ${isDeafened ? 'deafened' : ''}`}
-                onClick={toggleDeafen}
-                title={isDeafened ? 'Включить звук' : 'Отключить звук'}
-              >
-                {isDeafened ? '🔇' : '🎧'}
-              </button>
-              <button
-                className="voice-control-btn settings-btn"
-                onClick={() => setShowSettings(!showSettings)}
-                title="Настройки"
-              >
-                ⚙️
-              </button>
-              <button
-                className="voice-control-btn disconnect"
-                onClick={handleDisconnect}
-                title="Отключиться"
-              >
-                📞
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
-  );
+  // Голосовой канал теперь скрыт - работает в фоне
+  return null;
 }
 
 export default VoiceChannel;

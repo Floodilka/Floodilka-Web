@@ -15,12 +15,18 @@ const BACKEND_URL = window.location.hostname === 'localhost'
 function App() {
   const [socket, setSocket] = useState(null);
   const [channels, setChannels] = useState([]);
-  const [currentChannel, setCurrentChannel] = useState(null);
+  const [currentTextChannel, setCurrentTextChannel] = useState(null);
+  const [currentVoiceChannel, setCurrentVoiceChannel] = useState(null);
   const [messages, setMessages] = useState([]);
   const [users, setUsers] = useState([]);
   const [voiceChannelUsers, setVoiceChannelUsers] = useState({}); // {channelId: [{id, username, isMuted}]}
+  const [speakingUsers, setSpeakingUsers] = useState({}); // {channelId: Set of userIds}
   const [username, setUsername] = useState(null);
   const [showUsernameModal, setShowUsernameModal] = useState(true);
+  const [globalMuted, setGlobalMuted] = useState(false);
+  const [globalDeafened, setGlobalDeafened] = useState(false);
+  const voiceDisconnectRef = useRef(null);
+  const speakingUsersRef = useRef({});
 
   // Инициализация socket
   useEffect(() => {
@@ -36,9 +42,10 @@ function App() {
       .then(res => res.json())
       .then(data => {
         setChannels(data);
-        // Автоматически выбрать первый канал
-        if (data.length > 0 && !currentChannel) {
-          setCurrentChannel(data[0]);
+        // Автоматически выбрать первый текстовый канал
+        const firstTextChannel = data.find(ch => ch.type === 'text');
+        if (firstTextChannel && !currentTextChannel) {
+          setCurrentTextChannel(firstTextChannel);
         }
       })
       .catch(err => console.error('Ошибка загрузки каналов:', err));
@@ -66,7 +73,12 @@ function App() {
 
     socket.on('voice:channels-update', (voiceData) => {
       console.log('📡 Получено voice:channels-update:', voiceData);
-      setVoiceChannelUsers(voiceData);
+      // Фильтруем себя из списка - мы добавляем себя отдельно в ChannelList
+      const filteredData = {};
+      Object.keys(voiceData).forEach(channelId => {
+        filteredData[channelId] = voiceData[channelId].filter(user => user.id !== socket.id);
+      });
+      setVoiceChannelUsers(filteredData);
     });
 
     socket.on('error', ({ message }) => {
@@ -87,19 +99,16 @@ function App() {
     };
   }, [socket]);
 
-  // Присоединиться к каналу при выборе
+  // Присоединиться к текстовому каналу при выборе
   useEffect(() => {
-    if (socket && currentChannel && username) {
-      // Только для текстовых каналов
-      if (currentChannel.type === 'text') {
-        setMessages([]);
-        socket.emit('channel:join', {
-          channelId: currentChannel.id,
-          username
-        });
-      }
+    if (socket && currentTextChannel && username) {
+      setMessages([]);
+      socket.emit('channel:join', {
+        channelId: currentTextChannel.id,
+        username
+      });
     }
-  }, [socket, currentChannel, username]);
+  }, [socket, currentTextChannel, username]);
 
   const handleUsernameSubmit = (name) => {
     setUsername(name);
@@ -107,17 +116,17 @@ function App() {
   };
 
   const handleChannelSelect = (channel) => {
-    // Для голосовых каналов не сохраняем как "текущий" - только триггерим подключение
     if (channel.type === 'voice') {
-      // Если уже просматриваем этот канал - просто обновляем (для переподключения)
-      if (currentChannel?.id === channel.id) {
-        setCurrentChannel(null);
-        setTimeout(() => setCurrentChannel(channel), 10);
+      // Для голосовых - подключаем если еще не подключены
+      if (currentVoiceChannel?.id === channel.id) {
+        // Уже подключены - игнорируем
+        return;
       } else {
-        setCurrentChannel(channel);
+        setCurrentVoiceChannel(channel);
       }
     } else {
-      setCurrentChannel(channel);
+      // Для текстовых - просто переключаем
+      setCurrentTextChannel(channel);
     }
   };
 
@@ -131,15 +140,19 @@ function App() {
     })
       .then(res => res.json())
       .then(newChannel => {
-        setCurrentChannel(newChannel);
+        if (newChannel.type === 'text') {
+          setCurrentTextChannel(newChannel);
+        } else {
+          setCurrentVoiceChannel(newChannel);
+        }
       })
       .catch(err => console.error('Ошибка создания канала:', err));
   };
 
   const handleSendMessage = (content) => {
-    if (socket && currentChannel) {
+    if (socket && currentTextChannel) {
       socket.emit('message:send', {
-        channelId: currentChannel.id,
+        channelId: currentTextChannel.id,
         content
       });
     }
@@ -153,26 +166,55 @@ function App() {
     <div className="app">
       <ChannelList
         channels={channels}
-        currentChannel={currentChannel}
+        currentTextChannel={currentTextChannel}
+        currentVoiceChannel={currentVoiceChannel}
         voiceChannelUsers={voiceChannelUsers}
+        speakingUsers={speakingUsers}
+        username={username}
+        isMuted={globalMuted}
+        isDeafened={globalDeafened}
+        isInVoice={!!currentVoiceChannel}
+        onToggleMute={() => setGlobalMuted(!globalMuted)}
+        onToggleDeafen={() => {
+          const newDeafened = !globalDeafened;
+          setGlobalDeafened(newDeafened);
+          if (newDeafened) setGlobalMuted(true); // Auto-mute при deafen
+        }}
+        onDisconnect={() => {
+          // Отключение из голосового канала
+          if (currentVoiceChannel && voiceDisconnectRef.current) {
+            voiceDisconnectRef.current();
+            setCurrentVoiceChannel(null);
+          }
+        }}
         onSelectChannel={handleChannelSelect}
         onCreateChannel={handleCreateChannel}
       />
-      {currentChannel?.type === 'voice' ? (
+      {/* Голосовой канал (скрытый, работает в фоне) */}
+      {currentVoiceChannel && (
         <VoiceChannel
           socket={socket}
-          channel={currentChannel}
+          channel={currentVoiceChannel}
           username={username}
-        />
-      ) : (
-        <Chat
-          channel={currentChannel}
-          messages={messages}
-          username={username}
-          onSendMessage={handleSendMessage}
+          globalMuted={globalMuted}
+          globalDeafened={globalDeafened}
+          onDisconnectRef={voiceDisconnectRef}
+          onSpeakingUpdate={(speaking) => {
+            speakingUsersRef.current[currentVoiceChannel.id] = speaking;
+            setSpeakingUsers({...speakingUsersRef.current});
+          }}
         />
       )}
-      {currentChannel?.type !== 'voice' && <UserList users={users} />}
+
+      {/* Текстовый чат - всегда отображается */}
+      <Chat
+        channel={currentTextChannel}
+        messages={messages}
+        username={username}
+        onSendMessage={handleSendMessage}
+      />
+
+      <UserList users={users} />
     </div>
   );
 }

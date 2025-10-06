@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import './ChannelList.css';
+import UserProfile from './UserProfile';
 
-function ChannelList({ channels, currentChannel, voiceChannelUsers, onSelectChannel, onCreateChannel }) {
+function ChannelList({ channels, currentTextChannel, currentVoiceChannel, voiceChannelUsers, speakingUsers, username, isMuted, isDeafened, isInVoice, onToggleMute, onToggleDeafen, onDisconnect, onSelectChannel, onCreateChannel }) {
   const [showTextForm, setShowTextForm] = useState(false);
   const [showVoiceForm, setShowVoiceForm] = useState(false);
   const [newChannelName, setNewChannelName] = useState('');
@@ -79,7 +80,7 @@ function ChannelList({ channels, currentChannel, voiceChannelUsers, onSelectChan
           {textChannels.map(channel => (
             <div
               key={channel.id}
-              className={`channel-item ${currentChannel?.id === channel.id ? 'active' : ''}`}
+              className={`channel-item ${currentTextChannel?.id === channel.id ? 'active' : ''}`}
               onClick={() => onSelectChannel(channel)}
             >
               <span className="channel-icon">#</span>
@@ -132,6 +133,13 @@ function ChannelList({ channels, currentChannel, voiceChannelUsers, onSelectChan
         <div className="channels">
           {voiceChannels.map(channel => {
             const usersInChannel = voiceChannelUsers[channel.id] || [];
+            const channelSpeaking = speakingUsers[channel.id] || new Set();
+            const isCurrentInChannel = currentVoiceChannel?.id === channel.id;
+
+            // Объединяем текущего пользователя с другими если он в этом канале
+            const allUsers = isCurrentInChannel
+              ? [{ id: 'me', username, isMuted, isDeafened }, ...usersInChannel]
+              : usersInChannel;
 
             return (
               <div key={channel.id} className="voice-channel-wrapper">
@@ -139,21 +147,33 @@ function ChannelList({ channels, currentChannel, voiceChannelUsers, onSelectChan
                   className="channel-item"
                   onClick={() => onSelectChannel(channel)}
                 >
-                  <span className="channel-icon">🔊</span>
+                  <img src="/icons/channel.png" alt="Голосовой канал" className="channel-icon-img" />
                   <span className="channel-name">{channel.name}</span>
                 </div>
 
-                {usersInChannel.length > 0 && (
+                {allUsers.length > 0 && (
                   <div className="voice-users-in-sidebar">
-                    {usersInChannel.map(user => (
-                      <div key={user.id} className="voice-user-sidebar">
-                        <div className="voice-user-avatar-tiny">
-                          {user.username[0].toUpperCase()}
+                    {allUsers.map(user => {
+                      const isSpeaking = user.id === 'me'
+                        ? channelSpeaking.has('me')
+                        : channelSpeaking.has(user.id);
+                      return (
+                        <div key={user.id} className="voice-user-sidebar">
+                          <div className={`voice-user-avatar-tiny ${isSpeaking ? 'speaking' : ''}`}>
+                            {user.username[0].toUpperCase()}
+                          </div>
+                          <span className="voice-user-name-tiny">{user.username}</span>
+                          <div className="voice-user-status-icons">
+                            {user.isDeafened && (
+                              <img src="/icons/headset_off.png" alt="Не слышит" className="status-icon" />
+                            )}
+                            {user.isMuted && (
+                              <img src="/icons/microphone_off.png" alt="Микрофон выкл" className="status-icon mic-icon" />
+                            )}
+                          </div>
                         </div>
-                        <span className="voice-user-name-tiny">{user.username}</span>
-                        {user.isDeafened ? <span className="deafen-icon">🔇</span> : user.isMuted && <span className="mute-icon">🔇</span>}
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -161,6 +181,17 @@ function ChannelList({ channels, currentChannel, voiceChannelUsers, onSelectChan
           })}
         </div>
       </div>
+
+      <UserProfile
+        username={username}
+        isMuted={isMuted}
+        isDeafened={isDeafened}
+        isInVoice={isInVoice}
+        isSpeaking={currentVoiceChannel && speakingUsers[currentVoiceChannel.id]?.has('me')}
+        onToggleMute={onToggleMute}
+        onToggleDeafen={onToggleDeafen}
+        onDisconnect={onDisconnect}
+      />
     </div>
   );
 }
