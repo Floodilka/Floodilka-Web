@@ -1,10 +1,24 @@
 .user-profile {
   display: flex;
+  flex-direction: column;
+  padding: 10px 16px;
+  margin: 8px 16px 16px 16px;
+  background-color: #292b2f;
+  border-radius: 8px;
+  gap: 8px;
+  min-height: 52px;
+  box-sizing: border-box;
+  transition: all 0.3s ease;
+}
+
+.user-profile.in-voice {
+  padding: 12px 16px;
+}
+
+.user-profile-main {
+  display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 8px;
-  background-color: #292b2f;
-  border-top: 1px solid #202225;
   gap: 8px;
 }
 
@@ -102,12 +116,63 @@
   color: #b9bbbe;
 }
 
-.user-profile-controls {
+/* Голосовые контролы - отдельная строка снизу */
+.voice-controls {
   display: flex;
-  gap: 4px;
-  flex-shrink: 0;
+  gap: 6px;
+  animation: slideDown 0.15s ease;
+  margin-top: 4px;
 }
 
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.voice-control-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px;
+  border-radius: 6px;
+  border: none;
+  background-color: #40444b;
+  color: #dcddde;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.voice-control-btn:hover {
+  background-color: #484c52;
+}
+
+.voice-control-btn.active {
+  background-color: #ed4245;
+  color: white;
+}
+
+.voice-control-btn.active:hover {
+  background-color: #c03537;
+}
+
+.voice-control-btn.disconnect-btn {
+  background-color: #ed4245;
+  color: white;
+}
+
+.voice-control-btn.disconnect-btn:hover {
+  background-color: #c03537;
+}
+
+
+/* Кнопка настроек в основной строке */
 .profile-control-btn {
   width: 32px;
   height: 32px;
@@ -122,6 +187,7 @@
   align-items: center;
   justify-content: center;
   padding: 0;
+  flex-shrink: 0;
 }
 
 .profile-control-btn:hover:not(:disabled) {
@@ -133,31 +199,36 @@
   cursor: not-allowed;
 }
 
-.profile-control-btn.active {
-  background-color: #ed4245;
-  color: white;
-}
-
-.profile-control-btn.active:hover {
-  background-color: #c03537;
-}
-
 .control-icon {
   width: 16px;
   height: 16px;
   filter: invert(90%) sepia(0%) saturate(0%) hue-rotate(0deg) brightness(95%) contrast(85%);
 }
 
-.profile-control-btn.active .control-icon {
+.voice-control-btn .control-icon {
+  width: 20px;
+  height: 20px;
+  filter: invert(90%) sepia(0%) saturate(0%) hue-rotate(0deg) brightness(95%) contrast(85%);
+}
+
+.voice-control-btn.active .control-icon,
+.voice-control-btn.disconnect-btn .control-icon {
   filter: invert(100%) sepia(0%) saturate(0%) hue-rotate(0deg) brightness(100%) contrast(100%);
 }
 
-.profile-control-btn.disconnect-btn {
-  background-color: #ed4245;
-  color: white;
+/* Анимация исчезновения при отключении */
+.voice-controls.closing {
+  animation: slideUp 0.15s ease forwards;
 }
 
-.profile-control-btn.disconnect-btn:hover {
-  background-color: #c03537;
+@keyframes slideUp {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
 }
 
