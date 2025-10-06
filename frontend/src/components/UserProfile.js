@@ -23,7 +23,13 @@ function UserProfile({
   const getStatusText = () => {
     if (isDeafened) return 'Отключен звук';
     if (isMuted) return 'Микрофон выключен';
-    return 'Онлайн';
+    return 'В сети';
+  };
+
+  const getStatusIndicatorClass = () => {
+    if (isDeafened) return 'deafened';
+    if (isMuted) return 'muted';
+    return 'online';
   };
 
   return (
@@ -43,7 +49,10 @@ function UserProfile({
           )}
           <div className="user-profile-details">
             <div className="user-profile-name">{user?.displayName || user?.username || 'Пользователь'}</div>
-            <div className="user-profile-status">{getStatusText()}</div>
+            <div className="user-profile-status">
+              <span className={`status-indicator ${getStatusIndicatorClass()}`}></span>
+              <span>{getStatusText()}</span>
+            </div>
           </div>
         </div>
 

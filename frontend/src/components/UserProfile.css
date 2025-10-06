@@ -77,10 +77,11 @@
 }
 
 .status-indicator {
-  width: 8px;
-  height: 8px;
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
   flex-shrink: 0;
+  box-shadow: 0 0 0 2px #292b2f;
 }
 
 .status-indicator.online {
@@ -88,7 +89,7 @@
 }
 
 .status-indicator.muted {
-  background-color: #ed4245;
+  background-color: #f0b232;
 }
 
 .status-indicator.deafened {

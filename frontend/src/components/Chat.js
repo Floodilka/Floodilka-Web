@@ -69,8 +69,8 @@ function Chat({ channel, messages, username, onSendMessage }) {
               {message.isSystem ? (
                 '🤖'
               ) : message.avatar ? (
-                <img 
-                  src={`${BACKEND_URL}${message.avatar}`} 
+                <img
+                  src={`${BACKEND_URL}${message.avatar}`}
                   alt={message.username}
                   onError={(e) => {
                     // Если изображение не загрузилось, показываем букву
