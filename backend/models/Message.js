@@ -6,15 +6,25 @@ const messageSchema = new mongoose.Schema({
     required: true,
     index: true
   },
+  userId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    default: null,
+    index: true
+  },
   username: {
     type: String,
     required: true
+  },
+  displayName: {
+    type: String,
+    default: null
   },
   avatar: {
     type: String,
     default: null
   },
-    badge: {
+  badge: {
     type: String,
     default: null
   },

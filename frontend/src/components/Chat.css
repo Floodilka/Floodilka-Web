@@ -158,6 +158,11 @@
   color: #ffffff;
   font-weight: 600;
   font-size: 15px;
+  transition: text-decoration 0.1s;
+}
+
+.message-username:hover:not([style*="cursor: default"]) {
+  text-decoration: underline;
 }
 
 .message-badge {
@@ -266,5 +271,132 @@
 .message-input-container button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+/* Оверлей для карточки профиля */
+.user-profile-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: transparent;
+  z-index: 9998;
+}
+
+/* Карточка профиля пользователя в чате */
+.user-profile-card-chat {
+  position: fixed;
+  width: 340px;
+  background: #111214;
+  border-radius: 8px;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
+  z-index: 9999;
+  animation: profileSlideInChat 0.15s ease-out;
+  overflow: hidden;
+}
+
+@keyframes profileSlideInChat {
+  from {
+    opacity: 0;
+    transform: translateX(-8px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+.user-profile-banner {
+  height: 60px;
+  background: linear-gradient(135deg, #5865f2 0%, #4752c4 100%);
+}
+
+.user-profile-content {
+  padding: 16px;
+  padding-top: 48px;
+  position: relative;
+}
+
+.user-profile-avatar-wrapper {
+  position: absolute;
+  top: -32px;
+  left: 16px;
+}
+
+.user-profile-avatar-large {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  border: 6px solid #111214;
+  background: linear-gradient(135deg, #5865f2 0%, #4752c4 100%);
+  object-fit: cover;
+}
+
+.user-profile-avatar-fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 600;
+  font-size: 32px;
+}
+
+.user-profile-display-name {
+  color: #ffffff;
+  font-size: 20px;
+  font-weight: 600;
+  margin-bottom: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.user-profile-username-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.user-profile-username {
+  color: #b5bac1;
+  font-size: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 220px;
+}
+
+.user-profile-badge {
+  font-size: 8px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 3px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-top: 2px;
+}
+
+.user-profile-badge.badge-dev {
+  background-color: #5865f2;
+  color: #ffffff;
+}
+
+.user-profile-badge.badge-admin {
+  background-color: #ed4245;
+  color: #ffffff;
+}
+
+.user-profile-badge.badge-moderator {
+  background-color: #57f287;
+  color: #2b2d31;
+}
+
+.user-profile-badge.badge-vip {
+  background-color: #faa61a;
+  color: #2b2d31;
 }
 

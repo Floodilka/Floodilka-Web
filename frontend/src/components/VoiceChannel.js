@@ -367,10 +367,12 @@ function VoiceChannel({ socket, channel, user, globalMuted, globalDeafened, onDi
       // Присоединиться к голосовому каналу
       socket.emit('voice:join', {
         channelId: channel.id,
-        username: user?.displayName || user?.username,
+        username: user?.username,
+        displayName: user?.displayName,
         avatar: user?.avatar,
         badge: user?.badge,
-        badgeTooltip: user?.badgeTooltip
+        badgeTooltip: user?.badgeTooltip,
+        userId: user?.id
       });
 
     } catch (err) {

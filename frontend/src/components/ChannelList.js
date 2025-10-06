@@ -11,6 +11,39 @@ function ChannelList({ channels, currentTextChannel, currentVoiceChannel, voiceC
   const [showVoiceForm, setShowVoiceForm] = useState(false);
   const [newChannelName, setNewChannelName] = useState('');
   const [showServerMenu, setShowServerMenu] = useState(false);
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [profilePosition, setProfilePosition] = useState({ top: 0, left: 0 });
+
+  const handleVoiceUserClick = async (voiceUser, event) => {
+    event.stopPropagation();
+    const rect = event.currentTarget.getBoundingClientRect();
+    setProfilePosition({
+      top: rect.top,
+      left: rect.right + 8
+    });
+
+    // Если есть userId, загрузить актуальные данные пользователя
+    if (voiceUser.userId) {
+      try {
+        const response = await fetch(`${BACKEND_URL}/api/auth/user/${voiceUser.userId}`);
+        if (response.ok) {
+          const userData = await response.json();
+          setSelectedUser(userData);
+          return;
+        }
+      } catch (err) {
+        console.error('Ошибка загрузки данных пользователя:', err);
+      }
+    }
+
+    // Fallback: использовать данные из голосового канала
+    setSelectedUser(voiceUser);
+  };
+
+  const handleCloseProfile = () => {
+    setSelectedUser(null);
+  };
+
   const [menuClosing, setMenuClosing] = useState(false);
   const [inviteLink, setInviteLink] = useState('');
   const [inviteLoading, setInviteLoading] = useState(false);
@@ -308,7 +341,7 @@ function ChannelList({ channels, currentTextChannel, currentVoiceChannel, voiceC
 
             // Объединяем текущего пользователя с другими если он в этом канале
             const allUsers = isCurrentInChannel
-              ? [{ id: 'me', username: user?.displayName || user?.username, avatar: user?.avatar, badge: user?.badge, badgeTooltip: user?.badgeTooltip, isMuted, isDeafened }, ...usersInChannel]
+              ? [{ id: 'me', username: user?.username, displayName: user?.displayName, avatar: user?.avatar, badge: user?.badge, badgeTooltip: user?.badgeTooltip, userId: user?.id, isMuted, isDeafened }, ...usersInChannel]
               : usersInChannel;
 
             return (
@@ -328,7 +361,11 @@ function ChannelList({ channels, currentTextChannel, currentVoiceChannel, voiceC
                         ? channelSpeaking.has('me')
                         : channelSpeaking.has(user.id);
                       return (
-                        <div key={user.id} className="voice-user-sidebar">
+                        <div
+                          key={user.id}
+                          className="voice-user-sidebar"
+                          onClick={(e) => handleVoiceUserClick(user, e)}
+                        >
                           {user.avatar ? (
                             <img
                               src={`${BACKEND_URL}${user.avatar}`}
@@ -337,12 +374,12 @@ function ChannelList({ channels, currentTextChannel, currentVoiceChannel, voiceC
                             />
                           ) : (
                             <div className={`voice-user-avatar-tiny ${isSpeaking ? 'speaking' : ''}`}>
-                              {user.username[0].toUpperCase()}
+                              {(user.displayName || user.username)[0].toUpperCase()}
                             </div>
                           )}
                           <div className="voice-user-info-tiny">
                             <div className="voice-user-name-row">
-                              <span className="voice-user-name-tiny">{user.username}</span>
+                              <span className="voice-user-name-tiny">{user.displayName || user.username}</span>
                               {user.badge && user.badge !== 'User' && (
                                 <span
                                   className={`voice-user-badge badge-${user.badge.toLowerCase()}`}
@@ -385,6 +422,64 @@ function ChannelList({ channels, currentTextChannel, currentVoiceChannel, voiceC
         onLogout={onLogout}
         onAvatarUpdate={onAvatarUpdate}
       />
+
+      {selectedUser && (
+        <>
+          <div className="user-profile-overlay" onClick={handleCloseProfile} />
+          <div
+            className="user-profile-card-voice"
+            style={{
+              top: `${profilePosition.top}px`,
+              left: `${profilePosition.left}px`
+            }}
+          >
+            <div className="user-profile-banner" />
+            <div className="user-profile-content">
+              <div className="user-profile-avatar-wrapper">
+                {selectedUser.avatar ? (
+                  <img
+                    src={`${BACKEND_URL}${selectedUser.avatar}`}
+                    alt="Avatar"
+                    className="user-profile-avatar-large"
+                  />
+                ) : (
+                  <div className="user-profile-avatar-large user-profile-avatar-fallback">
+                    {(selectedUser.displayName || selectedUser.username)[0].toUpperCase()}
+                  </div>
+                )}
+              </div>
+              {selectedUser.displayName ? (
+                <>
+                  <div className="user-profile-display-name">
+                    {selectedUser.displayName}
+                  </div>
+                  <div className="user-profile-username-row">
+                    <div className="user-profile-username">
+                      {selectedUser.username}
+                    </div>
+                    {selectedUser.badge && selectedUser.badge !== 'User' && (
+                      <span className={`user-profile-badge badge-${selectedUser.badge.toLowerCase()}`}>
+                        {selectedUser.badge}
+                      </span>
+                    )}
+                  </div>
+                </>
+              ) : (
+                <div className="user-profile-username-row">
+                  <div className="user-profile-display-name">
+                    {selectedUser.username}
+                  </div>
+                  {selectedUser.badge && selectedUser.badge !== 'User' && (
+                    <span className={`user-profile-badge badge-${selectedUser.badge.toLowerCase()}`}>
+                      {selectedUser.badge}
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }

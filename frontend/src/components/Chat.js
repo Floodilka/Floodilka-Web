@@ -9,6 +9,43 @@ function Chat({ channel, messages, username, onSendMessage, hasServer }) {
   const [inputValue, setInputValue] = useState('');
   const messagesEndRef = useRef(null);
   const messagesContainerRef = useRef(null);
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [profilePosition, setProfilePosition] = useState({ top: 0, left: 0 });
+
+  const handleUserClick = async (message, event) => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    setProfilePosition({
+      top: rect.top,
+      left: rect.right + 8
+    });
+
+    // Если есть userId, загрузить актуальные данные пользователя
+    if (message.userId) {
+      try {
+        const response = await fetch(`${BACKEND_URL}/api/auth/user/${message.userId}`);
+        if (response.ok) {
+          const userData = await response.json();
+          setSelectedUser(userData);
+          return;
+        }
+      } catch (err) {
+        console.error('Ошибка загрузки данных пользователя:', err);
+      }
+    }
+
+    // Fallback: использовать данные из сообщения
+    setSelectedUser({
+      username: message.username,
+      displayName: message.displayName,
+      avatar: message.avatar,
+      badge: message.badge,
+      badgeTooltip: message.badgeTooltip
+    });
+  };
+
+  const handleCloseProfile = () => {
+    setSelectedUser(null);
+  };
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -70,7 +107,11 @@ function Chat({ channel, messages, username, onSendMessage, hasServer }) {
             key={message.id}
             className={`message ${message.isSystem ? 'system-message' : ''} ${message.username === username ? 'own-message' : ''}`}
           >
-            <div className="message-avatar">
+            <div
+              className="message-avatar"
+              onClick={(e) => !message.isSystem && handleUserClick(message, e)}
+              style={{ cursor: message.isSystem ? 'default' : 'pointer' }}
+            >
               {message.isSystem ? (
                 '🤖'
               ) : message.avatar ? (
@@ -85,12 +126,18 @@ function Chat({ channel, messages, username, onSendMessage, hasServer }) {
                 />
               ) : null}
               <div className="message-avatar-fallback" style={{ display: message.avatar ? 'none' : 'flex' }}>
-                {message.username[0].toUpperCase()}
+                {(message.displayName || message.username)[0].toUpperCase()}
               </div>
             </div>
             <div className="message-content">
               <div className="message-header">
-                <span className="message-username">{message.username}</span>
+                <span
+                  className="message-username"
+                  onClick={(e) => !message.isSystem && handleUserClick(message, e)}
+                  style={{ cursor: message.isSystem ? 'default' : 'pointer' }}
+                >
+                  {message.displayName || message.username}
+                </span>
                 {message.badge && message.badge !== 'User' && (
                   <span
                     className={`message-badge badge-${message.badge.toLowerCase()}`}
@@ -122,6 +169,64 @@ function Chat({ channel, messages, username, onSendMessage, hasServer }) {
           </button>
         </form>
       </div>
+
+      {selectedUser && (
+        <>
+          <div className="user-profile-overlay" onClick={handleCloseProfile} />
+          <div
+            className="user-profile-card-chat"
+            style={{
+              top: `${profilePosition.top}px`,
+              left: `${profilePosition.left}px`
+            }}
+          >
+            <div className="user-profile-banner" />
+            <div className="user-profile-content">
+              <div className="user-profile-avatar-wrapper">
+                {selectedUser.avatar ? (
+                  <img
+                    src={`${BACKEND_URL}${selectedUser.avatar}`}
+                    alt="Avatar"
+                    className="user-profile-avatar-large"
+                  />
+                ) : (
+                  <div className="user-profile-avatar-large user-profile-avatar-fallback">
+                    {(selectedUser.displayName || selectedUser.username)[0].toUpperCase()}
+                  </div>
+                )}
+              </div>
+              {selectedUser.displayName ? (
+                <>
+                  <div className="user-profile-display-name">
+                    {selectedUser.displayName}
+                  </div>
+                  <div className="user-profile-username-row">
+                    <div className="user-profile-username">
+                      {selectedUser.username}
+                    </div>
+                    {selectedUser.badge && selectedUser.badge !== 'User' && (
+                      <span className={`user-profile-badge badge-${selectedUser.badge.toLowerCase()}`}>
+                        {selectedUser.badge}
+                      </span>
+                    )}
+                  </div>
+                </>
+              ) : (
+                <div className="user-profile-username-row">
+                  <div className="user-profile-display-name">
+                    {selectedUser.username}
+                  </div>
+                  {selectedUser.badge && selectedUser.badge !== 'User' && (
+                    <span className={`user-profile-badge badge-${selectedUser.badge.toLowerCase()}`}>
+                      {selectedUser.badge}
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }

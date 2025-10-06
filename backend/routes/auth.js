@@ -187,6 +187,31 @@ router.get('/me', async (req, res) => {
   }
 });
 
+// Получить пользователя по ID
+router.get('/user/:userId', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const user = await User.findById(userId).select('-password -email');
+
+    if (!user) {
+      return res.status(404).json({ error: 'Пользователь не найден' });
+    }
+
+    res.json({
+      id: user._id,
+      username: user.username,
+      displayName: user.displayName,
+      avatar: user.avatar,
+      badge: user.badge,
+      badgeTooltip: user.badgeTooltip,
+      status: user.status
+    });
+  } catch (error) {
+    console.error('Ошибка получения пользователя:', error);
+    res.status(500).json({ error: 'Ошибка сервера' });
+  }
+});
+
 // Загрузка аватара
 router.post('/avatar', upload.single('avatar'), async (req, res) => {
   try {

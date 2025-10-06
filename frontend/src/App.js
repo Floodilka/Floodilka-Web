@@ -152,10 +152,12 @@ function App() {
       setMessages([]);
       socket.emit('channel:join', {
         channelId: currentTextChannel.id,
-        username: user.displayName || user.username,
+        username: user.username,
+        displayName: user.displayName,
         avatar: user.avatar,
         badge: user.badge,
-        badgeTooltip: user.badgeTooltip
+        badgeTooltip: user.badgeTooltip,
+        userId: user.id
       });
     }
   }, [socket, currentTextChannel, user]);
@@ -170,10 +172,12 @@ function App() {
         setMessages([]);
         socket.emit('channel:join', {
           channelId: currentTextChannel.id,
-          username: userData.displayName || userData.username,
+          username: userData.username,
+          displayName: userData.displayName,
           avatar: userData.avatar,
           badge: userData.badge,
-          badgeTooltip: userData.badgeTooltip
+          badgeTooltip: userData.badgeTooltip,
+          userId: userData.id
         });
       }
     }, 100);
@@ -307,10 +311,12 @@ function App() {
       socket.emit('message:send', {
         channelId: currentTextChannel.id,
         content,
-        username: user.displayName || user.username,
+        username: user.username,
+        displayName: user.displayName,
         avatar: user.avatar,
         badge: user.badge,
-        badgeTooltip: user.badgeTooltip
+        badgeTooltip: user.badgeTooltip,
+        userId: user.id
       });
     }
   };
