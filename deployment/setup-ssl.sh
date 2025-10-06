@@ -6,8 +6,8 @@
 set -e
 
 # УКАЖИТЕ ВАШ ДОМЕН
-DOMAIN="your-domain.com"
-EMAIL="your-email@example.com"
+DOMAIN="boltushka.fitronyx.com"
+EMAIL="eldar.teng@gmail.com"
 
 echo "🔐 Настройка SSL для $DOMAIN..."
 
@@ -17,7 +17,7 @@ apt install -y certbot python3-certbot-nginx
 
 # Получение сертификата
 echo "📜 Получение SSL сертификата..."
-certbot --nginx -d $DOMAIN -d www.$DOMAIN --non-interactive --agree-tos --email $EMAIL
+certbot --nginx -d $DOMAIN --non-interactive --agree-tos --email $EMAIL
 
 # Автообновление сертификата
 echo "🔄 Настройка автообновления..."

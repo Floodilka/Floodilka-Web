@@ -7,7 +7,7 @@ import VoiceChannel from './components/VoiceChannel';
 import UserList from './components/UserList';
 import UsernameModal from './components/UsernameModal';
 
-const BACKEND_URL = 'http://localhost:3001';
+const BACKEND_URL = 'https://boltushka.fitronyx.com';
 
 function App() {
   const [socket, setSocket] = useState(null);
