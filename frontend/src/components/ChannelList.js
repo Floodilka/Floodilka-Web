@@ -134,9 +134,9 @@ function ChannelList({ channels, currentChannel, voiceChannelUsers, onSelectChan
             const usersInChannel = voiceChannelUsers[channel.id] || [];
 
             return (
-              <div key={channel.id} className="voice-channel-container">
+              <div key={channel.id} className="voice-channel-wrapper">
                 <div
-                  className={`channel-item voice-channel ${currentChannel?.id === channel.id ? 'active' : ''}`}
+                  className="channel-item"
                   onClick={() => onSelectChannel(channel)}
                 >
                   <span className="channel-icon">🔊</span>
@@ -144,14 +144,14 @@ function ChannelList({ channels, currentChannel, voiceChannelUsers, onSelectChan
                 </div>
 
                 {usersInChannel.length > 0 && (
-                  <div className="voice-users-list">
+                  <div className="voice-users-in-sidebar">
                     {usersInChannel.map(user => (
-                      <div key={user.id} className="voice-user">
-                        <div className="voice-user-avatar-small">
+                      <div key={user.id} className="voice-user-sidebar">
+                        <div className="voice-user-avatar-tiny">
                           {user.username[0].toUpperCase()}
                         </div>
-                        <span className="voice-user-name-small">{user.username}</span>
-                        {user.isMuted && <span className="voice-user-muted">🔇</span>}
+                        <span className="voice-user-name-tiny">{user.username}</span>
+                        {user.isMuted && <span className="mute-icon">🔇</span>}
                       </div>
                     ))}
                   </div>

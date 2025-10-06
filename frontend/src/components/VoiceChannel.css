@@ -9,27 +9,46 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px;
+  padding: 12px 16px;
   border-bottom: 1px solid #202225;
   background-color: #36393f;
   box-shadow: 0 1px 0 rgba(0, 0, 0, 0.2);
+  height: 48px;
 }
 
-.voice-header-info {
+.voice-header-left {
   display: flex;
   align-items: center;
+  flex: 1;
+}
+
+.voice-header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
 .voice-icon {
-  font-size: 24px;
+  font-size: 20px;
   margin-right: 8px;
+  color: #8e9297;
 }
 
 .voice-header h3 {
   color: #ffffff;
   font-size: 16px;
-  font-weight: 700;
+  font-weight: 600;
   margin: 0;
+}
+
+.live-indicator {
+  background-color: #ed4245;
+  color: white;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
 }
 
 .voice-content {
@@ -39,7 +58,7 @@
   overflow-y: auto;
 }
 
-.voice-connect {
+.voice-connecting {
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -49,44 +68,57 @@
   text-align: center;
 }
 
-.voice-connect-icon {
-  width: 80px;
-  height: 80px;
+.connecting-spinner {
+  width: 60px;
+  height: 60px;
   background-color: #40444b;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 40px;
-  margin-bottom: 24px;
+  font-size: 30px;
+  margin-bottom: 20px;
+  animation: pulse 1.5s infinite;
 }
 
-.voice-connect h2 {
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 0.8;
+  }
+}
+
+.voice-connecting h3 {
   color: #ffffff;
-  font-size: 24px;
-  margin-bottom: 12px;
+  font-size: 20px;
+  margin-bottom: 8px;
+  font-weight: 600;
 }
 
-.voice-connect p {
+.voice-connecting p {
   color: #b9bbbe;
-  font-size: 16px;
-  margin-bottom: 24px;
-  max-width: 400px;
+  font-size: 14px;
+  max-width: 350px;
+  margin-bottom: 20px;
 }
 
-.connect-btn {
-  padding: 14px 32px;
+.reconnect-btn {
+  padding: 12px 28px;
   background-color: #43b581;
   border: none;
   border-radius: 8px;
   color: white;
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 600;
   cursor: pointer;
   transition: background-color 0.2s;
 }
 
-.connect-btn:hover {
+.reconnect-btn:hover {
   background-color: #3a9d6f;
 }
 

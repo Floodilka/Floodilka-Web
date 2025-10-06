@@ -7,7 +7,7 @@ import VoiceChannel from './components/VoiceChannel';
 import UserList from './components/UserList';
 import UsernameModal from './components/UsernameModal';
 
-const BACKEND_URL = 'https://boltushka.fitronyx.com';
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:3001';
 
 function App() {
   const [socket, setSocket] = useState(null);
@@ -62,12 +62,17 @@ function App() {
     });
 
     socket.on('voice:channels-update', (voiceData) => {
+      console.log('📡 Получено voice:channels-update:', voiceData);
       setVoiceChannelUsers(voiceData);
     });
 
     socket.on('error', ({ message }) => {
       alert(`Ошибка: ${message}`);
     });
+
+    // Запросить текущее состояние голосовых каналов
+    console.log('📤 Запрашиваем voice:get-all-users');
+    socket.emit('voice:get-all-users');
 
     return () => {
       socket.off('channel:created');
@@ -99,7 +104,18 @@ function App() {
   };
 
   const handleChannelSelect = (channel) => {
-    setCurrentChannel(channel);
+    // Для голосовых каналов не сохраняем как "текущий" - только триггерим подключение
+    if (channel.type === 'voice') {
+      // Если уже просматриваем этот канал - просто обновляем (для переподключения)
+      if (currentChannel?.id === channel.id) {
+        setCurrentChannel(null);
+        setTimeout(() => setCurrentChannel(channel), 10);
+      } else {
+        setCurrentChannel(channel);
+      }
+    } else {
+      setCurrentChannel(channel);
+    }
   };
 
   const handleCreateChannel = (channelName, channelType = 'text') => {

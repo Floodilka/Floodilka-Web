@@ -197,17 +197,6 @@ io.on('connection', (socket) => {
       channelId,
       users: Array.from(users)
     });
-
-    // Системное сообщение о входе
-    const joinMessage = {
-      id: uuidv4(),
-      channelId,
-      username: 'Система',
-      content: `${currentUsername} присоединился к каналу`,
-      timestamp: new Date().toISOString(),
-      isSystem: true
-    };
-    io.to(channelId).emit('message:new', joinMessage);
   });
 
   // Отправить сообщение
@@ -361,17 +350,6 @@ io.on('connection', (socket) => {
           users: Array.from(users)
         });
       }
-
-      // Системное сообщение о выходе
-      const leaveMessage = {
-        id: uuidv4(),
-        channelId: currentChannel,
-        username: 'Система',
-        content: `${currentUsername} покинул канал`,
-        timestamp: new Date().toISOString(),
-        isSystem: true
-      };
-      io.to(currentChannel).emit('message:new', leaveMessage);
     }
 
     // Обработка голосовых каналов
@@ -384,6 +362,20 @@ io.on('connection', (socket) => {
 
     // Обновить сайдбар у всех после отключения
     broadcastVoiceChannelUsers();
+  });
+
+  // Запрос на получение всех пользователей в голосовых каналах
+  socket.on('voice:get-all-users', () => {
+    const voiceChannelsData = {};
+    voiceUsers.forEach((users, channelId) => {
+      voiceChannelsData[channelId] = Array.from(users.entries()).map(([id, data]) => ({
+        id,
+        username: data.username,
+        isMuted: data.isMuted
+      }));
+    });
+    console.log('📡 Отправка voice:channels-update:', JSON.stringify(voiceChannelsData, null, 2));
+    socket.emit('voice:channels-update', voiceChannelsData);
   });
 
   // Функция для отправки списка пользователей в голосовых каналах всем

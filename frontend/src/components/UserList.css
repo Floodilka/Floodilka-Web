@@ -7,8 +7,11 @@
 }
 
 .user-list-header {
-  padding: 16px;
+  padding: 12px 16px;
   border-bottom: 1px solid #202225;
+  height: 48px;
+  display: flex;
+  align-items: center;
 }
 
 .user-list-header span {

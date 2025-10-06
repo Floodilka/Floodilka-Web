@@ -33,14 +33,21 @@ function VoiceChannel({ socket, channel, username }) {
     socket.on('voice:users', handleVoiceUsers);
     socket.on('voice:user-joined', handleUserJoined);
     socket.on('voice:user-left', handleUserLeft);
+    socket.on('voice:user-muted', handleUserMuted);
     socket.on('voice:offer', handleOffer);
     socket.on('voice:answer', handleAnswer);
     socket.on('voice:ice-candidate', handleIceCandidate);
+
+    // Автоматически подключиться при входе в канал (только если еще не подключены)
+    if (!isConnected) {
+      handleConnect();
+    }
 
     return () => {
       socket.off('voice:users');
       socket.off('voice:user-joined');
       socket.off('voice:user-left');
+      socket.off('voice:user-muted');
       socket.off('voice:offer');
       socket.off('voice:answer');
       socket.off('voice:ice-candidate');
@@ -78,6 +85,12 @@ function VoiceChannel({ socket, channel, username }) {
       peersRef.current[id].close();
       delete peersRef.current[id];
     }
+  };
+
+  const handleUserMuted = ({ id, isMuted }) => {
+    setVoiceUsers(prev =>
+      prev.map(u => u.id === id ? { ...u, isMuted } : u)
+    );
   };
 
   const createPeerConnection = (userId, createOffer) => {
@@ -457,21 +470,23 @@ function VoiceChannel({ socket, channel, username }) {
   return (
     <div className="voice-channel">
       <div className="voice-header">
-        <div className="voice-header-info">
+        <div className="voice-header-left">
           <span className="voice-icon">🔊</span>
           <h3>{channel.name}</h3>
         </div>
+        {isConnected && (
+          <div className="voice-header-right">
+            <span className="live-indicator">В ЭФИРЕ</span>
+          </div>
+        )}
       </div>
 
       <div className="voice-content">
         {!isConnected ? (
-          <div className="voice-connect">
-            <div className="voice-connect-icon">🎤</div>
-            <h2>Голосовой канал</h2>
-            <p>Подключитесь к голосовому каналу, чтобы начать общение</p>
-            <button className="connect-btn" onClick={handleConnect}>
-              Подключиться
-            </button>
+          <div className="voice-connecting">
+            <div className="connecting-spinner">🎤</div>
+            <h3>Подключение...</h3>
+            <p>Разрешите доступ к микрофону</p>
           </div>
         ) : (
           <div className="voice-active">
