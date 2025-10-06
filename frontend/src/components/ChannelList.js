@@ -2,18 +2,27 @@ import React, { useState } from 'react';
 import './ChannelList.css';
 
 function ChannelList({ channels, currentChannel, onSelectChannel, onCreateChannel }) {
-  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [showTextForm, setShowTextForm] = useState(false);
+  const [showVoiceForm, setShowVoiceForm] = useState(false);
   const [newChannelName, setNewChannelName] = useState('');
-  const [channelType, setChannelType] = useState('text');
 
-  const handleCreate = (e) => {
+  const handleCreateText = (e) => {
     e.preventDefault();
     const trimmedName = newChannelName.trim();
     if (trimmedName) {
-      onCreateChannel(trimmedName, channelType);
+      onCreateChannel(trimmedName, 'text');
       setNewChannelName('');
-      setChannelType('text');
-      setShowCreateForm(false);
+      setShowTextForm(false);
+    }
+  };
+
+  const handleCreateVoice = (e) => {
+    e.preventDefault();
+    const trimmedName = newChannelName.trim();
+    if (trimmedName) {
+      onCreateChannel(trimmedName, 'voice');
+      setNewChannelName('');
+      setShowVoiceForm(false);
     }
   };
 
@@ -31,51 +40,34 @@ function ChannelList({ channels, currentChannel, onSelectChannel, onCreateChanne
           <span>ТЕКСТОВЫЕ КАНАЛЫ</span>
           <button
             className="add-channel-btn"
-            onClick={() => setShowCreateForm(!showCreateForm)}
-            title="Создать канал"
+            onClick={() => {
+              setShowTextForm(!showTextForm);
+              setShowVoiceForm(false);
+              setNewChannelName('');
+            }}
+            title="Создать текстовый канал"
           >
             +
           </button>
         </div>
 
-        {showCreateForm && (
-          <form className="create-channel-form" onSubmit={handleCreate}>
+        {showTextForm && (
+          <form className="create-channel-form" onSubmit={handleCreateText}>
             <input
               type="text"
-              placeholder="Название канала"
+              placeholder="Название текстового канала"
               value={newChannelName}
               onChange={(e) => setNewChannelName(e.target.value)}
               maxLength={30}
               autoFocus
             />
-            <div className="channel-type-selector">
-              <label>
-                <input
-                  type="radio"
-                  value="text"
-                  checked={channelType === 'text'}
-                  onChange={(e) => setChannelType(e.target.value)}
-                />
-                <span>💬 Текстовый</span>
-              </label>
-              <label>
-                <input
-                  type="radio"
-                  value="voice"
-                  checked={channelType === 'voice'}
-                  onChange={(e) => setChannelType(e.target.value)}
-                />
-                <span>🎤 Голосовой</span>
-              </label>
-            </div>
             <div className="form-buttons">
               <button type="submit" disabled={!newChannelName.trim()}>
                 Создать
               </button>
               <button type="button" onClick={() => {
-                setShowCreateForm(false);
+                setShowTextForm(false);
                 setNewChannelName('');
-                setChannelType('text');
               }}>
                 Отмена
               </button>
@@ -100,7 +92,43 @@ function ChannelList({ channels, currentChannel, onSelectChannel, onCreateChanne
       <div className="channels-section voice-section">
         <div className="section-header">
           <span>ГОЛОСОВЫЕ КАНАЛЫ</span>
+          <button
+            className="add-channel-btn"
+            onClick={() => {
+              setShowVoiceForm(!showVoiceForm);
+              setShowTextForm(false);
+              setNewChannelName('');
+            }}
+            title="Создать голосовой канал"
+          >
+            +
+          </button>
         </div>
+
+        {showVoiceForm && (
+          <form className="create-channel-form" onSubmit={handleCreateVoice}>
+            <input
+              type="text"
+              placeholder="Название голосового канала"
+              value={newChannelName}
+              onChange={(e) => setNewChannelName(e.target.value)}
+              maxLength={30}
+              autoFocus
+            />
+            <div className="form-buttons">
+              <button type="submit" disabled={!newChannelName.trim()}>
+                Создать
+              </button>
+              <button type="button" onClick={() => {
+                setShowVoiceForm(false);
+                setNewChannelName('');
+              }}>
+                Отмена
+              </button>
+            </div>
+          </form>
+        )}
+
         <div className="channels">
           {voiceChannels.map(channel => (
             <div
