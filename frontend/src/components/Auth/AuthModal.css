@@ -12,7 +12,7 @@
 }
 
 .auth-modal-content {
-  background-color: #36393f;
+  background-color: #1e1f22;
   padding: 40px;
   border-radius: 12px;
   max-width: 480px;
@@ -75,7 +75,7 @@
   padding: 12px;
   border-radius: 8px;
   border: none;
-  background-color: #202225;
+  background-color: #313338;
   color: #dcddde;
   font-size: 15px;
   outline: none;
@@ -153,7 +153,7 @@
   text-align: center;
   color: #b9bbbe;
   font-size: 14px;
-  margin-top: 8px;
+  margin-top: 20px;
 }
 
 .auth-switch-btn {

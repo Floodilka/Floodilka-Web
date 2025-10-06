@@ -368,7 +368,9 @@ function VoiceChannel({ socket, channel, user, globalMuted, globalDeafened, onDi
       socket.emit('voice:join', {
         channelId: channel.id,
         username: user?.displayName || user?.username,
-        avatar: user?.avatar
+        avatar: user?.avatar,
+        badge: user?.badge,
+        badgeTooltip: user?.badgeTooltip
       });
 
     } catch (err) {

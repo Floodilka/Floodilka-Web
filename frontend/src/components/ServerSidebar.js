@@ -16,6 +16,8 @@ function ServerSidebar({ servers, currentServer, onSelectServer, onCreateServer 
   const [menuPosition, setMenuPosition] = useState({ top: 0, left: 84 });
   const [indicatorPosition, setIndicatorPosition] = useState(0);
   const [showIndicator, setShowIndicator] = useState(false);
+  const [hoveredServer, setHoveredServer] = useState(null);
+  const [tooltipPosition, setTooltipPosition] = useState({ top: 0, left: 0 });
   const addButtonRef = useRef(null);
   const serverRefs = useRef({});
 
@@ -28,6 +30,19 @@ function ServerSidebar({ servers, currentServer, onSelectServer, onCreateServer 
       });
     }
     setShowActionMenu(!showActionMenu);
+  };
+
+    const handleServerHover = (server, event) => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    setTooltipPosition({
+      top: rect.top + rect.height / 2,
+      left: rect.right + 8
+    });
+    setHoveredServer(server);
+  };
+
+  const handleServerLeave = () => {
+    setHoveredServer(null);
   };
 
   // Обновление позиции индикатора при смене сервера
@@ -108,7 +123,8 @@ function ServerSidebar({ servers, currentServer, onSelectServer, onCreateServer 
               ref={el => serverRefs.current[server._id] = el}
               className={`server-icon ${currentServer?._id === server._id ? 'active' : ''}`}
               onClick={() => onSelectServer(server)}
-              title={server.name}
+              onMouseEnter={(e) => handleServerHover(server, e)}
+              onMouseLeave={handleServerLeave}
             >
               {isBase64Image ? (
                 <img
@@ -229,6 +245,18 @@ function ServerSidebar({ servers, currentServer, onSelectServer, onCreateServer 
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {hoveredServer && (
+        <div
+          className="server-tooltip"
+          style={{
+            top: `${tooltipPosition.top}px`,
+            left: `${tooltipPosition.left}px`
+          }}
+        >
+          {hoveredServer.name}
         </div>
       )}
     </div>

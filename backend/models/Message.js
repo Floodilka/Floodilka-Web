@@ -14,6 +14,14 @@ const messageSchema = new mongoose.Schema({
     type: String,
     default: null
   },
+    badge: {
+    type: String,
+    default: null
+  },
+  badgeTooltip: {
+    type: String,
+    default: null
+  },
   content: {
     type: String,
     required: true,

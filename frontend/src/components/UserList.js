@@ -16,6 +16,8 @@ function UserList({ users }) {
           const isUserObject = typeof user === 'object' && user !== null;
           const username = isUserObject ? user.username : user;
           const avatar = isUserObject ? user.avatar : null;
+          const badge = isUserObject ? user.badge : null;
+          const badgeTooltip = isUserObject ? user.badgeTooltip : null;
 
           return (
             <div key={index} className="user-item">
@@ -31,7 +33,17 @@ function UserList({ users }) {
                 </div>
               )}
               <div className="user-info">
-                <div className="user-name">{username}</div>
+                <div className="user-name-row">
+                  <div className="user-name">{username}</div>
+                  {badge && badge !== 'User' && (
+                    <span
+                      className={`user-badge badge-${badge.toLowerCase()}`}
+                      title={badgeTooltip || badge}
+                    >
+                      {badge}
+                    </span>
+                  )}
+                </div>
                 <div className="user-status">
                   <span className="status-indicator online"></span>
                   <span className="status-text">В сети</span>

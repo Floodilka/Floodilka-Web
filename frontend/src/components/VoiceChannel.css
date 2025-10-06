@@ -2,7 +2,7 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  background-color: #36393f;
+  background-color: #1e1f22;
 }
 
 .voice-header {
@@ -10,8 +10,8 @@
   align-items: center;
   justify-content: space-between;
   padding: 12px 16px;
-  border-bottom: 1px solid #202225;
-  background-color: #36393f;
+  border-bottom: 1px solid #313338;
+  background-color: #1e1f22;
   box-shadow: 0 1px 0 rgba(0, 0, 0, 0.2);
   height: 48px;
 }

@@ -153,7 +153,9 @@ function App() {
       socket.emit('channel:join', {
         channelId: currentTextChannel.id,
         username: user.displayName || user.username,
-        avatar: user.avatar
+        avatar: user.avatar,
+        badge: user.badge,
+        badgeTooltip: user.badgeTooltip
       });
     }
   }, [socket, currentTextChannel, user]);
@@ -169,7 +171,9 @@ function App() {
         socket.emit('channel:join', {
           channelId: currentTextChannel.id,
           username: userData.displayName || userData.username,
-          avatar: userData.avatar
+          avatar: userData.avatar,
+          badge: userData.badge,
+          badgeTooltip: userData.badgeTooltip
         });
       }
     }, 100);
@@ -304,7 +308,9 @@ function App() {
         channelId: currentTextChannel.id,
         content,
         username: user.displayName || user.username,
-        avatar: user.avatar
+        avatar: user.avatar,
+        badge: user.badge,
+        badgeTooltip: user.badgeTooltip
       });
     }
   };

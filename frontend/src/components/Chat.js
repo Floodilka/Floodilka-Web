@@ -86,6 +86,14 @@ function Chat({ channel, messages, username, onSendMessage }) {
             <div className="message-content">
               <div className="message-header">
                 <span className="message-username">{message.username}</span>
+                {message.badge && message.badge !== 'User' && (
+                  <span
+                    className={`message-badge badge-${message.badge.toLowerCase()}`}
+                    title={message.badgeTooltip || message.badge}
+                  >
+                    {message.badge}
+                  </span>
+                )}
                 <span className="message-time">{formatTime(message.timestamp)}</span>
               </div>
               <div className="message-text">{message.content}</div>

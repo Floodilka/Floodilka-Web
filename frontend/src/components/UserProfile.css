@@ -3,7 +3,7 @@
   flex-direction: column;
   padding: 10px 16px;
   margin: 8px 16px 16px 16px;
-  background-color: #292b2f;
+  background-color: #111214;
   border-radius: 8px;
   gap: 8px;
   min-height: 52px;
@@ -143,14 +143,14 @@
   padding: 10px;
   border-radius: 6px;
   border: none;
-  background-color: #40444b;
+  background-color: #111214;
   color: #dcddde;
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .voice-control-btn:hover {
-  background-color: #484c52;
+  background-color: #1a1c1e;
 }
 
 .voice-control-btn.active {
@@ -178,7 +178,7 @@
   height: 32px;
   border-radius: 4px;
   border: none;
-  background-color: #40444b;
+  background-color: #111214;
   color: #dcddde;
   font-size: 16px;
   cursor: pointer;
@@ -191,7 +191,7 @@
 }
 
 .profile-control-btn:hover:not(:disabled) {
-  background-color: #484c52;
+  background-color: #1a1c1e;
 }
 
 .profile-control-btn:disabled {

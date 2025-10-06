@@ -181,7 +181,7 @@ io.on('connection', (socket) => {
   let currentUsername = null;
 
   // Присоединиться к каналу
-  socket.on('channel:join', async ({ channelId, username, avatar }) => {
+  socket.on('channel:join', async ({ channelId, username, avatar, badge, badgeTooltip }) => {
     // Проверяем в памяти (для обратной совместимости) и в базе данных
     const channelInMemory = channels.get(channelId);
 
@@ -216,7 +216,7 @@ io.on('connection', (socket) => {
       users = new Map();
       onlineUsers.set(channelId, users);
     }
-    users.set(socket.id, { username: currentUsername, avatar });
+    users.set(socket.id, { username: currentUsername, avatar, badge, badgeTooltip });
 
     // Загрузить сообщения из БД или памяти
     let channelMessages = [];
@@ -249,7 +249,7 @@ io.on('connection', (socket) => {
   });
 
   // Отправить сообщение
-  socket.on('message:send', async ({ channelId, content, username, avatar }) => {
+  socket.on('message:send', async ({ channelId, content, username, avatar, badge, badgeTooltip }) => {
     if (!content || content.trim() === '') {
       return;
     }
@@ -258,6 +258,8 @@ io.on('connection', (socket) => {
       channelId,
       username: username || currentUsername || 'Аноним',
       avatar: avatar || socket.currentAvatar || null,
+      badge: badge || null,
+      badgeTooltip: badgeTooltip || null,
       content: content.trim(),
       isSystem: false
     };
@@ -298,7 +300,7 @@ io.on('connection', (socket) => {
   // WebRTC сигналинг для голосовых каналов
 
   // Присоединиться к голосовому каналу
-  socket.on('voice:join', ({ channelId, username, avatar }) => {
+  socket.on('voice:join', ({ channelId, username, avatar, badge, badgeTooltip }) => {
     // Проверяем в памяти (для обратной совместимости)
     const channelInMemory = channels.get(channelId);
 
@@ -314,7 +316,7 @@ io.on('connection', (socket) => {
       users = new Map();
       voiceUsers.set(channelId, users);
     }
-    users.set(socket.id, { username, avatar, isMuted: false, isDeafened: false });
+    users.set(socket.id, { username, avatar, badge, badgeTooltip, isMuted: false, isDeafened: false });
 
     // Присоединиться к комнате
     socket.join(channelId);
@@ -454,6 +456,9 @@ io.on('connection', (socket) => {
       voiceChannelsData[channelId] = Array.from(users.entries()).map(([id, data]) => ({
         id,
         username: data.username,
+        avatar: data.avatar,
+        badge: data.badge,
+        badgeTooltip: data.badgeTooltip,
         isMuted: data.isMuted,
         isDeafened: data.isDeafened
       }));
@@ -471,6 +476,8 @@ io.on('connection', (socket) => {
         id,
         username: data.username,
         avatar: data.avatar,
+        badge: data.badge,
+        badgeTooltip: data.badgeTooltip,
         isMuted: data.isMuted,
         isDeafened: data.isDeafened
       }));

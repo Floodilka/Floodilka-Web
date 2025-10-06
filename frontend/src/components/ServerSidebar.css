@@ -8,6 +8,7 @@
   overflow-y: auto;
   overflow-x: visible;
   user-select: none;
+  border-right: 1px solid #313338;
 }
 
 .server-list {
@@ -183,7 +184,7 @@
 
 /* Модалка присоединения */
 .join-server-modal {
-  background: #313338;
+  background: #1e1f22;
   border-radius: 8px;
   padding: 24px;
   padding-top: 48px;
@@ -325,3 +326,30 @@
   width: 0;
 }
 
+/* Tooltip для серверов */
+.server-tooltip {
+  position: fixed;
+  background: #18191c;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 8px 12px;
+  border-radius: 8px;
+  white-space: nowrap;
+  z-index: 10000;
+  pointer-events: none;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
+  transform: translateY(-50%);
+  animation: serverTooltipFadeIn 0.15s ease-out;
+}
+
+@keyframes serverTooltipFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-50%) translateX(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(-50%) translateX(0);
+  }
+}

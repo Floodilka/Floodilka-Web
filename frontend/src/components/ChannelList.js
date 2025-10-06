@@ -308,7 +308,7 @@ function ChannelList({ channels, currentTextChannel, currentVoiceChannel, voiceC
 
             // Объединяем текущего пользователя с другими если он в этом канале
             const allUsers = isCurrentInChannel
-              ? [{ id: 'me', username: user?.displayName || user?.username, avatar: user?.avatar, isMuted, isDeafened }, ...usersInChannel]
+              ? [{ id: 'me', username: user?.displayName || user?.username, avatar: user?.avatar, badge: user?.badge, badgeTooltip: user?.badgeTooltip, isMuted, isDeafened }, ...usersInChannel]
               : usersInChannel;
 
             return (
@@ -340,7 +340,19 @@ function ChannelList({ channels, currentTextChannel, currentVoiceChannel, voiceC
                               {user.username[0].toUpperCase()}
                             </div>
                           )}
-                          <span className="voice-user-name-tiny">{user.username}</span>
+                          <div className="voice-user-info-tiny">
+                            <div className="voice-user-name-row">
+                              <span className="voice-user-name-tiny">{user.username}</span>
+                              {user.badge && user.badge !== 'User' && (
+                                <span
+                                  className={`voice-user-badge badge-${user.badge.toLowerCase()}`}
+                                  title={user.badgeTooltip || user.badge}
+                                >
+                                  {user.badge}
+                                </span>
+                              )}
+                            </div>
+                          </div>
                           <div className="voice-user-status-icons">
                             {user.isDeafened && (
                               <img src="/icons/headset_off.png" alt="Не слышит" className="status-icon" />

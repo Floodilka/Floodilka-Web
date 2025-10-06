@@ -12,9 +12,10 @@
 }
 
 .create-server-modal {
-  background: #313338;
+  background: #1e1f22;
   border-radius: 8px;
   padding: 24px;
+  padding-top: 48px;
   width: 440px;
   max-width: 90vw;
   position: relative;
@@ -37,7 +38,6 @@
   font-size: 24px;
   margin: 0 0 8px 0;
   text-align: center;
-  padding-right: 40px;
 }
 
 .modal-subtitle {

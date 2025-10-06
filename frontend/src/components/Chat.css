@@ -2,7 +2,7 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  background-color: #36393f;
+  background-color: #1e1f22;
 }
 
 .no-channel {
@@ -28,8 +28,8 @@
   display: flex;
   align-items: center;
   padding: 12px 16px;
-  border-bottom: 1px solid #202225;
-  background-color: #36393f;
+  border-bottom: 1px solid #313338;
+  background-color: #1e1f22;
   box-shadow: 0 1px 0 rgba(0, 0, 0, 0.2);
   height: 48px;
 }
@@ -149,7 +149,8 @@
 
 .message-header {
   display: flex;
-  align-items: baseline;
+  align-items: center;
+  gap: 6px;
   margin-bottom: 4px;
 }
 
@@ -157,7 +158,37 @@
   color: #ffffff;
   font-weight: 600;
   font-size: 15px;
-  margin-right: 8px;
+}
+
+.message-badge {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 3px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.message-badge.badge-dev {
+  background-color: #5865f2;
+  color: #ffffff;
+}
+
+.message-badge.badge-admin {
+  background-color: #ed4245;
+  color: #ffffff;
+}
+
+.message-badge.badge-moderator {
+  background-color: #57f287;
+  color: #2b2d31;
+}
+
+.message-badge.badge-vip {
+  background-color: #faa61a;
+  color: #2b2d31;
 }
 
 .system-message .message-username {
@@ -187,7 +218,7 @@
 
 .message-input-container {
   padding: 16px;
-  background-color: #36393f;
+  background-color: #1e1f22;
 }
 
 .message-input-container form {
@@ -199,7 +230,7 @@
 .message-input-container input {
   flex: 1;
   padding: 0 16px;
-  background-color: #40444b;
+  background-color: #111214;
   border: none;
   border-radius: 8px;
   color: #dcddde;
@@ -211,7 +242,7 @@
 }
 
 .message-input-container input:focus {
-  background-color: #484c52;
+  background-color: #1a1c1e;
 }
 
 .message-input-container button {
