@@ -352,6 +352,19 @@
   background-color: #c03537;
 }
 
+.voice-control-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.voice-control-btn.deafened {
+  background-color: #ed4245;
+}
+
+.voice-control-btn.deafened:hover {
+  background-color: #c03537;
+}
+
 .voice-control-btn.settings-btn {
   background-color: #5865f2;
 }

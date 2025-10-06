@@ -151,7 +151,7 @@ function ChannelList({ channels, currentChannel, voiceChannelUsers, onSelectChan
                           {user.username[0].toUpperCase()}
                         </div>
                         <span className="voice-user-name-tiny">{user.username}</span>
-                        {user.isMuted && <span className="mute-icon">🔇</span>}
+                        {user.isDeafened ? <span className="deafen-icon">🔇</span> : user.isMuted && <span className="mute-icon">🔇</span>}
                       </div>
                     ))}
                   </div>

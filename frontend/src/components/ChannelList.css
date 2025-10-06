@@ -255,9 +255,14 @@
 }
 
 .mute-icon,
-.mic-icon {
+.mic-icon,
+.deafen-icon {
   font-size: 14px;
   opacity: 0.8;
   flex-shrink: 0;
+}
+
+.deafen-icon {
+  color: #ed4245;
 }
 

@@ -29,7 +29,7 @@ app.use(express.json());
 const channels = new Map();
 const messages = new Map();
 const onlineUsers = new Map(); // channelId -> Set of usernames
-const voiceUsers = new Map(); // channelId -> Map(socketId -> {username, isMuted})
+const voiceUsers = new Map(); // channelId -> Map(socketId -> {username, isMuted, isDeafened})
 
 // Создать дефолтные каналы
 const defaultTextChannelId = uuidv4();
@@ -252,7 +252,7 @@ io.on('connection', (socket) => {
       users = new Map();
       voiceUsers.set(channelId, users);
     }
-    users.set(socket.id, { username, isMuted: false });
+    users.set(socket.id, { username, isMuted: false, isDeafened: false });
 
     // Присоединиться к комнате
     socket.join(channelId);
@@ -260,7 +260,7 @@ io.on('connection', (socket) => {
     // Получить список других пользователей в канале
     const otherUsers = Array.from(users.entries())
       .filter(([id]) => id !== socket.id)
-      .map(([id, data]) => ({ id, username: data.username, isMuted: data.isMuted }));
+      .map(([id, data]) => ({ id, username: data.username, isMuted: data.isMuted, isDeafened: data.isDeafened }));
 
     // Отправить текущему пользователю список других пользователей
     socket.emit('voice:users', otherUsers);
@@ -269,7 +269,8 @@ io.on('connection', (socket) => {
     socket.to(channelId).emit('voice:user-joined', {
       id: socket.id,
       username,
-      isMuted: false
+      isMuted: false,
+      isDeafened: false
     });
 
     // Отправить обновленный список всем пользователям для сайдбара
@@ -305,6 +306,25 @@ io.on('connection', (socket) => {
       io.to(channelId).emit('voice:user-muted', {
         id: socket.id,
         isMuted
+      });
+
+      // Обновить сайдбар у всех
+      broadcastVoiceChannelUsers();
+    }
+  });
+
+  // Изменить статус deafen
+  socket.on('voice:deafen-toggle', ({ channelId, isDeafened }) => {
+    const users = voiceUsers.get(channelId);
+    if (users && users.has(socket.id)) {
+      const userData = users.get(socket.id);
+      userData.isDeafened = isDeafened;
+      users.set(socket.id, userData);
+
+      // Уведомить всех в канале
+      io.to(channelId).emit('voice:user-deafened', {
+        id: socket.id,
+        isDeafened
       });
 
       // Обновить сайдбар у всех
@@ -371,7 +391,8 @@ io.on('connection', (socket) => {
       voiceChannelsData[channelId] = Array.from(users.entries()).map(([id, data]) => ({
         id,
         username: data.username,
-        isMuted: data.isMuted
+        isMuted: data.isMuted,
+        isDeafened: data.isDeafened
       }));
     });
     console.log('📡 Отправка voice:channels-update:', JSON.stringify(voiceChannelsData, null, 2));
@@ -386,7 +407,8 @@ io.on('connection', (socket) => {
       voiceChannelsData[channelId] = Array.from(users.entries()).map(([id, data]) => ({
         id,
         username: data.username,
-        isMuted: data.isMuted
+        isMuted: data.isMuted,
+        isDeafened: data.isDeafened
       }));
     });
 

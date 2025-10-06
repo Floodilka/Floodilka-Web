@@ -4,6 +4,7 @@ import './VoiceChannel.css';
 function VoiceChannel({ socket, channel, username }) {
   const [isConnected, setIsConnected] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
+  const [isDeafened, setIsDeafened] = useState(false);
   const [voiceUsers, setVoiceUsers] = useState([]);
   const [speakingUsers, setSpeakingUsers] = useState(new Set());
   const [noiseSuppression, setNoiseSuppression] = useState(true);
@@ -34,6 +35,7 @@ function VoiceChannel({ socket, channel, username }) {
     socket.on('voice:user-joined', handleUserJoined);
     socket.on('voice:user-left', handleUserLeft);
     socket.on('voice:user-muted', handleUserMuted);
+    socket.on('voice:user-deafened', handleUserDeafened);
     socket.on('voice:offer', handleOffer);
     socket.on('voice:answer', handleAnswer);
     socket.on('voice:ice-candidate', handleIceCandidate);
@@ -48,6 +50,7 @@ function VoiceChannel({ socket, channel, username }) {
       socket.off('voice:user-joined');
       socket.off('voice:user-left');
       socket.off('voice:user-muted');
+      socket.off('voice:user-deafened');
       socket.off('voice:offer');
       socket.off('voice:answer');
       socket.off('voice:ice-candidate');
@@ -90,6 +93,12 @@ function VoiceChannel({ socket, channel, username }) {
   const handleUserMuted = ({ id, isMuted }) => {
     setVoiceUsers(prev =>
       prev.map(u => u.id === id ? { ...u, isMuted } : u)
+    );
+  };
+
+  const handleUserDeafened = ({ id, isDeafened }) => {
+    setVoiceUsers(prev =>
+      prev.map(u => u.id === id ? { ...u, isDeafened } : u)
     );
   };
 
@@ -394,6 +403,8 @@ function VoiceChannel({ socket, channel, username }) {
   };
 
   const toggleMute = () => {
+    if (isDeafened) return; // Нельзя размьютиться если deafened
+
     if (localStreamRef.current) {
       const audioTrack = localStreamRef.current.getAudioTracks()[0];
       if (audioTrack) {
@@ -409,6 +420,51 @@ function VoiceChannel({ socket, channel, username }) {
           });
         }
       }
+    }
+  };
+
+  const toggleDeafen = () => {
+    const newDeafenedState = !isDeafened;
+    setIsDeafened(newDeafenedState);
+
+    if (newDeafenedState) {
+      // При включении deafen - автоматически mute микрофон
+      if (localStreamRef.current && !isMuted) {
+        const audioTrack = localStreamRef.current.getAudioTracks()[0];
+        if (audioTrack) {
+          audioTrack.enabled = false;
+          setIsMuted(true);
+
+          socket.emit('voice:mute-toggle', {
+            channelId: channel.id,
+            isMuted: true
+          });
+        }
+      }
+
+      // Отключаем все входящие аудио потоки
+      voiceUsers.forEach(user => {
+        const audio = document.getElementById(`audio-${user.id}`);
+        if (audio) {
+          audio.muted = true;
+        }
+      });
+    } else {
+      // При выключении deafen - включаем все аудио обратно
+      voiceUsers.forEach(user => {
+        const audio = document.getElementById(`audio-${user.id}`);
+        if (audio) {
+          audio.muted = false;
+        }
+      });
+    }
+
+    // Отправить статус на сервер
+    if (socket && channel) {
+      socket.emit('voice:deafen-toggle', {
+        channelId: channel.id,
+        isDeafened: newDeafenedState
+      });
     }
   };
 
@@ -500,7 +556,7 @@ function VoiceChannel({ socket, channel, username }) {
                 <div className="voice-user-info">
                   <span className="voice-user-name">{username} (вы)</span>
                   <span className="voice-user-status">
-                    {isMuted ? '🔇 Выключен' : '🎤 Включен'}
+                    {isDeafened ? '🔇 Не слышу' : isMuted ? '🔇 Выключен' : '🎤 Включен'}
                   </span>
                 </div>
               </div>
@@ -600,8 +656,16 @@ function VoiceChannel({ socket, channel, username }) {
                 className={`voice-control-btn ${isMuted ? 'muted' : ''}`}
                 onClick={toggleMute}
                 title={isMuted ? 'Включить микрофон' : 'Выключить микрофон'}
+                disabled={isDeafened}
               >
                 {isMuted ? '🔇' : '🎤'}
+              </button>
+              <button
+                className={`voice-control-btn ${isDeafened ? 'deafened' : ''}`}
+                onClick={toggleDeafen}
+                title={isDeafened ? 'Включить звук' : 'Отключить звук'}
+              >
+                {isDeafened ? '🔇' : '🎧'}
               </button>
               <button
                 className="voice-control-btn settings-btn"
