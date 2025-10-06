@@ -89,6 +89,45 @@ router.get('/:serverId/channels', authenticateToken, async (req, res) => {
   }
 });
 
+// Получить всех участников сервера
+router.get('/:serverId/members', authenticateToken, async (req, res) => {
+  try {
+    const { serverId } = req.params;
+
+    // Проверить доступ к серверу
+    const server = await Server.findById(serverId);
+    if (!server) {
+      return res.status(404).json({ error: 'Сервер не найден' });
+    }
+
+    if (!server.members.includes(req.user.id) && server.ownerId.toString() !== req.user.id) {
+      return res.status(403).json({ error: 'Нет доступа к этому серверу' });
+    }
+
+    // Получить всех участников (включая владельца)
+    const memberIds = [...new Set([server.ownerId, ...server.members])];
+    const User = require('../models/User');
+    const members = await User.find({ _id: { $in: memberIds } })
+      .select('-password -email')
+      .sort({ username: 1 });
+
+    const membersData = members.map(member => ({
+      id: member._id,
+      username: member.username,
+      displayName: member.displayName,
+      avatar: member.avatar,
+      badge: member.badge,
+      badgeTooltip: member.badgeTooltip,
+      status: member.status
+    }));
+
+    res.json(membersData);
+  } catch (error) {
+    console.error('Ошибка получения участников:', error);
+    res.status(500).json({ error: 'Ошибка сервера' });
+  }
+});
+
 // Создать инвайт для сервера
 router.post('/:serverId/invites', authenticateToken, async (req, res) => {
   try {

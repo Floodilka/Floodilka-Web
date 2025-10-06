@@ -5,9 +5,21 @@ const BACKEND_URL = window.location.hostname === 'localhost'
   ? 'http://localhost:3001'
   : `${window.location.protocol}//${window.location.hostname}`;
 
-function UserList({ users }) {
+function UserList({ onlineUsers, allMembers }) {
   const [selectedUser, setSelectedUser] = useState(null);
   const [profilePosition, setProfilePosition] = useState({ top: 0, left: 0 });
+
+  // Создаем Map из онлайн пользователей по userId для быстрой проверки
+  const onlineUsersMap = new Map();
+  onlineUsers.forEach(u => {
+    if (u.userId) {
+      onlineUsersMap.set(u.userId, u);
+    }
+  });
+
+  // Разделяем участников на онлайн и оффлайн
+  const onlineMembers = allMembers.filter(member => onlineUsersMap.has(member.id));
+  const offlineMembers = allMembers.filter(member => !onlineUsersMap.has(member.id));
 
   const handleUserClick = async (user, event) => {
     const rect = event.currentTarget.getBoundingClientRect();
@@ -38,63 +50,87 @@ function UserList({ users }) {
     setSelectedUser(null);
   };
 
-  return (
-    <div className="user-list">
-      <div className="user-list-header">
-        <span>ОНЛАЙН — {users.length}</span>
-      </div>
-      <div className="users">
-        {users.map((user, index) => {
-          const isUserObject = typeof user === 'object' && user !== null;
-          const username = isUserObject ? user.username : user;
-          const avatar = isUserObject ? user.avatar : null;
-          const badge = isUserObject ? user.badge : null;
-          const badgeTooltip = isUserObject ? user.badgeTooltip : null;
-          const displayName = isUserObject ? user.displayName : null;
+  const renderUserItem = (member, isOnline) => {
+    const username = member.username;
+    const avatar = member.avatar;
+    const badge = member.badge;
+    const badgeTooltip = member.badgeTooltip;
+    const displayName = member.displayName;
 
-          return (
-            <div
-              key={index}
-              className="user-item"
-              onClick={(e) => handleUserClick(isUserObject ? user : { username, avatar, displayName, badge, badgeTooltip }, e)}
-            >
-              {avatar ? (
-                <img
-                  src={`${BACKEND_URL}${avatar}`}
-                  alt="Avatar"
-                  className="user-avatar-img"
-                />
-              ) : (
-                <div className="user-avatar">
-                  {username[0].toUpperCase()}
-                </div>
-              )}
-              <div className="user-info">
-                <div className="user-name-row">
-                  <div className="user-name">{displayName || username}</div>
-                  {badge && badge !== 'User' && (
-                    <span
-                      className={`user-badge badge-${badge.toLowerCase()}`}
-                      title={badgeTooltip || badge}
-                    >
-                      {badge}
-                    </span>
-                  )}
-                </div>
-                <div className="user-status">
-                  <span className="status-indicator online"></span>
-                  <span className="status-text">В сети</span>
-                </div>
-              </div>
-            </div>
-          );
-        })}
-        {users.length === 0 && (
-          <div className="no-users">
-            Пока никого нет
+    return (
+      <div
+        key={member.id}
+        className="user-item"
+        onClick={(e) => handleUserClick(member, e)}
+      >
+        {avatar ? (
+          <img
+            src={`${BACKEND_URL}${avatar}`}
+            alt="Avatar"
+            className="user-avatar-img"
+          />
+        ) : (
+          <div className="user-avatar">
+            {(displayName || username)[0].toUpperCase()}
           </div>
         )}
+        <div className="user-info">
+          <div className="user-name-row">
+            <div className="user-name">{displayName || username}</div>
+            {badge && badge !== 'User' && (
+              <span
+                className={`user-badge badge-${badge.toLowerCase()}`}
+                title={badgeTooltip || badge}
+              >
+                {badge}
+              </span>
+            )}
+          </div>
+          <div className="user-status">
+            <span className={`status-indicator ${isOnline ? 'online' : 'offline'}`}></span>
+            <span className="status-text">{isOnline ? 'В сети' : 'Не в сети'}</span>
+          </div>
+        </div>
       </div>
+    );
+  };
+
+  return (
+    <div className="user-list">
+      {/* Общий заголовок */}
+      <div className="user-list-header main-header">
+        <span>Участники — {allMembers.length}</span>
+      </div>
+
+      {/* Онлайн пользователи */}
+      {onlineMembers.length > 0 && (
+        <>
+          <div className="user-list-subheader">
+            <span>В СЕТИ — {onlineMembers.length}</span>
+          </div>
+          <div className="users">
+            {onlineMembers.map(member => renderUserItem(member, true))}
+          </div>
+        </>
+      )}
+
+      {/* Оффлайн пользователи */}
+      {offlineMembers.length > 0 && (
+        <>
+          <div className="user-list-subheader">
+            <span>НЕ В СЕТИ — {offlineMembers.length}</span>
+          </div>
+          <div className="users">
+            {offlineMembers.map(member => renderUserItem(member, false))}
+          </div>
+        </>
+      )}
+
+      {allMembers.length === 0 && (
+        <div className="no-users">
+          Пока никого нет
+        </div>
+      )}
 
       {selectedUser && (
         <>

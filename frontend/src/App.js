@@ -23,6 +23,7 @@ function App() {
   const [currentVoiceChannel, setCurrentVoiceChannel] = useState(null);
   const [messages, setMessages] = useState([]);
   const [users, setUsers] = useState([]);
+  const [allServerMembers, setAllServerMembers] = useState([]);
   const [voiceChannelUsers, setVoiceChannelUsers] = useState({}); // {channelId: [{id, username, isMuted}]}
   const [speakingUsers, setSpeakingUsers] = useState({}); // {channelId: Set of userIds}
   const [user, setUser] = useState(null);
@@ -74,13 +75,14 @@ function App() {
       .catch(err => console.error('Ошибка загрузки серверов:', err));
   }, [user]);
 
-  // Загрузка каналов текущего сервера
+  // Загрузка каналов и участников текущего сервера
   useEffect(() => {
     if (!currentServer || !user) return;
 
     const token = localStorage.getItem('token');
     if (!token) return;
 
+    // Загрузить каналы
     fetch(`${BACKEND_URL}/api/servers/${currentServer._id}/channels`, {
       headers: {
         'Authorization': `Bearer ${token}`
@@ -96,6 +98,18 @@ function App() {
         }
       })
       .catch(err => console.error('Ошибка загрузки каналов:', err));
+
+    // Загрузить всех участников сервера
+    fetch(`${BACKEND_URL}/api/servers/${currentServer._id}/members`, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    })
+      .then(res => res.json())
+      .then(data => {
+        setAllServerMembers(data);
+      })
+      .catch(err => console.error('Ошибка загрузки участников:', err));
   }, [currentServer, user]);
 
   // Socket listeners
@@ -209,11 +223,17 @@ function App() {
   };
 
   const handleSelectServer = (server) => {
+    // Если уже выбран этот сервер, ничего не делаем
+    if (currentServer && currentServer._id === server._id) {
+      return;
+    }
+
     setCurrentServer(server);
     setCurrentTextChannel(null);
     setCurrentVoiceChannel(null);
     setMessages([]);
     setUsers([]);
+    setAllServerMembers([]);
 
     // Сохранить выбранный сервер
     localStorage.setItem('lastServerId', server._id);
@@ -403,7 +423,10 @@ function App() {
         hasServer={!!currentServer}
       />
 
-      <UserList users={users} />
+      <UserList
+        onlineUsers={users}
+        allMembers={allServerMembers}
+      />
     </div>
   );
 }
