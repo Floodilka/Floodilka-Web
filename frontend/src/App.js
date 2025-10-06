@@ -394,6 +394,7 @@ function App() {
         messages={messages}
         username={user?.username}
         onSendMessage={handleSendMessage}
+        hasServer={!!currentServer}
       />
 
       <UserList users={users} />

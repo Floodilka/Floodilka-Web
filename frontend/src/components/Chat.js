@@ -5,7 +5,7 @@ const BACKEND_URL = window.location.hostname === 'localhost'
   ? 'http://localhost:3001'
   : `${window.location.protocol}//${window.location.hostname}`;
 
-function Chat({ channel, messages, username, onSendMessage }) {
+function Chat({ channel, messages, username, onSendMessage, hasServer }) {
   const [inputValue, setInputValue] = useState('');
   const messagesEndRef = useRef(null);
   const messagesContainerRef = useRef(null);
@@ -36,14 +36,19 @@ function Chat({ channel, messages, username, onSendMessage }) {
   };
 
   if (!channel) {
-    return (
-      <div className="chat">
-        <div className="no-channel">
-          <h2>Добро пожаловать в Болтушку! 👋</h2>
-          <p>Выберите канал слева, чтобы начать общение</p>
+    // Показываем welcome-экран только если есть выбранный сервер
+    if (hasServer) {
+      return (
+        <div className="chat">
+          <div className="no-channel">
+            <h2>Добро пожаловать в Болтушку! 👋</h2>
+            <p>Выберите канал слева, чтобы начать общение</p>
+          </div>
         </div>
-      </div>
-    );
+      );
+    }
+    // Если сервер не выбран, показываем пустой экран
+    return <div className="chat" />;
   }
 
   return (
