@@ -6,6 +6,10 @@ const cors = require('cors');
 const mongoose = require('mongoose');
 const { v4: uuidv4 } = require('uuid');
 
+// Импорт моделей
+const Channel = require('./models/Channel');
+const Message = require('./models/Message');
+
 // Загрузка переменных окружения
 const PORT = process.env.PORT || 3001;
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:3000';
@@ -31,14 +35,17 @@ app.use(cors({
   origin: FRONTEND_URL,
   credentials: true
 }));
-app.use(express.json());
+app.use(express.json({ limit: '2mb' }));
+app.use(express.urlencoded({ limit: '2mb', extended: true }));
 
 // Статические файлы (для аватаров)
 app.use('/uploads', express.static('uploads'));
 
 // Импорт роутов
 const authRoutes = require('./routes/auth');
+const serverRoutes = require('./routes/servers');
 app.use('/api/auth', authRoutes);
+app.use('/api/servers', serverRoutes);
 
 // Хранилище данных в памяти (временно, потом переведем на БД)
 const channels = new Map();
@@ -99,13 +106,19 @@ migrateOldChannels();
 
 // REST API endpoints
 
-// Получить все каналы
-app.get('/api/channels', (req, res) => {
-  const channelList = Array.from(channels.values());
-  res.json(channelList);
+// Получить все каналы (для обратной совместимости - старые каналы из памяти)
+app.get('/api/channels', async (req, res) => {
+  try {
+    // Возвращаем старые каналы из памяти, если они есть
+    const channelList = Array.from(channels.values());
+    res.json(channelList);
+  } catch (error) {
+    console.error('Ошибка получения каналов:', error);
+    res.status(500).json({ error: 'Ошибка сервера' });
+  }
 });
 
-// Создать новый канал
+// Создать новый канал (старый endpoint для обратной совместимости)
 app.post('/api/channels', (req, res) => {
   const { name, type } = req.body;
 
@@ -138,15 +151,26 @@ app.post('/api/channels', (req, res) => {
 });
 
 // Получить сообщения канала
-app.get('/api/channels/:channelId/messages', (req, res) => {
-  const { channelId } = req.params;
+app.get('/api/channels/:channelId/messages', async (req, res) => {
+  try {
+    const { channelId } = req.params;
 
-  if (!channels.has(channelId)) {
-    return res.status(404).json({ error: 'Канал не найден' });
+    // Сначала проверим в памяти (старые каналы)
+    if (channels.has(channelId)) {
+      const channelMessages = messages.get(channelId) || [];
+      return res.json(channelMessages);
+    }
+
+    // Если не в памяти, ищем в БД
+    const channelMessages = await Message.find({ channelId })
+      .sort({ createdAt: 1 })
+      .limit(100);
+
+    res.json(channelMessages);
+  } catch (error) {
+    console.error('Ошибка получения сообщений:', error);
+    res.status(500).json({ error: 'Ошибка сервера' });
   }
-
-  const channelMessages = messages.get(channelId) || [];
-  res.json(channelMessages);
 });
 
 // WebSocket обработка
@@ -157,16 +181,12 @@ io.on('connection', (socket) => {
   let currentUsername = null;
 
   // Присоединиться к каналу
-  socket.on('channel:join', ({ channelId, username, avatar }) => {
-    if (!channels.has(channelId)) {
-      socket.emit('error', { message: 'Канал не найден' });
-      return;
-    }
+  socket.on('channel:join', async ({ channelId, username, avatar }) => {
+    // Проверяем в памяти (для обратной совместимости) и в базе данных
+    const channelInMemory = channels.get(channelId);
 
-    const channel = channels.get(channelId);
-
-    // Проверить, что это текстовый канал
-    if (channel.type === 'voice') {
+    // Если канал из памяти, проверяем тип
+    if (channelInMemory && channelInMemory.type === 'voice') {
       socket.emit('error', { message: 'Используйте voice:join для голосовых каналов' });
       return;
     }
@@ -187,11 +207,10 @@ io.on('connection', (socket) => {
     // Присоединиться к новому каналу
     currentChannel = channelId;
     currentUsername = username || `Гость${Math.floor(Math.random() * 1000)}`;
-    const currentAvatar = avatar; // Сохраняем аватар
-    socket.currentAvatar = avatar; // Сохраняем аватар в socket для использования в сообщениях
+    socket.currentAvatar = avatar;
     socket.join(channelId);
 
-    // Получить или создать Map пользователей для канала (теперь храним объекты)
+    // Получить или создать Map пользователей для канала
     let users = onlineUsers.get(channelId);
     if (!users) {
       users = new Map();
@@ -199,11 +218,24 @@ io.on('connection', (socket) => {
     }
     users.set(socket.id, { username: currentUsername, avatar });
 
-    // Получить или создать массив сообщений для канала
-    let channelMessages = messages.get(channelId);
-    if (!channelMessages) {
-      channelMessages = [];
-      messages.set(channelId, channelMessages);
+    // Загрузить сообщения из БД или памяти
+    let channelMessages = [];
+    if (channelInMemory) {
+      // Старый канал из памяти
+      channelMessages = messages.get(channelId) || [];
+      if (!messages.has(channelId)) {
+        messages.set(channelId, []);
+      }
+    } else {
+      // Канал из БД
+      try {
+        const dbMessages = await Message.find({ channelId })
+          .sort({ createdAt: 1 })
+          .limit(100);
+        channelMessages = dbMessages;
+      } catch (err) {
+        console.error('Ошибка загрузки сообщений:', err);
+      }
     }
 
     // Отправить текущие сообщения
@@ -217,49 +249,61 @@ io.on('connection', (socket) => {
   });
 
   // Отправить сообщение
-  socket.on('message:send', ({ channelId, content, username, avatar }) => {
-    if (!channels.has(channelId)) {
-      socket.emit('error', { message: 'Канал не найден' });
-      return;
-    }
-
+  socket.on('message:send', async ({ channelId, content, username, avatar }) => {
     if (!content || content.trim() === '') {
       return;
     }
 
-    const message = {
-      id: uuidv4(),
+    const messageData = {
       channelId,
       username: username || currentUsername || 'Аноним',
-      avatar: avatar || socket.currentAvatar || null, // Добавляем аватар
+      avatar: avatar || socket.currentAvatar || null,
       content: content.trim(),
-      timestamp: new Date().toISOString(),
       isSystem: false
     };
 
-    // Получить или создать массив сообщений для канала
-    let channelMessages = messages.get(channelId);
-    if (!channelMessages) {
-      channelMessages = [];
-      messages.set(channelId, channelMessages);
-    }
-    channelMessages.push(message);
+    const channelInMemory = channels.get(channelId);
 
-    // Отправить всем в канале
-    io.to(channelId).emit('message:new', message);
+    if (channelInMemory) {
+      // Старый канал из памяти
+      const message = {
+        id: uuidv4(),
+        ...messageData,
+        timestamp: new Date().toISOString()
+      };
+
+      let channelMessages = messages.get(channelId);
+      if (!channelMessages) {
+        channelMessages = [];
+        messages.set(channelId, channelMessages);
+      }
+      channelMessages.push(message);
+
+      io.to(channelId).emit('message:new', message);
+    } else {
+      // Канал из БД - сохраняем сообщение в БД
+      try {
+        const message = new Message(messageData);
+        await message.save();
+
+        // Отправить всем в канале (с виртуальными полями)
+        io.to(channelId).emit('message:new', message.toJSON());
+      } catch (err) {
+        console.error('Ошибка сохранения сообщения:', err);
+        socket.emit('error', { message: 'Ошибка отправки сообщения' });
+      }
+    }
   });
 
   // WebRTC сигналинг для голосовых каналов
 
   // Присоединиться к голосовому каналу
   socket.on('voice:join', ({ channelId, username, avatar }) => {
-    if (!channels.has(channelId)) {
-      socket.emit('error', { message: 'Канал не найден' });
-      return;
-    }
+    // Проверяем в памяти (для обратной совместимости)
+    const channelInMemory = channels.get(channelId);
 
-    const channel = channels.get(channelId);
-    if (channel.type !== 'voice') {
+    // Если канал из памяти, проверяем тип
+    if (channelInMemory && channelInMemory.type !== 'voice') {
       socket.emit('error', { message: 'Это не голосовой канал' });
       return;
     }
@@ -295,12 +339,12 @@ io.on('connection', (socket) => {
     // Отправить обновленный список всем пользователям для сайдбара
     broadcastVoiceChannelUsers();
 
-    console.log(`${username} присоединился к голосовому каналу ${channel.name}`);
+    console.log(`${username} присоединился к голосовому каналу ${channelId}`);
   });
 
   // Покинуть голосовой канал
   socket.on('voice:leave', ({ channelId }) => {
-    if (!channels.has(channelId)) return;
+    // Каналы из базы данных также поддерживаются
 
     const users = voiceUsers.get(channelId);
     if (users) {

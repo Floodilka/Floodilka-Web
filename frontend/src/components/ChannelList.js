@@ -6,10 +6,76 @@ const BACKEND_URL = window.location.hostname === 'localhost'
   ? 'http://localhost:3001'
   : `${window.location.protocol}//${window.location.hostname}`;
 
-function ChannelList({ channels, currentTextChannel, currentVoiceChannel, voiceChannelUsers, speakingUsers, user, isMuted, isDeafened, isInVoice, onToggleMute, onToggleDeafen, onDisconnect, onLogout, onAvatarUpdate, onSelectChannel, onCreateChannel }) {
+function ChannelList({ channels, currentTextChannel, currentVoiceChannel, voiceChannelUsers, speakingUsers, user, isMuted, isDeafened, isInVoice, serverName, currentServer, onToggleMute, onToggleDeafen, onDisconnect, onLogout, onAvatarUpdate, onSelectChannel, onCreateChannel }) {
   const [showTextForm, setShowTextForm] = useState(false);
   const [showVoiceForm, setShowVoiceForm] = useState(false);
   const [newChannelName, setNewChannelName] = useState('');
+  const [showServerMenu, setShowServerMenu] = useState(false);
+  const [menuClosing, setMenuClosing] = useState(false);
+  const [inviteLink, setInviteLink] = useState('');
+  const [inviteLoading, setInviteLoading] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  const handleGenerateInvite = async () => {
+    if (!currentServer) return;
+
+    setInviteLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${BACKEND_URL}/api/servers/${currentServer._id}/invites`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({})
+      });
+
+      const data = await response.json();
+      if (response.ok) {
+        setInviteLink(data.code);
+      }
+    } catch (err) {
+      console.error('Ошибка создания инвайта:', err);
+    } finally {
+      setInviteLoading(false);
+    }
+  };
+
+  const handleCopyInvite = () => {
+    if (inviteLink) {
+      navigator.clipboard.writeText(inviteLink);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
+  const toggleServerMenu = () => {
+    if (showServerMenu) {
+      // Закрытие с анимацией - убираем класс open сразу
+      setMenuClosing(true);
+      // Но меню остается в DOM до конца анимации
+      setTimeout(() => {
+        setShowServerMenu(false);
+        setMenuClosing(false);
+      }, 200); // Длительность анимации
+    } else {
+      // Открытие
+      if (!inviteLink) {
+        handleGenerateInvite();
+      }
+      setShowServerMenu(true);
+      setMenuClosing(false);
+    }
+  };
+
+  const closeServerMenu = () => {
+    setMenuClosing(true);
+    setTimeout(() => {
+      setShowServerMenu(false);
+      setMenuClosing(false);
+    }, 200);
+  };
 
   const handleCreateText = (e) => {
     e.preventDefault();
@@ -37,8 +103,63 @@ function ChannelList({ channels, currentTextChannel, currentVoiceChannel, voiceC
   return (
     <div className="channel-list">
       <div className="channel-list-header">
-        <h2>Болтушка</h2>
+        <h2>{serverName || 'Выберите сервер'}</h2>
+        {currentServer && (
+          <button
+            className={`server-menu-btn ${showServerMenu && !menuClosing ? 'open' : ''}`}
+            onClick={toggleServerMenu}
+            title="Меню сервера"
+          >
+            <img
+              src="/icons/arrow_down.png"
+              alt="Меню"
+              className="arrow-icon"
+            />
+          </button>
+        )}
       </div>
+
+      {showServerMenu && (
+        <>
+          <div
+            className="server-menu-overlay"
+            onClick={closeServerMenu}
+          />
+          <div className={`server-dropdown-menu ${menuClosing ? 'closing' : ''}`}>
+            <div className="invite-section">
+              <div className="invite-label">Пригласить людей</div>
+              {inviteLoading ? (
+                <div className="invite-loading">Создание ссылки...</div>
+              ) : inviteLink ? (
+                <div className="invite-code-box">
+                  <input
+                    type="text"
+                    value={inviteLink}
+                    readOnly
+                    className="invite-input"
+                    onClick={(e) => e.target.select()}
+                  />
+                  <button
+                    className={`copy-invite-btn ${copied ? 'copied' : ''}`}
+                    onClick={handleCopyInvite}
+                    title={copied ? "Скопировано!" : "Копировать"}
+                  >
+                    {copied ? (
+                      <span className="check-icon">✓</span>
+                    ) : (
+                      <img
+                        src="/icons/copy.png"
+                        alt="Копировать"
+                        className="copy-icon"
+                      />
+                    )}
+                  </button>
+                </div>
+              ) : null}
+            </div>
+          </div>
+        </>
+      )}
 
       <div className="channels-container">
         <div className="channels-section">

@@ -1,0 +1,261 @@
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.85);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.create-server-modal {
+  background: #313338;
+  border-radius: 8px;
+  padding: 24px;
+  width: 440px;
+  max-width: 90vw;
+  position: relative;
+  animation: modalSlideIn 0.2s ease;
+}
+
+@keyframes modalSlideIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.create-server-modal h2 {
+  color: #f2f3f5;
+  font-size: 24px;
+  margin: 0 0 8px 0;
+  text-align: center;
+  padding-right: 40px;
+}
+
+.modal-subtitle {
+  color: #b5bac1;
+  font-size: 14px;
+  text-align: center;
+  margin: 0 0 24px 0;
+  line-height: 1.5;
+}
+
+.modal-close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  background: none;
+  border: none;
+  color: #b5bac1;
+  font-size: 32px;
+  cursor: pointer;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: all 0.2s;
+  line-height: 1;
+  z-index: 10;
+}
+
+.modal-close:hover {
+  background: #404249;
+  color: #f2f3f5;
+}
+
+.server-icon-upload {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 16px;
+}
+
+.server-icon-placeholder {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  border: 2px dashed #4e5058;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.server-icon-placeholder:hover {
+  border-color: #5865f2;
+  background: rgba(88, 101, 242, 0.1);
+}
+
+.upload-icon {
+  width: 32px;
+  height: 32px;
+  filter: brightness(0) invert(1);
+  opacity: 0.7;
+  transition: opacity 0.2s;
+}
+
+.server-icon-placeholder:hover .upload-icon {
+  opacity: 1;
+}
+
+.server-icon-preview {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: #5865f2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 40px;
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+}
+
+.server-icon-preview:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(88, 101, 242, 0.4);
+}
+
+.server-icon-preview.uploaded {
+  background: transparent;
+  border: 2px solid #5865f2;
+  padding: 0;
+  overflow: hidden;
+}
+
+.server-icon-preview.uploaded img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.emoji-picker {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+.emoji-button {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  border: 2px solid transparent;
+  background: #2b2d31;
+  font-size: 20px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.emoji-button:hover {
+  background: #404249;
+  transform: scale(1.1);
+}
+
+.emoji-button.selected {
+  border-color: #5865f2;
+  background: rgba(88, 101, 242, 0.2);
+}
+
+.form-group {
+  margin-bottom: 24px;
+}
+
+.form-group label {
+  display: block;
+  color: #b5bac1;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+  letter-spacing: 0.5px;
+}
+
+.required {
+  color: #f23f42;
+}
+
+.form-group input {
+  width: 100%;
+  padding: 10px;
+  background: #1e1f22;
+  border: 1px solid #000;
+  border-radius: 4px;
+  color: #f2f3f5;
+  font-size: 16px;
+  transition: border-color 0.2s;
+}
+
+.form-group input:focus {
+  outline: none;
+  border-color: #5865f2;
+}
+
+.form-group input::placeholder {
+  color: #6d6f78;
+}
+
+.error-message {
+  color: #f23f42;
+  font-size: 12px;
+  margin-top: 8px;
+  font-style: italic;
+}
+
+.modal-footer {
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.btn-secondary,
+.btn-primary {
+  padding: 10px 16px;
+  border-radius: 4px;
+  border: none;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  flex: 1;
+}
+
+.btn-secondary {
+  background: transparent;
+  color: #f2f3f5;
+}
+
+.btn-secondary:hover {
+  text-decoration: underline;
+}
+
+.btn-primary {
+  background: #5865f2;
+  color: white;
+}
+
+.btn-primary:hover {
+  background: #4752c4;
+}
+
+.btn-primary:active {
+  transform: scale(0.98);
+}
+

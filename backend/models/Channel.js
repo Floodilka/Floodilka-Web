@@ -28,5 +28,19 @@ const channelSchema = new mongoose.Schema({
   }
 });
 
+// Виртуальное поле id для совместимости с фронтендом
+channelSchema.virtual('id').get(function() {
+  return this._id.toString();
+});
+
+// Включить виртуальные поля при преобразовании в JSON
+channelSchema.set('toJSON', {
+  virtuals: true,
+  transform: function(doc, ret) {
+    ret.id = ret._id.toString();
+    return ret;
+  }
+});
+
 module.exports = mongoose.model('Channel', channelSchema);
 

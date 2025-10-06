@@ -11,6 +11,8 @@ function Register({ onSuccess, onSwitchToLogin }) {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -88,28 +90,56 @@ function Register({ onSuccess, onSwitchToLogin }) {
 
       <div className="form-group">
         <label>Пароль</label>
-        <input
-          type="password"
-          placeholder="••••••"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-          minLength={6}
-          disabled={loading}
-        />
+        <div className="password-input-wrapper">
+          <input
+            type={showPassword ? "text" : "password"}
+            placeholder="••••••"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+            minLength={6}
+            disabled={loading}
+          />
+          <button
+            type="button"
+            className="password-toggle-btn"
+            onClick={() => setShowPassword(!showPassword)}
+            tabIndex={-1}
+          >
+            <img
+              src={showPassword ? "/icons/eye.png" : "/icons/eye_closed.png"}
+              alt={showPassword ? "Скрыть пароль" : "Показать пароль"}
+              className="password-toggle-icon"
+            />
+          </button>
+        </div>
       </div>
 
       <div className="form-group">
         <label>Подтвердите пароль</label>
-        <input
-          type="password"
-          placeholder="••••••"
-          value={confirmPassword}
-          onChange={(e) => setConfirmPassword(e.target.value)}
-          required
-          minLength={6}
-          disabled={loading}
-        />
+        <div className="password-input-wrapper">
+          <input
+            type={showConfirmPassword ? "text" : "password"}
+            placeholder="••••••"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            required
+            minLength={6}
+            disabled={loading}
+          />
+          <button
+            type="button"
+            className="password-toggle-btn"
+            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+            tabIndex={-1}
+          >
+            <img
+              src={showConfirmPassword ? "/icons/eye.png" : "/icons/eye_closed.png"}
+              alt={showConfirmPassword ? "Скрыть пароль" : "Показать пароль"}
+              className="password-toggle-icon"
+            />
+          </button>
+        </div>
       </div>
 
       <button type="submit" className="auth-submit-btn" disabled={loading}>

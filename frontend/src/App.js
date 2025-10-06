@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import io from 'socket.io-client';
 import './App.css';
+import ServerSidebar from './components/ServerSidebar';
 import ChannelList from './components/ChannelList';
 import Chat from './components/Chat';
 import VoiceChannel from './components/VoiceChannel';
 import UserList from './components/UserList';
 import AuthModal from './components/Auth/AuthModal';
+import EmptyServerState from './components/EmptyServerState';
 
 // Автоматически определяем URL в зависимости от окружения
 const BACKEND_URL = window.location.hostname === 'localhost'
@@ -14,6 +16,8 @@ const BACKEND_URL = window.location.hostname === 'localhost'
 
 function App() {
   const [socket, setSocket] = useState(null);
+  const [servers, setServers] = useState([]);
+  const [currentServer, setCurrentServer] = useState(null);
   const [channels, setChannels] = useState([]);
   const [currentTextChannel, setCurrentTextChannel] = useState(null);
   const [currentVoiceChannel, setCurrentVoiceChannel] = useState(null);
@@ -36,9 +40,41 @@ function App() {
     return () => newSocket.close();
   }, []);
 
-  // Загрузка каналов
+  // Загрузка серверов пользователя
   useEffect(() => {
-    fetch(`${BACKEND_URL}/api/channels`)
+    if (!user) return;
+
+    const token = localStorage.getItem('token');
+    if (!token) return;
+
+    fetch(`${BACKEND_URL}/api/servers`, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    })
+      .then(res => res.json())
+      .then(data => {
+        setServers(data);
+        // Автоматически выбрать первый сервер
+        if (data.length > 0 && !currentServer) {
+          setCurrentServer(data[0]);
+        }
+      })
+      .catch(err => console.error('Ошибка загрузки серверов:', err));
+  }, [user]);
+
+  // Загрузка каналов текущего сервера
+  useEffect(() => {
+    if (!currentServer || !user) return;
+
+    const token = localStorage.getItem('token');
+    if (!token) return;
+
+    fetch(`${BACKEND_URL}/api/servers/${currentServer._id}/channels`, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    })
       .then(res => res.json())
       .then(data => {
         setChannels(data);
@@ -49,7 +85,7 @@ function App() {
         }
       })
       .catch(err => console.error('Ошибка загрузки каналов:', err));
-  }, []);
+  }, [currentServer, user]);
 
   // Socket listeners
   useEffect(() => {
@@ -141,12 +177,43 @@ function App() {
     // Сбросить состояние
     setUser(null);
     setShowAuthModal(true);
+    setServers([]);
+    setCurrentServer(null);
+    setChannels([]);
     setCurrentTextChannel(null);
     setCurrentVoiceChannel(null);
     setMessages([]);
     setUsers([]);
     setGlobalMuted(false);
     setGlobalDeafened(false);
+  };
+
+  const handleSelectServer = (server) => {
+    setCurrentServer(server);
+    setCurrentTextChannel(null);
+    setCurrentVoiceChannel(null);
+    setMessages([]);
+    setUsers([]);
+  };
+
+  const handleCreateServer = (serverData) => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+
+    fetch(`${BACKEND_URL}/api/servers`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify(serverData)
+    })
+      .then(res => res.json())
+      .then(newServer => {
+        setServers(prev => [...prev, newServer]);
+        setCurrentServer(newServer);
+      })
+      .catch(err => console.error('Ошибка создания сервера:', err));
   };
 
   const handleAvatarUpdate = (updatedUser) => {
@@ -186,15 +253,24 @@ function App() {
   };
 
   const handleCreateChannel = (channelName, channelType = 'text') => {
-    fetch(`${BACKEND_URL}/api/channels`, {
+    if (!currentServer) return;
+
+    const token = localStorage.getItem('token');
+    if (!token) return;
+
+    fetch(`${BACKEND_URL}/api/servers/${currentServer._id}/channels`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
       },
       body: JSON.stringify({ name: channelName, type: channelType }),
     })
       .then(res => res.json())
       .then(newChannel => {
+        // Добавить канал в список
+        setChannels(prev => [...prev, newChannel]);
+
         if (newChannel.type === 'text') {
           setCurrentTextChannel(newChannel);
         } else {
@@ -219,8 +295,29 @@ function App() {
     return <AuthModal onAuth={handleAuth} />;
   }
 
+  // Если у пользователя нет серверов, показываем EmptyServerState
+  if (servers.length === 0) {
+    return (
+      <div className="app">
+        <EmptyServerState
+          onCreateServer={handleCreateServer}
+          user={user}
+          onLogout={handleLogout}
+          onAvatarUpdate={handleAvatarUpdate}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="app">
+      <ServerSidebar
+        servers={servers}
+        currentServer={currentServer}
+        onSelectServer={handleSelectServer}
+        onCreateServer={handleCreateServer}
+      />
+
       <ChannelList
         channels={channels}
         currentTextChannel={currentTextChannel}
@@ -231,6 +328,8 @@ function App() {
         isMuted={globalMuted}
         isDeafened={globalDeafened}
         isInVoice={!!currentVoiceChannel}
+        serverName={currentServer?.name}
+        currentServer={currentServer}
         onToggleMute={() => setGlobalMuted(!globalMuted)}
         onToggleDeafen={() => {
           const newDeafened = !globalDeafened;

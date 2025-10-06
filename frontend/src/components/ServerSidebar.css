@@ -1,0 +1,323 @@
+.server-sidebar {
+  width: 72px;
+  background: #1e1f22;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 12px 0;
+  overflow-y: auto;
+  overflow-x: visible;
+  user-select: none;
+}
+
+.server-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  align-items: center;
+  position: relative;
+}
+
+.server-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: #313338;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.server-icon:hover {
+  border-radius: 16px;
+}
+
+.server-icon.active {
+  border-radius: 16px;
+}
+
+/* Только для эмодзи и текста применяем цветной фон при ховере */
+.server-icon:hover .server-icon-emoji,
+.server-icon:hover .server-icon-text {
+  filter: brightness(1.2);
+}
+
+.server-icon.active .server-icon-emoji,
+.server-icon.active .server-icon-text {
+  filter: brightness(1.2);
+}
+
+/* Для серверов с изображениями не меняем фон */
+.server-icon:has(.server-icon-image) {
+  background: transparent;
+}
+
+.server-icon:has(.server-icon-image):hover {
+  background: transparent;
+  transform: translateY(-2px);
+}
+
+.server-icon:has(.server-icon-image).active {
+  background: transparent;
+}
+
+.server-icon.active::before {
+  content: '';
+  position: absolute;
+  left: -12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 8px;
+  height: 40px;
+  background: white;
+  border-radius: 0 4px 4px 0;
+}
+
+.server-icon-emoji {
+  font-size: 24px;
+}
+
+.server-icon-text {
+  color: #fff;
+  font-weight: 600;
+  font-size: 16px;
+  user-select: none;
+}
+
+.server-icon-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: all 0.2s ease;
+}
+
+.add-server {
+  background: #313338;
+  color: #23a559;
+  margin-top: 8px;
+  font-size: 32px;
+  font-weight: 300;
+  line-height: 1;
+  padding-bottom: 4px;
+}
+
+.add-server:hover {
+  background: #23a559;
+  color: white;
+  border-radius: 16px;
+}
+
+/* Оверлей для закрытия меню */
+.menu-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: transparent;
+  z-index: 9998;
+}
+
+/* Меню действий */
+.server-action-menu {
+  position: fixed;
+  background: #111214;
+  border-radius: 8px;
+  padding: 8px;
+  min-width: 200px;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
+  z-index: 9999;
+  animation: menuSlideIn 0.15s ease;
+}
+
+@keyframes menuSlideIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateX(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateX(0);
+  }
+}
+
+.action-menu-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  background: none;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+  color: #b5bac1;
+  font-size: 14px;
+  text-align: left;
+  user-select: none;
+}
+
+.action-menu-item:hover {
+  background: #5865f2;
+  color: white;
+}
+
+.action-menu-icon {
+  font-size: 18px;
+}
+
+.action-menu-text {
+  font-weight: 500;
+}
+
+/* Модалка присоединения */
+.join-server-modal {
+  background: #313338;
+  border-radius: 8px;
+  padding: 24px;
+  padding-top: 48px;
+  width: 440px;
+  max-width: 90vw;
+  position: relative;
+  animation: modalSlideIn 0.2s ease;
+}
+
+.modal-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: none;
+  border: none;
+  color: #b5bac1;
+  font-size: 28px;
+  cursor: pointer;
+  padding: 4px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: all 0.2s;
+  line-height: 1;
+  z-index: 10;
+}
+
+.modal-close:hover {
+  background: #404249;
+  color: #f2f3f5;
+}
+
+.join-server-modal h2 {
+  color: #f2f3f5;
+  font-size: 24px;
+  margin: 0 0 8px 0;
+  text-align: center;
+}
+
+.join-server-modal .modal-subtitle {
+  color: #b5bac1;
+  font-size: 14px;
+  text-align: center;
+  margin: 0 0 24px 0;
+  line-height: 1.5;
+}
+
+.join-server-modal .form-group {
+  margin-bottom: 24px;
+}
+
+.join-server-modal .form-group label {
+  display: block;
+  color: #b5bac1;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+  letter-spacing: 0.5px;
+}
+
+.join-server-modal .form-group input {
+  width: 100%;
+  padding: 10px;
+  background: #1e1f22;
+  border: 1px solid #000;
+  border-radius: 4px;
+  color: #f2f3f5;
+  font-size: 16px;
+  transition: border-color 0.2s;
+}
+
+.join-server-modal .form-group input:focus {
+  outline: none;
+  border-color: #5865f2;
+}
+
+.join-server-modal .form-group input::placeholder {
+  color: #6d6f78;
+}
+
+.error-message {
+  color: #f23f42;
+  font-size: 12px;
+  margin-top: 8px;
+  font-style: italic;
+}
+
+.join-server-modal .modal-footer {
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.btn-secondary,
+.btn-primary {
+  padding: 10px 16px;
+  border-radius: 4px;
+  border: none;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  flex: 1;
+}
+
+.btn-secondary {
+  background: transparent;
+  color: #f2f3f5;
+}
+
+.btn-secondary:hover {
+  text-decoration: underline;
+}
+
+.btn-primary {
+  background: #5865f2;
+  color: white;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: #4752c4;
+}
+
+.btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-primary:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+/* Кастомный скроллбар */
+.server-sidebar::-webkit-scrollbar {
+  width: 0;
+}
+

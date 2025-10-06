@@ -52,7 +52,7 @@ NGINX_HTTP_HASH_BEFORE=$(md5sum deployment/nginx-http.conf 2>/dev/null | cut -d'
 echo ""
 echo -e "${GREEN}📥 Подтягивание обновлений...${NC}"
 git stash
-git pull
+git pull --rebase
 git stash pop || true
 
 # Проверка изменений в nginx

@@ -4,6 +4,7 @@
   display: flex;
   flex-direction: column;
   border-right: 1px solid #202225;
+  user-select: none;
 }
 
 .channel-list-header {
@@ -13,6 +14,8 @@
   height: 48px;
   display: flex;
   align-items: center;
+  justify-content: space-between;
+  position: relative;
 }
 
 .channel-list-header h2 {
@@ -20,6 +23,180 @@
   font-size: 16px;
   font-weight: 600;
   margin: 0;
+  flex: 1;
+}
+
+.server-menu-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.server-menu-btn:hover {
+  background: #404249;
+}
+
+.arrow-icon {
+  width: 16px;
+  height: 16px;
+  filter: brightness(0) invert(1);
+  opacity: 0.6;
+  transition: all 0.3s ease;
+}
+
+.server-menu-btn:hover .arrow-icon {
+  opacity: 1;
+}
+
+.server-menu-btn.open .arrow-icon {
+  transform: rotate(180deg);
+}
+
+/* Оверлей для закрытия меню */
+.server-menu-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: transparent;
+  z-index: 5;
+}
+
+/* Выпадающее меню сервера */
+.server-dropdown-menu {
+  background: #2b2d31;
+  border-bottom: 1px solid #202225;
+  padding: 12px 16px;
+  position: relative;
+  z-index: 10;
+  animation: slideDown 0.2s ease forwards;
+  overflow: hidden;
+}
+
+.server-dropdown-menu.closing {
+  animation: slideUp 0.2s ease forwards;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    max-height: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+  }
+  to {
+    opacity: 1;
+    max-height: 200px;
+    padding-top: 12px;
+    padding-bottom: 12px;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 1;
+    max-height: 200px;
+    padding-top: 12px;
+    padding-bottom: 12px;
+  }
+  to {
+    opacity: 0;
+    max-height: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+  }
+}
+
+.invite-section {
+  margin-bottom: 0;
+}
+
+.invite-label {
+  color: #b5bac1;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+  letter-spacing: 0.5px;
+}
+
+.invite-loading {
+  color: #8e9297;
+  font-size: 13px;
+  padding: 8px;
+  text-align: center;
+}
+
+.invite-code-box {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.invite-input {
+  flex: 1;
+  background: #1e1f22;
+  border: 1px solid #000;
+  border-radius: 4px;
+  padding: 8px 10px;
+  color: #f2f3f5;
+  font-size: 14px;
+  font-family: monospace;
+  height: 36px;
+}
+
+.invite-input:focus {
+  outline: none;
+  border-color: #5865f2;
+}
+
+.copy-invite-btn {
+  background: #5865f2;
+  border: none;
+  border-radius: 4px;
+  padding: 0 12px;
+  height: 36px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.copy-invite-btn:hover {
+  background: #4752c4;
+}
+
+.copy-invite-btn:active {
+  transform: scale(0.95);
+}
+
+.copy-invite-btn.copied {
+  background: #23a559;
+}
+
+.copy-invite-btn.copied:hover {
+  background: #1e8e4f;
+}
+
+.copy-icon {
+  width: 18px;
+  height: 18px;
+  filter: brightness(0) invert(1);
+}
+
+.check-icon {
+  color: white;
+  font-size: 18px;
+  font-weight: bold;
 }
 
 .channels-container {

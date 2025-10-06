@@ -1,24 +1,23 @@
 const mongoose = require('mongoose');
 
 const messageSchema = new mongoose.Schema({
-  content: {
+  channelId: {
     type: String,
     required: true,
-    maxlength: 2000
-  },
-  channelId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Channel',
-    required: true
-  },
-  userId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: true
+    index: true
   },
   username: {
     type: String,
     required: true
+  },
+  avatar: {
+    type: String,
+    default: null
+  },
+  content: {
+    type: String,
+    required: true,
+    maxlength: 2000
   },
   isSystem: {
     type: Boolean,
@@ -30,5 +29,24 @@ const messageSchema = new mongoose.Schema({
   }
 });
 
-module.exports = mongoose.model('Message', messageSchema);
+// Виртуальное поле id для совместимости с фронтендом
+messageSchema.virtual('id').get(function() {
+  return this._id.toString();
+});
 
+// Виртуальное поле timestamp для совместимости
+messageSchema.virtual('timestamp').get(function() {
+  return this.createdAt.toISOString();
+});
+
+// Включить виртуальные поля при преобразовании в JSON
+messageSchema.set('toJSON', {
+  virtuals: true,
+  transform: function(doc, ret) {
+    ret.id = ret._id.toString();
+    ret.timestamp = ret.createdAt.toISOString();
+    return ret;
+  }
+});
+
+module.exports = mongoose.model('Message', messageSchema);
