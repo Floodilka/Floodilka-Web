@@ -1,0 +1,136 @@
+.auth-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.85);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.auth-modal-content {
+  background-color: #36393f;
+  padding: 40px;
+  border-radius: 12px;
+  max-width: 480px;
+  width: 90%;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+.auth-header {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.auth-header h1 {
+  color: #ffffff;
+  margin-bottom: 8px;
+  font-size: 24px;
+}
+
+.auth-header p {
+  color: #b9bbbe;
+  font-size: 15px;
+}
+
+.auth-form-container {
+  margin-top: 8px;
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.form-group label {
+  color: #b9bbbe;
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.form-group input {
+  padding: 12px;
+  border-radius: 8px;
+  border: none;
+  background-color: #202225;
+  color: #dcddde;
+  font-size: 15px;
+  outline: none;
+  transition: background-color 0.2s;
+}
+
+.form-group input:focus {
+  background-color: #2f3136;
+}
+
+.form-group input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.auth-error {
+  padding: 12px;
+  background-color: rgba(237, 66, 69, 0.1);
+  border: 1px solid #ed4245;
+  border-radius: 8px;
+  color: #ed4245;
+  font-size: 14px;
+  text-align: center;
+}
+
+.auth-submit-btn {
+  padding: 14px;
+  border-radius: 8px;
+  border: none;
+  background-color: #5865f2;
+  color: white;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  margin-top: 8px;
+}
+
+.auth-submit-btn:hover:not(:disabled) {
+  background-color: #4752c4;
+}
+
+.auth-submit-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.auth-switch {
+  text-align: center;
+  color: #b9bbbe;
+  font-size: 14px;
+  margin-top: 8px;
+}
+
+.auth-switch-btn {
+  background: none;
+  border: none;
+  color: #00b0f4;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: none;
+}
+
+.auth-switch-btn:hover {
+  text-decoration: underline;
+}
+

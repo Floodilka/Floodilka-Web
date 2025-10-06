@@ -2,7 +2,11 @@ import React, { useState } from 'react';
 import './ChannelList.css';
 import UserProfile from './UserProfile';
 
-function ChannelList({ channels, currentTextChannel, currentVoiceChannel, voiceChannelUsers, speakingUsers, username, isMuted, isDeafened, isInVoice, onToggleMute, onToggleDeafen, onDisconnect, onSelectChannel, onCreateChannel }) {
+const BACKEND_URL = window.location.hostname === 'localhost'
+  ? 'http://localhost:3001'
+  : `${window.location.protocol}//${window.location.hostname}`;
+
+function ChannelList({ channels, currentTextChannel, currentVoiceChannel, voiceChannelUsers, speakingUsers, user, isMuted, isDeafened, isInVoice, onToggleMute, onToggleDeafen, onDisconnect, onLogout, onAvatarUpdate, onSelectChannel, onCreateChannel }) {
   const [showTextForm, setShowTextForm] = useState(false);
   const [showVoiceForm, setShowVoiceForm] = useState(false);
   const [newChannelName, setNewChannelName] = useState('');
@@ -36,7 +40,8 @@ function ChannelList({ channels, currentTextChannel, currentVoiceChannel, voiceC
         <h2>Болтушка</h2>
       </div>
 
-      <div className="channels-section">
+      <div className="channels-container">
+        <div className="channels-section">
         <div className="section-header">
           <span>ТЕКСТОВЫЕ КАНАЛЫ</span>
           <button
@@ -138,7 +143,7 @@ function ChannelList({ channels, currentTextChannel, currentVoiceChannel, voiceC
 
             // Объединяем текущего пользователя с другими если он в этом канале
             const allUsers = isCurrentInChannel
-              ? [{ id: 'me', username, isMuted, isDeafened }, ...usersInChannel]
+              ? [{ id: 'me', username: user?.displayName || user?.username, avatar: user?.avatar, isMuted, isDeafened }, ...usersInChannel]
               : usersInChannel;
 
             return (
@@ -159,9 +164,17 @@ function ChannelList({ channels, currentTextChannel, currentVoiceChannel, voiceC
                         : channelSpeaking.has(user.id);
                       return (
                         <div key={user.id} className="voice-user-sidebar">
-                          <div className={`voice-user-avatar-tiny ${isSpeaking ? 'speaking' : ''}`}>
-                            {user.username[0].toUpperCase()}
-                          </div>
+                          {user.avatar ? (
+                            <img
+                              src={`${BACKEND_URL}${user.avatar}`}
+                              alt="Avatar"
+                              className={`voice-user-avatar-tiny-img ${isSpeaking ? 'speaking' : ''}`}
+                            />
+                          ) : (
+                            <div className={`voice-user-avatar-tiny ${isSpeaking ? 'speaking' : ''}`}>
+                              {user.username[0].toUpperCase()}
+                            </div>
+                          )}
                           <span className="voice-user-name-tiny">{user.username}</span>
                           <div className="voice-user-status-icons">
                             {user.isDeafened && (
@@ -181,9 +194,10 @@ function ChannelList({ channels, currentTextChannel, currentVoiceChannel, voiceC
           })}
         </div>
       </div>
+      </div>
 
       <UserProfile
-        username={username}
+        user={user}
         isMuted={isMuted}
         isDeafened={isDeafened}
         isInVoice={isInVoice}
@@ -191,6 +205,8 @@ function ChannelList({ channels, currentTextChannel, currentVoiceChannel, voiceC
         onToggleMute={onToggleMute}
         onToggleDeafen={onToggleDeafen}
         onDisconnect={onDisconnect}
+        onLogout={onLogout}
+        onAvatarUpdate={onAvatarUpdate}
       />
     </div>
   );

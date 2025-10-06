@@ -1,6 +1,17 @@
-.app {
-  display: flex;
-  height: 100vh;
+html, body {
+  height: 100%;
+  overflow: hidden;
+  margin: 0;
+  padding: 0;
+}
+
+#root {
+  height: 100%;
   overflow: hidden;
 }
 
+.app {
+  display: flex;
+  height: 100%;
+  overflow: hidden;
+}

@@ -41,10 +41,16 @@
   background-color: #393c43;
 }
 
-.user-avatar {
+.user-avatar,
+.user-avatar-img {
   width: 32px;
   height: 32px;
   border-radius: 50%;
+  margin-right: 12px;
+  flex-shrink: 0;
+}
+
+.user-avatar {
   background: linear-gradient(135deg, #5865f2 0%, #4752c4 100%);
   display: flex;
   align-items: center;
@@ -52,8 +58,10 @@
   color: white;
   font-weight: 600;
   font-size: 14px;
-  margin-right: 12px;
-  flex-shrink: 0;
+}
+
+.user-avatar-img {
+  object-fit: cover;
 }
 
 .user-info {

@@ -5,7 +5,7 @@ import ChannelList from './components/ChannelList';
 import Chat from './components/Chat';
 import VoiceChannel from './components/VoiceChannel';
 import UserList from './components/UserList';
-import UsernameModal from './components/UsernameModal';
+import AuthModal from './components/Auth/AuthModal';
 
 // Автоматически определяем URL в зависимости от окружения
 const BACKEND_URL = window.location.hostname === 'localhost'
@@ -21,8 +21,8 @@ function App() {
   const [users, setUsers] = useState([]);
   const [voiceChannelUsers, setVoiceChannelUsers] = useState({}); // {channelId: [{id, username, isMuted}]}
   const [speakingUsers, setSpeakingUsers] = useState({}); // {channelId: Set of userIds}
-  const [username, setUsername] = useState(null);
-  const [showUsernameModal, setShowUsernameModal] = useState(true);
+  const [user, setUser] = useState(null);
+  const [showAuthModal, setShowAuthModal] = useState(true);
   const [globalMuted, setGlobalMuted] = useState(false);
   const [globalDeafened, setGlobalDeafened] = useState(false);
   const voiceDisconnectRef = useRef(null);
@@ -101,19 +101,74 @@ function App() {
 
   // Присоединиться к текстовому каналу при выборе
   useEffect(() => {
-    if (socket && currentTextChannel && username) {
+    if (socket && currentTextChannel && user) {
       setMessages([]);
       socket.emit('channel:join', {
         channelId: currentTextChannel.id,
-        username
+        username: user.displayName || user.username,
+        avatar: user.avatar
       });
     }
-  }, [socket, currentTextChannel, username]);
+  }, [socket, currentTextChannel, user]);
 
-  const handleUsernameSubmit = (name) => {
-    setUsername(name);
-    setShowUsernameModal(false);
+  const handleAuth = (userData) => {
+    setUser(userData);
+    setShowAuthModal(false);
+
+    // Принудительно переподключиться к текущему каналу после небольшой задержки
+    setTimeout(() => {
+      if (socket && currentTextChannel) {
+        setMessages([]);
+        socket.emit('channel:join', {
+          channelId: currentTextChannel.id,
+          username: userData.displayName || userData.username,
+          avatar: userData.avatar
+        });
+      }
+    }, 100);
   };
+
+  const handleLogout = () => {
+    // Очистить токен и данные пользователя
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+
+    // Отключиться от голосового канала если подключен
+    if (voiceDisconnectRef.current) {
+      voiceDisconnectRef.current();
+    }
+
+    // Сбросить состояние
+    setUser(null);
+    setShowAuthModal(true);
+    setCurrentTextChannel(null);
+    setCurrentVoiceChannel(null);
+    setMessages([]);
+    setUsers([]);
+    setGlobalMuted(false);
+    setGlobalDeafened(false);
+  };
+
+  const handleAvatarUpdate = (updatedUser) => {
+    setUser(updatedUser);
+  };
+
+  // Проверка сохраненного токена при загрузке
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    const savedUser = localStorage.getItem('user');
+
+    if (token && savedUser) {
+      try {
+        const userData = JSON.parse(savedUser);
+        setUser(userData);
+        setShowAuthModal(false);
+      } catch (err) {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+      }
+    }
+  }, []);
 
   const handleChannelSelect = (channel) => {
     if (channel.type === 'voice') {
@@ -150,16 +205,17 @@ function App() {
   };
 
   const handleSendMessage = (content) => {
-    if (socket && currentTextChannel) {
+    if (socket && currentTextChannel && user) {
       socket.emit('message:send', {
         channelId: currentTextChannel.id,
-        content
+        content,
+        username: user.displayName || user.username
       });
     }
   };
 
-  if (showUsernameModal) {
-    return <UsernameModal onSubmit={handleUsernameSubmit} />;
+  if (showAuthModal) {
+    return <AuthModal onAuth={handleAuth} />;
   }
 
   return (
@@ -170,7 +226,7 @@ function App() {
         currentVoiceChannel={currentVoiceChannel}
         voiceChannelUsers={voiceChannelUsers}
         speakingUsers={speakingUsers}
-        username={username}
+        user={user}
         isMuted={globalMuted}
         isDeafened={globalDeafened}
         isInVoice={!!currentVoiceChannel}
@@ -187,6 +243,8 @@ function App() {
             setCurrentVoiceChannel(null);
           }
         }}
+        onLogout={handleLogout}
+        onAvatarUpdate={handleAvatarUpdate}
         onSelectChannel={handleChannelSelect}
         onCreateChannel={handleCreateChannel}
       />
@@ -195,7 +253,7 @@ function App() {
         <VoiceChannel
           socket={socket}
           channel={currentVoiceChannel}
-          username={username}
+          user={user}
           globalMuted={globalMuted}
           globalDeafened={globalDeafened}
           onDisconnectRef={voiceDisconnectRef}
@@ -210,7 +268,7 @@ function App() {
       <Chat
         channel={currentTextChannel}
         messages={messages}
-        username={username}
+        username={user?.username}
         onSendMessage={handleSendMessage}
       />
 

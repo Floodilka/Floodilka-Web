@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import './VoiceChannel.css';
 
-function VoiceChannel({ socket, channel, username, globalMuted, globalDeafened, onDisconnectRef, onSpeakingUpdate }) {
+function VoiceChannel({ socket, channel, user, globalMuted, globalDeafened, onDisconnectRef, onSpeakingUpdate }) {
   const [isConnected, setIsConnected] = useState(false);
   const [voiceUsers, setVoiceUsers] = useState([]);
   const [speakingUsers, setSpeakingUsers] = useState(new Set());
@@ -367,7 +367,8 @@ function VoiceChannel({ socket, channel, username, globalMuted, globalDeafened, 
       // Присоединиться к голосовому каналу
       socket.emit('voice:join', {
         channelId: channel.id,
-        username
+        username: user?.displayName || user?.username,
+        avatar: user?.avatar
       });
 
     } catch (err) {

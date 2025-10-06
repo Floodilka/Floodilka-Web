@@ -1,13 +1,21 @@
+require('dotenv').config();
 const express = require('express');
 const http = require('http');
 const socketIo = require('socket.io');
 const cors = require('cors');
+const mongoose = require('mongoose');
 const { v4: uuidv4 } = require('uuid');
 
 // Загрузка переменных окружения
 const PORT = process.env.PORT || 3001;
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:3000';
 const NODE_ENV = process.env.NODE_ENV || 'development';
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/boltushka';
+
+// Подключение к MongoDB
+mongoose.connect(MONGODB_URI)
+  .then(() => console.log('📦 MongoDB подключена'))
+  .catch(err => console.error('❌ Ошибка подключения к MongoDB:', err));
 
 const app = express();
 const server = http.createServer(app);
@@ -25,7 +33,14 @@ app.use(cors({
 }));
 app.use(express.json());
 
-// Хранилище данных в памяти
+// Статические файлы (для аватаров)
+app.use('/uploads', express.static('uploads'));
+
+// Импорт роутов
+const authRoutes = require('./routes/auth');
+app.use('/api/auth', authRoutes);
+
+// Хранилище данных в памяти (временно, потом переведем на БД)
 const channels = new Map();
 const messages = new Map();
 const onlineUsers = new Map(); // channelId -> Set of usernames
@@ -40,7 +55,7 @@ channels.set(defaultTextChannelId, {
   createdAt: new Date().toISOString()
 });
 messages.set(defaultTextChannelId, []);
-onlineUsers.set(defaultTextChannelId, new Set());
+onlineUsers.set(defaultTextChannelId, new Map());
 
 const defaultVoiceChannelId = uuidv4();
 channels.set(defaultVoiceChannelId, {
@@ -66,7 +81,7 @@ function migrateOldChannels() {
         messages.set(channelId, []);
       }
       if (!onlineUsers.has(channelId)) {
-        onlineUsers.set(channelId, new Set());
+        onlineUsers.set(channelId, new Map());
       }
     }
 
@@ -111,7 +126,7 @@ app.post('/api/channels', (req, res) => {
 
   if (channelType === 'text') {
     messages.set(channelId, []);
-    onlineUsers.set(channelId, new Set());
+    onlineUsers.set(channelId, new Map());
   } else {
     voiceUsers.set(channelId, new Map());
   }
@@ -142,7 +157,7 @@ io.on('connection', (socket) => {
   let currentUsername = null;
 
   // Присоединиться к каналу
-  socket.on('channel:join', ({ channelId, username }) => {
+  socket.on('channel:join', ({ channelId, username, avatar }) => {
     if (!channels.has(channelId)) {
       socket.emit('error', { message: 'Канал не найден' });
       return;
@@ -161,10 +176,10 @@ io.on('connection', (socket) => {
       socket.leave(currentChannel);
       const users = onlineUsers.get(currentChannel);
       if (users) {
-        users.delete(currentUsername);
+        users.delete(socket.id);
         io.to(currentChannel).emit('users:update', {
           channelId: currentChannel,
-          users: Array.from(users)
+          users: Array.from(users.values())
         });
       }
     }
@@ -174,13 +189,13 @@ io.on('connection', (socket) => {
     currentUsername = username || `Гость${Math.floor(Math.random() * 1000)}`;
     socket.join(channelId);
 
-    // Получить или создать Set пользователей для канала
+    // Получить или создать Map пользователей для канала (теперь храним объекты)
     let users = onlineUsers.get(channelId);
     if (!users) {
-      users = new Set();
+      users = new Map();
       onlineUsers.set(channelId, users);
     }
-    users.add(currentUsername);
+    users.set(socket.id, { username: currentUsername, avatar });
 
     // Получить или создать массив сообщений для канала
     let channelMessages = messages.get(channelId);
@@ -195,12 +210,12 @@ io.on('connection', (socket) => {
     // Уведомить всех о новом пользователе
     io.to(channelId).emit('users:update', {
       channelId,
-      users: Array.from(users)
+      users: Array.from(users.values())
     });
   });
 
   // Отправить сообщение
-  socket.on('message:send', ({ channelId, content }) => {
+  socket.on('message:send', ({ channelId, content, username }) => {
     if (!channels.has(channelId)) {
       socket.emit('error', { message: 'Канал не найден' });
       return;
@@ -213,7 +228,7 @@ io.on('connection', (socket) => {
     const message = {
       id: uuidv4(),
       channelId,
-      username: currentUsername || 'Аноним',
+      username: username || currentUsername || 'Аноним',
       content: content.trim(),
       timestamp: new Date().toISOString(),
       isSystem: false
@@ -234,7 +249,7 @@ io.on('connection', (socket) => {
   // WebRTC сигналинг для голосовых каналов
 
   // Присоединиться к голосовому каналу
-  socket.on('voice:join', ({ channelId, username }) => {
+  socket.on('voice:join', ({ channelId, username, avatar }) => {
     if (!channels.has(channelId)) {
       socket.emit('error', { message: 'Канал не найден' });
       return;
@@ -252,7 +267,7 @@ io.on('connection', (socket) => {
       users = new Map();
       voiceUsers.set(channelId, users);
     }
-    users.set(socket.id, { username, isMuted: false, isDeafened: false });
+    users.set(socket.id, { username, avatar, isMuted: false, isDeafened: false });
 
     // Присоединиться к комнате
     socket.join(channelId);
@@ -260,7 +275,7 @@ io.on('connection', (socket) => {
     // Получить список других пользователей в канале
     const otherUsers = Array.from(users.entries())
       .filter(([id]) => id !== socket.id)
-      .map(([id, data]) => ({ id, username: data.username, isMuted: data.isMuted, isDeafened: data.isDeafened }));
+      .map(([id, data]) => ({ id, username: data.username, avatar: data.avatar, isMuted: data.isMuted, isDeafened: data.isDeafened }));
 
     // Отправить текущему пользователю список других пользователей
     socket.emit('voice:users', otherUsers);
@@ -269,6 +284,7 @@ io.on('connection', (socket) => {
     socket.to(channelId).emit('voice:user-joined', {
       id: socket.id,
       username,
+      avatar,
       isMuted: false,
       isDeafened: false
     });
@@ -361,13 +377,13 @@ io.on('connection', (socket) => {
     console.log('Отключение:', socket.id);
 
     // Обработка текстовых каналов
-    if (currentChannel && currentUsername) {
+    if (currentChannel) {
       const users = onlineUsers.get(currentChannel);
       if (users) {
-        users.delete(currentUsername);
+        users.delete(socket.id);
         io.to(currentChannel).emit('users:update', {
           channelId: currentChannel,
-          users: Array.from(users)
+          users: Array.from(users.values())
         });
       }
     }
@@ -407,6 +423,7 @@ io.on('connection', (socket) => {
       voiceChannelsData[channelId] = Array.from(users.entries()).map(([id, data]) => ({
         id,
         username: data.username,
+        avatar: data.avatar,
         isMuted: data.isMuted,
         isDeafened: data.isDeafened
       }));

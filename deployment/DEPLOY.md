@@ -1,310 +1,191 @@
-# 🚀 Инструкция по деплою Boltushka на DigitalOcean Droplet
+# 🚀 Инструкция по деплою на DigitalOcean
 
-## Вариант 1: БЕЗ домена (только для тестирования!)
+## Первоначальная настройка (один раз)
 
-⚠️ **ВАЖНО:** Без домена и HTTPS:
-- WebRTC может не работать
-- Браузеры блокируют доступ к микрофону
-- Подходит только для локального тестирования
-
-### Шаги:
-
-1. **Подключитесь к серверу:**
+### 1. Подключитесь к дроплету
 ```bash
-ssh root@YOUR_DROPLET_IP
+ssh root@159.89.110.44
 ```
 
-2. **Скопируйте проект на сервер:**
-```bash
-# На локальной машине:
-cd /Users/eldar.tengizov/Desktop/Workspace/Boltushka
-rsync -avz --exclude 'node_modules' --exclude '.git' \
-  ./ root@YOUR_DROPLET_IP:/var/www/boltushka/
-```
-
-3. **На сервере запустите установку:**
+### 2. Установите MongoDB
 ```bash
 cd /var/www/boltushka/deployment
-chmod +x *.sh
-sudo bash setup.sh
+bash setup-mongodb.sh
 ```
 
-4. **Разверните backend:**
+### 3. Настройте production окружение
 ```bash
-sudo bash deploy-backend.sh
+bash setup-production.sh
 ```
 
-5. **Обновите URL в frontend:**
+Этот скрипт:
+- Создаст `.env` файл с уникальным JWT секретом
+- Установит зависимости для production
+- Перезапустит backend с новыми настройками
+
+### 4. Деплой приложения
 ```bash
-nano /var/www/boltushka/frontend/src/App.js
-# Замените:
-# const BACKEND_URL = 'http://localhost:3001';
-# На:
-# const BACKEND_URL = 'http://YOUR_DROPLET_IP:3001';
+bash update.sh
 ```
 
-6. **Разверните frontend:**
-```bash
-sudo bash deploy-frontend.sh
-```
+## Последующие обновления
 
-7. **Настройте Nginx:**
-```bash
-sudo cp /var/www/boltushka/deployment/nginx-http.conf /etc/nginx/sites-available/boltushka
-sudo ln -s /etc/nginx/sites-available/boltushka /etc/nginx/sites-enabled/
-sudo rm /etc/nginx/sites-enabled/default  # Удалить дефолтный конфиг
-sudo nginx -t
-sudo systemctl restart nginx
-```
+После первоначальной настройки для обновления кода просто:
 
-8. **Настройте firewall:**
-```bash
-sudo ufw allow 22/tcp      # SSH
-sudo ufw allow 80/tcp      # HTTP
-sudo ufw allow 3001/tcp    # Backend (временно)
-sudo ufw enable
-```
-
-9. **Проверка:**
-```bash
-pm2 status
-pm2 logs boltushka-backend
-```
-
-Откройте в браузере: `http://YOUR_DROPLET_IP`
-
----
-
-## Вариант 2: С доменом (РЕКОМЕНДУЕТСЯ!) ⭐
-
-### Требования:
-- Домен (можно купить на Namecheap, GoDaddy и т.д.)
-- A-запись домена указывает на IP вашего droplet
-
-### Шаги:
-
-1. **Настройте DNS:**
-```
-A запись:  your-domain.com        -> YOUR_DROPLET_IP
-A запись:  www.your-domain.com    -> YOUR_DROPLET_IP
-```
-Подождите 5-10 минут для распространения DNS.
-
-2. **Подключитесь к серверу и скопируйте проект:**
-```bash
-ssh root@YOUR_DROPLET_IP
-
-# На локальной машине скопируйте проект:
-rsync -avz --exclude 'node_modules' --exclude '.git' \
-  /Users/eldar.tengizov/Desktop/Workspace/Boltushka/ \
-  root@YOUR_DROPLET_IP:/var/www/boltushka/
-```
-
-3. **На сервере запустите установку:**
 ```bash
 cd /var/www/boltushka/deployment
-chmod +x *.sh
-sudo bash setup.sh
+bash update.sh
 ```
 
-4. **Разверните backend:**
-```bash
-sudo bash deploy-backend.sh
-```
-
-5. **Обновите URL в frontend:**
-```bash
-nano /var/www/boltushka/frontend/src/App.js
-# Замените:
-# const BACKEND_URL = 'http://localhost:3001';
-# На:
-# const BACKEND_URL = 'https://your-domain.com';  # или http:// если SSL еще не настроен
-```
-
-6. **Обновите CORS в backend:**
-```bash
-nano /var/www/boltushka/backend/server.js
-# Найдите:
-# origin: "http://localhost:3000"
-# Замените на:
-# origin: "https://your-domain.com"
-```
-
-7. **Разверните frontend:**
-```bash
-sudo bash deploy-frontend.sh
-```
-
-8. **Настройте Nginx (пока без SSL):**
-```bash
-sudo nano /var/www/boltushka/deployment/nginx-https.conf
-# Замените your-domain.com на ваш домен
-# Закомментируйте SSL строки (строки с ssl_certificate)
-
-sudo cp /var/www/boltushka/deployment/nginx-https.conf /etc/nginx/sites-available/boltushka
-sudo ln -s /etc/nginx/sites-available/boltushka /etc/nginx/sites-enabled/
-sudo rm /etc/nginx/sites-enabled/default
-sudo nginx -t
-sudo systemctl restart nginx
-```
-
-9. **Настройте SSL (Let's Encrypt):**
-```bash
-# Отредактируйте скрипт с вашими данными:
-sudo nano /var/www/boltushka/deployment/setup-ssl.sh
-# Укажите DOMAIN и EMAIL
-
-# Запустите:
-sudo bash /var/www/boltushka/deployment/setup-ssl.sh
-```
-
-10. **Обновите конфиг Nginx для SSL:**
-```bash
-# Раскомментируйте SSL строки в конфиге
-sudo nano /etc/nginx/sites-available/boltushka
-sudo nginx -t
-sudo systemctl restart nginx
-```
-
-11. **Обновите BACKEND_URL в frontend на HTTPS:**
-```bash
-nano /var/www/boltushka/frontend/src/App.js
-# const BACKEND_URL = 'https://your-domain.com';
-
-# Пересоберите frontend:
-cd /var/www/boltushka/deployment
-sudo bash deploy-frontend.sh
-```
-
-12. **Настройте firewall:**
-```bash
-sudo ufw allow 22/tcp      # SSH
-sudo ufw allow 80/tcp      # HTTP
-sudo ufw allow 443/tcp     # HTTPS
-sudo ufw enable
-```
-
-13. **Перезапустите backend с новыми настройками:**
-```bash
-pm2 restart boltushka-backend
-pm2 save
-```
-
-14. **Проверка:**
-```bash
-pm2 status
-pm2 logs boltushka-backend
-sudo systemctl status nginx
-```
-
-Откройте в браузере: `https://your-domain.com` 🎉
-
----
+Этот скрипт:
+1. Сохранит локальные изменения (если есть)
+2. Подтянет обновления из Git
+3. Обновит backend и frontend
+4. Перезапустит сервисы
 
 ## Полезные команды
 
-### Управление backend:
+### Проверка статуса
 ```bash
-pm2 status                          # Статус
-pm2 logs boltushka-backend          # Логи
-pm2 restart boltushka-backend       # Перезапуск
-pm2 stop boltushka-backend          # Остановка
-pm2 start boltushka-backend         # Запуск
-pm2 monit                           # Мониторинг
+# Статус backend
+sudo -u boltushka pm2 status
+
+# Статус MongoDB
+sudo systemctl status mongod
+
+# Статус Nginx
+sudo systemctl status nginx
 ```
 
-### Управление Nginx:
+### Логи
 ```bash
-sudo nginx -t                       # Проверка конфигурации
-sudo systemctl restart nginx        # Перезапуск
-sudo systemctl status nginx         # Статус
-tail -f /var/log/nginx/boltushka-error.log   # Логи ошибок
-tail -f /var/log/nginx/boltushka-access.log  # Логи доступа
+# Логи backend
+sudo -u boltushka pm2 logs boltushka-backend
+
+# Логи MongoDB
+sudo journalctl -u mongod
+
+# Логи Nginx
+sudo tail -f /var/log/nginx/error.log
 ```
 
-### Обновление приложения:
+### Перезапуск сервисов
 ```bash
-# На локальной машине:
-rsync -avz --exclude 'node_modules' --exclude '.git' \
-  /Users/eldar.tengizov/Desktop/Workspace/Boltushka/ \
-  root@YOUR_DROPLET_IP:/var/www/boltushka/
+# Перезапуск backend
+sudo -u boltushka pm2 restart boltushka-backend
 
-# На сервере:
-cd /var/www/boltushka/deployment
-sudo bash deploy-backend.sh
-sudo bash deploy-frontend.sh
+# Перезапуск MongoDB
+sudo systemctl restart mongod
+
+# Перезапуск Nginx
+sudo systemctl restart nginx
 ```
 
-### Просмотр логов:
+### MongoDB команды
 ```bash
-# Backend логи:
-pm2 logs boltushka-backend --lines 100
+# Подключиться к MongoDB
+mongosh
 
-# Nginx логи:
-tail -n 100 /var/log/nginx/boltushka-error.log
+# Посмотреть базы данных
+show dbs
 
-# System логи:
-journalctl -u nginx -n 50
+# Использовать базу boltushka
+use boltushka
+
+# Посмотреть коллекции
+show collections
+
+# Посмотреть пользователей
+db.users.find()
+
+# Посмотреть каналы
+db.channels.find()
 ```
 
----
+## Структура production
 
-## Оптимизация производительности
-
-### PM2 кластер (для высокой нагрузки):
-```bash
-pm2 start server.js -i max --name boltushka-backend
+```
+/var/www/boltushka/
+├── backend/
+│   ├── .env              # ⚠️ Не коммитится в Git!
+│   ├── models/
+│   ├── routes/
+│   └── server.js
+├── frontend/
+│   └── build/
+├── public/               # Статические файлы frontend
+└── deployment/
+    ├── setup-mongodb.sh
+    ├── setup-production.sh
+    ├── update.sh
+    ├── deploy-backend.sh
+    └── deploy-frontend.sh
 ```
 
-### Увеличение лимитов для Socket.IO:
+## Безопасность
+
+### JWT Secret
+JWT секрет генерируется автоматически при запуске `setup-production.sh` и хранится в `/var/www/boltushka/backend/.env`.
+
+⚠️ **Важно**: Этот файл не должен коммититься в Git!
+
+### MongoDB
+По умолчанию MongoDB слушает только на localhost (127.0.0.1), что безопасно.
+
+Если нужен доступ извне, настройте:
 ```bash
-# В /etc/security/limits.conf добавить:
-* soft nofile 65536
-* hard nofile 65536
+sudo nano /etc/mongod.conf
 ```
 
-### Мониторинг:
+### Firewall
 ```bash
-# Установить PM2 Plus для мониторинга
-pm2 link YOUR_PUBLIC_KEY YOUR_SECRET_KEY
-```
-
----
-
-## Решение проблем
-
-### Backend не запускается:
-```bash
-pm2 logs boltushka-backend
-# Проверьте порт 3001 свободен:
-lsof -i :3001
-```
-
-### Nginx ошибки:
-```bash
-sudo nginx -t
-tail -f /var/log/nginx/error.log
-```
-
-### Socket.IO не подключается:
-```bash
-# Проверьте CORS настройки в backend/server.js
-# Проверьте firewall:
+# Разрешенные порты
 sudo ufw status
+
+# Должны быть открыты:
+# 22/tcp   - SSH
+# 80/tcp   - HTTP
+# 443/tcp  - HTTPS
 ```
 
-### WebRTC не работает:
-- Убедитесь что используете HTTPS (обязательно для production)
-- Проверьте что домен правильно настроен
-- Откройте консоль браузера для ошибок
+## Troubleshooting
 
----
+### Backend не запускается
+```bash
+# Проверить логи
+sudo -u boltushka pm2 logs boltushka-backend --lines 50
 
-## 🎉 Готово!
+# Проверить .env файл
+cat /var/www/boltushka/backend/.env
 
-После успешного деплоя ваше приложение будет доступно по адресу:
-- **С доменом:** https://your-domain.com
-- **Без домена:** http://YOUR_DROPLET_IP (только для теста)
+# Проверить права
+ls -la /var/www/boltushka/backend/
+```
 
-**Рекомендую вариант с доменом для полной функциональности WebRTC!**
+### MongoDB не подключается
+```bash
+# Проверить статус
+sudo systemctl status mongod
 
+# Проверить логи
+sudo journalctl -u mongod -n 50
+
+# Перезапустить
+sudo systemctl restart mongod
+```
+
+### Frontend показывает белый экран
+```bash
+# Проверить сборку
+ls -la /var/www/boltushka/public/
+
+# Пересобрать frontend
+cd /var/www/boltushka/deployment
+bash deploy-frontend.sh
+```
+
+### Ошибка CORS
+Проверьте, что в `/var/www/boltushka/backend/.env` правильный `FRONTEND_URL`:
+```
+FRONTEND_URL=https://boltushka.fitronyx.com
+```
