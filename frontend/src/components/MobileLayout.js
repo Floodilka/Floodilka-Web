@@ -11,12 +11,14 @@ function MobileLayout({
   currentServer,
   onSelectServer,
   onCreateServer,
+  user,
+  onSelectDirectMessages,
+  showDirectMessages,
   channels,
   currentTextChannel,
   currentVoiceChannel,
   voiceChannelUsers,
   speakingUsers,
-  user,
   isMuted,
   isDeafened,
   isInVoice,
@@ -52,12 +54,15 @@ function MobileLayout({
         <>
           {/* Левая панель с серверами */}
           <div className="mobile-servers-panel">
-            <ServerSidebar
-              servers={servers}
-              currentServer={currentServer}
-              onSelectServer={onSelectServer}
-              onCreateServer={onCreateServer}
-            />
+        <ServerSidebar
+          servers={servers}
+          currentServer={currentServer}
+          onSelectServer={onSelectServer}
+          onCreateServer={onCreateServer}
+          user={user}
+          onSelectDirectMessages={onSelectDirectMessages}
+          showDirectMessages={showDirectMessages}
+        />
           </div>
 
           {/* Основная секция с каналами */}

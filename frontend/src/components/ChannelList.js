@@ -49,6 +49,30 @@ function ChannelList({ channels, currentTextChannel, currentVoiceChannel, voiceC
     setSelectedUser(null);
   };
 
+  const handleSendDirectMessage = async (receiverId, content) => {
+    const token = localStorage.getItem('token');
+    if (!token) throw new Error('Токен не найден');
+
+    const response = await fetch(`${BACKEND_URL}/api/direct-messages/send`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({
+        receiverId,
+        content
+      })
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Ошибка отправки сообщения');
+    }
+
+    return await response.json();
+  };
+
   const [menuClosing, setMenuClosing] = useState(false);
   const [inviteLink, setInviteLink] = useState('');
   const [inviteLoading, setInviteLoading] = useState(false);
@@ -475,6 +499,8 @@ function ChannelList({ channels, currentTextChannel, currentVoiceChannel, voiceC
         onDisconnect={onDisconnect}
         onLogout={onLogout}
         onAvatarUpdate={onAvatarUpdate}
+        selectedUser={selectedUser}
+        onSendDirectMessage={handleSendDirectMessage}
       />
 
       {selectedUser && (

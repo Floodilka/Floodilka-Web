@@ -6,6 +6,7 @@ import ChannelList from './components/ChannelList';
 import Chat from './components/Chat';
 import VoiceChannel from './components/VoiceChannel';
 import UserList from './components/UserList';
+import DirectMessages from './components/DirectMessages';
 import AuthModal from './components/Auth/AuthModal';
 import EmptyServerState from './components/EmptyServerState';
 import MobileLayout from './components/MobileLayout';
@@ -33,6 +34,7 @@ function App() {
   const [globalMuted, setGlobalMuted] = useState(false);
   const [globalDeafened, setGlobalDeafened] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [showDirectMessages, setShowDirectMessages] = useState(false);
   const voiceDisconnectRef = useRef(null);
   const speakingUsersRef = useRef({});
 
@@ -132,6 +134,12 @@ function App() {
           if (voiceChannelInServer) {
             setCurrentVoiceChannel(voiceChannelInServer);
           }
+        }
+
+        // Запросить текущее состояние голосовых каналов для этого сервера
+        if (socket) {
+          console.log('📤 Запрашиваем voice:get-all-users для сервера', currentServer._id);
+          socket.emit('voice:get-all-users');
         }
 
         // Автоматически выбрать первый текстовый канал
@@ -297,6 +305,7 @@ function App() {
 
     setCurrentServer(server);
     setCurrentTextChannel(null);
+    setShowDirectMessages(false);
 
     // Сбрасываем только текущий канал для отображения, но сохраняем активный голосовой канал
     setCurrentVoiceChannel(null);
@@ -304,12 +313,30 @@ function App() {
     setUsers([]);
     setAllServerMembers([]);
 
-    // Очищаем состояние голосовых каналов при переключении сервера
-    setVoiceChannelUsers({});
-    setSpeakingUsers({});
+    // Очищаем состояние голосовых каналов только если пользователь НЕ находится в голосовом канале
+    if (!activeVoiceChannel) {
+      setVoiceChannelUsers({});
+      setSpeakingUsers({});
+    }
 
     // Сохранить выбранный сервер
     localStorage.setItem('lastServerId', server._id);
+  };
+
+  const handleSelectDirectMessages = () => {
+    setShowDirectMessages(true);
+    setCurrentServer(null);
+    setCurrentTextChannel(null);
+    setCurrentVoiceChannel(null);
+    setMessages([]);
+    setUsers([]);
+    setAllServerMembers([]);
+
+    // Очищаем состояние голосовых каналов только если пользователь НЕ находится в голосовом канале
+    if (!activeVoiceChannel) {
+      setVoiceChannelUsers({});
+      setSpeakingUsers({});
+    }
   };
 
   const handleCreateServer = (serverData) => {
@@ -463,6 +490,28 @@ function App() {
     );
   }
 
+  // Если выбран режим личных сообщений
+  if (showDirectMessages) {
+    return (
+      <div className="app">
+        <ServerSidebar
+          servers={servers}
+          currentServer={currentServer}
+          onSelectServer={handleSelectServer}
+          onCreateServer={handleCreateServer}
+          user={user}
+          onSelectDirectMessages={handleSelectDirectMessages}
+          showDirectMessages={showDirectMessages}
+        />
+        <DirectMessages
+          user={user}
+          onLogout={handleLogout}
+          onAvatarUpdate={handleAvatarUpdate}
+        />
+      </div>
+    );
+  }
+
   // Если мобильное устройство, используем мобильный макет
   if (isMobile) {
     return (
@@ -472,12 +521,14 @@ function App() {
           currentServer={currentServer}
           onSelectServer={handleSelectServer}
           onCreateServer={handleCreateServer}
+          user={user}
+          onSelectDirectMessages={handleSelectDirectMessages}
+          showDirectMessages={showDirectMessages}
           channels={channels}
           currentTextChannel={currentTextChannel}
           currentVoiceChannel={currentVoiceChannel}
           voiceChannelUsers={voiceChannelUsers}
           speakingUsers={speakingUsers}
-          user={user}
           isMuted={globalMuted}
           isDeafened={globalDeafened}
           isInVoice={!!activeVoiceChannel}
@@ -535,6 +586,9 @@ function App() {
         currentServer={currentServer}
         onSelectServer={handleSelectServer}
         onCreateServer={handleCreateServer}
+        user={user}
+        onSelectDirectMessages={handleSelectDirectMessages}
+        showDirectMessages={showDirectMessages}
       />
 
       <ChannelList

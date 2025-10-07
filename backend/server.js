@@ -46,9 +46,11 @@ app.use('/uploads', express.static('uploads'));
 const authRoutes = require('./routes/auth');
 const serverRoutes = require('./routes/servers');
 const roleRoutes = require('./routes/roles');
+const directMessageRoutes = require('./routes/directMessages');
 app.use('/api/auth', authRoutes);
 app.use('/api/servers', serverRoutes);
 app.use('/api', roleRoutes);
+app.use('/api/direct-messages', directMessageRoutes);
 
 // Хранилище данных в памяти (временно, потом переведем на БД)
 const channels = new Map();

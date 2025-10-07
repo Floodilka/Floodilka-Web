@@ -6,7 +6,7 @@ const BACKEND_URL = window.location.hostname === 'localhost'
   ? 'http://localhost:3001'
   : `${window.location.protocol}//${window.location.hostname}`;
 
-function ServerSidebar({ servers, currentServer, onSelectServer, onCreateServer }) {
+function ServerSidebar({ servers, currentServer, onSelectServer, onCreateServer, user, onSelectDirectMessages, showDirectMessages }) {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showActionMenu, setShowActionMenu] = useState(false);
   const [showJoinModal, setShowJoinModal] = useState(false);
@@ -113,6 +113,15 @@ function ServerSidebar({ servers, currentServer, onSelectServer, onCreateServer 
             style={{ top: `${indicatorPosition}px` }}
           />
         )}
+
+        {/* Иконка личных сообщений */}
+        <div
+          className={`server-icon dm-icon ${showDirectMessages ? 'active' : ''}`}
+          onClick={onSelectDirectMessages}
+          title="Личные сообщения"
+        >
+          <img src="/icons/chat.png" alt="Личные сообщения" className="dm-icon-image" />
+        </div>
 
         {servers && Array.isArray(servers) && servers.map(server => {
           // Проверяем, что сервер существует и имеет необходимые поля
@@ -265,6 +274,7 @@ function ServerSidebar({ servers, currentServer, onSelectServer, onCreateServer 
           {hoveredServer.name || 'Без названия'}
         </div>
       )}
+
     </div>
   );
 }

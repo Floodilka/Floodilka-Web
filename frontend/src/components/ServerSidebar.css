@@ -144,6 +144,33 @@
   border-radius: 16px;
 }
 
+/* Иконка личных сообщений */
+.dm-icon {
+  background: #313338;
+  margin-bottom: 8px;
+}
+
+.dm-icon:hover {
+  background: #5865f2;
+  border-radius: 16px;
+}
+
+.dm-icon.active {
+  background: #5865f2;
+  border-radius: 16px;
+}
+
+.dm-icon-image {
+  width: 24px;
+  height: 24px;
+  filter: brightness(0) invert(1); /* Делаем иконку белой */
+  transition: all 0.2s ease;
+}
+
+.dm-icon:hover .dm-icon-image {
+  transform: scale(1.1);
+}
+
 /* Оверлей для закрытия меню */
 .menu-overlay {
   position: fixed;
