@@ -13,7 +13,10 @@ const userSchema = new mongoose.Schema({
   displayName: {
     type: String,
     trim: true,
-    maxlength: 32
+    maxlength: 32,
+    default: function() {
+      return this.username;
+    }
   },
   email: {
     type: String,

@@ -80,7 +80,8 @@ router.post('/register', async (req, res) => {
     const user = new User({
       username,
       email,
-      password
+      password,
+      displayName: username
     });
 
     await user.save();
