@@ -6,7 +6,8 @@ const BACKEND_URL = window.location.hostname === 'localhost'
   ? 'http://localhost:3001'
   : `${window.location.protocol}//${window.location.hostname}`;
 
-function ServerSidebar({ servers, currentServer, onSelectServer, onCreateServer, user, onSelectDirectMessages, showDirectMessages }) {
+function ServerSidebar({ servers, currentServer, onSelectServer, onCreateServer, user, onSelectDirectMessages, showDirectMessages, hasUnreadDMs }) {
+  console.log('🔴 ServerSidebar hasUnreadDMs:', hasUnreadDMs);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showActionMenu, setShowActionMenu] = useState(false);
   const [showJoinModal, setShowJoinModal] = useState(false);
@@ -45,9 +46,21 @@ function ServerSidebar({ servers, currentServer, onSelectServer, onCreateServer,
     setHoveredServer(null);
   };
 
-  // Обновление позиции индикатора при смене сервера
+  // Обновление позиции индикатора при смене сервера или DM
   useEffect(() => {
-    if (currentServer && serverRefs.current[currentServer._id]) {
+    if (showDirectMessages && serverRefs.current['dm-icon']) {
+      // Показываем индикатор для DM
+      const element = serverRefs.current['dm-icon'];
+      const rect = element.getBoundingClientRect();
+      const sidebar = element.closest('.server-list');
+      if (sidebar) {
+        const sidebarRect = sidebar.getBoundingClientRect();
+        const relativeTop = rect.top - sidebarRect.top + rect.height / 2;
+        setIndicatorPosition(relativeTop);
+        setShowIndicator(true);
+      }
+    } else if (currentServer && serverRefs.current[currentServer._id]) {
+      // Показываем индикатор для сервера
       const element = serverRefs.current[currentServer._id];
       const rect = element.getBoundingClientRect();
       const sidebar = element.closest('.server-list');
@@ -58,7 +71,7 @@ function ServerSidebar({ servers, currentServer, onSelectServer, onCreateServer,
         setShowIndicator(true);
       }
     }
-  }, [currentServer, servers]);
+  }, [currentServer, servers, showDirectMessages]);
 
   const handleCreateServer = (serverData) => {
     onCreateServer(serverData);
@@ -116,11 +129,13 @@ function ServerSidebar({ servers, currentServer, onSelectServer, onCreateServer,
 
         {/* Иконка личных сообщений */}
         <div
+          ref={(el) => { if (el) serverRefs.current['dm-icon'] = el; }}
           className={`server-icon dm-icon ${showDirectMessages ? 'active' : ''}`}
           onClick={onSelectDirectMessages}
           title="Личные сообщения"
         >
           <img src="/icons/chat.png" alt="Личные сообщения" className="dm-icon-image" />
+          {hasUnreadDMs && <div className="dm-notification-dot" title="У вас есть непрочитанные сообщения"></div>}
         </div>
 
         {servers && Array.isArray(servers) && servers.map(server => {

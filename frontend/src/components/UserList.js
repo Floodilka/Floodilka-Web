@@ -5,9 +5,11 @@ const BACKEND_URL = window.location.hostname === 'localhost'
   ? 'http://localhost:3001'
   : `${window.location.protocol}//${window.location.hostname}`;
 
-function UserList({ onlineUsers, allMembers }) {
+function UserList({ onlineUsers, allMembers, currentUser, onMessageSent }) {
   const [selectedUser, setSelectedUser] = useState(null);
   const [profilePosition, setProfilePosition] = useState({ top: 0, left: 0 });
+  const [messageText, setMessageText] = useState('');
+  const [sendingMessage, setSendingMessage] = useState(false);
 
   // Создаем Map из онлайн пользователей по userId для быстрой проверки
   const onlineUsersMap = new Map();
@@ -48,6 +50,69 @@ function UserList({ onlineUsers, allMembers }) {
 
   const handleCloseProfile = () => {
     setSelectedUser(null);
+    setMessageText('');
+  };
+
+  const handleSendDirectMessage = async () => {
+    if (!messageText.trim() || !selectedUser || sendingMessage) return;
+
+    // Не отправляем сообщение самому себе
+    if (selectedUser.userId === currentUser?.id || selectedUser.username === currentUser?.username) return;
+
+    console.log('📤 Отправляем сообщение:', {
+      receiverId: selectedUser.userId || selectedUser.id,
+      content: messageText.trim(),
+      selectedUser,
+      currentUser
+    });
+
+    setSendingMessage(true);
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) throw new Error('Токен не найден');
+
+      const requestBody = {
+        receiverId: selectedUser.userId || selectedUser.id,
+        content: messageText.trim()
+      };
+
+      console.log('📨 Отправляем запрос:', requestBody);
+
+      const response = await fetch(`${BACKEND_URL}/api/direct-messages/send`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(requestBody)
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        console.error('Ошибка отправки сообщения:', response.status, error);
+        throw new Error(error.error || 'Ошибка отправки сообщения');
+      }
+
+      const result = await response.json();
+      console.log('✅ Сообщение успешно отправлено:', result);
+      setMessageText('');
+
+      // Вызываем колбэк для открытия DM с этим пользователем
+      if (onMessageSent && selectedUser) {
+        onMessageSent(selectedUser);
+      }
+    } catch (error) {
+      console.error('Ошибка отправки сообщения:', error);
+    } finally {
+      setSendingMessage(false);
+    }
+  };
+
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSendDirectMessage();
+    }
   };
 
   const renderUserItem = (member, isOnline) => {
@@ -186,6 +251,23 @@ function UserList({ onlineUsers, allMembers }) {
                 </div>
               )}
             </div>
+
+            {/* Поле для отправки личного сообщения - только если не свой профиль */}
+            {selectedUser && currentUser && (selectedUser.userId !== currentUser.id && selectedUser.username !== currentUser.username) && (
+              <div className="user-profile-message-input">
+                <div className="message-input-container">
+                  <input
+                    type="text"
+                    placeholder={`Сообщение для @${selectedUser.username}`}
+                    value={messageText}
+                    onChange={(e) => setMessageText(e.target.value)}
+                    onKeyPress={handleKeyPress}
+                    disabled={sendingMessage}
+                    className="message-input-field"
+                  />
+                </div>
+              </div>
+            )}
           </div>
         </>
       )}

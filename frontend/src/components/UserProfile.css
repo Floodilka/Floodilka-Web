@@ -239,7 +239,7 @@
   border-top: 1px solid #313338;
 }
 
-.message-input-container {
+.user-profile-message-input .message-input-container {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -249,7 +249,7 @@
   border: 1px solid #000;
 }
 
-.message-input-field {
+.user-profile-message-input .message-input-field {
   flex: 1;
   background: none;
   border: none;
@@ -259,15 +259,15 @@
   font-family: inherit;
 }
 
-.message-input-field::placeholder {
+.user-profile-message-input .message-input-field::placeholder {
   color: #6d6f78;
 }
 
-.message-input-field:focus {
+.user-profile-message-input .message-input-field:focus {
   outline: none;
 }
 
-.message-send-btn {
+.user-profile-message-input .message-send-btn {
   background: none;
   border: none;
   color: #8e9297;
@@ -283,12 +283,12 @@
   height: 24px;
 }
 
-.message-send-btn:hover:not(:disabled) {
+.user-profile-message-input .message-send-btn:hover:not(:disabled) {
   background: #484b52;
   color: #ffffff;
 }
 
-.message-send-btn:disabled {
+.user-profile-message-input .message-send-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }

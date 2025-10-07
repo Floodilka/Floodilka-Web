@@ -32,17 +32,21 @@ function VoiceChannel({ socket, channel, user, globalMuted, globalDeafened, onDi
     return 'unknown';
   };
 
+  // Сохранить функцию onSpeakingUpdate в ref для избежания циклов
+  const onSpeakingUpdateRef = useRef(onSpeakingUpdate);
+  onSpeakingUpdateRef.current = onSpeakingUpdate;
+
   // Передать информацию о говорящих наверх для сайдбара
   useEffect(() => {
-    if (onSpeakingUpdate) {
+    if (onSpeakingUpdateRef.current) {
       const allSpeaking = new Set(speakingUsers);
       // Добавляем себя только если микрофон включен и говорим
       if (isSpeaking && !globalMuted) {
         allSpeaking.add('me');
       }
-      onSpeakingUpdate(allSpeaking);
+      onSpeakingUpdateRef.current(allSpeaking);
     }
-  }, [speakingUsers, isSpeaking, globalMuted, onSpeakingUpdate]);
+  }, [speakingUsers, isSpeaking, globalMuted]);
 
   // Загрузить настройки из localStorage или использовать значения по умолчанию
   const loadAudioSettings = () => {
@@ -784,11 +788,14 @@ function VoiceChannel({ socket, channel, user, globalMuted, globalDeafened, onDi
   };
 
   // Прокинуть функцию disconnect наверх для использования в профиле
+  const onDisconnectRefRef = useRef(onDisconnectRef);
+  onDisconnectRefRef.current = onDisconnectRef;
+
   useEffect(() => {
-    if (onDisconnectRef) {
-      onDisconnectRef.current = handleDisconnect;
+    if (onDisconnectRefRef.current) {
+      onDisconnectRefRef.current.current = handleDisconnect;
     }
-  }, [onDisconnectRef]);
+  }, []);
 
   // Синхронизация с глобальными состояниями
   useEffect(() => {
@@ -820,7 +827,7 @@ function VoiceChannel({ socket, channel, user, globalMuted, globalDeafened, onDi
       channelId: channel.id,
       isDeafened: globalDeafened
     });
-  }, [globalDeafened, voiceUsers, socket, channel]);
+  }, [globalDeafened, socket, channel]);
 
   // Слушаем изменения настроек звука (мгновенное применение)
   useEffect(() => {

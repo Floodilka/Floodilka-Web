@@ -238,6 +238,52 @@
   flex-wrap: wrap;
 }
 
+/* Поле для отправки личного сообщения в профиле пользователя в правом сайдбаре */
+.user-profile-card .user-profile-message-input {
+  padding: 16px;
+  background: transparent;
+  border-top: none;
+}
+
+.user-profile-card .user-profile-message-input .message-input-container {
+  display: flex;
+  align-items: center;
+  background: #36393f;
+  border-radius: 4px;
+  padding: 0px 8px;
+  border: 1px solid #40444b;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.user-profile-card .user-profile-message-input .message-input-container:focus-within {
+  border-color: #5865f2;
+  box-shadow: 0 0 0 2px rgba(88, 101, 242, 0.2);
+  background: #40444b;
+}
+
+.user-profile-card .user-profile-message-input .message-input-field {
+  flex: 1;
+  background: none;
+  border: none;
+  outline: none;
+  color: #ffffff;
+  font-size: 14px;
+  font-family: inherit;
+  line-height: 1.0;
+  padding: 1px 0;
+}
+
+.user-profile-card .user-profile-message-input .message-input-field::placeholder {
+  color: #8e9297;
+  font-weight: 400;
+}
+
+.user-profile-card .user-profile-message-input .message-input-field:focus {
+  outline: none;
+}
+
+
 .user-profile-username {
   color: #b5bac1;
   font-size: 14px;

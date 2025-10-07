@@ -1,18 +1,24 @@
 const express = require('express');
 const router = express.Router();
 const DirectMessage = require('../models/DirectMessage');
-const { authenticateToken } = require('../middleware/auth');
+const auth = require('../middleware/auth');
+const mongoose = require('mongoose');
 
 // Отправить личное сообщение
-router.post('/send', authenticateToken, async (req, res) => {
+router.post('/send', auth.authenticateToken, async (req, res) => {
   try {
+    console.log('📨 Получен запрос на отправку сообщения:', req.body);
+    console.log('👤 Отправитель:', req.user);
+
     const { receiverId, content } = req.body;
 
     if (!receiverId || !content) {
+      console.log('❌ Отсутствуют обязательные поля:', { receiverId, content });
       return res.status(400).json({ error: 'Получатель и содержимое сообщения обязательны' });
     }
 
     if (receiverId === req.user.id) {
+      console.log('❌ Попытка отправить сообщение самому себе');
       return res.status(400).json({ error: 'Нельзя отправить сообщение самому себе' });
     }
 
@@ -22,7 +28,9 @@ router.post('/send', authenticateToken, async (req, res) => {
       content: content.trim()
     });
 
+    console.log('💾 Сохраняем сообщение в базу данных...');
     await directMessage.save();
+    console.log('✅ Сообщение сохранено с ID:', directMessage._id);
 
     // Популируем данные отправителя и получателя
     await directMessage.populate([
@@ -30,8 +38,14 @@ router.post('/send', authenticateToken, async (req, res) => {
       { path: 'receiver', select: 'username displayName avatar badge badgeTooltip' }
     ]);
 
-    // Отправляем сообщение через WebSocket всем подключенным клиентам
-    req.app.get('io').emit('direct-message:new', directMessage);
+    console.log('📤 Отправляем ответ клиенту...');
+
+    // Отправляем сообщение через WebSocket получателю и отправителю
+    const io = req.app.get('io');
+    if (io) {
+      io.emit('direct-message:new', directMessage);
+      console.log('📡 Сообщение отправлено через WebSocket');
+    }
 
     res.status(201).json(directMessage);
   } catch (error) {
@@ -41,17 +55,22 @@ router.post('/send', authenticateToken, async (req, res) => {
 });
 
 // Получить личные сообщения с конкретным пользователем
-router.get('/conversation/:userId', authenticateToken, async (req, res) => {
+router.get('/conversation/:userId', auth.authenticateToken, async (req, res) => {
   try {
     const { userId } = req.params;
     const { page = 1, limit = 50 } = req.query;
 
     const skip = (page - 1) * limit;
 
+    const currentUserId = new mongoose.Types.ObjectId(req.user.id);
+    const targetUserId = new mongoose.Types.ObjectId(userId);
+
+    console.log('📥 Загрузка сообщений между пользователями:', currentUserId, targetUserId);
+
     const messages = await DirectMessage.find({
       $or: [
-        { sender: req.user.id, receiver: userId },
-        { sender: userId, receiver: req.user.id }
+        { sender: currentUserId, receiver: targetUserId },
+        { sender: targetUserId, receiver: currentUserId }
       ],
       deleted: false
     })
@@ -75,14 +94,19 @@ router.get('/conversation/:userId', authenticateToken, async (req, res) => {
 });
 
 // Получить список разговоров (последние сообщения с каждым пользователем)
-router.get('/conversations', authenticateToken, async (req, res) => {
+router.get('/conversations', auth.authenticateToken, async (req, res) => {
   try {
+    console.log('📥 Запрос списка разговоров для пользователя:', req.user.id);
+
+    const userId = new mongoose.Types.ObjectId(req.user.id);
+    console.log('📥 Преобразован в ObjectId:', userId);
+
     const conversations = await DirectMessage.aggregate([
       {
         $match: {
           $or: [
-            { sender: req.user._id },
-            { receiver: req.user._id }
+            { sender: userId },
+            { receiver: userId }
           ],
           deleted: false
         }
@@ -94,7 +118,7 @@ router.get('/conversations', authenticateToken, async (req, res) => {
         $group: {
           _id: {
             $cond: [
-              { $eq: ['$sender', req.user._id] },
+              { $eq: ['$sender', userId] },
               '$receiver',
               '$sender'
             ]
@@ -103,7 +127,7 @@ router.get('/conversations', authenticateToken, async (req, res) => {
           unreadCount: {
             $sum: {
               $cond: [
-                { $and: [{ $eq: ['$receiver', req.user._id] }, { $eq: ['$read', false] }] },
+                { $and: [{ $eq: ['$receiver', userId] }, { $eq: ['$read', false] }] },
                 1,
                 0
               ]
@@ -123,6 +147,17 @@ router.get('/conversations', authenticateToken, async (req, res) => {
         $unwind: '$user'
       },
       {
+        $lookup: {
+          from: 'users',
+          localField: 'lastMessage.sender',
+          foreignField: '_id',
+          as: 'lastMessage.senderData'
+        }
+      },
+      {
+        $unwind: '$lastMessage.senderData'
+      },
+      {
         $project: {
           user: {
             _id: '$user._id',
@@ -136,7 +171,12 @@ router.get('/conversations', authenticateToken, async (req, res) => {
             _id: '$lastMessage._id',
             content: '$lastMessage.content',
             timestamp: '$lastMessage.timestamp',
-            sender: '$lastMessage.sender'
+            sender: {
+              _id: '$lastMessage.senderData._id',
+              username: '$lastMessage.senderData.username',
+              displayName: '$lastMessage.senderData.displayName',
+              avatar: '$lastMessage.senderData.avatar'
+            }
           },
           unreadCount: 1
         }
@@ -146,6 +186,8 @@ router.get('/conversations', authenticateToken, async (req, res) => {
       }
     ]);
 
+    console.log('📥 Найдено разговоров:', conversations.length);
+    console.log('📥 Результат:', conversations);
     res.json(conversations);
   } catch (error) {
     console.error('Ошибка получения списка разговоров:', error);
@@ -154,7 +196,7 @@ router.get('/conversations', authenticateToken, async (req, res) => {
 });
 
 // Отметить сообщения как прочитанные
-router.put('/read/:userId', authenticateToken, async (req, res) => {
+router.put('/read/:userId', auth.authenticateToken, async (req, res) => {
   try {
     const { userId } = req.params;
 
@@ -171,7 +213,7 @@ router.put('/read/:userId', authenticateToken, async (req, res) => {
 });
 
 // Редактировать сообщение
-router.put('/edit/:messageId', authenticateToken, async (req, res) => {
+router.put('/edit/:messageId', auth.authenticateToken, async (req, res) => {
   try {
     const { messageId } = req.params;
     const { content } = req.body;
@@ -207,7 +249,7 @@ router.put('/edit/:messageId', authenticateToken, async (req, res) => {
 });
 
 // Удалить сообщение
-router.delete('/delete/:messageId', authenticateToken, async (req, res) => {
+router.delete('/delete/:messageId', auth.authenticateToken, async (req, res) => {
   try {
     const { messageId } = req.params;
 

@@ -138,6 +138,7 @@ function MobileLayout({
         <UserList
           onlineUsers={onlineUsers}
           allMembers={allServerMembers}
+          currentUser={user}
         />
       </div>
     </div>

@@ -7,13 +7,15 @@ const BACKEND_URL = window.location.hostname === 'localhost'
   ? 'http://localhost:3001'
   : `${window.location.protocol}//${window.location.hostname}`;
 
-function ChannelList({ channels, currentTextChannel, currentVoiceChannel, voiceChannelUsers, speakingUsers, user, isMuted, isDeafened, isInVoice, serverName, currentServer, onToggleMute, onToggleDeafen, onDisconnect, onLogout, onAvatarUpdate, onSelectChannel, onCreateChannel, onUpdateChannel, onDeleteChannel }) {
+function ChannelList({ channels, currentTextChannel, currentVoiceChannel, voiceChannelUsers, speakingUsers, user, isMuted, isDeafened, isInVoice, serverName, currentServer, onToggleMute, onToggleDeafen, onDisconnect, onLogout, onAvatarUpdate, onSelectChannel, onCreateChannel, onUpdateChannel, onDeleteChannel, onMessageSent }) {
   const [showTextForm, setShowTextForm] = useState(false);
   const [showVoiceForm, setShowVoiceForm] = useState(false);
   const [newChannelName, setNewChannelName] = useState('');
   const [showServerMenu, setShowServerMenu] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   const [profilePosition, setProfilePosition] = useState({ top: 0, left: 0 });
+  const [messageText, setMessageText] = useState('');
+  const [sendingMessage, setSendingMessage] = useState(false);
 
   // Состояния для управления каналами
   const [showChannelSettings, setShowChannelSettings] = useState(false);
@@ -47,31 +49,55 @@ function ChannelList({ channels, currentTextChannel, currentVoiceChannel, voiceC
 
   const handleCloseProfile = () => {
     setSelectedUser(null);
+    setMessageText('');
   };
 
-  const handleSendDirectMessage = async (receiverId, content) => {
-    const token = localStorage.getItem('token');
-    if (!token) throw new Error('Токен не найден');
+  const handleSendDirectMessage = async () => {
+    if (!messageText.trim() || !selectedUser || sendingMessage) return;
 
-    const response = await fetch(`${BACKEND_URL}/api/direct-messages/send`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify({
-        receiverId,
-        content
-      })
-    });
+    setSendingMessage(true);
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) throw new Error('Токен не найден');
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || 'Ошибка отправки сообщения');
+      const response = await fetch(`${BACKEND_URL}/api/direct-messages/send`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          receiverId: selectedUser.userId || selectedUser.id,
+          content: messageText.trim()
+        })
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        console.error('Ошибка отправки сообщения:', response.status, error);
+        throw new Error(error.error || 'Ошибка отправки сообщения');
+      }
+
+      setMessageText('');
+
+      // Вызываем колбэк для открытия DM с этим пользователем
+      if (onMessageSent && selectedUser) {
+        onMessageSent(selectedUser);
+      }
+    } catch (error) {
+      console.error('Ошибка отправки сообщения:', error);
+    } finally {
+      setSendingMessage(false);
     }
-
-    return await response.json();
   };
+
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSendDirectMessage();
+    }
+  };
+
 
   const [menuClosing, setMenuClosing] = useState(false);
   const [inviteLink, setInviteLink] = useState('');
@@ -499,8 +525,6 @@ function ChannelList({ channels, currentTextChannel, currentVoiceChannel, voiceC
         onDisconnect={onDisconnect}
         onLogout={onLogout}
         onAvatarUpdate={onAvatarUpdate}
-        selectedUser={selectedUser}
-        onSendDirectMessage={handleSendDirectMessage}
       />
 
       {selectedUser && (
@@ -557,6 +581,23 @@ function ChannelList({ channels, currentTextChannel, currentVoiceChannel, voiceC
                 </div>
               )}
             </div>
+
+            {/* Поле для отправки личного сообщения - только если не свой профиль */}
+            {selectedUser && (selectedUser.userId !== user.id && selectedUser.username !== user.username) && (
+              <div className="user-profile-message-input">
+                <div className="message-input-container">
+                  <input
+                    type="text"
+                    placeholder={`Сообщение для @${selectedUser.username}`}
+                    value={messageText}
+                    onChange={(e) => setMessageText(e.target.value)}
+                    onKeyPress={handleKeyPress}
+                    disabled={sendingMessage}
+                    className="message-input-field"
+                  />
+                </div>
+              </div>
+            )}
           </div>
         </>
       )}

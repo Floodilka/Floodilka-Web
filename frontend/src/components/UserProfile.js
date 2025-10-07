@@ -16,15 +16,11 @@ function UserProfile({
   onToggleDeafen,
   onDisconnect,
   onLogout,
-  onAvatarUpdate,
-  selectedUser,
-  onSendDirectMessage
+  onAvatarUpdate
 }) {
   const [showSettings, setShowSettings] = useState(false);
   const [showVoiceControls, setShowVoiceControls] = useState(false);
   const [voiceClosing, setVoiceClosing] = useState(false);
-  const [messageText, setMessageText] = useState('');
-  const [sendingMessage, setSendingMessage] = useState(false);
 
   // Управление анимацией появления/исчезновения голосовых контролов
   useEffect(() => {
@@ -52,28 +48,6 @@ function UserProfile({
     return 'online';
   };
 
-  const handleSendMessage = async () => {
-    if (!messageText.trim() || !selectedUser || sendingMessage) return;
-
-    setSendingMessage(true);
-    try {
-      if (onSendDirectMessage) {
-        await onSendDirectMessage(selectedUser.id, messageText.trim());
-        setMessageText('');
-      }
-    } catch (error) {
-      console.error('Ошибка отправки сообщения:', error);
-    } finally {
-      setSendingMessage(false);
-    }
-  };
-
-  const handleKeyPress = (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSendMessage();
-    }
-  };
 
   return (
     <>
@@ -154,29 +128,6 @@ function UserProfile({
         )}
       </div>
 
-      {/* Поле для отправки личного сообщения */}
-      {selectedUser && (
-        <div className="user-profile-message-input">
-          <div className="message-input-container">
-            <input
-              type="text"
-              placeholder={`Сообщение для @${selectedUser.username}`}
-              value={messageText}
-              onChange={(e) => setMessageText(e.target.value)}
-              onKeyPress={handleKeyPress}
-              disabled={sendingMessage}
-              className="message-input-field"
-            />
-            <button
-              className="message-send-btn"
-              onClick={handleSendMessage}
-              disabled={!messageText.trim() || sendingMessage}
-            >
-              {sendingMessage ? '⏳' : '😊'}
-            </button>
-          </div>
-        </div>
-      )}
 
       {showSettings && (
         <UserSettingsModal

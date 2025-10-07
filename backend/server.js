@@ -42,6 +42,9 @@ app.use(express.urlencoded({ limit: '2mb', extended: true }));
 // Статические файлы (для аватаров)
 app.use('/uploads', express.static('uploads'));
 
+// Добавляем io в app для доступа в роутах
+app.set('io', io);
+
 // Импорт роутов
 const authRoutes = require('./routes/auth');
 const serverRoutes = require('./routes/servers');

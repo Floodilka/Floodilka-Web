@@ -3,6 +3,17 @@
   height: 100vh;
   width: 100%;
   background: #1e1f22;
+  opacity: 0;
+  animation: dmContainerFadeIn 0.3s ease-out forwards;
+}
+
+@keyframes dmContainerFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 /* Левая панель - список DM */
@@ -15,6 +26,24 @@
   border-right: 1px solid #313338;
   user-select: none;
   overflow: hidden;
+}
+
+/* Плавная анимация для UserProfile в DM */
+.dm-sidebar .user-profile {
+  opacity: 0;
+  transform: translateY(10px);
+  animation: dmUserProfileFadeIn 0.4s ease-out 0.1s forwards;
+}
+
+@keyframes dmUserProfileFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .dm-header {
@@ -64,8 +93,8 @@
 .dm-search input {
   width: 100%;
   padding: 10px 12px;
-  background: #1e1f22;
-  border: 1px solid #000;
+  background: #40444b;
+  border: 1px solid #4a4d53;
   border-radius: 8px;
   color: #ffffff;
   font-size: 14px;
@@ -76,22 +105,37 @@
 .dm-search input:focus {
   outline: none;
   border-color: #5865f2;
-  box-shadow: 0 0 0 2px rgba(88, 101, 242, 0.1);
+  box-shadow: 0 0 0 2px rgba(88, 101, 242, 0.2);
+  background: #484b52;
 }
 
 .dm-search input::placeholder {
-  color: #6d6f78;
+  color: #8e9297;
   font-weight: 400;
 }
 
 .dm-search input:hover {
-  border-color: #40444b;
+  border-color: #5a5d63;
+  background: #484b52;
 }
 
 .dm-list {
   flex: 1;
   overflow-y: auto;
   padding: 8px 0;
+  opacity: 0;
+  animation: dmListFadeIn 0.5s ease-out 0.2s forwards;
+}
+
+@keyframes dmListFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .dm-loading,
@@ -127,7 +171,7 @@
 }
 
 .dm-item.selected {
-  background: #5865f2;
+  background: transparent;
 }
 
 .dm-item.selected::before {
@@ -154,13 +198,14 @@
   font-weight: 600;
   font-size: 16px;
   flex-shrink: 0;
-  overflow: hidden;
+  position: relative;
 }
 
 .dm-avatar img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  border-radius: 50%;
 }
 
 .dm-info {
@@ -184,6 +229,13 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.dm-you-prefix {
+  color: #5865f2;
+  font-weight: 600;
+  font-size: 13px;
+  margin-right: 4px;
 }
 
 .dm-unread {
@@ -239,12 +291,13 @@
   flex: 1;
   display: flex;
   flex-direction: column;
+  min-height: 0;
+  height: 100%;
 }
 
 /* Заголовок чата */
 .dm-chat-header {
   display: flex;
-  justify-content: space-between;
   align-items: center;
   padding: 16px 20px;
   background: #1e1f22;
@@ -269,13 +322,14 @@
   color: white;
   font-weight: 600;
   font-size: 16px;
-  overflow: hidden;
+  position: relative;
 }
 
 .dm-chat-avatar img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  border-radius: 50%;
 }
 
 .dm-chat-info {
@@ -296,35 +350,14 @@
   font-size: 14px;
 }
 
-.dm-chat-controls {
-  display: flex;
-  gap: 8px;
-}
-
-.chat-control-btn {
-  background: none;
-  border: none;
-  color: #8e9297;
-  cursor: pointer;
-  padding: 8px;
-  border-radius: 4px;
-  transition: all 0.2s;
-}
-
-.chat-control-btn:hover {
-  background: #2b2d31;
-  color: #ffffff;
-}
-
-.chat-control-btn span {
-  font-size: 20px;
-}
 
 /* Область сообщений */
 .dm-messages {
   flex: 1;
   overflow-y: auto;
-  padding: 20px;
+  padding: 0;
+  min-height: 0;
+  max-height: calc(100vh - 140px);
 }
 
 .dm-messages-empty {
@@ -376,82 +409,57 @@
   background: #d83c3e;
 }
 
-/* Поле ввода */
-.dm-input-area {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 16px 20px;
-  background: #40444b;
-  border-top: 1px solid #313338;
+/* Поле ввода (как в чате сервера) */
+.message-input-container {
+  padding: 16px;
+  background-color: #1e1f22;
 }
 
-.dm-attachment-btn {
-  background: none;
-  border: none;
-  color: #8e9297;
-  cursor: pointer;
-  padding: 8px;
-  border-radius: 4px;
-  transition: all 0.2s;
-  flex-shrink: 0;
-}
-
-.dm-attachment-btn:hover {
-  background: #2b2d31;
-  color: #ffffff;
-}
-
-.dm-attachment-btn span {
-  font-size: 20px;
-}
-
-.dm-input-container {
-  flex: 1;
-}
-
-.dm-input {
-  width: 100%;
-  padding: 12px 16px;
-  background: #1e1f22;
-  border: 1px solid #000;
-  border-radius: 8px;
-  color: #ffffff;
-  font-size: 16px;
-}
-
-.dm-input:focus {
-  outline: none;
-  border-color: #5865f2;
-}
-
-.dm-input::placeholder {
-  color: #8e9297;
-}
-
-.dm-input-controls {
+.message-input-container form {
   display: flex;
   gap: 8px;
-  flex-shrink: 0;
+  height: 52px;
 }
 
-.dm-input-btn {
-  background: none;
+.message-input-container input {
+  flex: 1;
+  padding: 0 16px;
+  background-color: #111214;
   border: none;
-  color: #8e9297;
+  border-radius: 8px;
+  color: #dcddde;
+  font-size: 15px;
+  outline: none;
+  transition: background-color 0.2s;
+  height: 52px;
+  box-sizing: border-box;
+}
+
+.message-input-container input:focus {
+  background-color: #1a1c1e;
+}
+
+.message-input-container button {
+  padding: 0 24px;
+  background-color: #5865f2;
+  border: none;
+  border-radius: 8px;
+  color: white;
+  font-size: 15px;
+  font-weight: 600;
   cursor: pointer;
-  padding: 8px;
-  border-radius: 4px;
-  transition: all 0.2s;
+  transition: background-color 0.2s;
+  height: 52px;
+  box-sizing: border-box;
 }
 
-.dm-input-btn:hover {
-  background: #2b2d31;
-  color: #ffffff;
+.message-input-container button:hover:not(:disabled) {
+  background-color: #4752c4;
 }
 
-.dm-input-btn span {
-  font-size: 20px;
+.message-input-container button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 /* Кастомный скроллбар */
@@ -475,3 +483,129 @@
 .dm-messages::-webkit-scrollbar-thumb:hover {
   background: #1a1d21;
 }
+
+/* Стили для сообщений */
+.dm-message {
+  display: flex;
+  padding: 6px 16px;
+  margin-bottom: 3px;
+  transition: background-color 0.1s;
+  border-radius: 8px;
+  position: relative;
+}
+
+/* Стили для сгруппированных сообщений */
+.dm-message-grouped {
+  margin-top: 1px;
+  margin-bottom: 0px;
+  padding-top: 2px;
+  padding-bottom: 2px;
+}
+
+/* Спейсер для аватара в сгруппированных сообщениях */
+.dm-message-avatar-spacer {
+  width: 36px;
+  margin-right: 16px;
+  flex-shrink: 0;
+}
+
+.dm-message:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.dm-message-own {
+  background-color: transparent;
+}
+
+.dm-message-own:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.dm-message-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  margin-right: 16px;
+  flex-shrink: 0;
+  background: #40444b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.dm-message-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.dm-message-avatar span {
+  color: #dcddde;
+  font-weight: 600;
+  font-size: 16px;
+}
+
+.dm-message-content {
+  flex: 1;
+  min-width: 0;
+  line-height: 1.4;
+}
+
+.dm-message-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.dm-message-username {
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.dm-message-time {
+  color: #72767d;
+  font-size: 12px;
+}
+
+.dm-message-text {
+  color: #dcddde;
+  font-size: 16px;
+  line-height: 1.2;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  hyphens: auto;
+  white-space: pre-wrap;
+  margin: 0;
+}
+
+/* Индикаторы статуса */
+.dm-status-indicator {
+  position: absolute;
+  bottom: -2px;
+  right: -2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid #1e1f22;
+  box-sizing: border-box;
+}
+
+.dm-status-indicator.online {
+  background-color: #43b581;
+}
+
+.dm-status-indicator.offline {
+  background-color: #747f8d;
+}
+
+.dm-status-indicator.away {
+  background-color: #faa61a;
+}
+
+.dm-status-indicator.dnd {
+  background-color: #f04747;
+}
+

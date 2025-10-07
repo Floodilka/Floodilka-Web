@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import io from 'socket.io-client';
 import './App.css';
 import ServerSidebar from './components/ServerSidebar';
@@ -35,8 +35,18 @@ function App() {
   const [globalDeafened, setGlobalDeafened] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [showDirectMessages, setShowDirectMessages] = useState(false);
+  const [autoSelectUser, setAutoSelectUser] = useState(null);
+  const [hasUnreadDMs, setHasUnreadDMs] = useState(false);
   const voiceDisconnectRef = useRef(null);
   const speakingUsersRef = useRef({});
+
+  // Мемоизированная функция для обновления говорящих пользователей
+  const handleSpeakingUpdate = useCallback((speaking) => {
+    if (currentVoiceChannel?.id) {
+      speakingUsersRef.current[currentVoiceChannel.id] = speaking;
+      setSpeakingUsers({...speakingUsersRef.current});
+    }
+  }, [currentVoiceChannel?.id]);
 
   // Определение мобильного устройства
   useEffect(() => {
@@ -101,6 +111,14 @@ function App() {
         setServers([]); // Устанавливаем пустой массив при ошибке
       });
   }, [user]);
+
+  // Загрузка непрочитанных сообщений при входе пользователя
+  useEffect(() => {
+    if (user && !showAuthModal) {
+      console.log('👤 Пользователь загружен, проверяем непрочитанные сообщения...');
+      loadUnreadDMs();
+    }
+  }, [user, showAuthModal]);
 
   // Загрузка каналов и участников текущего сервера
   useEffect(() => {
@@ -219,6 +237,17 @@ function App() {
       alert(`Ошибка: ${message}`);
     });
 
+    // Обработчик для личных сообщений
+    socket.on('direct-message:new', (message) => {
+      console.log('📨 Получено новое личное сообщение в App.js:', message);
+
+      // Если это сообщение для нас (мы получатели)
+      if (message.receiver._id === user?.id) {
+        console.log('🔴 Обновляем состояние непрочитанных сообщений');
+        setHasUnreadDMs(true);
+      }
+    });
+
     // Запросить текущее состояние голосовых каналов
     console.log('📤 Запрашиваем voice:get-all-users');
     socket.emit('voice:get-all-users');
@@ -232,6 +261,7 @@ function App() {
       socket.off('users:update');
       socket.off('voice:channels-update');
       socket.off('error');
+      socket.off('direct-message:new');
     };
   }, [socket]);
 
@@ -254,6 +284,9 @@ function App() {
   const handleAuth = (userData) => {
     setUser(userData);
     setShowAuthModal(false);
+
+    // Загружаем непрочитанные сообщения для показа уведомления
+    setTimeout(() => loadUnreadDMs(), 100);
 
     // Принудительно переподключиться к текущему каналу после небольшой задержки
     setTimeout(() => {
@@ -332,10 +365,67 @@ function App() {
     setUsers([]);
     setAllServerMembers([]);
 
+    // Сбрасываем счетчик непрочитанных сообщений при открытии личных сообщений
+    setHasUnreadDMs(false);
+
     // Очищаем состояние голосовых каналов только если пользователь НЕ находится в голосовом канале
     if (!activeVoiceChannel) {
       setVoiceChannelUsers({});
       setSpeakingUsers({});
+    }
+  };
+
+  const handleMessageSent = (selectedUser) => {
+    // Устанавливаем пользователя для автоматического выбора
+    setAutoSelectUser(selectedUser);
+
+    // Открываем DM интерфейс
+    handleSelectDirectMessages();
+
+    console.log('📨 Открываем DM с пользователем:', selectedUser);
+  };
+
+  const handleAutoSelectComplete = () => {
+    // Сбрасываем autoSelectUser после завершения автоматического выбора
+    setAutoSelectUser(null);
+  };
+
+  const handleUnreadDMsUpdate = (hasUnread) => {
+    setHasUnreadDMs(hasUnread);
+  };
+
+  // Загрузка непрочитанных сообщений для показа уведомления
+  const loadUnreadDMs = async () => {
+    if (!user) {
+      console.log('❌ loadUnreadDMs: пользователь не найден');
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        console.log('❌ loadUnreadDMs: токен не найден');
+        return;
+      }
+
+      console.log('📥 Загружаем непрочитанные сообщения...');
+      const response = await fetch(`${BACKEND_URL}/api/direct-messages/conversations`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.ok) {
+        const conversations = await response.json();
+        console.log('📥 Получены разговоры:', conversations);
+        const hasUnread = conversations.some(conv => conv.unreadCount > 0);
+        console.log('🔴 Есть непрочитанные сообщения:', hasUnread);
+        setHasUnreadDMs(hasUnread);
+      } else {
+        console.log('❌ Ошибка ответа:', response.status);
+      }
+    } catch (err) {
+      console.error('❌ Ошибка загрузки непрочитанных сообщений:', err);
     }
   };
 
@@ -376,6 +466,9 @@ function App() {
         const userData = JSON.parse(savedUser);
         setUser(userData);
         setShowAuthModal(false);
+
+        // Загружаем непрочитанные сообщения для показа уведомления
+        setTimeout(() => loadUnreadDMs(), 100);
       } catch (err) {
         localStorage.removeItem('token');
         localStorage.removeItem('user');
@@ -502,11 +595,33 @@ function App() {
           user={user}
           onSelectDirectMessages={handleSelectDirectMessages}
           showDirectMessages={showDirectMessages}
+          hasUnreadDMs={hasUnreadDMs}
         />
         <DirectMessages
           user={user}
+          socket={socket}
           onLogout={handleLogout}
           onAvatarUpdate={handleAvatarUpdate}
+          autoSelectUser={autoSelectUser}
+          onAutoSelectComplete={handleAutoSelectComplete}
+          onUnreadDMsUpdate={handleUnreadDMsUpdate}
+          isMuted={globalMuted}
+          isDeafened={globalDeafened}
+          isInVoice={!!activeVoiceChannel}
+          isSpeaking={activeVoiceChannel && speakingUsers[activeVoiceChannel.id]?.has('me')}
+          onToggleMute={() => setGlobalMuted(!globalMuted)}
+          onToggleDeafen={() => {
+            const newDeafened = !globalDeafened;
+            setGlobalDeafened(newDeafened);
+            if (newDeafened) setGlobalMuted(true);
+          }}
+          onDisconnect={() => {
+            if (activeVoiceChannel && voiceDisconnectRef.current) {
+              voiceDisconnectRef.current();
+              setCurrentVoiceChannel(null);
+              setActiveVoiceChannel(null);
+            }
+          }}
         />
       </div>
     );
@@ -568,10 +683,7 @@ function App() {
             globalMuted={globalMuted}
             globalDeafened={globalDeafened}
             onDisconnectRef={voiceDisconnectRef}
-            onSpeakingUpdate={(speaking) => {
-              speakingUsersRef.current[currentVoiceChannel.id] = speaking;
-              setSpeakingUsers({...speakingUsersRef.current});
-            }}
+            onSpeakingUpdate={handleSpeakingUpdate}
           />
         )}
       </div>
@@ -589,6 +701,7 @@ function App() {
         user={user}
         onSelectDirectMessages={handleSelectDirectMessages}
         showDirectMessages={showDirectMessages}
+        hasUnreadDMs={hasUnreadDMs}
       />
 
       <ChannelList
@@ -623,6 +736,7 @@ function App() {
         onCreateChannel={handleCreateChannel}
         onUpdateChannel={handleUpdateChannel}
         onDeleteChannel={handleDeleteChannel}
+        onMessageSent={handleMessageSent}
       />
       {/* Голосовой канал (скрытый, работает в фоне) */}
       {currentVoiceChannel && (
@@ -633,10 +747,7 @@ function App() {
           globalMuted={globalMuted}
           globalDeafened={globalDeafened}
           onDisconnectRef={voiceDisconnectRef}
-          onSpeakingUpdate={(speaking) => {
-            speakingUsersRef.current[currentVoiceChannel.id] = speaking;
-            setSpeakingUsers({...speakingUsersRef.current});
-          }}
+          onSpeakingUpdate={handleSpeakingUpdate}
         />
       )}
 
@@ -648,11 +759,14 @@ function App() {
         onSendMessage={handleSendMessage}
         hasServer={!!currentServer}
         socket={socket}
+        onMessageSent={handleMessageSent}
       />
 
       <UserList
         onlineUsers={users}
         allMembers={allServerMembers}
+        currentUser={user}
+        onMessageSent={handleMessageSent}
       />
     </div>
   );
