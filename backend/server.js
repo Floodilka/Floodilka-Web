@@ -163,10 +163,30 @@ app.get('/api/channels/:channelId/messages', async (req, res) => {
 
     // Если не в памяти, ищем в БД
     const channelMessages = await Message.find({ channelId })
+      .populate('userId', 'username displayName avatar badge badgeTooltip')
       .sort({ createdAt: 1 })
       .limit(100);
 
-    res.json(channelMessages);
+    // Обновляем данные пользователя в сообщениях на актуальные
+    const updatedMessages = channelMessages.map(msg => {
+      const msgObj = msg.toJSON();
+
+      // Если есть userId и данные пользователя загружены, используем актуальные данные
+      if (msgObj.userId && typeof msgObj.userId === 'object') {
+        msgObj.username = msgObj.userId.username || msgObj.username;
+        msgObj.displayName = msgObj.userId.displayName || msgObj.displayName;
+        msgObj.avatar = msgObj.userId.avatar || msgObj.avatar;
+        msgObj.badge = msgObj.userId.badge || msgObj.badge;
+        msgObj.badgeTooltip = msgObj.userId.badgeTooltip || msgObj.badgeTooltip;
+
+        // Преобразуем userId обратно в строку для совместимости с фронтендом
+        msgObj.userId = msgObj.userId._id;
+      }
+
+      return msgObj;
+    });
+
+    res.json(updatedMessages);
   } catch (error) {
     console.error('Ошибка получения сообщений:', error);
     res.status(500).json({ error: 'Ошибка сервера' });
@@ -230,9 +250,28 @@ io.on('connection', (socket) => {
       // Канал из БД
       try {
         const dbMessages = await Message.find({ channelId })
+          .populate('userId', 'username displayName avatar badge badgeTooltip')
           .sort({ createdAt: 1 })
           .limit(100);
-        channelMessages = dbMessages;
+
+        // Обновляем данные пользователя в сообщениях на актуальные
+        channelMessages = dbMessages.map(msg => {
+          const msgObj = msg.toJSON();
+
+          // Если есть userId и данные пользователя загружены, используем актуальные данные
+          if (msgObj.userId && typeof msgObj.userId === 'object') {
+            msgObj.username = msgObj.userId.username || msgObj.username;
+            msgObj.displayName = msgObj.userId.displayName || msgObj.displayName;
+            msgObj.avatar = msgObj.userId.avatar || msgObj.avatar;
+            msgObj.badge = msgObj.userId.badge || msgObj.badge;
+            msgObj.badgeTooltip = msgObj.userId.badgeTooltip || msgObj.badgeTooltip;
+
+            // Преобразуем userId обратно в строку для совместимости с фронтендом
+            msgObj.userId = msgObj.userId._id;
+          }
+
+          return msgObj;
+        });
       } catch (err) {
         console.error('Ошибка загрузки сообщений:', err);
       }
@@ -254,14 +293,41 @@ io.on('connection', (socket) => {
       return;
     }
 
-    const messageData = {
-      channelId,
-      userId: userId || null,
+    // Если есть userId, загружаем актуальные данные пользователя из БД
+    let actualUserData = {
       username: username || currentUsername || 'Аноним',
       displayName: displayName || null,
       avatar: avatar || socket.currentAvatar || null,
       badge: badge || null,
-      badgeTooltip: badgeTooltip || null,
+      badgeTooltip: badgeTooltip || null
+    };
+
+    if (userId) {
+      try {
+        const user = await User.findById(userId).select('username displayName avatar badge badgeTooltip');
+        if (user) {
+          actualUserData = {
+            username: user.username,
+            displayName: user.displayName,
+            avatar: user.avatar,
+            badge: user.badge,
+            badgeTooltip: user.badgeTooltip
+          };
+        }
+      } catch (err) {
+        console.error('Ошибка загрузки данных пользователя:', err);
+        // Используем данные, переданные клиентом, как fallback
+      }
+    }
+
+    const messageData = {
+      channelId,
+      userId: userId || null,
+      username: actualUserData.username,
+      displayName: actualUserData.displayName,
+      avatar: actualUserData.avatar,
+      badge: actualUserData.badge,
+      badgeTooltip: actualUserData.badgeTooltip,
       content: content.trim(),
       isSystem: false
     };

@@ -42,8 +42,8 @@ function VoiceChannel({ socket, channel, user, globalMuted, globalDeafened, onDi
   };
 
   const initialSettings = loadAudioSettings();
-  const [noiseSuppression] = useState(initialSettings.noiseSuppression);
-  const [echoCancellation] = useState(initialSettings.echoCancellation);
+  const [noiseSuppression, setNoiseSuppression] = useState(initialSettings.noiseSuppression);
+  const [echoCancellation, setEchoCancellation] = useState(initialSettings.echoCancellation);
   const [micSensitivity] = useState(initialSettings.micSensitivity);
   const [audioBitrate, setAudioBitrate] = useState(initialSettings.audioBitrate);
   const [audioQuality] = useState(initialSettings.audioQuality);
@@ -685,6 +685,64 @@ function VoiceChannel({ socket, channel, user, globalMuted, globalDeafened, onDi
       isDeafened: globalDeafened
     });
   }, [globalDeafened, voiceUsers, socket, channel]);
+
+  // Слушаем изменения настроек звука (мгновенное применение)
+  useEffect(() => {
+    const handleSettingsChange = async (e) => {
+      const newSettings = e.detail;
+
+      // Обновляем состояния
+      if (newSettings.noiseSuppression !== undefined) {
+        setNoiseSuppression(newSettings.noiseSuppression);
+      }
+      if (newSettings.echoCancellation !== undefined) {
+        setEchoCancellation(newSettings.echoCancellation);
+      }
+      if (newSettings.audioBitrate !== undefined) {
+        setAudioBitrate(newSettings.audioBitrate);
+      }
+
+      // Если уже подключены, применяем настройки к существующему потоку
+      if (localStreamRef.current && isConnected) {
+        const audioTrack = localStreamRef.current.getAudioTracks()[0];
+        if (audioTrack) {
+          try {
+            // Применяем новые constraints к треку
+            await audioTrack.applyConstraints({
+              echoCancellation: newSettings.echoCancellation ?? echoCancellation,
+              noiseSuppression: newSettings.noiseSuppression ?? noiseSuppression,
+              autoGainControl: newSettings.autoGainControl ?? true
+            });
+            console.log('✅ Настройки микрофона обновлены моментально');
+          } catch (err) {
+            console.error('Ошибка применения настроек:', err);
+          }
+        }
+
+        // Обновляем битрейт для всех активных соединений
+        if (newSettings.audioBitrate) {
+          Object.values(peersRef.current).forEach(peer => {
+            if (peer && peer.getSenders) {
+              const audioSender = peer.getSenders().find(s => s.track?.kind === 'audio');
+              if (audioSender) {
+                const parameters = audioSender.getParameters();
+                if (!parameters.encodings) {
+                  parameters.encodings = [{}];
+                }
+                parameters.encodings[0].maxBitrate = newSettings.audioBitrate;
+                audioSender.setParameters(parameters)
+                  .then(() => console.log(`✅ Битрейт обновлен до ${newSettings.audioBitrate}`))
+                  .catch(err => console.error('Ошибка обновления битрейта:', err));
+              }
+            }
+          });
+        }
+      }
+    };
+
+    window.addEventListener('audioSettingsChanged', handleSettingsChange);
+    return () => window.removeEventListener('audioSettingsChanged', handleSettingsChange);
+  }, [isConnected, echoCancellation, noiseSuppression]);
 
   // Голосовой канал теперь скрыт - работает в фоне
   return null;

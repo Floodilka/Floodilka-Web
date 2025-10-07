@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import './UserSettingsModal.css';
-import AudioSettingsModal from './AudioSettingsModal';
+import './AudioSettingsModal.css';
 
 const BACKEND_URL = window.location.hostname === 'localhost'
   ? 'http://localhost:3001'
@@ -11,10 +11,20 @@ function UserSettingsModal({ user, onClose, onLogout, onAvatarUpdate }) {
   const [isEditingDisplayName, setIsEditingDisplayName] = useState(false);
   const [newDisplayName, setNewDisplayName] = useState('');
   const [displayNameError, setDisplayNameError] = useState('');
-  const [showAudioSettings, setShowAudioSettings] = useState(false);
 
   // Состояния для вкладок
   const [activeTab, setActiveTab] = useState('account');
+
+  // Состояния для настроек звука
+  const [audioSettings, setAudioSettings] = useState(() => {
+    const saved = localStorage.getItem('audioSettings');
+    return saved ? JSON.parse(saved) : {
+      echoCancellation: true,
+      noiseSuppression: true,
+      autoGainControl: true,
+      audioBitrate: 256000
+    };
+  });
 
   // Состояния для управления тегами (только для puncher)
   const [targetUsername, setTargetUsername] = useState('');
@@ -175,6 +185,17 @@ function UserSettingsModal({ user, onClose, onLogout, onAvatarUpdate }) {
     setDisplayNameError('');
   };
 
+  const handleAudioSettingChange = (setting, value) => {
+    const newSettings = { ...audioSettings, [setting]: value };
+    setAudioSettings(newSettings);
+    localStorage.setItem('audioSettings', JSON.stringify(newSettings));
+
+    // Отправляем кастомное событие для мгновенного применения настроек
+    window.dispatchEvent(new CustomEvent('audioSettingsChanged', {
+      detail: newSettings
+    }));
+  };
+
   const handleAssignBadge = async () => {
     setBadgeError('');
     setBadgeSuccess('');
@@ -250,6 +271,12 @@ function UserSettingsModal({ user, onClose, onLogout, onAvatarUpdate }) {
             onClick={() => setActiveTab('account')}
           >
             Моя учётная запись
+          </button>
+          <button
+            className={`settings-tab ${activeTab === 'audio' ? 'active' : ''}`}
+            onClick={() => setActiveTab('audio')}
+          >
+            Настройки звука
           </button>
           {isPuncher && (
             <button
@@ -343,15 +370,85 @@ function UserSettingsModal({ user, onClose, onLogout, onAvatarUpdate }) {
             </div>
             <button className="settings-change-btn">Изменить</button>
           </div>
-
-          <div className="settings-info-item">
-            <div className="settings-info-label">Настройки звука</div>
-            <div className="settings-info-value">Качество голосового чата</div>
-            <button className="settings-change-btn" onClick={() => setShowAudioSettings(true)}>
-              Настроить
-            </button>
-          </div>
             </>
+          )}
+
+          {activeTab === 'audio' && (
+            <div className="audio-settings-content">
+              <div className="audio-settings-section">
+                <h3 className="audio-settings-title">Обработка звука</h3>
+                <p className="audio-settings-description">
+                  Настройки обработки звука для улучшения качества голосового чата
+                </p>
+
+                <div className="audio-setting-item">
+                  <div className="audio-setting-info">
+                    <div className="audio-setting-label">Эхоподавление</div>
+                    <div className="audio-setting-desc">Уменьшает эхо в микрофоне</div>
+                  </div>
+                  <label className="audio-toggle">
+                    <input
+                      type="checkbox"
+                      checked={audioSettings.echoCancellation}
+                      onChange={(e) => handleAudioSettingChange('echoCancellation', e.target.checked)}
+                    />
+                    <span className="audio-toggle-slider"></span>
+                  </label>
+                </div>
+
+                <div className="audio-setting-item">
+                  <div className="audio-setting-info">
+                    <div className="audio-setting-label">Шумоподавление</div>
+                    <div className="audio-setting-desc">Фильтрует фоновый шум</div>
+                  </div>
+                  <label className="audio-toggle">
+                    <input
+                      type="checkbox"
+                      checked={audioSettings.noiseSuppression}
+                      onChange={(e) => handleAudioSettingChange('noiseSuppression', e.target.checked)}
+                    />
+                    <span className="audio-toggle-slider"></span>
+                  </label>
+                </div>
+
+                <div className="audio-setting-item">
+                  <div className="audio-setting-info">
+                    <div className="audio-setting-label">Автоматическое усиление</div>
+                    <div className="audio-setting-desc">Нормализует громкость микрофона</div>
+                  </div>
+                  <label className="audio-toggle">
+                    <input
+                      type="checkbox"
+                      checked={audioSettings.autoGainControl}
+                      onChange={(e) => handleAudioSettingChange('autoGainControl', e.target.checked)}
+                    />
+                    <span className="audio-toggle-slider"></span>
+                  </label>
+                </div>
+              </div>
+
+              <div className="audio-settings-section">
+                <h3 className="audio-settings-title">Качество передачи</h3>
+
+                <div className="audio-setting-item">
+                  <div className="audio-setting-info">
+                    <div className="audio-setting-label">Битрейт</div>
+                    <div className="audio-setting-desc">Качество передачи звука</div>
+                  </div>
+                  <select
+                    className="audio-select"
+                    value={audioSettings.audioBitrate}
+                    onChange={(e) => handleAudioSettingChange('audioBitrate', parseInt(e.target.value))}
+                  >
+                    <option value={32000}>32 кбит/с (низкое)</option>
+                    <option value={64000}>64 кбит/с (среднее)</option>
+                    <option value={96000}>96 кбит/с (высокое)</option>
+                    <option value={128000}>128 кбит/с (очень высокое)</option>
+                    <option value={256000}>256 кбит/с (максимальное)</option>
+                  </select>
+                </div>
+              </div>
+            </div>
           )}
 
           {activeTab === 'admin' && isPuncher && (
@@ -406,8 +503,8 @@ function UserSettingsModal({ user, onClose, onLogout, onAvatarUpdate }) {
                   disabled={isAssigningBadge}
                 >
                   {isAssigningBadge ? 'Назначение...' : 'Назначить тег'}
-                </button>
-              </div>
+            </button>
+          </div>
             </div>
           )}
         </div>
@@ -415,15 +512,6 @@ function UserSettingsModal({ user, onClose, onLogout, onAvatarUpdate }) {
         <button className="settings-logout-btn" onClick={handleLogout}>
           Выйти из аккаунта
         </button>
-
-        <AudioSettingsModal
-          isOpen={showAudioSettings}
-          onClose={() => setShowAudioSettings(false)}
-          onSettingsChange={(settings) => {
-            // Сохранить настройки в localStorage
-            localStorage.setItem('audioSettings', JSON.stringify(settings));
-          }}
-        />
       </div>
     </div>
   );
