@@ -79,7 +79,7 @@ function UserList({ onlineUsers, allMembers }) {
             <div className="user-name">{displayName || username}</div>
             {badge && badge !== 'User' && (
               <span
-                className={`user-badge badge-${badge.toLowerCase()}`}
+                className="user-badge"
                 title={badgeTooltip || badge}
               >
                 {badge}
@@ -167,7 +167,7 @@ function UserList({ onlineUsers, allMembers }) {
                       {selectedUser.username}
                     </div>
                     {selectedUser.badge && selectedUser.badge !== 'User' && (
-                      <span className={`user-profile-badge badge-${selectedUser.badge.toLowerCase()}`}>
+                      <span className="user-profile-badge">
                         {selectedUser.badge}
                       </span>
                     )}

@@ -140,7 +140,7 @@ function Chat({ channel, messages, username, onSendMessage, hasServer }) {
                 </span>
                 {message.badge && message.badge !== 'User' && (
                   <span
-                    className={`message-badge badge-${message.badge.toLowerCase()}`}
+                    className="message-badge"
                     title={message.badgeTooltip || message.badge}
                   >
                     {message.badge}
@@ -205,7 +205,7 @@ function Chat({ channel, messages, username, onSendMessage, hasServer }) {
                       {selectedUser.username}
                     </div>
                     {selectedUser.badge && selectedUser.badge !== 'User' && (
-                      <span className={`user-profile-badge badge-${selectedUser.badge.toLowerCase()}`}>
+                      <span className="user-profile-badge">
                         {selectedUser.badge}
                       </span>
                     )}

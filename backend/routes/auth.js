@@ -57,6 +57,12 @@ router.post('/register', async (req, res) => {
       return res.status(400).json({ error: 'Пароль должен быть минимум 6 символов' });
     }
 
+    // Защита: запретить регистрацию с зарезервированным username
+    const reservedUsernames = ['puncher', 'admin', 'administrator', 'system', 'root'];
+    if (reservedUsernames.includes(username.toLowerCase())) {
+      return res.status(400).json({ error: 'Это имя пользователя зарезервировано' });
+    }
+
     // Проверка существования пользователя
     const existingUser = await User.findOne({
       $or: [{ email }, { username }]
@@ -289,6 +295,95 @@ router.patch('/displayname', async (req, res) => {
     });
   } catch (error) {
     console.error('Ошибка обновления имени:', error);
+    res.status(500).json({ error: 'Ошибка сервера' });
+  }
+});
+
+// Назначение тега пользователю (только для puncher)
+router.post('/assign-badge', async (req, res) => {
+  try {
+    const token = req.headers.authorization?.split(' ')[1];
+
+    if (!token) {
+      console.warn('[SECURITY] Попытка назначить тег без токена');
+      return res.status(401).json({ error: 'Не авторизован' });
+    }
+
+    // Верификация токена
+    let decoded;
+    try {
+      decoded = jwt.verify(token, JWT_SECRET);
+    } catch (err) {
+      console.warn('[SECURITY] Попытка с невалидным токеном:', err.message);
+      return res.status(401).json({ error: 'Невалидный токен' });
+    }
+
+    const adminUser = await User.findById(decoded.userId);
+
+    if (!adminUser) {
+      console.warn('[SECURITY] Попытка назначить тег с несуществующим userId:', decoded.userId);
+      return res.status(404).json({ error: 'Пользователь не найден' });
+    }
+
+    // СТРОГАЯ ПРОВЕРКА: проверяем И username И что это реально puncher из БД
+    if (adminUser.username !== 'puncher') {
+      console.warn(`[SECURITY] Попытка назначить тег от пользователя ${adminUser.username} (userId: ${adminUser._id})`);
+      return res.status(403).json({ error: 'Доступ запрещен' });
+    }
+
+    // Дополнительная проверка: userId из токена должен совпадать с найденным пользователем
+    if (decoded.userId !== adminUser._id.toString()) {
+      console.error('[SECURITY] КРИТИЧНО: Несоответствие userId в токене и БД');
+      return res.status(403).json({ error: 'Доступ запрещен' });
+    }
+
+    const { username, badge, badgeTooltip } = req.body;
+
+    if (!username) {
+      return res.status(400).json({ error: 'Username обязателен' });
+    }
+
+    if (!badge || badge.trim() === '') {
+      return res.status(400).json({ error: 'Badge обязателен' });
+    }
+
+    if (badge.trim().length > 4) {
+      return res.status(400).json({ error: 'Тег не может превышать 4 символа' });
+    }
+
+    // Защита от самоназначения (опционально, можете убрать если нужно менять себе тег)
+    if (username.trim() === adminUser.username) {
+      console.warn('[SECURITY] Попытка самоназначения тега');
+      return res.status(400).json({ error: 'Нельзя назначить тег самому себе' });
+    }
+
+    // Найти пользователя по username
+    const targetUser = await User.findOne({ username: username.trim() });
+
+    if (!targetUser) {
+      return res.status(404).json({ error: 'Пользователь не найден' });
+    }
+
+    // Логирование успешного назначения
+    console.log(`[ADMIN] ${adminUser.username} назначил тег "${badge}" пользователю ${targetUser.username} (${targetUser._id})`);
+
+    // Обновить badge и badgeTooltip
+    targetUser.badge = badge.trim();
+    targetUser.badgeTooltip = badgeTooltip?.trim() || badge.trim();
+    await targetUser.save();
+
+    res.json({
+      success: true,
+      message: `Тег "${badge}" успешно назначен пользователю ${username}`,
+      user: {
+        id: targetUser._id,
+        username: targetUser.username,
+        badge: targetUser.badge,
+        badgeTooltip: targetUser.badgeTooltip
+      }
+    });
+  } catch (error) {
+    console.error('[ERROR] Ошибка назначения тега:', error);
     res.status(500).json({ error: 'Ошибка сервера' });
   }
 });

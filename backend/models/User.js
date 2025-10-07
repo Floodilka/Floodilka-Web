@@ -33,7 +33,6 @@ const userSchema = new mongoose.Schema({
   },
   badge: {
     type: String,
-    enum: ['Dev', 'Admin', 'Moderator', 'VIP', 'User'],
     default: 'User'
   },
   badgeTooltip: {

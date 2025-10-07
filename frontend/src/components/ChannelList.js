@@ -382,7 +382,7 @@ function ChannelList({ channels, currentTextChannel, currentVoiceChannel, voiceC
                               <span className="voice-user-name-tiny">{user.displayName || user.username}</span>
                               {user.badge && user.badge !== 'User' && (
                                 <span
-                                  className={`voice-user-badge badge-${user.badge.toLowerCase()}`}
+                                  className="voice-user-badge"
                                   title={user.badgeTooltip || user.badge}
                                 >
                                   {user.badge}
@@ -458,7 +458,7 @@ function ChannelList({ channels, currentTextChannel, currentVoiceChannel, voiceC
                       {selectedUser.username}
                     </div>
                     {selectedUser.badge && selectedUser.badge !== 'User' && (
-                      <span className={`user-profile-badge badge-${selectedUser.badge.toLowerCase()}`}>
+                      <span className="user-profile-badge">
                         {selectedUser.badge}
                       </span>
                     )}

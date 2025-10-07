@@ -111,24 +111,10 @@
   flex-shrink: 0;
 }
 
-.badge-dev {
+/* Все теги одного синего цвета */
+.user-badge {
   background-color: #5865f2;
   color: #ffffff;
-}
-
-.badge-admin {
-  background-color: #ed4245;
-  color: #ffffff;
-}
-
-.badge-moderator {
-  background-color: #57f287;
-  color: #2b2d31;
-}
-
-.badge-vip {
-  background-color: #faa61a;
-  color: #2b2d31;
 }
 
 .user-status {
@@ -271,23 +257,9 @@
   margin-top: 2px;
 }
 
-.user-profile-badge.badge-dev {
+/* Все теги одного синего цвета */
+.user-profile-badge {
   background-color: #5865f2;
   color: #ffffff;
-}
-
-.user-profile-badge.badge-admin {
-  background-color: #ed4245;
-  color: #ffffff;
-}
-
-.user-profile-badge.badge-moderator {
-  background-color: #57f287;
-  color: #2b2d31;
-}
-
-.user-profile-badge.badge-vip {
-  background-color: #faa61a;
-  color: #2b2d31;
 }
 

@@ -51,6 +51,44 @@
   color: #f2f3f5;
 }
 
+/* Tabs */
+.settings-tabs {
+  display: flex;
+  gap: 0;
+  background-color: #2b2d31;
+  padding: 0 20px;
+  border-bottom: 1px solid #1e1f22;
+}
+
+.settings-tab {
+  padding: 14px 20px;
+  background: none;
+  border: none;
+  color: #b5bac1;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  border-bottom: 2px solid transparent;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.settings-tab:hover {
+  color: #f2f3f5;
+  background-color: rgba(255, 255, 255, 0.03);
+}
+
+.settings-tab.active {
+  color: #f2f3f5;
+  border-bottom-color: #5865f2;
+}
+
+.tab-admin-icon {
+  font-size: 16px;
+}
+
 .settings-profile-section {
   flex: 1;
   overflow-y: auto;
@@ -305,5 +343,135 @@
 
 .settings-profile-section::-webkit-scrollbar-thumb:hover {
   background-color: #2b2d31;
+}
+
+/* Admin section for badge management */
+.settings-admin-section-content {
+  padding: 20px;
+}
+
+.settings-admin-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.settings-admin-header h3 {
+  color: #f2f3f5;
+  font-size: 20px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.admin-description {
+  color: #b5bac1;
+  font-size: 14px;
+  line-height: 1.5;
+  margin-bottom: 24px;
+  padding: 12px;
+  background-color: rgba(88, 101, 242, 0.1);
+  border-left: 3px solid #5865f2;
+  border-radius: 4px;
+}
+
+.admin-badge {
+  background: linear-gradient(135deg, #ed4245 0%, #c02a2e 100%);
+  color: white;
+  padding: 4px 12px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  box-shadow: 0 2px 4px rgba(237, 66, 69, 0.3);
+}
+
+.badge-assign-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.badge-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.badge-form-group label {
+  color: #b5bac1;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.badge-input {
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid #4e5058;
+  background-color: #1e1f22;
+  color: #f2f3f5;
+  font-size: 14px;
+  outline: none;
+  transition: all 0.2s;
+}
+
+.badge-input:focus {
+  border-color: #5865f2;
+  box-shadow: 0 0 0 2px rgba(88, 101, 242, 0.2);
+}
+
+.badge-input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.badge-error {
+  color: #ed4245;
+  font-size: 13px;
+  font-weight: 500;
+  background-color: rgba(237, 66, 69, 0.1);
+  padding: 10px 12px;
+  border-radius: 6px;
+  border-left: 3px solid #ed4245;
+}
+
+.badge-success {
+  color: #3ba55d;
+  font-size: 13px;
+  font-weight: 500;
+  background-color: rgba(59, 165, 93, 0.1);
+  padding: 10px 12px;
+  border-radius: 6px;
+  border-left: 3px solid #3ba55d;
+}
+
+.badge-assign-btn {
+  padding: 12px 16px;
+  border-radius: 8px;
+  border: none;
+  background: linear-gradient(135deg, #5865f2 0%, #4752c4 100%);
+  color: white;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 2px 6px rgba(88, 101, 242, 0.3);
+}
+
+.badge-assign-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(88, 101, 242, 0.4);
+}
+
+.badge-assign-btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.badge-assign-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
 }
 
