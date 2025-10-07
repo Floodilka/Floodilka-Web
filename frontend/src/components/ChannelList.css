@@ -365,6 +365,22 @@
   color: #8e9297;
   transition: all 0.2s;
   position: relative;
+  width: 100%;
+}
+
+.channel-item-wrapper {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  position: relative;
+}
+
+.channel-item-content {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+  padding-right: 32px; /* Отступ для кнопки шестеренки */
 }
 
 .channel-item:hover {
@@ -411,6 +427,45 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
+/* Кнопка управления каналом */
+.channel-settings-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  opacity: 0;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 10;
+}
+
+.channel-item:hover .channel-settings-btn {
+  opacity: 1;
+}
+
+.channel-settings-btn:hover {
+  background-color: #404249;
+}
+
+.channel-settings-icon {
+  width: 16px;
+  height: 16px;
+  filter: brightness(0) invert(0.6);
+  transition: filter 0.2s;
+}
+
+.channel-settings-btn:hover .channel-settings-icon {
+  filter: brightness(0) invert(1);
+}
+
 
 .voice-section {
   border-top: 1px solid #313338;

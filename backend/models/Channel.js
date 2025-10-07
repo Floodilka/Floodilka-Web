@@ -12,6 +12,26 @@ const channelSchema = new mongoose.Schema({
     enum: ['text', 'voice'],
     default: 'text'
   },
+  topic: {
+    type: String,
+    trim: true,
+    maxlength: 1024,
+    default: ''
+  },
+  slowMode: {
+    type: String,
+    enum: ['off', '5', '10', '15', '30', '60', '120', '300', '600'],
+    default: 'off'
+  },
+  nsfw: {
+    type: Boolean,
+    default: false
+  },
+  hideAfterInactivity: {
+    type: String,
+    enum: ['never', '1', '3', '7', '14', '30'],
+    default: 'never'
+  },
   serverId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Server',

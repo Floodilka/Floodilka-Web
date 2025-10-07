@@ -1,18 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import './ChannelList.css';
 import UserProfile from './UserProfile';
+import ChannelSettingsModal from './ChannelSettingsModal';
 
 const BACKEND_URL = window.location.hostname === 'localhost'
   ? 'http://localhost:3001'
   : `${window.location.protocol}//${window.location.hostname}`;
 
-function ChannelList({ channels, currentTextChannel, currentVoiceChannel, voiceChannelUsers, speakingUsers, user, isMuted, isDeafened, isInVoice, serverName, currentServer, onToggleMute, onToggleDeafen, onDisconnect, onLogout, onAvatarUpdate, onSelectChannel, onCreateChannel }) {
+function ChannelList({ channels, currentTextChannel, currentVoiceChannel, voiceChannelUsers, speakingUsers, user, isMuted, isDeafened, isInVoice, serverName, currentServer, onToggleMute, onToggleDeafen, onDisconnect, onLogout, onAvatarUpdate, onSelectChannel, onCreateChannel, onUpdateChannel, onDeleteChannel }) {
   const [showTextForm, setShowTextForm] = useState(false);
   const [showVoiceForm, setShowVoiceForm] = useState(false);
   const [newChannelName, setNewChannelName] = useState('');
   const [showServerMenu, setShowServerMenu] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   const [profilePosition, setProfilePosition] = useState({ top: 0, left: 0 });
+
+  // Состояния для управления каналами
+  const [showChannelSettings, setShowChannelSettings] = useState(false);
+  const [selectedChannel, setSelectedChannel] = useState(null);
 
   const handleVoiceUserClick = async (voiceUser, event) => {
     event.stopPropagation();
@@ -174,6 +179,18 @@ function ChannelList({ channels, currentTextChannel, currentVoiceChannel, voiceC
     }
   };
 
+  // Функции для управления каналами
+  const openChannelSettings = (channel, event) => {
+    event.stopPropagation();
+    setSelectedChannel(channel);
+    setShowChannelSettings(true);
+  };
+
+  const closeChannelSettings = () => {
+    setShowChannelSettings(false);
+    setSelectedChannel(null);
+  };
+
   const textChannels = channels.filter(ch => ch.type === 'text');
   const voiceChannels = channels.filter(ch => ch.type === 'voice');
 
@@ -281,13 +298,27 @@ function ChannelList({ channels, currentTextChannel, currentVoiceChannel, voiceC
 
         <div className="channels">
           {textChannels.map(channel => (
-            <div
-              key={channel.id}
-              className={`channel-item ${currentTextChannel?.id === channel.id ? 'active' : ''}`}
-              onClick={() => onSelectChannel(channel)}
-            >
-              <span className="channel-icon">#</span>
-              <span className="channel-name">{channel.name}</span>
+            <div key={channel.id} className="channel-item-wrapper">
+              <div
+                className={`channel-item ${currentTextChannel?.id === channel.id ? 'active' : ''}`}
+                onClick={() => onSelectChannel(channel)}
+              >
+                <div className="channel-item-content">
+                  <span className="channel-icon">#</span>
+                  <span className="channel-name">{channel.name}</span>
+                </div>
+                <button
+                  className="channel-settings-btn"
+                  onClick={(e) => openChannelSettings(channel, e)}
+                  title="Настройки канала"
+                >
+                  <img
+                    src="/icons/setting.png"
+                    alt="Настройки"
+                    className="channel-settings-icon"
+                  />
+                </button>
+              </div>
             </div>
           ))}
         </div>
@@ -346,12 +377,27 @@ function ChannelList({ channels, currentTextChannel, currentVoiceChannel, voiceC
 
             return (
               <div key={channel.id} className="voice-channel-wrapper">
-                <div
-                  className="channel-item"
-                  onClick={() => onSelectChannel(channel)}
-                >
-                  <img src="/icons/channel.png" alt="Голосовой канал" className="channel-icon-img" />
-                  <span className="channel-name">{channel.name}</span>
+                <div className="channel-item-wrapper">
+                  <div
+                    className="channel-item"
+                    onClick={() => onSelectChannel(channel)}
+                  >
+                    <div className="channel-item-content">
+                      <img src="/icons/channel.png" alt="Голосовой канал" className="channel-icon-img" />
+                      <span className="channel-name">{channel.name}</span>
+                    </div>
+                    <button
+                      className="channel-settings-btn"
+                      onClick={(e) => openChannelSettings(channel, e)}
+                      title="Настройки канала"
+                    >
+                      <img
+                        src="/icons/setting.png"
+                        alt="Настройки"
+                        className="channel-settings-icon"
+                      />
+                    </button>
+                  </div>
                 </div>
 
                 {allUsers.length > 0 && (
@@ -480,6 +526,16 @@ function ChannelList({ channels, currentTextChannel, currentVoiceChannel, voiceC
           </div>
         </>
       )}
+
+      {/* Модальное окно настроек канала */}
+      <ChannelSettingsModal
+        channel={selectedChannel}
+        currentServer={currentServer}
+        isOpen={showChannelSettings}
+        onClose={closeChannelSettings}
+        onUpdateChannel={onUpdateChannel}
+        onDeleteChannel={onDeleteChannel}
+      />
     </div>
   );
 }

@@ -45,8 +45,10 @@ app.use('/uploads', express.static('uploads'));
 // Импорт роутов
 const authRoutes = require('./routes/auth');
 const serverRoutes = require('./routes/servers');
+const roleRoutes = require('./routes/roles');
 app.use('/api/auth', authRoutes);
 app.use('/api/servers', serverRoutes);
+app.use('/api', roleRoutes);
 
 // Хранилище данных в памяти (временно, потом переведем на БД)
 const channels = new Map();

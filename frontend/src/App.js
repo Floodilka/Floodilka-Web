@@ -352,6 +352,36 @@ function App() {
       .catch(err => console.error('Ошибка создания канала:', err));
   };
 
+  const handleUpdateChannel = (updatedChannel) => {
+    setChannels(prev =>
+      prev.map(channel =>
+        channel.id === updatedChannel.id ? updatedChannel : channel
+      )
+    );
+
+    // Обновить текущий канал если он был изменен
+    if (currentTextChannel?.id === updatedChannel.id) {
+      setCurrentTextChannel(updatedChannel);
+    }
+    if (currentVoiceChannel?.id === updatedChannel.id) {
+      setCurrentVoiceChannel(updatedChannel);
+    }
+  };
+
+  const handleDeleteChannel = (channelId) => {
+    setChannels(prev => prev.filter(channel => channel.id !== channelId));
+
+    // Если удаленный канал был активным, переключиться на первый доступный
+    if (currentTextChannel?.id === channelId) {
+      const remainingTextChannels = channels.filter(ch => ch.type === 'text' && ch.id !== channelId);
+      setCurrentTextChannel(remainingTextChannels[0] || null);
+    }
+    if (currentVoiceChannel?.id === channelId) {
+      const remainingVoiceChannels = channels.filter(ch => ch.type === 'voice' && ch.id !== channelId);
+      setCurrentVoiceChannel(remainingVoiceChannels[0] || null);
+    }
+  };
+
   const handleSendMessage = (content) => {
     if (socket && currentTextChannel && user) {
       socket.emit('message:send', {
@@ -420,6 +450,8 @@ function App() {
           onAvatarUpdate={handleAvatarUpdate}
           onSelectChannel={handleChannelSelect}
           onCreateChannel={handleCreateChannel}
+          onUpdateChannel={handleUpdateChannel}
+          onDeleteChannel={handleDeleteChannel}
           onlineUsers={users}
           allServerMembers={allServerMembers}
           socket={socket}
@@ -485,6 +517,8 @@ function App() {
         onAvatarUpdate={handleAvatarUpdate}
         onSelectChannel={handleChannelSelect}
         onCreateChannel={handleCreateChannel}
+        onUpdateChannel={handleUpdateChannel}
+        onDeleteChannel={handleDeleteChannel}
       />
       {/* Голосовой канал (скрытый, работает в фоне) */}
       {currentVoiceChannel && (
