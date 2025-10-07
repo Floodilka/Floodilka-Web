@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import './UserSettingsModal.css';
+import AudioSettingsModal from './AudioSettingsModal';
 
 const BACKEND_URL = window.location.hostname === 'localhost'
   ? 'http://localhost:3001'
@@ -10,6 +11,7 @@ function UserSettingsModal({ user, onClose, onLogout, onAvatarUpdate }) {
   const [isEditingDisplayName, setIsEditingDisplayName] = useState(false);
   const [newDisplayName, setNewDisplayName] = useState('');
   const [displayNameError, setDisplayNameError] = useState('');
+  const [showAudioSettings, setShowAudioSettings] = useState(false);
 
   const handleLogout = () => {
     onLogout();
@@ -216,11 +218,28 @@ function UserSettingsModal({ user, onClose, onLogout, onAvatarUpdate }) {
             </div>
             <button className="settings-change-btn">Изменить</button>
           </div>
+
+          <div className="settings-info-item">
+            <div className="settings-info-label">Настройки звука</div>
+            <div className="settings-info-value">Качество голосового чата</div>
+            <button className="settings-change-btn" onClick={() => setShowAudioSettings(true)}>
+              Настроить
+            </button>
+          </div>
         </div>
 
         <button className="settings-logout-btn" onClick={handleLogout}>
           Выйти из аккаунта
         </button>
+
+        <AudioSettingsModal
+          isOpen={showAudioSettings}
+          onClose={() => setShowAudioSettings(false)}
+          onSettingsChange={(settings) => {
+            // Сохранить настройки в localStorage
+            localStorage.setItem('audioSettings', JSON.stringify(settings));
+          }}
+        />
       </div>
     </div>
   );

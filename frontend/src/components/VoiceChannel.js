@@ -19,21 +19,144 @@ function VoiceChannel({ socket, channel, user, globalMuted, globalDeafened, onDi
     }
   }, [speakingUsers, isSpeaking, globalMuted, onSpeakingUpdate]);
 
-  const [noiseSuppression] = useState(true);
-  const [echoCancellation] = useState(true);
-  const [micSensitivity] = useState(20); // Порог для определения речи
-  const [audioBitrate] = useState(128000); // Битрейт в kbps
+  // Загрузить настройки из localStorage или использовать значения по умолчанию
+  const loadAudioSettings = () => {
+    const savedSettings = localStorage.getItem('audioSettings');
+    if (savedSettings) {
+      const settings = JSON.parse(savedSettings);
+      return {
+        noiseSuppression: settings.noiseSuppression ?? true,
+        echoCancellation: settings.echoCancellation ?? true,
+        micSensitivity: settings.micSensitivity ?? 15,
+        audioBitrate: settings.audioBitrate ?? 256000,
+        audioQuality: settings.audioQuality ?? 'ultra'
+      };
+    }
+    return {
+      noiseSuppression: true,
+      echoCancellation: true,
+      micSensitivity: 15,
+      audioBitrate: 256000,
+      audioQuality: 'ultra'
+    };
+  };
+
+  const initialSettings = loadAudioSettings();
+  const [noiseSuppression] = useState(initialSettings.noiseSuppression);
+  const [echoCancellation] = useState(initialSettings.echoCancellation);
+  const [micSensitivity] = useState(initialSettings.micSensitivity);
+  const [audioBitrate, setAudioBitrate] = useState(initialSettings.audioBitrate);
+  const [audioQuality] = useState(initialSettings.audioQuality);
+  const [networkQuality, setNetworkQuality] = useState('good'); // Качество сети: poor, good, excellent
 
   const localStreamRef = useRef(null);
   const peersRef = useRef({});
   const localAnalyserRef = useRef(null);
+  const networkMonitorRef = useRef(null);
 
-  // ICE серверы для WebRTC
+  // ICE серверы для WebRTC - улучшенная конфигурация
   const iceServers = {
     iceServers: [
       { urls: 'stun:stun.l.google.com:19302' },
-      { urls: 'stun:stun1.l.google.com:19302' }
-    ]
+      { urls: 'stun:stun1.l.google.com:19302' },
+      { urls: 'stun:stun2.l.google.com:19302' },
+      { urls: 'stun:stun3.l.google.com:19302' },
+      { urls: 'stun:stun4.l.google.com:19302' },
+      { urls: 'stun:stun.voiparound.com' },
+      { urls: 'stun:stun.voipbuster.com' },
+      { urls: 'stun:stun.voipstunt.com' },
+      { urls: 'stun:stun.counterpath.com' },
+      { urls: 'stun:stun.1und1.de' }
+    ],
+    iceCandidatePoolSize: 10
+  };
+
+  // Функция для адаптивного битрейта
+  const getAdaptiveBitrate = (quality) => {
+    switch (quality) {
+      case 'poor':
+        return 64000; // 64 kbps для плохой сети
+      case 'good':
+        return 128000; // 128 kbps для хорошей сети
+      case 'excellent':
+        return 256000; // 256 kbps для отличной сети
+      default:
+        return 128000;
+    }
+  };
+
+  // Мониторинг качества сети
+  const startNetworkMonitoring = () => {
+    if (networkMonitorRef.current) return;
+
+    const monitorInterval = setInterval(async () => {
+      try {
+        // Проверяем статистику WebRTC соединений
+        const peerConnections = Object.values(peersRef.current);
+        if (peerConnections.length === 0) return;
+
+        const stats = await peerConnections[0].getStats();
+        let totalBytesReceived = 0;
+        let totalPacketsLost = 0;
+        let totalPacketsSent = 0;
+
+        stats.forEach(report => {
+          if (report.type === 'inbound-rtp' && report.mediaType === 'audio') {
+            totalBytesReceived += report.bytesReceived || 0;
+            totalPacketsLost += report.packetsLost || 0;
+          }
+          if (report.type === 'outbound-rtp' && report.mediaType === 'audio') {
+            totalPacketsSent += report.packetsSent || 0;
+          }
+        });
+
+        // Определяем качество сети на основе потерь пакетов
+        const packetLossRate = totalPacketsSent > 0 ? (totalPacketsLost / totalPacketsSent) * 100 : 0;
+
+        let newQuality;
+        if (packetLossRate < 1) {
+          newQuality = 'excellent';
+        } else if (packetLossRate < 3) {
+          newQuality = 'good';
+        } else {
+          newQuality = 'poor';
+        }
+
+        if (newQuality !== networkQuality) {
+          setNetworkQuality(newQuality);
+          const newBitrate = getAdaptiveBitrate(newQuality);
+          setAudioBitrate(newBitrate);
+
+          // Обновить параметры всех активных соединений
+          Object.values(peersRef.current).forEach(peerConnection => {
+            const senders = peerConnection.getSenders();
+            senders.forEach(sender => {
+              if (sender.track && sender.track.kind === 'audio') {
+                const parameters = sender.getParameters();
+                if (!parameters.encodings) {
+                  parameters.encodings = [{}];
+                }
+                parameters.encodings[0].maxBitrate = newBitrate;
+                sender.setParameters(parameters).catch(err =>
+                  console.warn('Не удалось обновить параметры битрейта:', err)
+                );
+              }
+            });
+          });
+        }
+      } catch (err) {
+        console.warn('Ошибка мониторинга сети:', err);
+      }
+    }, 5000); // Проверяем каждые 5 секунд
+
+    networkMonitorRef.current = monitorInterval;
+  };
+
+  const stopNetworkMonitoring = () => {
+    if (networkMonitorRef.current) {
+      clearInterval(networkMonitorRef.current);
+      networkMonitorRef.current = null;
+    }
   };
 
   useEffect(() => {
@@ -177,7 +300,7 @@ function VoiceChannel({ socket, channel, user, globalMuted, globalDeafened, onDi
     }
   };
 
-  // Улучшить SDP для лучшего качества аудио
+  // Улучшить SDP для максимального качества аудио
   const enhanceAudioSDP = (sdp) => {
     // Установить Opus как приоритетный кодек с максимальным качеством
     let lines = sdp.split('\r\n');
@@ -187,9 +310,9 @@ function VoiceChannel({ socket, channel, user, globalMuted, globalDeafened, onDi
     if (opusPayload) {
       const payload = opusPayload.match(/:\d+ /)?.[0]?.replace(/[: ]/g, '');
       if (payload) {
-        // Добавить или обновить fmtp для Opus
+        // Добавить или обновить fmtp для Opus с максимальными параметрами качества
         const fmtpIndex = lines.findIndex(line => line.includes(`a=fmtp:${payload}`));
-        const fmtpLine = `a=fmtp:${payload} minptime=10;useinbandfec=1;maxaveragebitrate=${audioBitrate};stereo=1;maxplaybackrate=48000;sprop-stereo=1;cbr=1`;
+        const fmtpLine = `a=fmtp:${payload} minptime=10;useinbandfec=1;maxaveragebitrate=${audioBitrate};stereo=1;maxplaybackrate=48000;sprop-stereo=1;cbr=1;dtx=0;useinbandfec=1;maxbandwidth=20000;maxframeSize=120;maxcapturerate=48000;maxptime=120;ptime=20;`;
 
         if (fmtpIndex !== -1) {
           lines[fmtpIndex] = fmtpLine;
@@ -203,16 +326,25 @@ function VoiceChannel({ socket, channel, user, globalMuted, globalDeafened, onDi
       }
     }
 
-    // Увеличить пропускную способность
+    // Увеличить пропускную способность до максимума
     const bwIndex = lines.findIndex(line => line.startsWith('b=AS:'));
     if (bwIndex !== -1) {
-      lines[bwIndex] = 'b=AS:256';
+      lines[bwIndex] = 'b=AS:512'; // Увеличиваем до 512 kbps
     } else {
       // Добавить после медиа-секции
       const mediaIndex = lines.findIndex(line => line.startsWith('m=audio'));
       if (mediaIndex !== -1) {
-        lines.splice(mediaIndex + 1, 0, 'b=AS:256');
+        lines.splice(mediaIndex + 1, 0, 'b=AS:512');
       }
+    }
+
+    // Добавить дополнительные параметры для лучшего качества
+    const mediaIndex = lines.findIndex(line => line.startsWith('m=audio'));
+    if (mediaIndex !== -1) {
+      // Добавить параметры для низкой задержки
+      lines.splice(mediaIndex + 1, 0, 'a=rtcp-fb:* nack');
+      lines.splice(mediaIndex + 2, 0, 'a=rtcp-fb:* nack pli');
+      lines.splice(mediaIndex + 3, 0, 'a=rtcp-fb:* ccm fir');
     }
 
     return lines.join('\r\n');
@@ -338,17 +470,26 @@ function VoiceChannel({ socket, channel, user, globalMuted, globalDeafened, onDi
 
   const handleConnect = async () => {
     try {
-      // Получить доступ к микрофону с оптимальными настройками
+      // Получить доступ к микрофону с максимальными настройками качества
       const constraints = {
         audio: {
           echoCancellation: echoCancellation,
           noiseSuppression: noiseSuppression,
           autoGainControl: true,
-          sampleRate: { ideal: 48000 },
-          sampleSize: { ideal: 16 },
-          channelCount: { ideal: 2 }, // Стерео для лучшего качества
-          latency: { ideal: 0.01 }, // Низкая задержка
-          volume: { ideal: 1.0 }
+          sampleRate: { ideal: 48000, min: 44100 }, // Студийное качество
+          sampleSize: { ideal: 24, min: 16 }, // 24-bit для максимального качества
+          channelCount: { ideal: 2, min: 1 }, // Стерео для лучшего качества
+          latency: { ideal: 0.005, max: 0.01 }, // Очень низкая задержка
+          volume: { ideal: 1.0 },
+          // Дополнительные параметры для лучшего качества
+          googEchoCancellation: true,
+          googAutoGainControl: true,
+          googNoiseSuppression: noiseSuppression,
+          googHighpassFilter: true,
+          googTypingNoiseDetection: true,
+          googAudioMirroring: false,
+          googDAEchoCancellation: true,
+          googNoiseReduction: true
         },
         video: false
       };
@@ -363,6 +504,9 @@ function VoiceChannel({ socket, channel, user, globalMuted, globalDeafened, onDi
 
       // Анализировать свой собственный микрофон
       startLocalAudioAnalysis(stream);
+
+      // Запустить мониторинг качества сети
+      startNetworkMonitoring();
 
       // Присоединиться к голосовому каналу
       socket.emit('voice:join', {
@@ -381,7 +525,7 @@ function VoiceChannel({ socket, channel, user, globalMuted, globalDeafened, onDi
     }
   };
 
-  // Обработка аудио потока для улучшения качества
+  // Профессиональная обработка аудио потока для максимального качества
   const processAudioStream = async (stream) => {
     try {
       const audioContext = new AudioContext({
@@ -392,29 +536,75 @@ function VoiceChannel({ socket, channel, user, globalMuted, globalDeafened, onDi
       const source = audioContext.createMediaStreamSource(stream);
       const destination = audioContext.createMediaStreamDestination();
 
+      // Шумовые ворота (Noise Gate) - убирают фоновый шум
+      const noiseGate = audioContext.createDynamicsCompressor();
+      noiseGate.threshold.value = -60; // Порог для шумовых ворот
+      noiseGate.knee.value = 0;
+      noiseGate.ratio.value = 20;
+      noiseGate.attack.value = 0.001;
+      noiseGate.release.value = 0.1;
+
+      // Высокочастотный фильтр (High-pass filter) - убирает низкочастотные шумы
+      const highPassFilter = audioContext.createBiquadFilter();
+      highPassFilter.type = 'highpass';
+      highPassFilter.frequency.value = 80; // Убираем звуки ниже 80 Гц
+      highPassFilter.Q.value = 0.5;
+
+      // Низкочастотный фильтр (Low-pass filter) - убирает высокочастотные шумы
+      const lowPassFilter = audioContext.createBiquadFilter();
+      lowPassFilter.type = 'lowpass';
+      lowPassFilter.frequency.value = 8000; // Убираем звуки выше 8 кГц
+      lowPassFilter.Q.value = 0.5;
+
+      // Эквалайзер для улучшения голоса
+      const eq1 = audioContext.createBiquadFilter(); // Низкие частоты
+      eq1.type = 'lowshelf';
+      eq1.frequency.value = 250;
+      eq1.gain.value = 2; // Небольшое усиление низких частот
+
+      const eq2 = audioContext.createBiquadFilter(); // Средние частоты
+      eq2.type = 'peaking';
+      eq2.frequency.value = 1000;
+      eq2.Q.value = 1;
+      eq2.gain.value = 3; // Усиление голосового диапазона
+
+      const eq3 = audioContext.createBiquadFilter(); // Высокие частоты
+      eq3.type = 'highshelf';
+      eq3.frequency.value = 4000;
+      eq3.gain.value = 1; // Небольшое усиление высоких частот
+
       // Компрессор для выравнивания громкости
       const compressor = audioContext.createDynamicsCompressor();
-      compressor.threshold.value = -50;
-      compressor.knee.value = 40;
-      compressor.ratio.value = 12;
-      compressor.attack.value = 0;
-      compressor.release.value = 0.25;
+      compressor.threshold.value = -30;
+      compressor.knee.value = 30;
+      compressor.ratio.value = 4;
+      compressor.attack.value = 0.003;
+      compressor.release.value = 0.1;
 
-      // Фильтр для улучшения голоса
-      const filter = audioContext.createBiquadFilter();
-      filter.type = 'bandpass';
-      filter.frequency.value = 1000;
-      filter.Q.value = 0.5;
+      // Лимитер для предотвращения клиппинга
+      const limiter = audioContext.createDynamicsCompressor();
+      limiter.threshold.value = -3;
+      limiter.knee.value = 0;
+      limiter.ratio.value = 20;
+      limiter.attack.value = 0.001;
+      limiter.release.value = 0.01;
 
       // Усиление (gain)
       const gainNode = audioContext.createGain();
-      gainNode.gain.value = 1.2;
+      gainNode.gain.value = 1.0;
 
-      // Соединить узлы
-      source.connect(compressor);
-      compressor.connect(filter);
-      filter.connect(gainNode);
-      gainNode.connect(destination);
+      // Соединить узлы в цепочку обработки
+      source
+        .connect(highPassFilter)
+        .connect(noiseGate)
+        .connect(eq1)
+        .connect(eq2)
+        .connect(eq3)
+        .connect(lowPassFilter)
+        .connect(compressor)
+        .connect(limiter)
+        .connect(gainNode)
+        .connect(destination);
 
       return destination.stream;
     } catch (err) {
@@ -432,6 +622,9 @@ function VoiceChannel({ socket, channel, user, globalMuted, globalDeafened, onDi
 
     // Остановить анализатор
     localAnalyserRef.current = null;
+
+    // Остановить мониторинг сети
+    stopNetworkMonitoring();
 
     // Закрыть все peer соединения
     Object.values(peersRef.current).forEach(peer => peer.close());
