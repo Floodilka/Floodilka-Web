@@ -259,17 +259,19 @@ function ChannelList({ channels, currentTextChannel, currentVoiceChannel, voiceC
         <div className="channels-section">
         <div className="section-header">
           <span>ТЕКСТОВЫЕ КАНАЛЫ</span>
-          <button
-            className="add-channel-btn"
-            onClick={() => {
-              setShowTextForm(!showTextForm);
-              setShowVoiceForm(false);
-              setNewChannelName('');
-            }}
-            title="Создать текстовый канал"
-          >
-            +
-          </button>
+          {currentServer?.canManageChannels === true && (
+            <button
+              className="add-channel-btn"
+              onClick={() => {
+                setShowTextForm(!showTextForm);
+                setShowVoiceForm(false);
+                setNewChannelName('');
+              }}
+              title="Создать текстовый канал"
+            >
+              +
+            </button>
+          )}
         </div>
 
         {showTextForm && (
@@ -307,17 +309,19 @@ function ChannelList({ channels, currentTextChannel, currentVoiceChannel, voiceC
                   <span className="channel-icon">#</span>
                   <span className="channel-name">{channel.name}</span>
                 </div>
-                <button
-                  className="channel-settings-btn"
-                  onClick={(e) => openChannelSettings(channel, e)}
-                  title="Настройки канала"
-                >
-                  <img
-                    src="/icons/setting.png"
-                    alt="Настройки"
-                    className="channel-settings-icon"
-                  />
-                </button>
+                {currentServer?.canManageChannels === true && (
+                  <button
+                    className="channel-settings-btn"
+                    onClick={(e) => openChannelSettings(channel, e)}
+                    title="Настройки канала"
+                  >
+                    <img
+                      src="/icons/setting.png"
+                      alt="Настройки"
+                      className="channel-settings-icon"
+                    />
+                  </button>
+                )}
               </div>
             </div>
           ))}
@@ -327,17 +331,19 @@ function ChannelList({ channels, currentTextChannel, currentVoiceChannel, voiceC
       <div className="channels-section voice-section">
         <div className="section-header">
           <span>ГОЛОСОВЫЕ КАНАЛЫ</span>
-          <button
-            className="add-channel-btn"
-            onClick={() => {
-              setShowVoiceForm(!showVoiceForm);
-              setShowTextForm(false);
-              setNewChannelName('');
-            }}
-            title="Создать голосовой канал"
-          >
-            +
-          </button>
+          {currentServer?.canManageChannels === true && (
+            <button
+              className="add-channel-btn"
+              onClick={() => {
+                setShowVoiceForm(!showVoiceForm);
+                setShowTextForm(false);
+                setNewChannelName('');
+              }}
+              title="Создать голосовой канал"
+            >
+              +
+            </button>
+          )}
         </div>
 
         {showVoiceForm && (
@@ -386,17 +392,19 @@ function ChannelList({ channels, currentTextChannel, currentVoiceChannel, voiceC
                       <img src="/icons/channel.png" alt="Голосовой канал" className="channel-icon-img" />
                       <span className="channel-name">{channel.name}</span>
                     </div>
-                    <button
-                      className="channel-settings-btn"
-                      onClick={(e) => openChannelSettings(channel, e)}
-                      title="Настройки канала"
-                    >
-                      <img
-                        src="/icons/setting.png"
-                        alt="Настройки"
-                        className="channel-settings-icon"
-                      />
-                    </button>
+                    {currentServer?.canManageChannels === true && (
+                      <button
+                        className="channel-settings-btn"
+                        onClick={(e) => openChannelSettings(channel, e)}
+                        title="Настройки канала"
+                      >
+                        <img
+                          src="/icons/setting.png"
+                          alt="Настройки"
+                          className="channel-settings-icon"
+                        />
+                      </button>
+                    )}
                   </div>
                 </div>
 

@@ -22,6 +22,7 @@ function App() {
   const [channels, setChannels] = useState([]);
   const [currentTextChannel, setCurrentTextChannel] = useState(null);
   const [currentVoiceChannel, setCurrentVoiceChannel] = useState(null);
+  const [activeVoiceChannel, setActiveVoiceChannel] = useState(null); // Канал, в котором пользователь физически находится
   const [messages, setMessages] = useState([]);
   const [users, setUsers] = useState([]);
   const [allServerMembers, setAllServerMembers] = useState([]);
@@ -122,6 +123,17 @@ function App() {
         // Убеждаемся, что data является массивом
         const channelsArray = Array.isArray(data) ? data : [];
         setChannels(channelsArray);
+
+        // Восстанавливаем currentVoiceChannel если пользователь находится в голосовом канале этого сервера
+        if (activeVoiceChannel && !currentVoiceChannel) {
+          const voiceChannelInServer = channelsArray.find(ch =>
+            ch.type === 'voice' && ch.id === activeVoiceChannel.id
+          );
+          if (voiceChannelInServer) {
+            setCurrentVoiceChannel(voiceChannelInServer);
+          }
+        }
+
         // Автоматически выбрать первый текстовый канал
         const firstTextChannel = channelsArray.find(ch => ch.type === 'text');
         if (firstTextChannel && !currentTextChannel) {
@@ -154,7 +166,7 @@ function App() {
         console.error('Ошибка загрузки участников:', err);
         setAllServerMembers([]); // Устанавливаем пустой массив при ошибке
       });
-  }, [currentServer, user, currentTextChannel]);
+  }, [currentServer, user, currentTextChannel, activeVoiceChannel, currentVoiceChannel]);
 
   // Socket listeners
   useEffect(() => {
@@ -187,7 +199,6 @@ function App() {
     });
 
     socket.on('voice:channels-update', (voiceData) => {
-      console.log('📡 Получено voice:channels-update:', voiceData);
       // Фильтруем себя из списка - мы добавляем себя отдельно в ChannelList
       const filteredData = {};
       Object.keys(voiceData).forEach(channelId => {
@@ -286,10 +297,16 @@ function App() {
 
     setCurrentServer(server);
     setCurrentTextChannel(null);
+
+    // Сбрасываем только текущий канал для отображения, но сохраняем активный голосовой канал
     setCurrentVoiceChannel(null);
     setMessages([]);
     setUsers([]);
     setAllServerMembers([]);
+
+    // Очищаем состояние голосовых каналов при переключении сервера
+    setVoiceChannelUsers({});
+    setSpeakingUsers({});
 
     // Сохранить выбранный сервер
     localStorage.setItem('lastServerId', server._id);
@@ -342,11 +359,12 @@ function App() {
   const handleChannelSelect = (channel) => {
     if (channel.type === 'voice') {
       // Для голосовых - подключаем если еще не подключены
-      if (currentVoiceChannel?.id === channel.id) {
+      if (activeVoiceChannel?.id === channel.id) {
         // Уже подключены - игнорируем
         return;
       } else {
         setCurrentVoiceChannel(channel);
+        setActiveVoiceChannel(channel);
       }
     } else {
       // Для текстовых - просто переключаем
@@ -462,7 +480,7 @@ function App() {
           user={user}
           isMuted={globalMuted}
           isDeafened={globalDeafened}
-          isInVoice={!!currentVoiceChannel}
+          isInVoice={!!activeVoiceChannel}
           onToggleMute={() => setGlobalMuted(!globalMuted)}
           onToggleDeafen={() => {
             const newDeafened = !globalDeafened;
@@ -471,9 +489,10 @@ function App() {
           }}
           onDisconnect={() => {
             // Отключение из голосового канала
-            if (currentVoiceChannel && voiceDisconnectRef.current) {
+            if (activeVoiceChannel && voiceDisconnectRef.current) {
               voiceDisconnectRef.current();
               setCurrentVoiceChannel(null);
+              setActiveVoiceChannel(null);
             }
           }}
           onLogout={handleLogout}
@@ -527,7 +546,7 @@ function App() {
         user={user}
         isMuted={globalMuted}
         isDeafened={globalDeafened}
-        isInVoice={!!currentVoiceChannel}
+        isInVoice={!!activeVoiceChannel}
         serverName={currentServer?.name}
         currentServer={currentServer}
         onToggleMute={() => setGlobalMuted(!globalMuted)}
@@ -538,9 +557,10 @@ function App() {
         }}
         onDisconnect={() => {
           // Отключение из голосового канала
-          if (currentVoiceChannel && voiceDisconnectRef.current) {
+          if (activeVoiceChannel && voiceDisconnectRef.current) {
             voiceDisconnectRef.current();
             setCurrentVoiceChannel(null);
+            setActiveVoiceChannel(null);
           }
         }}
         onLogout={handleLogout}

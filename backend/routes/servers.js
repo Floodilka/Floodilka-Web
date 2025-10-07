@@ -18,7 +18,35 @@ router.get('/', authenticateToken, async (req, res) => {
       ]
     }).sort({ createdAt: 1 });
 
-    res.json(servers);
+    // Добавляем информацию о правах пользователя для каждого сервера
+    const serversWithPermissions = await Promise.all(servers.map(async (server) => {
+      const isOwner = server.ownerId.toString() === req.user.id;
+      
+      let canManageChannels = isOwner; // Владелец всегда может управлять каналами
+      
+      if (!isOwner) {
+        // Проверяем роли пользователя на сервере
+        const ServerRole = require('../models/ServerRole');
+        const userRoles = await ServerRole.find({
+          userId: req.user.id,
+          serverId: server._id
+        }).populate('roleId');
+        
+        // Проверяем, есть ли у пользователя права на управление каналами
+        canManageChannels = userRoles.some(userRole =>
+          userRole.roleId.permissions.manageChannels ||
+          userRole.roleId.permissions.manageServer
+        );
+      }
+      
+      return {
+        ...server.toObject(),
+        isOwner,
+        canManageChannels
+      };
+    }));
+
+    res.json(serversWithPermissions);
   } catch (error) {
     console.error('Ошибка получения серверов:', error);
     res.status(500).json({ error: 'Ошибка сервера' });
