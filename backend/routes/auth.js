@@ -351,11 +351,7 @@ router.post('/assign-badge', async (req, res) => {
       return res.status(400).json({ error: 'Тег не может превышать 4 символа' });
     }
 
-    // Защита от самоназначения (опционально, можете убрать если нужно менять себе тег)
-    if (username.trim() === adminUser.username) {
-      console.warn('[SECURITY] Попытка самоназначения тега');
-      return res.status(400).json({ error: 'Нельзя назначить тег самому себе' });
-    }
+    // Разрешаем админу назначать теги самому себе
 
     // Найти пользователя по username
     const targetUser = await User.findOne({ username: username.trim() });

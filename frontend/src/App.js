@@ -128,6 +128,16 @@ function App() {
       setMessages(prev => [...prev, message]);
     });
 
+    socket.on('message:edited', (editedMessage) => {
+      setMessages(prev => prev.map(msg =>
+        msg.id === editedMessage.id ? editedMessage : msg
+      ));
+    });
+
+    socket.on('message:deleted', ({ messageId }) => {
+      setMessages(prev => prev.filter(msg => msg.id !== messageId));
+    });
+
     socket.on('users:update', ({ users: newUsers }) => {
       setUsers(newUsers);
     });
@@ -154,6 +164,8 @@ function App() {
       socket.off('channel:created');
       socket.off('messages:history');
       socket.off('message:new');
+      socket.off('message:edited');
+      socket.off('message:deleted');
       socket.off('users:update');
       socket.off('voice:channels-update');
       socket.off('error');
@@ -421,6 +433,7 @@ function App() {
         username={user?.username}
         onSendMessage={handleSendMessage}
         hasServer={!!currentServer}
+        socket={socket}
       />
 
       <UserList

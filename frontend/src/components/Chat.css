@@ -92,10 +92,16 @@
   margin-bottom: 8px;
   transition: background-color 0.1s;
   border-radius: 4px;
+  position: relative;
 }
 
 .message:hover {
   background-color: #32353b;
+}
+
+.message:hover:not(.message-edit-mode) .message-actions,
+.message.show-actions .message-actions {
+  opacity: 1;
 }
 
 .message-avatar {
@@ -370,5 +376,154 @@
 .user-profile-badge {
   background-color: #5865f2;
   color: #ffffff;
+}
+
+/* Меню действий для сообщений */
+.message-actions {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: flex;
+  gap: 4px;
+  opacity: 0;
+  transition: opacity 0.1s;
+  background: #1e1f22;
+  border-radius: 4px;
+  padding: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.message-actions-button {
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: transparent;
+  color: #8e9297;
+  cursor: pointer;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  transition: all 0.1s;
+  margin: -4px;
+}
+
+.message-actions-button:hover {
+  background: #3a3d44;
+  color: #ffffff;
+}
+
+/* Контекстное меню */
+.message-context-menu {
+  position: fixed;
+  background: #1e1f22;
+  border-radius: 8px;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
+  z-index: 10000;
+  min-width: 200px;
+  overflow: hidden;
+  border: 1px solid #3a3d44;
+}
+
+.message-context-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  color: #dcddde;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background-color 0.1s;
+  border: none;
+  background: none;
+  width: 100%;
+  text-align: left;
+}
+
+.message-context-menu-item:hover {
+  background: #5865f2;
+  color: #ffffff;
+}
+
+.message-context-menu-item.danger:hover {
+  background: #ed4245;
+  color: #ffffff;
+}
+
+.message-context-menu-item:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.message-context-menu-item:disabled:hover {
+  background: none;
+  color: #dcddde;
+}
+
+/* Оверлей для контекстного меню */
+.message-context-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: transparent;
+  z-index: 9999;
+}
+
+/* Режим редактирования сообщения */
+.message-edit-mode .message-text {
+  display: none;
+}
+
+.message-edit-input {
+  width: 100%;
+  background: #111214;
+  border: 1px solid #5865f2;
+  border-radius: 4px;
+  padding: 8px 12px;
+  color: #dcddde;
+  font-size: 15px;
+  line-height: 1.375;
+  font-family: inherit;
+  outline: none;
+  resize: none;
+  min-height: 40px;
+  max-height: 200px;
+}
+
+.message-edit-buttons {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.message-edit-button {
+  padding: 6px 12px;
+  border: none;
+  border-radius: 3px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.1s;
+}
+
+.message-edit-button.save {
+  background: #5865f2;
+  color: #ffffff;
+}
+
+.message-edit-button.save:hover {
+  background: #4752c4;
+}
+
+.message-edit-button.cancel {
+  background: #4f545c;
+  color: #dcddde;
+}
+
+.message-edit-button.cancel:hover {
+  background: #5d6269;
 }
 

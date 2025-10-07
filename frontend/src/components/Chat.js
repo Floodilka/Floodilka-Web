@@ -5,12 +5,15 @@ const BACKEND_URL = window.location.hostname === 'localhost'
   ? 'http://localhost:3001'
   : `${window.location.protocol}//${window.location.hostname}`;
 
-function Chat({ channel, messages, username, onSendMessage, hasServer }) {
+function Chat({ channel, messages, username, onSendMessage, hasServer, socket }) {
   const [inputValue, setInputValue] = useState('');
   const messagesEndRef = useRef(null);
   const messagesContainerRef = useRef(null);
   const [selectedUser, setSelectedUser] = useState(null);
   const [profilePosition, setProfilePosition] = useState({ top: 0, left: 0 });
+  const [contextMenu, setContextMenu] = useState(null);
+  const [editingMessage, setEditingMessage] = useState(null);
+  const [editValue, setEditValue] = useState('');
 
   const handleUserClick = async (message, event) => {
     const rect = event.currentTarget.getBoundingClientRect();
@@ -45,6 +48,67 @@ function Chat({ channel, messages, username, onSendMessage, hasServer }) {
 
   const handleCloseProfile = () => {
     setSelectedUser(null);
+  };
+
+  const handleMoreActions = (message, event) => {
+    event.stopPropagation();
+    const rect = event.currentTarget.getBoundingClientRect();
+    setContextMenu({
+      message,
+      position: {
+        top: rect.top,
+        left: rect.left - 210
+      }
+    });
+  };
+
+  const handleCloseContextMenu = () => {
+    setContextMenu(null);
+  };
+
+  const canEditMessage = (message) => {
+    if (message.username !== username) return false;
+    if (message.isSystem) return false;
+
+    const messageTime = new Date(message.timestamp);
+    const now = new Date();
+    const diffInHours = (now - messageTime) / (1000 * 60 * 60);
+
+    return diffInHours <= 24;
+  };
+
+  const handleEditMessage = (message) => {
+    setEditingMessage(message);
+    setEditValue(message.content);
+    setContextMenu(null);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingMessage(null);
+    setEditValue('');
+  };
+
+  const handleSaveEdit = () => {
+    if (!editingMessage || !editValue.trim() || !socket) return;
+
+    socket.emit('message:edit', {
+      messageId: editingMessage.id,
+      content: editValue.trim()
+    });
+
+    setEditingMessage(null);
+    setEditValue('');
+  };
+
+  const handleDeleteMessage = (message) => {
+    if (!window.confirm('Вы уверены, что хотите удалить это сообщение?')) return;
+    if (!socket) return;
+
+    socket.emit('message:delete', {
+      messageId: message.id
+    });
+
+    setContextMenu(null);
   };
 
   const scrollToBottom = () => {
@@ -105,7 +169,7 @@ function Chat({ channel, messages, username, onSendMessage, hasServer }) {
         {messages.map((message) => (
           <div
             key={message.id}
-            className={`message ${message.isSystem ? 'system-message' : ''} ${message.username === username ? 'own-message' : ''}`}
+            className={`message ${message.isSystem ? 'system-message' : ''} ${message.username === username ? 'own-message' : ''} ${editingMessage?.id === message.id ? 'message-edit-mode' : ''} ${contextMenu?.message.id === message.id ? 'show-actions' : ''}`}
           >
             <div
               className="message-avatar"
@@ -148,8 +212,56 @@ function Chat({ channel, messages, username, onSendMessage, hasServer }) {
                 )}
                 <span className="message-time">{formatTime(message.timestamp)}</span>
               </div>
-              <div className="message-text">{message.content}</div>
+
+              {editingMessage?.id === message.id ? (
+                <div>
+                  <textarea
+                    className="message-edit-input"
+                    value={editValue}
+                    onChange={(e) => setEditValue(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        handleSaveEdit();
+                      } else if (e.key === 'Escape') {
+                        handleCancelEdit();
+                      }
+                    }}
+                    autoFocus
+                  />
+                  <div className="message-edit-buttons">
+                    <button
+                      className="message-edit-button save"
+                      onClick={handleSaveEdit}
+                      disabled={!editValue.trim()}
+                    >
+                      Сохранить
+                    </button>
+                    <button
+                      className="message-edit-button cancel"
+                      onClick={handleCancelEdit}
+                    >
+                      Отмена
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="message-text">{message.content}</div>
+              )}
             </div>
+
+            {/* Меню действий - показываем только для собственных сообщений */}
+            {message.username === username && !message.isSystem && (
+              <div className="message-actions">
+                <button
+                  className="message-actions-button"
+                  onClick={(e) => handleMoreActions(message, e)}
+                  title="Больше действий"
+                >
+                  ⋯
+                </button>
+              </div>
+            )}
           </div>
         ))}
         <div ref={messagesEndRef} />
@@ -224,6 +336,33 @@ function Chat({ channel, messages, username, onSendMessage, hasServer }) {
                 </div>
               )}
             </div>
+          </div>
+        </>
+      )}
+
+      {contextMenu && (
+        <>
+          <div className="message-context-overlay" onClick={handleCloseContextMenu} />
+          <div
+            className="message-context-menu"
+            style={{
+              top: `${contextMenu.position.top}px`,
+              left: `${contextMenu.position.left}px`
+            }}
+          >
+            <button
+              className={`message-context-menu-item ${!canEditMessage(contextMenu.message) ? 'disabled' : ''}`}
+              onClick={() => canEditMessage(contextMenu.message) && handleEditMessage(contextMenu.message)}
+              disabled={!canEditMessage(contextMenu.message)}
+            >
+              Редактировать
+            </button>
+            <button
+              className="message-context-menu-item danger"
+              onClick={() => handleDeleteMessage(contextMenu.message)}
+            >
+              Удалить сообщение
+            </button>
           </div>
         </>
       )}

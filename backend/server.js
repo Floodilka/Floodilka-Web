@@ -9,6 +9,7 @@ const { v4: uuidv4 } = require('uuid');
 // Импорт моделей
 const Channel = require('./models/Channel');
 const Message = require('./models/Message');
+const User = require('./models/User');
 
 // Загрузка переменных окружения
 const PORT = process.env.PORT || 3001;
@@ -193,6 +194,92 @@ app.get('/api/channels/:channelId/messages', async (req, res) => {
   }
 });
 
+// Редактировать сообщение
+app.put('/api/messages/:messageId', async (req, res) => {
+  try {
+    const { messageId } = req.params;
+    const { content } = req.body;
+
+    if (!content || content.trim() === '') {
+      return res.status(400).json({ error: 'Содержимое сообщения не может быть пустым' });
+    }
+
+    if (content.length > 2000) {
+      return res.status(400).json({ error: 'Сообщение слишком длинное' });
+    }
+
+    const message = await Message.findById(messageId);
+    if (!message) {
+      return res.status(404).json({ error: 'Сообщение не найдено' });
+    }
+
+    // Проверяем, можно ли редактировать (в течение 24 часов)
+    const messageTime = new Date(message.createdAt);
+    const now = new Date();
+    const diffInHours = (now - messageTime) / (1000 * 60 * 60);
+
+    if (diffInHours > 24) {
+      return res.status(400).json({ error: 'Сообщение можно редактировать только в течение 24 часов' });
+    }
+
+    // Обновляем сообщение
+    message.content = content.trim();
+    await message.save();
+
+    // Загружаем актуальные данные пользователя
+    let updatedMessage = message.toJSON();
+    if (message.userId) {
+      try {
+        const user = await User.findById(message.userId).select('username displayName avatar badge badgeTooltip');
+        if (user) {
+          updatedMessage.username = user.username;
+          updatedMessage.displayName = user.displayName;
+          updatedMessage.avatar = user.avatar;
+          updatedMessage.badge = user.badge;
+          updatedMessage.badgeTooltip = user.badgeTooltip;
+          updatedMessage.userId = user._id.toString();
+        }
+      } catch (err) {
+        console.error('Ошибка загрузки данных пользователя при редактировании:', err);
+      }
+    }
+
+    // Отправляем обновление всем в канале
+    io.to(message.channelId).emit('message:edited', updatedMessage);
+
+    res.json(updatedMessage);
+  } catch (error) {
+    console.error('Ошибка редактирования сообщения:', error);
+    res.status(500).json({ error: 'Ошибка сервера' });
+  }
+});
+
+// Удалить сообщение
+app.delete('/api/messages/:messageId', async (req, res) => {
+  try {
+    const { messageId } = req.params;
+
+    const message = await Message.findById(messageId);
+    if (!message) {
+      return res.status(404).json({ error: 'Сообщение не найдено' });
+    }
+
+    // Сохраняем данные для уведомления
+    const channelId = message.channelId;
+
+    // Удаляем сообщение
+    await Message.findByIdAndDelete(messageId);
+
+    // Отправляем уведомление об удалении всем в канале
+    io.to(channelId).emit('message:deleted', { messageId });
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Ошибка удаления сообщения:', error);
+    res.status(500).json({ error: 'Ошибка сервера' });
+  }
+});
+
 // WebSocket обработка
 io.on('connection', (socket) => {
   console.log('Новое подключение:', socket.id);
@@ -365,6 +452,88 @@ io.on('connection', (socket) => {
     }
   });
 
+  // Обработка редактирования сообщения через WebSocket
+  socket.on('message:edit', async ({ messageId, content }) => {
+    try {
+      if (!content || content.trim() === '') {
+        socket.emit('error', { message: 'Содержимое сообщения не может быть пустым' });
+        return;
+      }
+
+      if (content.length > 2000) {
+        socket.emit('error', { message: 'Сообщение слишком длинное' });
+        return;
+      }
+
+      const message = await Message.findById(messageId);
+      if (!message) {
+        socket.emit('error', { message: 'Сообщение не найдено' });
+        return;
+      }
+
+      // Проверяем, можно ли редактировать (в течение 24 часов)
+      const messageTime = new Date(message.createdAt);
+      const now = new Date();
+      const diffInHours = (now - messageTime) / (1000 * 60 * 60);
+
+      if (diffInHours > 24) {
+        socket.emit('error', { message: 'Сообщение можно редактировать только в течение 24 часов' });
+        return;
+      }
+
+      // Обновляем сообщение
+      message.content = content.trim();
+      await message.save();
+
+      // Загружаем актуальные данные пользователя
+      let updatedMessage = message.toJSON();
+      if (message.userId) {
+        try {
+          const user = await User.findById(message.userId).select('username displayName avatar badge badgeTooltip');
+          if (user) {
+            updatedMessage.username = user.username;
+            updatedMessage.displayName = user.displayName;
+            updatedMessage.avatar = user.avatar;
+            updatedMessage.badge = user.badge;
+            updatedMessage.badgeTooltip = user.badgeTooltip;
+            updatedMessage.userId = user._id.toString();
+          }
+        } catch (err) {
+          console.error('Ошибка загрузки данных пользователя при редактировании:', err);
+        }
+      }
+
+      // Отправляем обновление всем в канале
+      io.to(message.channelId).emit('message:edited', updatedMessage);
+    } catch (error) {
+      console.error('Ошибка редактирования сообщения:', error);
+      socket.emit('error', { message: 'Ошибка сервера' });
+    }
+  });
+
+  // Обработка удаления сообщения через WebSocket
+  socket.on('message:delete', async ({ messageId }) => {
+    try {
+      const message = await Message.findById(messageId);
+      if (!message) {
+        socket.emit('error', { message: 'Сообщение не найдено' });
+        return;
+      }
+
+      // Сохраняем данные для уведомления
+      const channelId = message.channelId;
+
+      // Удаляем сообщение
+      await Message.findByIdAndDelete(messageId);
+
+      // Отправляем уведомление об удалении всем в канале
+      io.to(channelId).emit('message:deleted', { messageId });
+    } catch (error) {
+      console.error('Ошибка удаления сообщения:', error);
+      socket.emit('error', { message: 'Ошибка сервера' });
+    }
+  });
+
   // WebRTC сигналинг для голосовых каналов
 
   // Присоединиться к голосовому каналу
@@ -392,7 +561,17 @@ io.on('connection', (socket) => {
     // Получить список других пользователей в канале
     const otherUsers = Array.from(users.entries())
       .filter(([id]) => id !== socket.id)
-      .map(([id, data]) => ({ id, username: data.username, avatar: data.avatar, isMuted: data.isMuted, isDeafened: data.isDeafened }));
+      .map(([id, data]) => ({
+        id,
+        username: data.username,
+        avatar: data.avatar,
+        badge: data.badge,
+        badgeTooltip: data.badgeTooltip,
+        displayName: data.displayName,
+        userId: data.userId,
+        isMuted: data.isMuted,
+        isDeafened: data.isDeafened
+      }));
 
     // Отправить текущему пользователю список других пользователей
     socket.emit('voice:users', otherUsers);
@@ -402,6 +581,10 @@ io.on('connection', (socket) => {
       id: socket.id,
       username,
       avatar,
+      badge,
+      badgeTooltip,
+      displayName,
+      userId,
       isMuted: false,
       isDeafened: false
     });
