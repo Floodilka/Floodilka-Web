@@ -4,10 +4,14 @@
   "description": "Frontend for Boltushka - a Discord-like chat app",
   "private": true,
   "dependencies": {
+    "@tensorflow/tfjs": "^4.22.0",
+    "howler": "^2.2.4",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-scripts": "5.0.1",
-    "socket.io-client": "^4.6.1"
+    "socket.io-client": "^4.6.1",
+    "tone": "^15.1.22",
+    "web-audio-api": "^0.2.2"
   },
   "scripts": {
     "start": "react-scripts start",
@@ -33,4 +37,3 @@
     ]
   }
 }
-

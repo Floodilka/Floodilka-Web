@@ -401,6 +401,16 @@
   font-size: 14px;
   font-weight: 500;
   margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.audio-setting-icon {
+  width: 20px;
+  height: 20px;
+  opacity: 0.9;
+  filter: brightness(0) invert(1);
 }
 
 .audio-setting-desc {
@@ -606,4 +616,5 @@
   cursor: not-allowed;
   transform: none;
 }
+
 

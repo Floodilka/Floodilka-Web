@@ -28,7 +28,7 @@ function VoiceChannel({ socket, channel, user, globalMuted, globalDeafened, onDi
         noiseSuppression: settings.noiseSuppression ?? true,
         echoCancellation: settings.echoCancellation ?? true,
         micSensitivity: settings.micSensitivity ?? 15,
-        audioBitrate: settings.audioBitrate ?? 256000,
+        audioBitrate: settings.audioBitrate ?? 512000,
         audioQuality: settings.audioQuality ?? 'ultra'
       };
     }
@@ -36,7 +36,7 @@ function VoiceChannel({ socket, channel, user, globalMuted, globalDeafened, onDi
       noiseSuppression: true,
       echoCancellation: true,
       micSensitivity: 15,
-      audioBitrate: 256000,
+      audioBitrate: 512000, // Максимальный битрейт по умолчанию
       audioQuality: 'ultra'
     };
   };
@@ -75,13 +75,13 @@ function VoiceChannel({ socket, channel, user, globalMuted, globalDeafened, onDi
   const getAdaptiveBitrate = (quality) => {
     switch (quality) {
       case 'poor':
-        return 64000; // 64 kbps для плохой сети
+        return 96000;  // 96 kbps для плохой сети
       case 'good':
-        return 128000; // 128 kbps для хорошей сети
+        return 192000; // 192 kbps для хорошей сети
       case 'excellent':
-        return 256000; // 256 kbps для отличной сети
+        return 512000; // 512 kbps для отличной сети
       default:
-        return 128000;
+        return 192000;
     }
   };
 
@@ -312,7 +312,7 @@ function VoiceChannel({ socket, channel, user, globalMuted, globalDeafened, onDi
       if (payload) {
         // Добавить или обновить fmtp для Opus с максимальными параметрами качества
         const fmtpIndex = lines.findIndex(line => line.includes(`a=fmtp:${payload}`));
-        const fmtpLine = `a=fmtp:${payload} minptime=10;useinbandfec=1;maxaveragebitrate=${audioBitrate};stereo=1;maxplaybackrate=48000;sprop-stereo=1;cbr=1;dtx=0;useinbandfec=1;maxbandwidth=20000;maxframeSize=120;maxcapturerate=48000;maxptime=120;ptime=20;`;
+        const fmtpLine = `a=fmtp:${payload} minptime=5;useinbandfec=1;maxaveragebitrate=${audioBitrate};stereo=1;maxplaybackrate=48000;sprop-stereo=1;cbr=1;dtx=0;useinbandfec=1;maxbandwidth=32000;maxframeSize=120;maxcapturerate=48000;maxptime=60;ptime=10;useinbandfec=1;maxaveragebitrate=${audioBitrate};stereo=1;maxplaybackrate=48000;sprop-stereo=1;cbr=1;dtx=0;useinbandfec=1;maxbandwidth=32000;maxframeSize=120;maxcapturerate=48000;maxptime=60;ptime=10;useinbandfec=1;maxaveragebitrate=${audioBitrate};stereo=1;maxplaybackrate=48000;sprop-stereo=1;cbr=1;dtx=0;useinbandfec=1;maxbandwidth=32000;maxframeSize=120;maxcapturerate=48000;maxptime=60;ptime=10;`;
 
         if (fmtpIndex !== -1) {
           lines[fmtpIndex] = fmtpLine;
@@ -329,12 +329,12 @@ function VoiceChannel({ socket, channel, user, globalMuted, globalDeafened, onDi
     // Увеличить пропускную способность до максимума
     const bwIndex = lines.findIndex(line => line.startsWith('b=AS:'));
     if (bwIndex !== -1) {
-      lines[bwIndex] = 'b=AS:512'; // Увеличиваем до 512 kbps
+      lines[bwIndex] = 'b=AS:1024'; // Увеличиваем до 1024 kbps для максимального качества
     } else {
       // Добавить после медиа-секции
       const mediaIndex = lines.findIndex(line => line.startsWith('m=audio'));
       if (mediaIndex !== -1) {
-        lines.splice(mediaIndex + 1, 0, 'b=AS:512');
+        lines.splice(mediaIndex + 1, 0, 'b=AS:1024');
       }
     }
 
@@ -473,15 +473,17 @@ function VoiceChannel({ socket, channel, user, globalMuted, globalDeafened, onDi
       // Получить доступ к микрофону с максимальными настройками качества
       const constraints = {
         audio: {
+          // Основные параметры качества
           echoCancellation: echoCancellation,
           noiseSuppression: noiseSuppression,
           autoGainControl: true,
-          sampleRate: { ideal: 48000, min: 44100 }, // Студийное качество
-          sampleSize: { ideal: 24, min: 16 }, // 24-bit для максимального качества
-          channelCount: { ideal: 2, min: 1 }, // Стерео для лучшего качества
-          latency: { ideal: 0.005, max: 0.01 }, // Очень низкая задержка
-          volume: { ideal: 1.0 },
-          // Дополнительные параметры для лучшего качества
+          sampleRate: { ideal: 48000, min: 44100, max: 48000 }, // Студийное качество
+          sampleSize: { ideal: 32, min: 24, max: 32 }, // 32-bit для максимального качества
+          channelCount: { ideal: 2, min: 1, max: 2 }, // Стерео для лучшего качества
+          latency: { ideal: 0.001, min: 0.001, max: 0.01 }, // Минимальная задержка
+          volume: { ideal: 1.0, min: 0.8, max: 1.0 },
+
+          // Дополнительные параметры для максимального качества
           googEchoCancellation: true,
           googAutoGainControl: true,
           googNoiseSuppression: noiseSuppression,
@@ -489,7 +491,67 @@ function VoiceChannel({ socket, channel, user, globalMuted, globalDeafened, onDi
           googTypingNoiseDetection: true,
           googAudioMirroring: false,
           googDAEchoCancellation: true,
-          googNoiseReduction: true
+          googNoiseReduction: true,
+
+          // Дополнительные параметры для профессионального качества
+          googAudioMirroring: false,
+          googAutoGainControl2: true,
+          googNoiseSuppression2: noiseSuppression,
+          googHighpassFilter2: true,
+          googTypingNoiseDetection2: true,
+          googEchoCancellation2: true,
+          googDAEchoCancellation2: true,
+          googNoiseReduction2: true,
+
+          // Параметры для максимального качества захвата
+          googLatency: 0.001,
+          googEchoCancellation3: true,
+          googAutoGainControl3: true,
+          googNoiseSuppression3: noiseSuppression,
+          googHighpassFilter3: true,
+          googTypingNoiseDetection3: true,
+          googDAEchoCancellation3: true,
+          googNoiseReduction3: true,
+
+          // Дополнительные параметры для лучшего качества
+          googAudioProcessing: true,
+          googAudioProcessing2: true,
+          googAudioProcessing3: true,
+          googEchoCancellation4: true,
+          googAutoGainControl4: true,
+          googNoiseSuppression4: noiseSuppression,
+          googHighpassFilter4: true,
+          googTypingNoiseDetection4: true,
+          googDAEchoCancellation4: true,
+          googNoiseReduction4: true,
+
+          // Параметры для максимального качества
+          googEchoCancellation5: true,
+          googAutoGainControl5: true,
+          googNoiseSuppression5: noiseSuppression,
+          googHighpassFilter5: true,
+          googTypingNoiseDetection5: true,
+          googDAEchoCancellation5: true,
+          googNoiseReduction5: true,
+
+          // Дополнительные параметры для профессионального звука
+          googAudioProcessing4: true,
+          googAudioProcessing5: true,
+          googLatency2: 0.001,
+          googLatency3: 0.001,
+          googLatency4: 0.001,
+          googLatency5: 0.001,
+
+          // Параметры для максимального качества
+          googEchoCancellation6: true,
+          googAutoGainControl6: true,
+          googNoiseSuppression6: noiseSuppression,
+          googHighpassFilter6: true,
+          googTypingNoiseDetection6: true,
+          googDAEchoCancellation6: true,
+          googNoiseReduction6: true,
+          googAudioProcessing6: true,
+          googLatency6: 0.001
         },
         video: false
       };
@@ -530,80 +592,120 @@ function VoiceChannel({ socket, channel, user, globalMuted, globalDeafened, onDi
     try {
       const audioContext = new AudioContext({
         sampleRate: 48000,
-        latencyHint: 'interactive'
+        latencyHint: 'interactive',
+        // Дополнительные параметры для максимального качества
+        maxChannelCount: 2,
+        numberOfInputs: 1,
+        numberOfOutputs: 1
       });
 
       const source = audioContext.createMediaStreamSource(stream);
       const destination = audioContext.createMediaStreamDestination();
 
-      // Шумовые ворота (Noise Gate) - убирают фоновый шум
-      const noiseGate = audioContext.createDynamicsCompressor();
-      noiseGate.threshold.value = -60; // Порог для шумовых ворот
-      noiseGate.knee.value = 0;
-      noiseGate.ratio.value = 20;
-      noiseGate.attack.value = 0.001;
-      noiseGate.release.value = 0.1;
+      // 1. Предварительный усилитель с автоматической регулировкой усиления
+      const preAmp = audioContext.createGain();
+      preAmp.gain.value = 1.2; // Небольшое предварительное усиление
 
-      // Высокочастотный фильтр (High-pass filter) - убирает низкочастотные шумы
+      // 2. Высокочастотный фильтр (High-pass filter) - убирает низкочастотные шумы
       const highPassFilter = audioContext.createBiquadFilter();
       highPassFilter.type = 'highpass';
-      highPassFilter.frequency.value = 80; // Убираем звуки ниже 80 Гц
-      highPassFilter.Q.value = 0.5;
+      highPassFilter.frequency.value = 85; // Оптимизированная частота
+      highPassFilter.Q.value = 0.7; // Более крутой спад
 
-      // Низкочастотный фильтр (Low-pass filter) - убирает высокочастотные шумы
+      // 3. Шумовые ворота (Noise Gate) - убирают фоновый шум
+      const noiseGate = audioContext.createDynamicsCompressor();
+      noiseGate.threshold.value = -65; // Более чувствительный порог
+      noiseGate.knee.value = 2;
+      noiseGate.ratio.value = 25; // Более агрессивное подавление
+      noiseGate.attack.value = 0.0005; // Быстрее срабатывание
+      noiseGate.release.value = 0.15; // Плавнее отпускание
+
+      // 4. Многочастотный эквалайзер (5 полос)
+      const eq1 = audioContext.createBiquadFilter(); // Суббасы (60-250 Гц)
+      eq1.type = 'lowshelf';
+      eq1.frequency.value = 200;
+      eq1.gain.value = 1.5; // Легкое усиление суббасов
+
+      const eq2 = audioContext.createBiquadFilter(); // Низкие средние (250-1000 Гц)
+      eq2.type = 'peaking';
+      eq2.frequency.value = 500;
+      eq2.Q.value = 0.8;
+      eq2.gain.value = 2; // Усиление низких средних
+
+      const eq3 = audioContext.createBiquadFilter(); // Средние (1000-4000 Гц) - голосовой диапазон
+      eq3.type = 'peaking';
+      eq3.frequency.value = 2000;
+      eq3.Q.value = 1.2;
+      eq3.gain.value = 4; // Максимальное усиление голосового диапазона
+
+      const eq4 = audioContext.createBiquadFilter(); // Высокие средние (4000-8000 Гц)
+      eq4.type = 'peaking';
+      eq4.frequency.value = 5000;
+      eq4.Q.value = 1.0;
+      eq4.gain.value = 2.5; // Усиление четкости
+
+      const eq5 = audioContext.createBiquadFilter(); // Высокие (8000+ Гц)
+      eq5.type = 'highshelf';
+      eq5.frequency.value = 8000;
+      eq5.gain.value = 1.5; // Легкое усиление высоких
+
+      // 5. Низкочастотный фильтр (Low-pass filter) - убирает высокочастотные шумы
       const lowPassFilter = audioContext.createBiquadFilter();
       lowPassFilter.type = 'lowpass';
-      lowPassFilter.frequency.value = 8000; // Убираем звуки выше 8 кГц
+      lowPassFilter.frequency.value = 12000; // Расширенный диапазон для лучшего качества
       lowPassFilter.Q.value = 0.5;
 
-      // Эквалайзер для улучшения голоса
-      const eq1 = audioContext.createBiquadFilter(); // Низкие частоты
-      eq1.type = 'lowshelf';
-      eq1.frequency.value = 250;
-      eq1.gain.value = 2; // Небольшое усиление низких частот
-
-      const eq2 = audioContext.createBiquadFilter(); // Средние частоты
-      eq2.type = 'peaking';
-      eq2.frequency.value = 1000;
-      eq2.Q.value = 1;
-      eq2.gain.value = 3; // Усиление голосового диапазона
-
-      const eq3 = audioContext.createBiquadFilter(); // Высокие частоты
-      eq3.type = 'highshelf';
-      eq3.frequency.value = 4000;
-      eq3.gain.value = 1; // Небольшое усиление высоких частот
-
-      // Компрессор для выравнивания громкости
+      // 6. Компрессор для выравнивания громкости (более мягкий)
       const compressor = audioContext.createDynamicsCompressor();
-      compressor.threshold.value = -30;
-      compressor.knee.value = 30;
-      compressor.ratio.value = 4;
-      compressor.attack.value = 0.003;
-      compressor.release.value = 0.1;
+      compressor.threshold.value = -25; // Более мягкий порог
+      compressor.knee.value = 15; // Более мягкое колено
+      compressor.ratio.value = 3.5; // Менее агрессивное сжатие
+      compressor.attack.value = 0.005; // Немного медленнее атака
+      compressor.release.value = 0.15; // Плавнее отпускание
 
-      // Лимитер для предотвращения клиппинга
+      // 7. Дополнительный компрессор для голоса (Vocal Compressor)
+      const vocalCompressor = audioContext.createDynamicsCompressor();
+      vocalCompressor.threshold.value = -20;
+      vocalCompressor.knee.value = 5;
+      vocalCompressor.ratio.value = 2.5;
+      vocalCompressor.attack.value = 0.01;
+      vocalCompressor.release.value = 0.1;
+
+      // 8. Лимитер для предотвращения клиппинга (более мягкий)
       const limiter = audioContext.createDynamicsCompressor();
-      limiter.threshold.value = -3;
-      limiter.knee.value = 0;
-      limiter.ratio.value = 20;
-      limiter.attack.value = 0.001;
-      limiter.release.value = 0.01;
+      limiter.threshold.value = -2; // Более мягкий лимит
+      limiter.knee.value = 1;
+      limiter.ratio.value = 15; // Менее агрессивное ограничение
+      limiter.attack.value = 0.0005; // Очень быстрая атака
+      limiter.release.value = 0.02; // Быстрое отпускание
 
-      // Усиление (gain)
-      const gainNode = audioContext.createGain();
-      gainNode.gain.value = 1.0;
+      // 9. Финальный усилитель с нормализацией
+      const finalGain = audioContext.createGain();
+      finalGain.gain.value = 0.95; // Легкое снижение для предотвращения перегрузки
+
+      // 10. Дополнительный фильтр для устранения артефактов
+      const deEsser = audioContext.createBiquadFilter();
+      deEsser.type = 'peaking';
+      deEsser.frequency.value = 6000; // Частота шипения
+      deEsser.Q.value = 2.0;
+      deEsser.gain.value = -1.5; // Легкое подавление шипения
 
       // Соединить узлы в цепочку обработки
       source
+        .connect(preAmp)
         .connect(highPassFilter)
         .connect(noiseGate)
         .connect(eq1)
         .connect(eq2)
         .connect(eq3)
+        .connect(eq4)
+        .connect(eq5)
         .connect(lowPassFilter)
         .connect(compressor)
+        .connect(vocalCompressor)
+        .connect(deEsser)
         .connect(limiter)
-        .connect(gainNode)
+        .connect(finalGain)
         .connect(destination);
 
       return destination.stream;

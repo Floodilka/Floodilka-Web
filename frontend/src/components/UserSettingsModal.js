@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import './UserSettingsModal.css';
-import './AudioSettingsModal.css';
 
 const BACKEND_URL = window.location.hostname === 'localhost'
   ? 'http://localhost:3001'
@@ -21,8 +20,7 @@ function UserSettingsModal({ user, onClose, onLogout, onAvatarUpdate }) {
     return saved ? JSON.parse(saved) : {
       echoCancellation: true,
       noiseSuppression: true,
-      autoGainControl: true,
-      audioBitrate: 256000
+      autoGainControl: true
     };
   });
 
@@ -376,15 +374,18 @@ function UserSettingsModal({ user, onClose, onLogout, onAvatarUpdate }) {
           {activeTab === 'audio' && (
             <div className="audio-settings-content">
               <div className="audio-settings-section">
-                <h3 className="audio-settings-title">Обработка звука</h3>
+                <h3 className="audio-settings-title">Улучшение звука</h3>
                 <p className="audio-settings-description">
-                  Настройки обработки звука для улучшения качества голосового чата
+                  Настройки для улучшения качества голосового чата
                 </p>
 
                 <div className="audio-setting-item">
                   <div className="audio-setting-info">
-                    <div className="audio-setting-label">Эхоподавление</div>
-                    <div className="audio-setting-desc">Уменьшает эхо в микрофоне</div>
+                    <div className="audio-setting-label">
+                      <img src="/icons/echo.png" alt="Echo" className="audio-setting-icon" />
+                      Без эха
+                    </div>
+                    <div className="audio-setting-desc">Убирает эхо и повторения голоса</div>
                   </div>
                   <label className="audio-toggle">
                     <input
@@ -398,8 +399,11 @@ function UserSettingsModal({ user, onClose, onLogout, onAvatarUpdate }) {
 
                 <div className="audio-setting-item">
                   <div className="audio-setting-info">
-                    <div className="audio-setting-label">Шумоподавление</div>
-                    <div className="audio-setting-desc">Фильтрует фоновый шум</div>
+                    <div className="audio-setting-label">
+                      <img src="/icons/channel.png" alt="Channel" className="audio-setting-icon" />
+                      Чистый звук
+                    </div>
+                    <div className="audio-setting-desc">Убирает шум вентилятора, клавиатуры и другие фоновые звуки</div>
                   </div>
                   <label className="audio-toggle">
                     <input
@@ -413,7 +417,10 @@ function UserSettingsModal({ user, onClose, onLogout, onAvatarUpdate }) {
 
                 <div className="audio-setting-item">
                   <div className="audio-setting-info">
-                    <div className="audio-setting-label">Автоматическое усиление</div>
+                    <div className="audio-setting-label">
+                      <img src="/icons/wave_sound.png" alt="Wave Sound" className="audio-setting-icon" />
+                      Автоматическое усиление
+                    </div>
                     <div className="audio-setting-desc">Нормализует громкость микрофона</div>
                   </div>
                   <label className="audio-toggle">
@@ -427,27 +434,6 @@ function UserSettingsModal({ user, onClose, onLogout, onAvatarUpdate }) {
                 </div>
               </div>
 
-              <div className="audio-settings-section">
-                <h3 className="audio-settings-title">Качество передачи</h3>
-
-                <div className="audio-setting-item">
-                  <div className="audio-setting-info">
-                    <div className="audio-setting-label">Битрейт</div>
-                    <div className="audio-setting-desc">Качество передачи звука</div>
-                  </div>
-                  <select
-                    className="audio-select"
-                    value={audioSettings.audioBitrate}
-                    onChange={(e) => handleAudioSettingChange('audioBitrate', parseInt(e.target.value))}
-                  >
-                    <option value={32000}>32 кбит/с (низкое)</option>
-                    <option value={64000}>64 кбит/с (среднее)</option>
-                    <option value={96000}>96 кбит/с (высокое)</option>
-                    <option value={128000}>128 кбит/с (очень высокое)</option>
-                    <option value={256000}>256 кбит/с (максимальное)</option>
-                  </select>
-                </div>
-              </div>
             </div>
           )}
 
