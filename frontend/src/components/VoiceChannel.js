@@ -7,6 +7,31 @@ function VoiceChannel({ socket, channel, user, globalMuted, globalDeafened, onDi
   const [speakingUsers, setSpeakingUsers] = useState(new Set());
   const [isSpeaking, setIsSpeaking] = useState(false);
 
+  // Проверяем поддержку браузера
+  const isBrowserSupported = () => {
+    return !!(navigator.mediaDevices &&
+              navigator.mediaDevices.getUserMedia &&
+              window.RTCPeerConnection &&
+              (window.AudioContext || window.webkitAudioContext));
+  };
+
+  // Определяем браузер для специальной обработки
+  const getBrowserInfo = () => {
+    const userAgent = navigator.userAgent.toLowerCase();
+    if (userAgent.includes('yabrowser') || userAgent.includes('yandex')) {
+      return 'yandex';
+    } else if (userAgent.includes('chrome')) {
+      return 'chrome';
+    } else if (userAgent.includes('firefox')) {
+      return 'firefox';
+    } else if (userAgent.includes('safari')) {
+      return 'safari';
+    } else if (userAgent.includes('edge')) {
+      return 'edge';
+    }
+    return 'unknown';
+  };
+
   // Передать информацию о говорящих наверх для сайдбара
   useEffect(() => {
     if (onSpeakingUpdate) {
@@ -470,93 +495,80 @@ function VoiceChannel({ socket, channel, user, globalMuted, globalDeafened, onDi
 
   const handleConnect = async () => {
     try {
-      // Получить доступ к микрофону с максимальными настройками качества
-      const constraints = {
+      // Проверяем поддержку браузера
+      if (!isBrowserSupported()) {
+        throw new Error('Ваш браузер не поддерживает голосовой чат. Пожалуйста, используйте современный браузер (Chrome, Firefox, Safari, Edge).');
+      }
+
+      // Определяем браузер для специальной конфигурации
+      const browser = getBrowserInfo();
+      console.log('Обнаружен браузер:', browser);
+
+      // Сначала пробуем базовую конфигурацию для максимальной совместимости
+      let constraints = {
         audio: {
-          // Основные параметры качества
           echoCancellation: echoCancellation,
           noiseSuppression: noiseSuppression,
-          autoGainControl: true,
-          sampleRate: { ideal: 48000, min: 44100, max: 48000 }, // Студийное качество
-          sampleSize: { ideal: 32, min: 24, max: 32 }, // 32-bit для максимального качества
-          channelCount: { ideal: 2, min: 1, max: 2 }, // Стерео для лучшего качества
-          latency: { ideal: 0.001, min: 0.001, max: 0.01 }, // Минимальная задержка
-          volume: { ideal: 1.0, min: 0.8, max: 1.0 },
-
-          // Дополнительные параметры для максимального качества
-          googEchoCancellation: true,
-          googAutoGainControl: true,
-          googNoiseSuppression: noiseSuppression,
-          googHighpassFilter: true,
-          googTypingNoiseDetection: true,
-          googAudioMirroring: false,
-          googDAEchoCancellation: true,
-          googNoiseReduction: true,
-
-          // Дополнительные параметры для профессионального качества
-          googAudioMirroring: false,
-          googAutoGainControl2: true,
-          googNoiseSuppression2: noiseSuppression,
-          googHighpassFilter2: true,
-          googTypingNoiseDetection2: true,
-          googEchoCancellation2: true,
-          googDAEchoCancellation2: true,
-          googNoiseReduction2: true,
-
-          // Параметры для максимального качества захвата
-          googLatency: 0.001,
-          googEchoCancellation3: true,
-          googAutoGainControl3: true,
-          googNoiseSuppression3: noiseSuppression,
-          googHighpassFilter3: true,
-          googTypingNoiseDetection3: true,
-          googDAEchoCancellation3: true,
-          googNoiseReduction3: true,
-
-          // Дополнительные параметры для лучшего качества
-          googAudioProcessing: true,
-          googAudioProcessing2: true,
-          googAudioProcessing3: true,
-          googEchoCancellation4: true,
-          googAutoGainControl4: true,
-          googNoiseSuppression4: noiseSuppression,
-          googHighpassFilter4: true,
-          googTypingNoiseDetection4: true,
-          googDAEchoCancellation4: true,
-          googNoiseReduction4: true,
-
-          // Параметры для максимального качества
-          googEchoCancellation5: true,
-          googAutoGainControl5: true,
-          googNoiseSuppression5: noiseSuppression,
-          googHighpassFilter5: true,
-          googTypingNoiseDetection5: true,
-          googDAEchoCancellation5: true,
-          googNoiseReduction5: true,
-
-          // Дополнительные параметры для профессионального звука
-          googAudioProcessing4: true,
-          googAudioProcessing5: true,
-          googLatency2: 0.001,
-          googLatency3: 0.001,
-          googLatency4: 0.001,
-          googLatency5: 0.001,
-
-          // Параметры для максимального качества
-          googEchoCancellation6: true,
-          googAutoGainControl6: true,
-          googNoiseSuppression6: noiseSuppression,
-          googHighpassFilter6: true,
-          googTypingNoiseDetection6: true,
-          googDAEchoCancellation6: true,
-          googNoiseReduction6: true,
-          googAudioProcessing6: true,
-          googLatency6: 0.001
+          autoGainControl: true
         },
         video: false
       };
 
-      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      // Для Яндекс браузера используем более простую конфигурацию
+      if (browser === 'yandex') {
+        constraints = {
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true
+          },
+          video: false
+        };
+      }
+
+      let stream;
+      try {
+        // Пробуем базовую конфигурацию
+        stream = await navigator.mediaDevices.getUserMedia(constraints);
+        console.log('✅ Базовый доступ к микрофону получен');
+      } catch (basicError) {
+        console.warn('Базовый доступ не удался, пробуем расширенную конфигурацию:', basicError);
+
+        // Если базовая конфигурация не работает, пробуем расширенную
+        constraints = {
+          audio: {
+            echoCancellation: echoCancellation,
+            noiseSuppression: noiseSuppression,
+            autoGainControl: true,
+            sampleRate: { ideal: 48000, min: 44100 },
+            channelCount: { ideal: 1, min: 1, max: 2 },
+            // Добавляем только основные goog параметры для Chrome-совместимых браузеров
+            googEchoCancellation: true,
+            googAutoGainControl: true,
+            googNoiseSuppression: noiseSuppression,
+            googHighpassFilter: true,
+            googTypingNoiseDetection: true,
+            googAudioMirroring: false
+          },
+          video: false
+        };
+
+        try {
+          stream = await navigator.mediaDevices.getUserMedia(constraints);
+          console.log('✅ Расширенный доступ к микрофону получен');
+        } catch (advancedError) {
+          console.warn('Расширенный доступ не удался, пробуем минимальную конфигурацию:', advancedError);
+
+          // Последняя попытка - минимальная конфигурация
+          constraints = {
+            audio: true,
+            video: false
+          };
+
+          stream = await navigator.mediaDevices.getUserMedia(constraints);
+          console.log('✅ Минимальный доступ к микрофону получен');
+        }
+      }
 
       // Применить дополнительную обработку к аудио
       const processedStream = await processAudioStream(stream);
@@ -583,20 +595,53 @@ function VoiceChannel({ socket, channel, user, globalMuted, globalDeafened, onDi
 
     } catch (err) {
       console.error('Ошибка доступа к микрофону:', err);
-      alert('Не удалось получить доступ к микрофону. Проверьте разрешения.');
+
+      let errorMessage = 'Не удалось получить доступ к микрофону. ';
+
+      if (err.name === 'NotAllowedError') {
+        errorMessage += 'Разрешение на использование микрофона было отклонено. Пожалуйста, разрешите доступ к микрофону в настройках браузера и обновите страницу.';
+      } else if (err.name === 'NotFoundError') {
+        errorMessage += 'Микрофон не найден. Убедитесь, что микрофон подключен и работает.';
+      } else if (err.name === 'NotReadableError') {
+        errorMessage += 'Микрофон используется другим приложением. Закройте другие приложения, использующие микрофон, и попробуйте снова.';
+      } else if (err.name === 'OverconstrainedError') {
+        errorMessage += 'Настройки микрофона не поддерживаются. Попробуйте использовать другой микрофон или обновите браузер.';
+      } else if (err.name === 'SecurityError') {
+        errorMessage += 'Ошибка безопасности. Убедитесь, что сайт использует HTTPS.';
+      } else if (err.message.includes('getUserMedia не поддерживается')) {
+        errorMessage += 'Ваш браузер не поддерживает голосовой чат. Пожалуйста, используйте современный браузер (Chrome, Firefox, Safari, Edge).';
+      } else if (getBrowserInfo() === 'yandex') {
+        errorMessage += 'Для Яндекс браузера: 1) Нажмите на иконку замка в адресной строке 2) Разрешите доступ к микрофону 3) Обновите страницу. Подробные инструкции: MICROPHONE_SETUP.md';
+      } else {
+        errorMessage += 'Проверьте разрешения браузера и убедитесь, что микрофон работает.';
+      }
+
+      // Показываем более подробное сообщение об ошибке
+      alert(errorMessage);
+
+      // Дополнительная информация в консоль для отладки
+      console.error('Детали ошибки:', {
+        name: err.name,
+        message: err.message,
+        constraint: err.constraint,
+        userAgent: navigator.userAgent
+      });
     }
   };
 
-  // Профессиональная обработка аудио потока для максимального качества
+  // Упрощенная обработка аудио потока для лучшей совместимости
   const processAudioStream = async (stream) => {
     try {
-      const audioContext = new AudioContext({
+      // Проверяем поддержку AudioContext
+      if (!window.AudioContext && !window.webkitAudioContext) {
+        console.warn('AudioContext не поддерживается, используем оригинальный поток');
+        return stream;
+      }
+
+      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+      const audioContext = new AudioContextClass({
         sampleRate: 48000,
-        latencyHint: 'interactive',
-        // Дополнительные параметры для максимального качества
-        maxChannelCount: 2,
-        numberOfInputs: 1,
-        numberOfOutputs: 1
+        latencyHint: 'interactive'
       });
 
       const source = audioContext.createMediaStreamSource(stream);
@@ -690,21 +735,10 @@ function VoiceChannel({ socket, channel, user, globalMuted, globalDeafened, onDi
       deEsser.Q.value = 2.0;
       deEsser.gain.value = -1.5; // Легкое подавление шипения
 
-      // Соединить узлы в цепочку обработки
+      // Упрощенная цепочка обработки для лучшей совместимости
       source
-        .connect(preAmp)
         .connect(highPassFilter)
-        .connect(noiseGate)
-        .connect(eq1)
-        .connect(eq2)
-        .connect(eq3)
-        .connect(eq4)
-        .connect(eq5)
-        .connect(lowPassFilter)
         .connect(compressor)
-        .connect(vocalCompressor)
-        .connect(deEsser)
-        .connect(limiter)
         .connect(finalGain)
         .connect(destination);
 
