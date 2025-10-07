@@ -283,3 +283,5 @@ sudo systemctl restart nginx
 ---
 
 🎉 **Поздравляем!** Ваш Boltushka теперь работает на российском хостинге!
+
+

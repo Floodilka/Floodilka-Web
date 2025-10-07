@@ -348,6 +348,142 @@
   background: #4f545c;
 }
 
+/* Стили для секции тестирования аудио */
+.audio-test-section {
+  background: #36393f;
+  border-radius: 6px;
+  padding: 20px;
+  border: 1px solid #40444b;
+}
+
+.test-description {
+  margin-bottom: 20px;
+}
+
+.test-description p {
+  color: #b9bbbe;
+  font-size: 14px;
+  margin: 0;
+  line-height: 1.4;
+}
+
+.test-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  align-items: center;
+}
+
+.test-btn {
+  background: #5865f2;
+  color: #ffffff;
+  border: none;
+  border-radius: 6px;
+  padding: 12px 20px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 160px;
+  justify-content: center;
+}
+
+.test-btn:hover {
+  background: #4752c4;
+  transform: translateY(-1px);
+}
+
+.test-btn:active {
+  transform: translateY(0);
+}
+
+.test-btn.record-btn {
+  background: #f23f42;
+}
+
+.test-btn.record-btn:hover {
+  background: #d73c3e;
+}
+
+.test-btn.stop-btn {
+  background: #f23f42;
+}
+
+.test-btn.stop-btn:hover {
+  background: #d73c3e;
+}
+
+.test-btn.play-btn {
+  background: #00d166;
+}
+
+.test-btn.play-btn:hover {
+  background: #00b85a;
+}
+
+.test-btn.clear-btn {
+  background: #747f8d;
+}
+
+.test-btn.clear-btn:hover {
+  background: #5f6a78;
+}
+
+.btn-icon {
+  font-size: 16px;
+}
+
+.recording-controls {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 15px;
+  width: 100%;
+}
+
+.recording-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #f23f42;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.recording-dot {
+  width: 8px;
+  height: 8px;
+  background: #f23f42;
+  border-radius: 50%;
+  animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(1.2);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.playback-controls {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
 /* Адаптивность */
 @media (max-width: 600px) {
   .audio-settings-modal {
@@ -365,5 +501,20 @@
 
   .quality-btn {
     padding: 12px;
+  }
+
+  .audio-test-section {
+    padding: 15px;
+  }
+
+  .test-btn {
+    min-width: 140px;
+    padding: 10px 16px;
+    font-size: 13px;
+  }
+
+  .playback-controls {
+    flex-direction: column;
+    gap: 8px;
   }
 }

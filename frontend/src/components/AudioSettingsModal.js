@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import './AudioSettingsModal.css';
 
 function AudioSettingsModal({ isOpen, onClose, onSettingsChange }) {
@@ -10,6 +10,17 @@ function AudioSettingsModal({ isOpen, onClose, onSettingsChange }) {
     audioBitrate: 256000,
     networkQuality: 'good'
   });
+
+  // Состояние для тестирования аудио
+  const [isRecording, setIsRecording] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [hasRecording, setHasRecording] = useState(false);
+  const [recordingDuration, setRecordingDuration] = useState(0);
+
+  const mediaRecorderRef = useRef(null);
+  const audioChunksRef = useRef([]);
+  const audioRef = useRef(null);
+  const recordingIntervalRef = useRef(null);
 
   useEffect(() => {
     if (onSettingsChange) {
@@ -38,6 +49,112 @@ function AudioSettingsModal({ isOpen, onClose, onSettingsChange }) {
       micSensitivity: parseInt(sensitivity)
     }));
   };
+
+  // Функции для тестирования аудио
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: settings.echoCancellation,
+          noiseSuppression: settings.noiseSuppression,
+          sampleRate: 48000,
+          channelCount: 2
+        }
+      });
+
+      mediaRecorderRef.current = new MediaRecorder(stream, {
+        mimeType: 'audio/webm;codecs=opus',
+        audioBitsPerSecond: settings.audioBitrate
+      });
+
+      audioChunksRef.current = [];
+
+      mediaRecorderRef.current.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
+      };
+
+      mediaRecorderRef.current.onstop = () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        const audioUrl = URL.createObjectURL(audioBlob);
+        if (audioRef.current) {
+          audioRef.current.src = audioUrl;
+        }
+        setHasRecording(true);
+        stream.getTracks().forEach(track => track.stop());
+      };
+
+      mediaRecorderRef.current.start();
+      setIsRecording(true);
+      setRecordingDuration(0);
+
+      // Таймер записи
+      recordingIntervalRef.current = setInterval(() => {
+        setRecordingDuration(prev => prev + 1);
+      }, 1000);
+
+    } catch (error) {
+      console.error('Ошибка при записи аудио:', error);
+      alert('Не удалось получить доступ к микрофону');
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+      if (recordingIntervalRef.current) {
+        clearInterval(recordingIntervalRef.current);
+      }
+    }
+  };
+
+  const playRecording = () => {
+    if (audioRef.current && hasRecording) {
+      audioRef.current.play();
+      setIsPlaying(true);
+    }
+  };
+
+  const stopPlayback = () => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+      setIsPlaying(false);
+    }
+  };
+
+  const clearRecording = () => {
+    if (audioRef.current) {
+      audioRef.current.src = '';
+    }
+    setHasRecording(false);
+    setIsPlaying(false);
+    setRecordingDuration(0);
+  };
+
+  // Очистка при закрытии модального окна
+  useEffect(() => {
+    if (!isOpen) {
+      if (isRecording) {
+        stopRecording();
+      }
+      if (isPlaying) {
+        stopPlayback();
+      }
+      clearRecording();
+    }
+  }, [isOpen]);
+
+  // Очистка интервалов при размонтировании
+  useEffect(() => {
+    return () => {
+      if (recordingIntervalRef.current) {
+        clearInterval(recordingIntervalRef.current);
+      }
+    };
+  }, []);
 
   if (!isOpen) return null;
 
@@ -124,6 +241,70 @@ function AudioSettingsModal({ isOpen, onClose, onSettingsChange }) {
                   <span className="toggle-desc">Предотвращает эхо и обратную связь</span>
                 </span>
               </label>
+            </div>
+          </div>
+
+          <div className="settings-section">
+            <h3>Тест микрофона</h3>
+            <div className="audio-test-section">
+              <div className="test-description">
+                <p>Запишите короткое сообщение и прослушайте его, чтобы проверить качество звука</p>
+              </div>
+
+              <div className="test-controls">
+                {!isRecording && !hasRecording && (
+                  <button
+                    className="test-btn record-btn"
+                    onClick={startRecording}
+                  >
+                    <span className="btn-icon">🎤</span>
+                    Начать запись
+                  </button>
+                )}
+
+                {isRecording && (
+                  <div className="recording-controls">
+                    <button
+                      className="test-btn stop-btn"
+                      onClick={stopRecording}
+                    >
+                      <span className="btn-icon">⏹️</span>
+                      Остановить запись
+                    </button>
+                    <div className="recording-indicator">
+                      <div className="recording-dot"></div>
+                      <span>Запись: {recordingDuration}с</span>
+                    </div>
+                  </div>
+                )}
+
+                {hasRecording && !isRecording && (
+                  <div className="playback-controls">
+                    <button
+                      className="test-btn play-btn"
+                      onClick={isPlaying ? stopPlayback : playRecording}
+                    >
+                      <span className="btn-icon">
+                        {isPlaying ? '⏸️' : '▶️'}
+                      </span>
+                      {isPlaying ? 'Остановить' : 'Прослушать'}
+                    </button>
+                    <button
+                      className="test-btn clear-btn"
+                      onClick={clearRecording}
+                    >
+                      <span className="btn-icon">🗑️</span>
+                      Очистить
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              <audio
+                ref={audioRef}
+                onEnded={() => setIsPlaying(false)}
+                style={{ display: 'none' }}
+              />
             </div>
           </div>
 

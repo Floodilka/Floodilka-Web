@@ -191,8 +191,8 @@ function ChannelList({ channels, currentTextChannel, currentVoiceChannel, voiceC
     setSelectedChannel(null);
   };
 
-  const textChannels = channels.filter(ch => ch.type === 'text');
-  const voiceChannels = channels.filter(ch => ch.type === 'voice');
+  const textChannels = channels && Array.isArray(channels) ? channels.filter(ch => ch.type === 'text') : [];
+  const voiceChannels = channels && Array.isArray(channels) ? channels.filter(ch => ch.type === 'voice') : [];
 
   return (
     <div className="channel-list">

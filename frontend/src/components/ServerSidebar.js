@@ -114,8 +114,14 @@ function ServerSidebar({ servers, currentServer, onSelectServer, onCreateServer 
           />
         )}
 
-        {servers.map(server => {
+        {servers && Array.isArray(servers) && servers.map(server => {
+          // Проверяем, что сервер существует и имеет необходимые поля
+          if (!server || !server._id) {
+            return null;
+          }
+
           const isBase64Image = server.icon && server.icon.startsWith('data:image');
+          const serverName = server.name || 'Без названия';
 
           return (
             <div
@@ -129,14 +135,14 @@ function ServerSidebar({ servers, currentServer, onSelectServer, onCreateServer 
               {isBase64Image ? (
                 <img
                   src={server.icon}
-                  alt={server.name}
+                  alt={serverName}
                   className="server-icon-image"
                 />
               ) : server.icon ? (
                 <span className="server-icon-emoji">{server.icon}</span>
               ) : (
                 <span className="server-icon-text">
-                  {server.name.substring(0, 2).toUpperCase()}
+                  {serverName.substring(0, 2).toUpperCase()}
                 </span>
               )}
             </div>
@@ -256,7 +262,7 @@ function ServerSidebar({ servers, currentServer, onSelectServer, onCreateServer 
             left: `${tooltipPosition.left}px`
           }}
         >
-          {hoveredServer.name}
+          {hoveredServer.name || 'Без названия'}
         </div>
       )}
     </div>

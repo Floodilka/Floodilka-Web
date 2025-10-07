@@ -67,14 +67,21 @@ function App() {
         'Authorization': `Bearer ${token}`
       }
     })
-      .then(res => res.json())
+      .then(res => {
+        if (!res.ok) {
+          throw new Error(`HTTP error! status: ${res.status}`);
+        }
+        return res.json();
+      })
       .then(data => {
-        setServers(data);
+        // Убеждаемся, что data является массивом
+        const serversArray = Array.isArray(data) ? data : [];
+        setServers(serversArray);
 
         // Попытаться восстановить последний выбранный сервер
         const lastServerId = localStorage.getItem('lastServerId');
-        if (lastServerId && data.length > 0) {
-          const lastServer = data.find(s => s._id === lastServerId);
+        if (lastServerId && serversArray.length > 0) {
+          const lastServer = serversArray.find(s => s._id === lastServerId);
           if (lastServer) {
             setCurrentServer(lastServer);
             return;
@@ -82,11 +89,14 @@ function App() {
         }
 
         // Если не получилось восстановить, выбрать первый сервер
-        if (data.length > 0 && !currentServer) {
-          setCurrentServer(data[0]);
+        if (serversArray.length > 0 && !currentServer) {
+          setCurrentServer(serversArray[0]);
         }
       })
-      .catch(err => console.error('Ошибка загрузки серверов:', err));
+      .catch(err => {
+        console.error('Ошибка загрузки серверов:', err);
+        setServers([]); // Устанавливаем пустой массив при ошибке
+      });
   }, [user]);
 
   // Загрузка каналов и участников текущего сервера
@@ -102,16 +112,26 @@ function App() {
         'Authorization': `Bearer ${token}`
       }
     })
-      .then(res => res.json())
+      .then(res => {
+        if (!res.ok) {
+          throw new Error(`HTTP error! status: ${res.status}`);
+        }
+        return res.json();
+      })
       .then(data => {
-        setChannels(data);
+        // Убеждаемся, что data является массивом
+        const channelsArray = Array.isArray(data) ? data : [];
+        setChannels(channelsArray);
         // Автоматически выбрать первый текстовый канал
-        const firstTextChannel = data.find(ch => ch.type === 'text');
+        const firstTextChannel = channelsArray.find(ch => ch.type === 'text');
         if (firstTextChannel && !currentTextChannel) {
           setCurrentTextChannel(firstTextChannel);
         }
       })
-      .catch(err => console.error('Ошибка загрузки каналов:', err));
+      .catch(err => {
+        console.error('Ошибка загрузки каналов:', err);
+        setChannels([]); // Устанавливаем пустой массив при ошибке
+      });
 
     // Загрузить всех участников сервера
     fetch(`${BACKEND_URL}/api/servers/${currentServer._id}/members`, {
@@ -119,11 +139,21 @@ function App() {
         'Authorization': `Bearer ${token}`
       }
     })
-      .then(res => res.json())
-      .then(data => {
-        setAllServerMembers(data);
+      .then(res => {
+        if (!res.ok) {
+          throw new Error(`HTTP error! status: ${res.status}`);
+        }
+        return res.json();
       })
-      .catch(err => console.error('Ошибка загрузки участников:', err));
+      .then(data => {
+        // Убеждаемся, что data является массивом
+        const membersArray = Array.isArray(data) ? data : [];
+        setAllServerMembers(membersArray);
+      })
+      .catch(err => {
+        console.error('Ошибка загрузки участников:', err);
+        setAllServerMembers([]); // Устанавливаем пустой массив при ошибке
+      });
   }, [currentServer, user, currentTextChannel]);
 
   // Socket listeners
@@ -402,7 +432,7 @@ function App() {
   }
 
   // Если у пользователя нет серверов, показываем EmptyServerState
-  if (servers.length === 0) {
+  if (!servers || servers.length === 0) {
     return (
       <div className="app">
         <EmptyServerState
