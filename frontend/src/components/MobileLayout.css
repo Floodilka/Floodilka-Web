@@ -1,0 +1,241 @@
+.mobile-layout {
+  display: none;
+  height: 100vh;
+  background-color: #1e1f22;
+  overflow: hidden;
+}
+
+/* Показываем мобильный макет только на мобильных устройствах */
+@media (max-width: 768px) {
+  .mobile-layout {
+    display: flex;
+    flex-direction: column;
+  }
+}
+
+/* Левая панель с серверами - 20% ширины */
+.mobile-servers-panel {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 20%;
+  height: 100%;
+  background-color: #1e1f22;
+  border-right: 1px solid #313338;
+  z-index: 5;
+}
+
+/* Основная секция с каналами - 80% ширины */
+.mobile-channels-panel {
+  margin-left: 20%;
+  height: 100vh; /* Теперь на всю высоту экрана */
+  background-color: #1e1f22;
+  overflow: hidden;
+}
+
+/* Полноэкранный режим чата */
+.mobile-chat-fullscreen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #1e1f22;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+}
+
+.mobile-chat-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 16px;
+  background-color: #1e1f22;
+  border-bottom: 1px solid #313338;
+  height: 56px;
+  flex-shrink: 0;
+  position: relative;
+}
+
+.mobile-back-to-channels-btn {
+  background: none;
+  border: none;
+  color: #b5bac1;
+  font-size: 24px;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  position: absolute;
+  left: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.mobile-back-to-channels-btn:hover {
+  background-color: #404249;
+  color: #f2f3f5;
+}
+
+.mobile-chat-title {
+  color: #ffffff;
+  font-size: 18px;
+  font-weight: 600;
+  text-align: center;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mobile-chat-spacer {
+  width: 40px;
+  position: absolute;
+  right: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.mobile-chat-content {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Дополнительные стили для мобильного чата */
+.mobile-chat-content .chat {
+  overflow-x: hidden;
+}
+
+.mobile-chat-content .messages-container {
+  overflow-x: hidden;
+  padding: 8px;
+}
+
+.mobile-chat-content .message {
+  padding: 8px;
+  margin-bottom: 8px;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  hyphens: auto;
+}
+
+.mobile-chat-content .message-content {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.mobile-chat-content .message-header {
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.mobile-chat-content .message-username {
+  font-size: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 150px;
+}
+
+.mobile-chat-content .message-text {
+  font-size: 14px;
+  line-height: 1.4;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  hyphens: auto;
+  white-space: pre-wrap;
+}
+
+.mobile-chat-content .message-input-container {
+  padding: 8px;
+}
+
+.mobile-chat-content .message-input-container input {
+  font-size: 16px; /* Предотвращает зум на iOS */
+}
+
+
+/* Скрываем UserList на мобильных */
+.mobile-user-list-hidden {
+  display: none;
+}
+
+/* Адаптация ServerSidebar для мобильного контейнера */
+.mobile-servers-panel .server-sidebar {
+  width: 100%;
+  height: 100%;
+  flex-direction: column;
+  padding: 12px 0;
+  border-right: none;
+  border-bottom: none;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.mobile-servers-panel .server-list {
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  align-items: center;
+}
+
+.mobile-servers-panel .server-icon {
+  flex-shrink: 0;
+}
+
+/* Адаптация ChannelList для мобильного контейнера */
+.mobile-channels-panel .channel-list {
+  width: 100%;
+  height: 100%;
+  border-right: none;
+  border-bottom: none;
+}
+
+/* Скрываем обычные компоненты на мобильных */
+@media (max-width: 768px) {
+  .app > .server-sidebar:not(.mobile-servers-panel .server-sidebar),
+  .app > .channel-list:not(.mobile-channels-panel .channel-list),
+  .app > .chat,
+  .app > .user-list {
+    display: none;
+  }
+}
+
+/* Дополнительные стили для мобильной версии */
+@media (max-width: 768px) {
+  /* Улучшенная прокрутка */
+  .mobile-servers-panel::-webkit-scrollbar,
+  .mobile-channels-panel::-webkit-scrollbar {
+    width: 4px;
+  }
+
+  .mobile-servers-panel::-webkit-scrollbar-track,
+  .mobile-channels-panel::-webkit-scrollbar-track {
+    background: #2b2d31;
+  }
+
+  .mobile-servers-panel::-webkit-scrollbar-thumb,
+  .mobile-channels-panel::-webkit-scrollbar-thumb {
+    background: #5865f2;
+    border-radius: 2px;
+  }
+
+  /* Адаптация для очень маленьких экранов */
+  @media (max-width: 480px) {
+    .mobile-servers-panel {
+      width: 25%;
+    }
+
+    .mobile-channels-panel {
+      margin-left: 25%;
+    }
+  }
+}

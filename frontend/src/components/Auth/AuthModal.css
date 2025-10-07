@@ -20,6 +20,53 @@
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
 }
 
+/* Мобильная адаптация */
+@media (max-width: 768px) {
+  .auth-modal-overlay {
+    background-color: #1e1f22;
+    align-items: flex-start;
+    padding-top: 0;
+  }
+
+  .auth-modal-content {
+    width: 100%;
+    max-width: none;
+    height: 100vh;
+    border-radius: 0;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    box-shadow: none;
+  }
+
+  .auth-header h1 {
+    font-size: 28px;
+    margin-bottom: 12px;
+  }
+
+  .auth-header p {
+    font-size: 16px;
+    margin-bottom: 32px;
+  }
+
+  .form-group input {
+    font-size: 16px; /* Предотвращает зум на iOS */
+    padding: 16px;
+  }
+
+  .auth-submit-btn {
+    padding: 16px;
+    font-size: 16px;
+    margin-top: 16px;
+  }
+
+  .auth-switch {
+    margin-top: 24px;
+    font-size: 15px;
+  }
+}
+
 .auth-header {
   text-align: center;
   margin-bottom: 20px;

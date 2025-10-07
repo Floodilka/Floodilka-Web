@@ -14,4 +14,12 @@ html, body {
   display: flex;
   height: 100%;
   overflow: hidden;
+  min-width: 0;
+}
+
+/* Мобильная адаптация */
+@media (max-width: 768px) {
+  .app {
+    flex-direction: column;
+  }
 }

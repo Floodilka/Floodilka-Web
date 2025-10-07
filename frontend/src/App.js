@@ -8,6 +8,7 @@ import VoiceChannel from './components/VoiceChannel';
 import UserList from './components/UserList';
 import AuthModal from './components/Auth/AuthModal';
 import EmptyServerState from './components/EmptyServerState';
+import MobileLayout from './components/MobileLayout';
 
 // Автоматически определяем URL в зависимости от окружения
 const BACKEND_URL = window.location.hostname === 'localhost'
@@ -30,8 +31,21 @@ function App() {
   const [showAuthModal, setShowAuthModal] = useState(true);
   const [globalMuted, setGlobalMuted] = useState(false);
   const [globalDeafened, setGlobalDeafened] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   const voiceDisconnectRef = useRef(null);
   const speakingUsersRef = useRef({});
+
+  // Определение мобильного устройства
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   // Инициализация socket
   useEffect(() => {
@@ -110,7 +124,7 @@ function App() {
         setAllServerMembers(data);
       })
       .catch(err => console.error('Ошибка загрузки участников:', err));
-  }, [currentServer, user]);
+  }, [currentServer, user, currentTextChannel]);
 
   // Socket listeners
   useEffect(() => {
@@ -371,6 +385,68 @@ function App() {
     );
   }
 
+  // Если мобильное устройство, используем мобильный макет
+  if (isMobile) {
+    return (
+      <div className="app">
+        <MobileLayout
+          servers={servers}
+          currentServer={currentServer}
+          onSelectServer={handleSelectServer}
+          onCreateServer={handleCreateServer}
+          channels={channels}
+          currentTextChannel={currentTextChannel}
+          currentVoiceChannel={currentVoiceChannel}
+          voiceChannelUsers={voiceChannelUsers}
+          speakingUsers={speakingUsers}
+          user={user}
+          isMuted={globalMuted}
+          isDeafened={globalDeafened}
+          isInVoice={!!currentVoiceChannel}
+          onToggleMute={() => setGlobalMuted(!globalMuted)}
+          onToggleDeafen={() => {
+            const newDeafened = !globalDeafened;
+            setGlobalDeafened(newDeafened);
+            if (newDeafened) setGlobalMuted(true); // Auto-mute при deafen
+          }}
+          onDisconnect={() => {
+            // Отключение из голосового канала
+            if (currentVoiceChannel && voiceDisconnectRef.current) {
+              voiceDisconnectRef.current();
+              setCurrentVoiceChannel(null);
+            }
+          }}
+          onLogout={handleLogout}
+          onAvatarUpdate={handleAvatarUpdate}
+          onSelectChannel={handleChannelSelect}
+          onCreateChannel={handleCreateChannel}
+          onlineUsers={users}
+          allServerMembers={allServerMembers}
+          socket={socket}
+          messages={messages}
+          onSendMessage={handleSendMessage}
+        />
+
+        {/* Голосовой канал (скрытый, работает в фоне) */}
+        {currentVoiceChannel && (
+          <VoiceChannel
+            socket={socket}
+            channel={currentVoiceChannel}
+            user={user}
+            globalMuted={globalMuted}
+            globalDeafened={globalDeafened}
+            onDisconnectRef={voiceDisconnectRef}
+            onSpeakingUpdate={(speaking) => {
+              speakingUsersRef.current[currentVoiceChannel.id] = speaking;
+              setSpeakingUsers({...speakingUsersRef.current});
+            }}
+          />
+        )}
+      </div>
+    );
+  }
+
+  // Десктопная версия
   return (
     <div className="app">
       <ServerSidebar

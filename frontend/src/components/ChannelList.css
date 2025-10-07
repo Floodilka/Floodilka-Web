@@ -1,10 +1,22 @@
 .channel-list {
   width: 280px;
+  min-width: 280px;
   background-color: #1e1f22;
   display: flex;
   flex-direction: column;
   border-right: 1px solid #313338;
   user-select: none;
+  overflow: hidden;
+}
+
+/* Мобильная адаптация */
+@media (max-width: 768px) {
+  .channel-list {
+    width: 100%;
+    height: 100%;
+    border-right: none;
+    border-bottom: 1px solid #313338;
+  }
 }
 
 .channel-list-header {
@@ -641,4 +653,25 @@
 .user-profile-badge {
   background-color: #5865f2;
   color: #ffffff;
+}
+
+/* Мобильная адаптация профиля пользователя */
+@media (max-width: 768px) {
+  .mobile-channels-panel .user-profile {
+    margin: 0;
+    border-radius: 0;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 10;
+    background-color: #111214;
+    border-top: 1px solid #313338;
+    padding: 12px 16px;
+  }
+
+  /* Скрываем профиль в режиме чата */
+  .mobile-chat-fullscreen .user-profile {
+    display: none;
+  }
 }
