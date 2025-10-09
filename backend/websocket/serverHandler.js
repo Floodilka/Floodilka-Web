@@ -1,5 +1,6 @@
 const { SOCKET_EVENTS } = require('../constants/events');
 const logger = require('../utils/logger');
+const User = require('../models/User');
 
 // Map для хранения онлайн пользователей на серверах
 const onlineServerUsers = new Map(); // serverId -> Map(userId -> userData)
@@ -38,6 +39,10 @@ class ServerHandler {
         // Добавить в глобальный список онлайн пользователей (если еще не добавлен)
         if (!globalOnlineUsers.has(userId)) {
           globalOnlineUsers.set(userId, userData);
+
+          // Обновить статус в БД на 'online'
+          User.findByIdAndUpdate(userId, { status: 'online' })
+            .catch(err => logger.error('Ошибка обновления статуса на online:', err));
 
           // Уведомить всех о том, что пользователь стал онлайн
           this.io.emit(SOCKET_EVENTS.GLOBAL_USERS_UPDATE, {
@@ -128,6 +133,10 @@ class ServerHandler {
 
         if (!stillOnline) {
           globalOnlineUsers.delete(disconnectedUserId);
+
+          // Обновить статус в БД на 'offline'
+          User.findByIdAndUpdate(disconnectedUserId, { status: 'offline' })
+            .catch(err => logger.error('Ошибка обновления статуса на offline:', err));
 
           // Уведомить всех о том, что пользователь стал оффлайн
           this.io.emit(SOCKET_EVENTS.GLOBAL_USERS_UPDATE, {

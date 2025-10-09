@@ -43,7 +43,21 @@ app.use('/uploads', express.static('uploads'));
 app.set('io', io);
 
 // Подключение к базе данных
-connectDB();
+connectDB().then(async () => {
+  // Сбросить все статусы на offline при запуске (на случай сбоя сервера)
+  try {
+    const User = require('./models/User');
+    const result = await User.updateMany(
+      { status: 'online' },
+      { status: 'offline' }
+    );
+    if (result.modifiedCount > 0) {
+      logger.info(`🔄 Сброшено ${result.modifiedCount} пользовательских статусов на offline при запуске`);
+    }
+  } catch (err) {
+    logger.error('Ошибка при сбросе статусов пользователей:', err);
+  }
+});
 
 // API Routes
 app.use('/api/auth', authRoutes);
@@ -106,6 +120,22 @@ const gracefulShutdown = (signal) => {
   io.close(() => {
     logger.info('WebSocket сервер закрыт');
   });
+
+  // Установить всех пользователей в offline перед закрытием
+  (async () => {
+    try {
+      const User = require('./models/User');
+      const result = await User.updateMany(
+        { status: 'online' },
+        { status: 'offline' }
+      );
+      if (result.modifiedCount > 0) {
+        logger.info(`🔄 Установлено ${result.modifiedCount} пользователей в offline при остановке`);
+      }
+    } catch (err) {
+      logger.error('Ошибка при установке статусов offline:', err);
+    }
+  })();
 
   // Закрываем MongoDB соединение
   const mongoose = require('mongoose');

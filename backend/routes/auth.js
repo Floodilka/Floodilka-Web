@@ -385,5 +385,300 @@ router.post('/assign-badge', async (req, res) => {
   }
 });
 
+// Получить список всех онлайн пользователей (публичный эндпоинт для мониторинга)
+router.get('/users/online', async (req, res) => {
+  try {
+    // Найти всех пользователей со статусом 'online'
+    const onlineUsers = await User.find({ status: 'online' })
+      .select('username displayName avatar badge badgeTooltip status')
+      .sort({ username: 1 });
+
+    const totalUsers = await User.countDocuments();
+    const onlineCount = onlineUsers.length;
+
+    // Красивый HTML-ответ
+    const html = `
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Болтушка - Онлайн пользователи</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+      color: #333;
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    .header {
+      background: white;
+      border-radius: 12px;
+      padding: 30px;
+      margin-bottom: 20px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+      text-align: center;
+    }
+    .header h1 {
+      color: #667eea;
+      font-size: 2.5em;
+      margin-bottom: 10px;
+    }
+    .stats {
+      display: flex;
+      gap: 20px;
+      justify-content: center;
+      margin-top: 20px;
+    }
+    .stat-card {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 20px 30px;
+      border-radius: 10px;
+      text-align: center;
+      min-width: 150px;
+    }
+    .stat-card .number {
+      font-size: 2.5em;
+      font-weight: bold;
+      margin-bottom: 5px;
+    }
+    .stat-card .label {
+      font-size: 0.9em;
+      opacity: 0.9;
+    }
+    .users-list {
+      background: white;
+      border-radius: 12px;
+      padding: 30px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+    }
+    .users-list h2 {
+      color: #667eea;
+      margin-bottom: 20px;
+      font-size: 1.5em;
+    }
+    .user-item {
+      display: flex;
+      align-items: center;
+      padding: 15px;
+      margin-bottom: 10px;
+      background: #f8f9fa;
+      border-radius: 8px;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .user-item:hover {
+      transform: translateX(5px);
+      box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    }
+    .user-avatar {
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: bold;
+      font-size: 1.2em;
+      margin-right: 15px;
+      position: relative;
+    }
+    .user-avatar img {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      object-fit: cover;
+    }
+    .online-indicator {
+      position: absolute;
+      bottom: 2px;
+      right: 2px;
+      width: 12px;
+      height: 12px;
+      background: #00ff00;
+      border: 2px solid white;
+      border-radius: 50%;
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+    .user-info {
+      flex: 1;
+    }
+    .user-name {
+      font-weight: 600;
+      font-size: 1.1em;
+      color: #333;
+      margin-bottom: 3px;
+    }
+    .user-username {
+      color: #666;
+      font-size: 0.9em;
+    }
+    .user-badge {
+      background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
+      color: #333;
+      padding: 4px 10px;
+      border-radius: 5px;
+      font-size: 0.75em;
+      font-weight: bold;
+      margin-left: 10px;
+    }
+    .empty-state {
+      text-align: center;
+      padding: 40px;
+      color: #999;
+    }
+    .empty-state-icon {
+      font-size: 4em;
+      margin-bottom: 10px;
+    }
+    .refresh-btn {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      padding: 12px 30px;
+      border-radius: 8px;
+      font-size: 1em;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 20px;
+      transition: transform 0.2s;
+    }
+    .refresh-btn:hover {
+      transform: scale(1.05);
+    }
+    .timestamp {
+      text-align: center;
+      color: white;
+      margin-top: 20px;
+      opacity: 0.8;
+      font-size: 0.9em;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🎙️ Болтушка</h1>
+      <p>Мониторинг онлайн пользователей</p>
+      <div class="stats">
+        <div class="stat-card">
+          <div class="number">${onlineCount}</div>
+          <div class="label">Онлайн</div>
+        </div>
+        <div class="stat-card">
+          <div class="number">${totalUsers}</div>
+          <div class="label">Всего пользователей</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="users-list">
+      <h2>Пользователи онлайн</h2>
+      ${onlineUsers.length > 0 ? onlineUsers.map(user => `
+        <div class="user-item">
+          <div class="user-avatar">
+            ${user.avatar
+              ? `<img src="${user.avatar}" alt="${user.username}">`
+              : user.username.charAt(0).toUpperCase()
+            }
+            <div class="online-indicator"></div>
+          </div>
+          <div class="user-info">
+            <div class="user-name">${user.displayName || user.username}</div>
+            <div class="user-username">@${user.username}</div>
+          </div>
+          ${user.badge && user.badge !== 'User'
+            ? `<span class="user-badge" title="${user.badgeTooltip || user.badge}">${user.badge}</span>`
+            : ''
+          }
+        </div>
+      `).join('') : `
+        <div class="empty-state">
+          <div class="empty-state-icon">😴</div>
+          <p>Никого нет онлайн</p>
+        </div>
+      `}
+      <center>
+        <button class="refresh-btn" onclick="location.reload()">🔄 Обновить</button>
+      </center>
+    </div>
+
+    <div class="timestamp">
+      Обновлено: ${new Date().toLocaleString('ru-RU', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+      })}
+    </div>
+  </div>
+
+  <script>
+    // Автоматическое обновление каждые 30 секунд
+    setTimeout(() => {
+      location.reload();
+    }, 30000);
+  </script>
+</body>
+</html>`;
+
+    res.send(html);
+  } catch (error) {
+    console.error('Ошибка получения онлайн пользователей:', error);
+    res.status(500).json({ error: 'Ошибка сервера' });
+  }
+});
+
+// Получить список онлайн пользователей в формате JSON
+router.get('/users/online/json', async (req, res) => {
+  try {
+    const onlineUsers = await User.find({ status: 'online' })
+      .select('username displayName avatar badge badgeTooltip status')
+      .sort({ username: 1 });
+
+    const totalUsers = await User.countDocuments();
+
+    res.json({
+      success: true,
+      timestamp: new Date().toISOString(),
+      stats: {
+        online: onlineUsers.length,
+        total: totalUsers,
+        percentage: totalUsers > 0 ? ((onlineUsers.length / totalUsers) * 100).toFixed(1) : 0
+      },
+      users: onlineUsers.map(user => ({
+        id: user._id,
+        username: user.username,
+        displayName: user.displayName,
+        avatar: user.avatar,
+        badge: user.badge,
+        badgeTooltip: user.badgeTooltip,
+        status: user.status
+      }))
+    });
+  } catch (error) {
+    console.error('Ошибка получения онлайн пользователей:', error);
+    res.status(500).json({ error: 'Ошибка сервера' });
+  }
+});
+
 module.exports = router;
 
