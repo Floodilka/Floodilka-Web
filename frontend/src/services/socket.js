@@ -38,7 +38,18 @@ class SocketService {
   }
 
   // Event emitters
+  joinServer(serverData) {
+    console.log('📡 Отправка SERVER_JOIN:', serverData);
+    this.socket?.emit(SOCKET_EVENTS.SERVER_JOIN, serverData);
+  }
+
+  leaveServer(serverId, userId) {
+    console.log('📡 Отправка SERVER_LEAVE:', { serverId, userId });
+    this.socket?.emit(SOCKET_EVENTS.SERVER_LEAVE, { serverId, userId });
+  }
+
   joinChannel(channelData) {
+    console.log('📡 Отправка CHANNEL_JOIN:', channelData);
     this.socket?.emit(SOCKET_EVENTS.CHANNEL_JOIN, channelData);
   }
 
@@ -91,7 +102,7 @@ class SocketService {
   on(event, callback) {
     if (this.socket) {
       this.socket.on(event, callback);
-      
+
       // Сохраняем ссылку на callback для возможности отписки
       if (!this.listeners.has(event)) {
         this.listeners.set(event, new Set());
@@ -103,7 +114,7 @@ class SocketService {
   off(event, callback) {
     if (this.socket) {
       this.socket.off(event, callback);
-      
+
       // Удаляем из сохраненных listeners
       const callbacks = this.listeners.get(event);
       if (callbacks) {

@@ -19,9 +19,16 @@ function UserList({ onlineUsers, allMembers, currentUser, onMessageSent }) {
     }
   });
 
+  console.log('👥 UserList onlineUsers:', onlineUsers);
+  console.log('👥 UserList onlineUsersMap:', Array.from(onlineUsersMap.entries()));
+  console.log('👥 UserList allMembers:', allMembers);
+
   // Разделяем участников на онлайн и оффлайн
   const onlineMembers = allMembers.filter(member => onlineUsersMap.has(member.id));
   const offlineMembers = allMembers.filter(member => !onlineUsersMap.has(member.id));
+
+  console.log('👥 UserList onlineMembers:', onlineMembers);
+  console.log('👥 UserList offlineMembers:', offlineMembers);
 
   const handleUserClick = async (user, event) => {
     const rect = event.currentTarget.getBoundingClientRect();

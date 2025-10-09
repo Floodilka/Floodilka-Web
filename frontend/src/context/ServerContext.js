@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import apiService from '../services/api';
+import socketService from '../services/socket';
 import { useAuth } from './AuthContext';
 
 const ServerContext = createContext();
@@ -56,6 +57,35 @@ export const ServerProvider = ({ children }) => {
     loadServers();
   }, [user, showAuthModal]);
 
+  // Присоединение ко ВСЕМ серверам пользователя для отображения онлайн-статуса
+  useEffect(() => {
+    if (!servers.length || !user) return;
+
+    console.log('🌐 Присоединяемся ко всем серверам для онлайн-статуса:', servers.length);
+
+    // Присоединиться ко всем серверам пользователя
+    servers.forEach(server => {
+      socketService.joinServer({
+        serverId: server._id,
+        userId: user.id,
+        username: user.username,
+        displayName: user.displayName,
+        avatar: user.avatar,
+        badge: user.badge,
+        badgeTooltip: user.badgeTooltip
+      });
+    });
+
+    // Cleanup: покинуть все серверы при размонтировании
+    return () => {
+      if (user) {
+        servers.forEach(server => {
+          socketService.leaveServer(server._id, user.id);
+        });
+      }
+    };
+  }, [servers, user]);
+
   // Загрузка каналов и участников текущего сервера
   useEffect(() => {
     if (!currentServer || !user) return;
@@ -63,7 +93,7 @@ export const ServerProvider = ({ children }) => {
     const loadServerData = async () => {
       try {
         setLoading(true);
-        
+
         // Загрузить каналы
         const channelsData = await apiService.getServerChannels(currentServer._id);
         const channelsArray = Array.isArray(channelsData) ? channelsData : [];
@@ -111,11 +141,11 @@ export const ServerProvider = ({ children }) => {
     if (!currentServer) return;
 
     try {
-      const newChannel = await apiService.createChannel(currentServer._id, { 
-        name: channelName, 
-        type: channelType 
+      const newChannel = await apiService.createChannel(currentServer._id, {
+        name: channelName,
+        type: channelType
       });
-      
+
       setChannels(prev => [...prev, newChannel]);
       return newChannel;
     } catch (err) {
@@ -129,13 +159,13 @@ export const ServerProvider = ({ children }) => {
 
     try {
       const updatedChannel = await apiService.updateChannel(currentServer._id, channelId, updateData);
-      
+
       setChannels(prev =>
         prev.map(channel =>
           channel.id === updatedChannel.id ? updatedChannel : channel
         )
       );
-      
+
       return updatedChannel;
     } catch (err) {
       console.error('Ошибка обновления канала:', err);

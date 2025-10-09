@@ -19,6 +19,7 @@ export const ChatProvider = ({ children }) => {
   const [hasUnreadDMs, setHasUnreadDMs] = useState(false);
 
   const selectTextChannel = useCallback((channel) => {
+    console.log('📺 selectTextChannel вызван:', channel);
     setCurrentTextChannel(channel);
     setShowDirectMessages(false);
   }, []);

@@ -39,8 +39,15 @@ export const useSocket = () => {
       deleteMessage(messageId);
     });
 
-    // User events
+    // User events (старое событие для обратной совместимости)
     socketService.on(SOCKET_EVENTS.USERS_UPDATE, ({ users: newUsers }) => {
+      console.log('👥 USERS_UPDATE событие получено:', newUsers);
+      setUsers(newUsers);
+    });
+
+    // Server user events (новое событие для онлайн статуса на уровне сервера)
+    socketService.on(SOCKET_EVENTS.SERVER_USERS_UPDATE, ({ users: newUsers }) => {
+      console.log('👥 SERVER_USERS_UPDATE событие получено:', newUsers);
       setUsers(newUsers);
     });
 
@@ -78,10 +85,11 @@ export const useSocket = () => {
       socketService.removeAllListeners(SOCKET_EVENTS.MESSAGE_EDITED);
       socketService.removeAllListeners(SOCKET_EVENTS.MESSAGE_DELETED);
       socketService.removeAllListeners(SOCKET_EVENTS.USERS_UPDATE);
+      socketService.removeAllListeners(SOCKET_EVENTS.SERVER_USERS_UPDATE);
       socketService.removeAllListeners(SOCKET_EVENTS.VOICE_CHANNELS_UPDATE);
       socketService.removeAllListeners(SOCKET_EVENTS.ERROR);
       socketService.removeAllListeners(SOCKET_EVENTS.DIRECT_MESSAGE_NEW);
-      
+
       socketService.disconnect();
     };
   }, [user?.id]);

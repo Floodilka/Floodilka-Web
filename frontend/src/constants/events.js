@@ -4,11 +4,16 @@ export const SOCKET_EVENTS = {
   CONNECTION: 'connection',
   DISCONNECT: 'disconnect',
   ERROR: 'error',
-  
+
+  // Server events
+  SERVER_JOIN: 'server:join',
+  SERVER_LEAVE: 'server:leave',
+  SERVER_USERS_UPDATE: 'server:users-update',
+
   // Channel events
   CHANNEL_JOIN: 'channel:join',
   CHANNEL_CREATED: 'channel:created',
-  
+
   // Message events
   MESSAGE_SEND: 'message:send',
   MESSAGE_NEW: 'message:new',
@@ -17,10 +22,10 @@ export const SOCKET_EVENTS = {
   MESSAGE_DELETE: 'message:delete',
   MESSAGE_DELETED: 'message:deleted',
   MESSAGES_HISTORY: 'messages:history',
-  
+
   // User events
   USERS_UPDATE: 'users:update',
-  
+
   // Voice events
   VOICE_JOIN: 'voice:join',
   VOICE_LEAVE: 'voice:leave',
@@ -33,12 +38,12 @@ export const SOCKET_EVENTS = {
   VOICE_DEAFEN_TOGGLE: 'voice:deafen-toggle',
   VOICE_GET_ALL_USERS: 'voice:get-all-users',
   VOICE_CHANNELS_UPDATE: 'voice:channels-update',
-  
+
   // WebRTC events
   VOICE_OFFER: 'voice:offer',
   VOICE_ANSWER: 'voice:answer',
   VOICE_ICE_CANDIDATE: 'voice:ice-candidate',
-  
+
   // Direct message events
   DIRECT_MESSAGE_NEW: 'direct-message:new',
   DIRECT_MESSAGE_EDITED: 'direct-message:edited',
