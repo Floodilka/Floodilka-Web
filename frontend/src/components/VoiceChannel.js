@@ -20,6 +20,8 @@ function VoiceChannel({ socket, channel, user, globalMuted, globalDeafened, onDi
     const userAgent = navigator.userAgent.toLowerCase();
     if (userAgent.includes('yabrowser') || userAgent.includes('yandex')) {
       return 'yandex';
+    } else if (userAgent.includes('arc')) {
+      return 'arc';
     } else if (userAgent.includes('chrome')) {
       return 'chrome';
     } else if (userAgent.includes('firefox')) {
@@ -614,6 +616,8 @@ function VoiceChannel({ socket, channel, user, globalMuted, globalDeafened, onDi
         errorMessage += 'Ошибка безопасности. Убедитесь, что сайт использует HTTPS.';
       } else if (err.message.includes('getUserMedia не поддерживается')) {
         errorMessage += 'Ваш браузер не поддерживает голосовой чат. Пожалуйста, используйте современный браузер (Chrome, Firefox, Safari, Edge).';
+      } else if (getBrowserInfo() === 'arc') {
+        errorMessage += 'Для Arc браузера: 1) Нажмите на иконку в адресной строке (слева от URL) 2) Найдите "Микрофон" и выберите "Разрешить" 3) Обновите страницу (⌘+R). Также проверьте системные настройки macOS: Конфиденциальность и безопасность → Микрофон → убедитесь что Arc включен.';
       } else if (getBrowserInfo() === 'yandex') {
         errorMessage += 'Для Яндекс браузера: 1) Нажмите на иконку замка в адресной строке 2) Разрешите доступ к микрофону 3) Обновите страницу. Подробные инструкции: MICROPHONE_SETUP.md';
       } else {

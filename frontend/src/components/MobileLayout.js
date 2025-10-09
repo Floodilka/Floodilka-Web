@@ -17,6 +17,7 @@ function MobileLayout({
   channels,
   currentTextChannel,
   currentVoiceChannel,
+  activeVoiceChannel,
   voiceChannelUsers,
   speakingUsers,
   isMuted,
@@ -62,6 +63,7 @@ function MobileLayout({
           user={user}
           onSelectDirectMessages={onSelectDirectMessages}
           showDirectMessages={showDirectMessages}
+          activeVoiceChannel={activeVoiceChannel}
         />
           </div>
 

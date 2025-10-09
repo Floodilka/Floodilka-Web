@@ -309,7 +309,7 @@ function ChannelList({ channels, currentTextChannel, currentVoiceChannel, voiceC
         <div className="channels-section">
         <div className="section-header">
           <span>ТЕКСТОВЫЕ КАНАЛЫ</span>
-          {currentServer?.canManageChannels === true && (
+          {currentServer?.canManageChannels === true ? (
             <button
               className="add-channel-btn"
               onClick={() => {
@@ -321,6 +321,8 @@ function ChannelList({ channels, currentTextChannel, currentVoiceChannel, voiceC
             >
               +
             </button>
+          ) : (
+            <div className="add-channel-btn-placeholder"></div>
           )}
         </div>
 
@@ -381,7 +383,7 @@ function ChannelList({ channels, currentTextChannel, currentVoiceChannel, voiceC
       <div className="channels-section voice-section">
         <div className="section-header">
           <span>ГОЛОСОВЫЕ КАНАЛЫ</span>
-          {currentServer?.canManageChannels === true && (
+          {currentServer?.canManageChannels === true ? (
             <button
               className="add-channel-btn"
               onClick={() => {
@@ -393,6 +395,8 @@ function ChannelList({ channels, currentTextChannel, currentVoiceChannel, voiceC
             >
               +
             </button>
+          ) : (
+            <div className="add-channel-btn-placeholder"></div>
           )}
         </div>
 

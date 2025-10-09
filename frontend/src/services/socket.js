@@ -1,0 +1,127 @@
+import io from 'socket.io-client';
+import { BACKEND_URL } from '../constants';
+import { SOCKET_EVENTS } from '../constants/events';
+
+class SocketService {
+  constructor() {
+    this.socket = null;
+    this.listeners = new Map();
+  }
+
+  connect() {
+    if (this.socket) {
+      return this.socket;
+    }
+
+    this.socket = io(BACKEND_URL);
+
+    this.socket.on('connect', () => {
+      console.log('✅ Socket connected:', this.socket.id);
+    });
+
+    this.socket.on('disconnect', () => {
+      console.log('❌ Socket disconnected');
+    });
+
+    return this.socket;
+  }
+
+  disconnect() {
+    if (this.socket) {
+      this.socket.disconnect();
+      this.socket = null;
+    }
+  }
+
+  getSocket() {
+    return this.socket;
+  }
+
+  // Event emitters
+  joinChannel(channelData) {
+    this.socket?.emit(SOCKET_EVENTS.CHANNEL_JOIN, channelData);
+  }
+
+  sendMessage(messageData) {
+    this.socket?.emit(SOCKET_EVENTS.MESSAGE_SEND, messageData);
+  }
+
+  editMessage(messageId, content) {
+    this.socket?.emit(SOCKET_EVENTS.MESSAGE_EDIT, { messageId, content });
+  }
+
+  deleteMessage(messageId) {
+    this.socket?.emit(SOCKET_EVENTS.MESSAGE_DELETE, { messageId });
+  }
+
+  joinVoiceChannel(voiceData) {
+    this.socket?.emit(SOCKET_EVENTS.VOICE_JOIN, voiceData);
+  }
+
+  leaveVoiceChannel(channelId) {
+    this.socket?.emit(SOCKET_EVENTS.VOICE_LEAVE, { channelId });
+  }
+
+  toggleMute(channelId, isMuted) {
+    this.socket?.emit(SOCKET_EVENTS.VOICE_MUTE_TOGGLE, { channelId, isMuted });
+  }
+
+  toggleDeafen(channelId, isDeafened) {
+    this.socket?.emit(SOCKET_EVENTS.VOICE_DEAFEN_TOGGLE, { channelId, isDeafened });
+  }
+
+  getAllVoiceUsers() {
+    this.socket?.emit(SOCKET_EVENTS.VOICE_GET_ALL_USERS);
+  }
+
+  // WebRTC
+  sendOffer(offer, to) {
+    this.socket?.emit(SOCKET_EVENTS.VOICE_OFFER, { offer, to });
+  }
+
+  sendAnswer(answer, to) {
+    this.socket?.emit(SOCKET_EVENTS.VOICE_ANSWER, { answer, to });
+  }
+
+  sendIceCandidate(candidate, to) {
+    this.socket?.emit(SOCKET_EVENTS.VOICE_ICE_CANDIDATE, { candidate, to });
+  }
+
+  // Event listeners
+  on(event, callback) {
+    if (this.socket) {
+      this.socket.on(event, callback);
+      
+      // Сохраняем ссылку на callback для возможности отписки
+      if (!this.listeners.has(event)) {
+        this.listeners.set(event, new Set());
+      }
+      this.listeners.get(event).add(callback);
+    }
+  }
+
+  off(event, callback) {
+    if (this.socket) {
+      this.socket.off(event, callback);
+      
+      // Удаляем из сохраненных listeners
+      const callbacks = this.listeners.get(event);
+      if (callbacks) {
+        callbacks.delete(callback);
+        if (callbacks.size === 0) {
+          this.listeners.delete(event);
+        }
+      }
+    }
+  }
+
+  removeAllListeners(event) {
+    if (this.socket) {
+      this.socket.removeAllListeners(event);
+      this.listeners.delete(event);
+    }
+  }
+}
+
+export default new SocketService();
+

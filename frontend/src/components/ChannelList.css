@@ -229,6 +229,7 @@
   align-items: center;
   padding: 8px 16px;
   margin-top: 8px;
+  min-height: 36px; /* Фиксированная минимальная высота */
 }
 
 .section-header span {
@@ -251,10 +252,17 @@
   align-items: center;
   justify-content: center;
   transition: color 0.2s;
+  flex-shrink: 0; /* Предотвращает сжатие кнопки */
 }
 
 .add-channel-btn:hover {
   color: #dcddde;
+}
+
+.add-channel-btn-placeholder {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
 }
 
 .create-channel-form {

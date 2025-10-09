@@ -58,6 +58,10 @@ channelSchema.set('toJSON', {
   virtuals: true,
   transform: function(doc, ret) {
     ret.id = ret._id.toString();
+    // Преобразуем serverId в строку для совместимости с фронтендом
+    if (ret.serverId) {
+      ret.serverId = ret.serverId.toString();
+    }
     return ret;
   }
 });

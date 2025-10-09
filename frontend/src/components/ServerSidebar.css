@@ -423,3 +423,52 @@
     transform: translateY(-50%) translateX(0);
   }
 }
+
+/* Зеленый индикатор для активного сервера */
+.server-active-indicator {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  width: 20px;
+  height: 20px;
+  background: #23a559;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #1e1f22;
+  z-index: 10;
+  animation: serverIndicatorPulse 2s ease-in-out infinite;
+}
+
+.server-indicator-icon {
+  width: 12px;
+  height: 12px;
+  filter: brightness(0) invert(1);
+}
+
+@keyframes serverIndicatorPulse {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(35, 165, 89, 0.4);
+  }
+  50% {
+    transform: scale(1.05);
+    box-shadow: 0 0 0 4px rgba(35, 165, 89, 0.1);
+  }
+}
+
+/* Мобильная адаптация для индикатора */
+@media (max-width: 768px) {
+  .server-active-indicator {
+    top: -2px;
+    right: -2px;
+    width: 16px;
+    height: 16px;
+  }
+
+  .server-indicator-icon {
+    width: 10px;
+    height: 10px;
+  }
+}

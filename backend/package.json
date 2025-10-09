@@ -6,6 +6,7 @@
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js",
+    "kill": "../scripts/force-kill.sh",
     "db:start": "../scripts/start-db.sh",
     "db:stop": "../scripts/stop-db.sh",
     "db:logs": "../scripts/db-logs.sh",

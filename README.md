@@ -34,7 +34,7 @@ sudo systemctl enable mongod
 git clone <your-repo-url>
 cd Boltushka
 ```
-
+    
 2. Установите backend:
 ```bash
 cd backend
@@ -132,6 +132,21 @@ JWT_SECRET=your-super-secret-jwt-key
 - ✅ Индикаторы говорящих пользователей
 - ✅ Discord-подобный UI
 - ✅ Graceful deployment с минимальным downtime
+
+## 🌐 Поддерживаемые браузеры
+
+Голосовой чат работает в современных браузерах с поддержкой WebRTC:
+- ✅ **Arc Browser** - полная поддержка ([инструкции](./ARC_BROWSER_SETUP.md))
+- ✅ **Google Chrome** - рекомендуется
+- ✅ **Mozilla Firefox**
+- ✅ **Microsoft Edge**
+- ✅ **Safari** (macOS/iOS)
+- ✅ **Яндекс Браузер** ([инструкции](./MICROPHONE_SETUP.md))
+
+### Проблемы с микрофоном?
+- 📖 [Полная инструкция по настройке](./MICROPHONE_SETUP.md)
+- 🚀 [Быстрое решение](./QUICK_FIX_MICROPHONE.md)
+- 🎯 [Специально для Arc](./ARC_BROWSER_SETUP.md)
 
 ## 📝 TODO
 
