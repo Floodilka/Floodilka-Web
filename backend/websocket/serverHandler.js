@@ -4,6 +4,9 @@ const logger = require('../utils/logger');
 // Map для хранения онлайн пользователей на серверах
 const onlineServerUsers = new Map(); // serverId -> Map(userId -> userData)
 
+// Map для хранения всех глобально онлайн пользователей
+const globalOnlineUsers = new Map(); // userId -> userData
+
 class ServerHandler {
   constructor(io) {
     this.io = io;
@@ -29,7 +32,18 @@ class ServerHandler {
         }
 
         // Добавить пользователя
-        users.set(userId, { userId, username, avatar, badge, badgeTooltip, displayName, socketId: socket.id });
+        const userData = { userId, username, avatar, badge, badgeTooltip, displayName, socketId: socket.id };
+        users.set(userId, userData);
+
+        // Добавить в глобальный список онлайн пользователей (если еще не добавлен)
+        if (!globalOnlineUsers.has(userId)) {
+          globalOnlineUsers.set(userId, userData);
+
+          // Уведомить всех о том, что пользователь стал онлайн
+          this.io.emit(SOCKET_EVENTS.GLOBAL_USERS_UPDATE, {
+            users: Array.from(globalOnlineUsers.values())
+          });
+        }
 
         // Уведомить всех на сервере об обновлении списка пользователей
         this.io.to(`server:${serverId}`).emit(SOCKET_EVENTS.SERVER_USERS_UPDATE, {
@@ -77,6 +91,8 @@ class ServerHandler {
 
   handleDisconnect(socket) {
     socket.on(SOCKET_EVENTS.DISCONNECT, () => {
+      let disconnectedUserId = null;
+
       // Удалить пользователя из всех серверов
       if (socket.servers) {
         socket.servers.forEach(serverId => {
@@ -86,6 +102,7 @@ class ServerHandler {
             for (const [userId, userData] of users.entries()) {
               if (userData.socketId === socket.id) {
                 users.delete(userId);
+                disconnectedUserId = userId;
 
                 // Уведомить всех на сервере
                 this.io.to(`server:${serverId}`).emit(SOCKET_EVENTS.SERVER_USERS_UPDATE, {
@@ -97,6 +114,26 @@ class ServerHandler {
             }
           }
         });
+      }
+
+      // Удалить из глобального списка, если пользователь не на других серверах
+      if (disconnectedUserId) {
+        let stillOnline = false;
+        for (const [serverId, users] of onlineServerUsers.entries()) {
+          if (users.has(disconnectedUserId)) {
+            stillOnline = true;
+            break;
+          }
+        }
+
+        if (!stillOnline) {
+          globalOnlineUsers.delete(disconnectedUserId);
+
+          // Уведомить всех о том, что пользователь стал оффлайн
+          this.io.emit(SOCKET_EVENTS.GLOBAL_USERS_UPDATE, {
+            users: Array.from(globalOnlineUsers.values())
+          });
+        }
       }
     });
   }

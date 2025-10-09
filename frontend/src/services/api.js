@@ -25,7 +25,7 @@ class ApiService {
 
     try {
       const response = await fetch(url, config);
-      
+
       if (!response.ok) {
         const error = await response.json().catch(() => ({ error: 'Network error' }));
         throw new Error(error.error || `HTTP error! status: ${response.status}`);
@@ -150,10 +150,10 @@ class ApiService {
   }
 
   // Аутентификация
-  async login(username, password) {
+  async login(email, password) {
     return this.request('/api/auth/login', {
       method: 'POST',
-      body: JSON.stringify({ username, password }),
+      body: JSON.stringify({ email, password }),
     });
   }
 

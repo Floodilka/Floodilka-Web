@@ -1,10 +1,8 @@
 import React, { useState } from 'react';
+import { useAuth } from '../../context/AuthContext';
 
-const BACKEND_URL = window.location.hostname === 'localhost'
-  ? 'http://localhost:3001'
-  : `${window.location.protocol}//${window.location.hostname}`;
-
-function Login({ onSuccess, onSwitchToRegister }) {
+function Login({ onSwitchToRegister }) {
+  const { login } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -17,27 +15,9 @@ function Login({ onSuccess, onSwitchToRegister }) {
     setLoading(true);
 
     try {
-      const response = await fetch(`${BACKEND_URL}/api/auth/login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, password }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Ошибка входа');
-      }
-
-      // Сохранить токен
-      localStorage.setItem('token', data.token);
-      localStorage.setItem('user', JSON.stringify(data.user));
-
-      onSuccess(data.user);
+      await login(email, password);
     } catch (err) {
-      setError(err.message);
+      setError(err.message || 'Ошибка входа');
     } finally {
       setLoading(false);
     }

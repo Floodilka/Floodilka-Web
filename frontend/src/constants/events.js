@@ -9,6 +9,7 @@ export const SOCKET_EVENTS = {
   SERVER_JOIN: 'server:join',
   SERVER_LEAVE: 'server:leave',
   SERVER_USERS_UPDATE: 'server:users-update',
+  GLOBAL_USERS_UPDATE: 'global:users-update',
 
   // Channel events
   CHANNEL_JOIN: 'channel:join',
@@ -22,9 +23,6 @@ export const SOCKET_EVENTS = {
   MESSAGE_DELETE: 'message:delete',
   MESSAGE_DELETED: 'message:deleted',
   MESSAGES_HISTORY: 'messages:history',
-
-  // User events
-  USERS_UPDATE: 'users:update',
 
   // Voice events
   VOICE_JOIN: 'voice:join',

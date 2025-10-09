@@ -1,12 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
 import './DirectMessages.css';
 import UserProfile from './UserProfile';
+import { useGlobalUsers } from '../context/GlobalUsersContext';
 
 const BACKEND_URL = window.location.hostname === 'localhost'
   ? 'http://localhost:3001'
   : `${window.location.protocol}//${window.location.hostname}`;
 
 function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser, onAutoSelectComplete, onUnreadDMsUpdate, isMuted, isDeafened, isInVoice, isSpeaking, onToggleMute, onToggleDeafen, onDisconnect }) {
+  const { globalOnlineUsers } = useGlobalUsers();
   const [directMessages, setDirectMessages] = useState([]);
   const [selectedDM, setSelectedDM] = useState(null);
   const [selectedMessages, setSelectedMessages] = useState([]);
@@ -17,6 +19,11 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
   const [inputValue, setInputValue] = useState('');
   const [sendingMessage, setSendingMessage] = useState(false);
   const messagesEndRef = useRef(null);
+
+  // Функция для проверки онлайн статуса пользователя
+  const isUserOnline = (userId) => {
+    return globalOnlineUsers.some(onlineUser => onlineUser.userId === userId);
+  };
 
   // Функция для прокрутки к последнему сообщению
   const scrollToBottom = () => {
@@ -160,13 +167,13 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
   useEffect(() => {
     if (autoSelectUser && directMessages.length > 0) {
       const conversation = directMessages.find(dm =>
-        dm.user._id === autoSelectUser.userId ||
-        dm.user._id === autoSelectUser.id ||
-        dm.user.username === autoSelectUser.username
+        dm?.user?._id === autoSelectUser.userId ||
+        dm?.user?._id === autoSelectUser.id ||
+        dm?.user?.username === autoSelectUser.username
       );
 
       if (conversation) {
-        console.log('🎯 Автоматически выбираем разговор с:', conversation.user.username);
+        console.log('🎯 Автоматически выбираем разговор с:', conversation.user?.username);
         handleSelectDM(conversation);
 
         // Уведомляем родительский компонент, что автоматический выбор завершен
@@ -201,7 +208,7 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
       // Если это сообщение для нас (мы получатели)
       if (message.receiver._id === user?.id) {
         // Если это разговор, который сейчас открыт
-        if (selectedDM && (message.sender._id === selectedDM._id || message.sender._id === selectedDM.user._id)) {
+        if (selectedDM && (message.sender._id === selectedDM._id || message.sender._id === selectedDM?.user?._id)) {
           setSelectedMessages(prev => [...prev, message]);
           setTimeout(() => scrollToBottom(), 100);
         }
@@ -209,13 +216,13 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
         // Обновляем список разговоров
         setDirectMessages(prev => {
           const existingDM = prev.find(dm =>
-            dm.user._id === message.sender._id || dm._id === message.sender._id
+            dm?.user?._id === message.sender._id || dm?._id === message.sender._id
           );
 
           if (existingDM) {
             // Обновляем существующий разговор
             const updatedDMs = prev.map(dm => {
-              if (dm.user._id === message.sender._id || dm._id === message.sender._id) {
+              if (dm?.user?._id === message.sender._id || dm?._id === message.sender._id) {
                 return {
                   ...dm,
                   lastMessage: {
@@ -229,7 +236,7 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
                       avatar: message.sender.avatar
                     }
                   },
-                  unreadCount: (selectedDM && (message.sender._id === selectedDM._id || message.sender._id === selectedDM.user._id))
+                  unreadCount: (selectedDM && (message.sender._id === selectedDM._id || message.sender._id === selectedDM?.user?._id))
                     ? dm.unreadCount
                     : dm.unreadCount + 1
                 };
@@ -238,8 +245,8 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
             });
 
             // Перемещаем разговор в начало списка
-            const updatedDM = updatedDMs.find(dm => dm.user._id === message.sender._id || dm._id === message.sender._id);
-            const otherDMs = updatedDMs.filter(dm => dm.user._id !== message.sender._id && dm._id !== message.sender._id);
+            const updatedDM = updatedDMs.find(dm => dm?.user?._id === message.sender._id || dm?._id === message.sender._id);
+            const otherDMs = updatedDMs.filter(dm => dm?.user?._id !== message.sender._id && dm?._id !== message.sender._id);
             return [updatedDM, ...otherDMs];
           }
 
@@ -284,7 +291,23 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
 
       const data = await response.json();
       console.log('📥 Получены разговоры:', data);
-      setDirectMessages(data);
+
+      // Фильтруем и валидируем данные
+      const validConversations = Array.isArray(data)
+        ? data.filter(conv => {
+            const isValid = conv && conv.user && conv.user._id && conv.user.username;
+            if (!isValid) {
+              console.warn('⚠️ Невалидный разговор отфильтрован:', conv);
+            }
+            return isValid;
+          })
+        : [];
+
+      if (validConversations.length !== data.length) {
+        console.warn(`⚠️ Отфильтровано ${data.length - validConversations.length} невалидных разговоров`);
+      }
+
+      setDirectMessages(validConversations);
     } catch (err) {
       console.error('Ошибка загрузки личных сообщений:', err);
       setError('Не удалось загрузить личные сообщения');
@@ -358,7 +381,7 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
   };
 
   const filteredDMs = directMessages.filter(dm =>
-    dm.user.username.toLowerCase().includes(searchQuery.toLowerCase())
+    dm?.user?.username?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (
@@ -389,7 +412,7 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
               <p>Начните общение с друзьями!</p>
             </div>
           ) : (
-            filteredDMs.map((dm) => (
+            filteredDMs.filter(dm => dm?.user).map((dm) => (
               <div
                 key={dm._id}
                 className={`dm-item ${selectedDM?._id === dm._id ? 'selected' : ''}`}
@@ -401,7 +424,7 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
                   ) : (
                     <span>{dm.user.username?.charAt(0).toUpperCase()}</span>
                   )}
-                  <div className="dm-status-indicator online"></div>
+                  <div className={`dm-status-indicator ${isUserOnline(dm.user._id) ? 'online' : 'offline'}`}></div>
                 </div>
                 <div className="dm-info">
                   <div className="dm-username">{dm.user.displayName || dm.user.username}</div>
@@ -442,7 +465,7 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
 
       {/* Правая панель - чат */}
       <div className="dm-chat">
-        {selectedDM ? (
+        {selectedDM && selectedDM.user ? (
           <div className="dm-chat-active">
             {/* Заголовок чата */}
             <div className="dm-chat-header">
@@ -453,7 +476,7 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
                   ) : (
                     <span>{selectedDM.user.username?.charAt(0).toUpperCase()}</span>
                   )}
-                  <div className="dm-status-indicator online"></div>
+                  <div className={`dm-status-indicator ${isUserOnline(selectedDM.user._id) ? 'online' : 'offline'}`}></div>
                 </div>
                 <div className="dm-chat-info">
                   <div className="dm-chat-username">{selectedDM.user.displayName || selectedDM.user.username}</div>

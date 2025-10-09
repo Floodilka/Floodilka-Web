@@ -1,10 +1,8 @@
 import React, { useState } from 'react';
+import { useAuth } from '../../context/AuthContext';
 
-const BACKEND_URL = window.location.hostname === 'localhost'
-  ? 'http://localhost:3001'
-  : `${window.location.protocol}//${window.location.hostname}`;
-
-function Register({ onSuccess, onSwitchToLogin }) {
+function Register({ onSwitchToLogin }) {
+  const { register } = useAuth();
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -32,27 +30,9 @@ function Register({ onSuccess, onSwitchToLogin }) {
     setLoading(true);
 
     try {
-      const response = await fetch(`${BACKEND_URL}/api/auth/register`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ username, email, password }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Ошибка регистрации');
-      }
-
-      // Сохранить токен
-      localStorage.setItem('token', data.token);
-      localStorage.setItem('user', JSON.stringify(data.user));
-
-      onSuccess(data.user);
+      await register(username, password, email);
     } catch (err) {
-      setError(err.message);
+      setError(err.message || 'Ошибка регистрации');
     } finally {
       setLoading(false);
     }

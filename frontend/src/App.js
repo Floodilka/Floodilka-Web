@@ -4,6 +4,7 @@ import './App.css';
 // Contexts
 import { AppProvider } from './context/AppContext';
 import { useAuth } from './context/AuthContext';
+import { GlobalUsersProvider, useGlobalUsers } from './context/GlobalUsersContext';
 import { useServer } from './context/ServerContext';
 import { useChat } from './context/ChatContext';
 import { useVoice } from './context/VoiceContext';
@@ -40,7 +41,6 @@ const AppContent = () => {
   const {
     currentTextChannel,
     messages,
-    users,
     showDirectMessages,
     autoSelectUser,
     hasUnreadDMs,
@@ -74,6 +74,7 @@ const AppContent = () => {
   const { isMobile } = useDevice();
   const socket = useSocket();
   const { sendMessage } = useChannel();
+  const { globalOnlineUsers } = useGlobalUsers();
 
   const handleServerSelect = (server) => {
     selectServer(server);
@@ -95,12 +96,8 @@ const AppContent = () => {
     }
   };
 
-  const handleAuth = (userData) => {
-    updateUser(userData);
-  };
-
   if (showAuthModal) {
-    return <AuthModal onAuth={handleAuth} />;
+    return <AuthModal />;
   }
 
   // Если у пользователя нет серверов
@@ -182,7 +179,7 @@ const AppContent = () => {
           onCreateChannel={createChannel}
           onUpdateChannel={updateChannel}
           onDeleteChannel={deleteChannel}
-          onlineUsers={users}
+          onlineUsers={globalOnlineUsers}
           allServerMembers={allServerMembers}
           socket={socket}
           messages={messages}
@@ -269,7 +266,7 @@ const AppContent = () => {
       />
 
       <UserList
-        onlineUsers={users}
+        onlineUsers={globalOnlineUsers}
         allMembers={allServerMembers}
         currentUser={user}
         onMessageSent={handleMessageSent}
@@ -281,7 +278,9 @@ const AppContent = () => {
 function App() {
   return (
     <AppProvider>
-      <AppContent />
+      <GlobalUsersProvider>
+        <AppContent />
+      </GlobalUsersProvider>
     </AppProvider>
   );
 }

@@ -13,13 +13,11 @@ export const useChat = () => {
 export const ChatProvider = ({ children }) => {
   const [currentTextChannel, setCurrentTextChannel] = useState(null);
   const [messages, setMessages] = useState([]);
-  const [users, setUsers] = useState([]);
   const [showDirectMessages, setShowDirectMessages] = useState(false);
   const [autoSelectUser, setAutoSelectUser] = useState(null);
   const [hasUnreadDMs, setHasUnreadDMs] = useState(false);
 
   const selectTextChannel = useCallback((channel) => {
-    console.log('📺 selectTextChannel вызван:', channel);
     setCurrentTextChannel(channel);
     setShowDirectMessages(false);
   }, []);
@@ -61,7 +59,6 @@ export const ChatProvider = ({ children }) => {
   const value = {
     currentTextChannel,
     messages,
-    users,
     showDirectMessages,
     autoSelectUser,
     hasUnreadDMs,
@@ -71,7 +68,6 @@ export const ChatProvider = ({ children }) => {
     sendMessage,
     clearAutoSelectUser,
     setMessages,
-    setUsers,
     addMessage,
     editMessage,
     deleteMessage,

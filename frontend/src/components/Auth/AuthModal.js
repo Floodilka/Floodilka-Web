@@ -3,7 +3,7 @@ import './AuthModal.css';
 import Login from './Login';
 import Register from './Register';
 
-function AuthModal({ onAuth }) {
+function AuthModal() {
   const [mode, setMode] = useState('login'); // 'login' или 'register'
 
   return (
@@ -16,9 +16,9 @@ function AuthModal({ onAuth }) {
 
         <div className="auth-form-container">
           {mode === 'login' ? (
-            <Login onSuccess={onAuth} onSwitchToRegister={() => setMode('register')} />
+            <Login onSwitchToRegister={() => setMode('register')} />
           ) : (
-            <Register onSuccess={onAuth} onSwitchToLogin={() => setMode('login')} />
+            <Register onSwitchToLogin={() => setMode('login')} />
           )}
         </div>
       </div>

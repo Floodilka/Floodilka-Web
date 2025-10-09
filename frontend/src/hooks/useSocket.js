@@ -5,13 +5,15 @@ import { useChat } from '../context/ChatContext';
 import { useVoice } from '../context/VoiceContext';
 import { useAuth } from '../context/AuthContext';
 import { useServer } from '../context/ServerContext';
+import { useGlobalUsers } from '../context/GlobalUsersContext';
 
 export const useSocket = () => {
   const [socket, setSocket] = useState(null);
-  const { addMessage, editMessage, deleteMessage, setUsers, setMessages, setHasUnreadDMs } = useChat();
+  const { addMessage, editMessage, deleteMessage, setMessages, setHasUnreadDMs } = useChat();
   const { setVoiceChannelUsers } = useVoice();
   const { user } = useAuth();
   const { setChannels } = useServer();
+  const { setGlobalOnlineUsers } = useGlobalUsers();
 
   useEffect(() => {
     const newSocket = socketService.connect();
@@ -39,16 +41,16 @@ export const useSocket = () => {
       deleteMessage(messageId);
     });
 
-    // User events (старое событие для обратной совместимости)
-    socketService.on(SOCKET_EVENTS.USERS_UPDATE, ({ users: newUsers }) => {
-      console.log('👥 USERS_UPDATE событие получено:', newUsers);
-      setUsers(newUsers);
-    });
-
-    // Server user events (новое событие для онлайн статуса на уровне сервера)
+    // Server user events (для онлайн статуса на уровне сервера)
     socketService.on(SOCKET_EVENTS.SERVER_USERS_UPDATE, ({ users: newUsers }) => {
       console.log('👥 SERVER_USERS_UPDATE событие получено:', newUsers);
-      setUsers(newUsers);
+      // Больше не используем setUsers - онлайн статус теперь управляется через globalOnlineUsers
+    });
+
+    // Global user events (для всех онлайн пользователей в приложении)
+    socketService.on(SOCKET_EVENTS.GLOBAL_USERS_UPDATE, ({ users: newUsers }) => {
+      console.log('🌍 GLOBAL_USERS_UPDATE событие получено:', newUsers);
+      setGlobalOnlineUsers(newUsers);
     });
 
     // Voice events
@@ -84,15 +86,15 @@ export const useSocket = () => {
       socketService.removeAllListeners(SOCKET_EVENTS.MESSAGE_NEW);
       socketService.removeAllListeners(SOCKET_EVENTS.MESSAGE_EDITED);
       socketService.removeAllListeners(SOCKET_EVENTS.MESSAGE_DELETED);
-      socketService.removeAllListeners(SOCKET_EVENTS.USERS_UPDATE);
       socketService.removeAllListeners(SOCKET_EVENTS.SERVER_USERS_UPDATE);
+      socketService.removeAllListeners(SOCKET_EVENTS.GLOBAL_USERS_UPDATE);
       socketService.removeAllListeners(SOCKET_EVENTS.VOICE_CHANNELS_UPDATE);
       socketService.removeAllListeners(SOCKET_EVENTS.ERROR);
       socketService.removeAllListeners(SOCKET_EVENTS.DIRECT_MESSAGE_NEW);
 
       socketService.disconnect();
     };
-  }, [user?.id]);
+  }, [user?.id, addMessage, editMessage, deleteMessage, setMessages, setHasUnreadDMs, setVoiceChannelUsers, setChannels, setGlobalOnlineUsers]);
 
   return socket;
 };

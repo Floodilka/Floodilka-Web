@@ -37,16 +37,16 @@ export const AuthProvider = ({ children }) => {
     setLoading(false);
   }, []);
 
-  const login = async (username, password) => {
+  const login = async (email, password) => {
     try {
-      const data = await apiService.login(username, password);
-      
+      const data = await apiService.login(email, password);
+
       localStorage.setItem('token', data.token);
       localStorage.setItem('user', JSON.stringify(data.user));
-      
+
       setUser(data.user);
       setShowAuthModal(false);
-      
+
       return data;
     } catch (error) {
       throw error;
@@ -56,13 +56,13 @@ export const AuthProvider = ({ children }) => {
   const register = async (username, password, email) => {
     try {
       const data = await apiService.register(username, password, email);
-      
+
       localStorage.setItem('token', data.token);
       localStorage.setItem('user', JSON.stringify(data.user));
-      
+
       setUser(data.user);
       setShowAuthModal(false);
-      
+
       return data;
     } catch (error) {
       throw error;
@@ -73,7 +73,7 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     localStorage.removeItem('lastServerId');
-    
+
     setUser(null);
     setShowAuthModal(true);
   };

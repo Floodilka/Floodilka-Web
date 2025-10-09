@@ -2,9 +2,6 @@ const messageService = require('../services/messageService');
 const { SOCKET_EVENTS } = require('../constants/events');
 const logger = require('../utils/logger');
 
-// Map для хранения пользователей в текстовых каналах
-const onlineUsers = new Map(); // channelId -> Map(socketId -> userData)
-
 class ChatHandler {
   constructor(io) {
     this.io = io;
@@ -16,14 +13,6 @@ class ChatHandler {
         // Покинуть предыдущий канал
         if (socket.currentChannel) {
           socket.leave(socket.currentChannel);
-          const users = onlineUsers.get(socket.currentChannel);
-          if (users) {
-            users.delete(socket.id);
-            this.io.to(socket.currentChannel).emit(SOCKET_EVENTS.USERS_UPDATE, {
-              channelId: socket.currentChannel,
-              users: Array.from(users.values())
-            });
-          }
         }
 
         // Присоединиться к новому каналу
@@ -32,25 +21,11 @@ class ChatHandler {
         socket.currentAvatar = avatar;
         socket.join(channelId);
 
-        // Получить или создать Map пользователей для канала
-        let users = onlineUsers.get(channelId);
-        if (!users) {
-          users = new Map();
-          onlineUsers.set(channelId, users);
-        }
-        users.set(socket.id, { username: socket.currentUsername, avatar, badge, badgeTooltip, displayName, userId });
-
         // Загрузить сообщения из БД
         const messages = await messageService.getChannelMessages(channelId);
-        
+
         // Отправить текущие сообщения
         socket.emit(SOCKET_EVENTS.MESSAGES_HISTORY, messages);
-
-        // Уведомить всех о новом пользователе
-        this.io.to(channelId).emit(SOCKET_EVENTS.USERS_UPDATE, {
-          channelId,
-          users: Array.from(users.values())
-        });
 
         logger.debug(`Пользователь ${socket.currentUsername} присоединился к каналу ${channelId}`);
       } catch (error) {
@@ -80,7 +55,7 @@ class ChatHandler {
 
         // Отправить всем в канале
         this.io.to(channelId).emit(SOCKET_EVENTS.MESSAGE_NEW, message);
-        
+
         logger.debug(`Сообщение от ${username} в канале ${channelId}`);
       } catch (error) {
         logger.error('Ошибка отправки сообщения:', error);
@@ -93,10 +68,10 @@ class ChatHandler {
     socket.on(SOCKET_EVENTS.MESSAGE_EDIT, async ({ messageId, content }) => {
       try {
         const message = await messageService.editMessage(messageId, content);
-        
+
         // Отправляем обновление всем в канале
         this.io.to(message.channelId).emit(SOCKET_EVENTS.MESSAGE_EDITED, message);
-        
+
         logger.debug(`Сообщение ${messageId} отредактировано`);
       } catch (error) {
         logger.error('Ошибка редактирования сообщения:', error);
@@ -109,10 +84,10 @@ class ChatHandler {
     socket.on(SOCKET_EVENTS.MESSAGE_DELETE, async ({ messageId }) => {
       try {
         const { messageId: deletedId, channelId } = await messageService.deleteMessage(messageId);
-        
+
         // Отправляем уведомление об удалении всем в канале
         this.io.to(channelId).emit(SOCKET_EVENTS.MESSAGE_DELETED, { messageId: deletedId });
-        
+
         logger.debug(`Сообщение ${messageId} удалено`);
       } catch (error) {
         logger.error('Ошибка удаления сообщения:', error);
@@ -125,16 +100,9 @@ class ChatHandler {
     socket.on(SOCKET_EVENTS.DISCONNECT, () => {
       logger.debug('Отключение:', socket.id);
 
-      // Обработка текстовых каналов
+      // Покинуть текстовый канал
       if (socket.currentChannel) {
-        const users = onlineUsers.get(socket.currentChannel);
-        if (users) {
-          users.delete(socket.id);
-          this.io.to(socket.currentChannel).emit(SOCKET_EVENTS.USERS_UPDATE, {
-            channelId: socket.currentChannel,
-            users: Array.from(users.values())
-          });
-        }
+        socket.leave(socket.currentChannel);
       }
     });
   }
