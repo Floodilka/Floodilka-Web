@@ -194,7 +194,7 @@ function Chat({ channel, messages, username, onSendMessage, hasServer, socket, o
       return (
         <div className="chat">
           <div className="no-channel">
-            <h2>Добро пожаловать в Болтушку! 👋</h2>
+            <h2>Добро пожаловать во Флудилку! 👋</h2>
             <p>Выберите канал слева, чтобы начать общение</p>
           </div>
         </div>
