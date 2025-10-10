@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Обновление nginx конфигурации для Boltushka
+# Обновление nginx конфигурации для floodilka
 # Использование: sudo bash update-nginx.sh
 
 set -e
@@ -15,10 +15,10 @@ if [ "$EUID" -ne 0 ]; then
 fi
 
 # Путь к проекту
-PROJECT_DIR="/var/www/boltushka"
+PROJECT_DIR="/var/www/floodilka"
 
 # Определяем, какую конфигурацию использовать (HTTP или HTTPS)
-if [ -f "/etc/letsencrypt/live/boltushka.fitronyx.com/fullchain.pem" ]; then
+if [ -f "/etc/letsencrypt/live/floodilka.fitronyx.com/fullchain.pem" ]; then
     CONFIG_FILE="nginx-https.conf"
     echo "✅ Найден SSL сертификат, используем HTTPS конфигурацию"
 else
@@ -28,7 +28,7 @@ fi
 
 # Копируем конфигурацию
 echo "📝 Копируем конфигурацию..."
-cp "$PROJECT_DIR/deployment/$CONFIG_FILE" /etc/nginx/sites-available/boltushka
+cp "$PROJECT_DIR/deployment/$CONFIG_FILE" /etc/nginx/sites-available/floodilka
 
 # Проверяем синтаксис nginx
 echo "🔍 Проверка конфигурации nginx..."

@@ -1,4 +1,4 @@
-# 🚀 Быстрое обновление Boltushka
+# 🚀 Быстрое обновление floodilka
 
 ## Процесс деплоя минорных обновлений
 
@@ -11,7 +11,7 @@
 ssh root@your-server
 
 # Перейти в проект
-cd /var/www/boltushka
+cd /var/www/floodilka
 
 # Graceful обновление с минимальным downtime
 sudo bash deployment/update-graceful.sh
@@ -39,7 +39,7 @@ sudo bash deployment/update-graceful.sh
 ssh root@your-server
 
 # Перейти в проект
-cd /var/www/boltushka
+cd /var/www/floodilka
 
 # Стандартное обновление
 sudo bash deployment/update.sh
@@ -58,14 +58,14 @@ sudo bash deployment/update.sh
 Если нужно обновить только конфигурацию nginx:
 
 ```bash
-sudo bash /var/www/boltushka/deployment/update-nginx.sh
+sudo bash /var/www/floodilka/deployment/update-nginx.sh
 ```
 
 ## ⏰ Когда деплоить?
 
 ### 🟢 Лучшее время (минимум пользователей):
 - 🌙 02:00 - 06:00 МСК (ночь)
-- 📊 Проверить активность: `sudo -u boltushka pm2 logs --lines 20`
+- 📊 Проверить активность: `sudo -u floodilka pm2 logs --lines 20`
 
 ### 🟡 Приемлемое время:
 - 🌅 09:00 - 11:00 МСК (утро)
@@ -81,13 +81,13 @@ sudo bash /var/www/boltushka/deployment/update-nginx.sh
 
 ```bash
 # Проверить статус приложения
-sudo -u boltushka pm2 status
+sudo -u floodilka pm2 status
 
 # Посмотреть логи backend
-sudo -u boltushka pm2 logs boltushka-backend --lines 50
+sudo -u floodilka pm2 logs floodilka-backend --lines 50
 
 # Посмотреть логи nginx
-sudo tail -f /var/log/nginx/boltushka-error.log
+sudo tail -f /var/log/nginx/floodilka-error.log
 
 # Проверить статус nginx
 sudo systemctl status nginx
@@ -114,7 +114,7 @@ git push
 ssh root@your-server
 
 # 2. Обновить
-cd /var/www/boltushka
+cd /var/www/floodilka
 
 # Если есть изменения в nginx:
 sudo bash deployment/update.sh
@@ -123,7 +123,7 @@ sudo bash deployment/update.sh
 bash deployment/update.sh
 
 # 3. Проверить
-sudo -u boltushka pm2 logs boltushka-backend
+sudo -u floodilka pm2 logs floodilka-backend
 ```
 
 ## Откат изменений
@@ -132,7 +132,7 @@ sudo -u boltushka pm2 logs boltushka-backend
 
 ```bash
 # Откатить к предыдущему коммиту
-cd /var/www/boltushka
+cd /var/www/floodilka
 git log --oneline  # посмотреть историю
 git reset --hard <commit-hash>  # откатиться
 
@@ -152,24 +152,24 @@ bash deployment/update.sh
 ### Backend не запускается после обновления
 ```bash
 # Посмотреть логи
-sudo -u boltushka pm2 logs boltushka-backend
+sudo -u floodilka pm2 logs floodilka-backend
 
 # Проверить env переменные
-sudo -u boltushka pm2 env boltushka-backend
+sudo -u floodilka pm2 env floodilka-backend
 
 # Перезапустить вручную
-cd /var/www/boltushka/backend
-sudo -u boltushka pm2 restart boltushka-backend
+cd /var/www/floodilka/backend
+sudo -u floodilka pm2 restart floodilka-backend
 ```
 
 ### Frontend не обновился
 ```bash
 # Очистить кеш браузера (Ctrl+Shift+R или Cmd+Shift+R)
 # Или проверить файлы:
-ls -la /var/www/boltushka/public/
+ls -la /var/www/floodilka/public/
 
 # Пересобрать вручную:
-cd /var/www/boltushka
+cd /var/www/floodilka
 bash deployment/deploy-frontend.sh
 ```
 
@@ -179,13 +179,13 @@ bash deployment/deploy-frontend.sh
 # Статус всех сервисов
 sudo systemctl status nginx
 sudo systemctl status mongodb
-sudo -u boltushka pm2 status
+sudo -u floodilka pm2 status
 
 # Использование ресурсов
-sudo -u boltushka pm2 monit
+sudo -u floodilka pm2 monit
 
 # Логи в реальном времени
-sudo -u boltushka pm2 logs --lines 100
+sudo -u floodilka pm2 logs --lines 100
 ```
 
 ## Полезные алиасы
@@ -193,10 +193,10 @@ sudo -u boltushka pm2 logs --lines 100
 Добавьте в `~/.bashrc` для удобства:
 
 ```bash
-alias boltushka-update='cd /var/www/boltushka && sudo bash deployment/update.sh'
-alias boltushka-logs='sudo -u boltushka pm2 logs boltushka-backend'
-alias boltushka-status='sudo -u boltushka pm2 status'
-alias boltushka-restart='sudo -u boltushka pm2 restart boltushka-backend'
+alias floodilka-update='cd /var/www/floodilka && sudo bash deployment/update.sh'
+alias floodilka-logs='sudo -u floodilka pm2 logs floodilka-backend'
+alias floodilka-status='sudo -u floodilka pm2 status'
+alias floodilka-restart='sudo -u floodilka pm2 restart floodilka-backend'
 ```
 
 После добавления выполните:
@@ -206,8 +206,8 @@ source ~/.bashrc
 
 Теперь можно просто писать:
 ```bash
-boltushka-update    # обновить
-boltushka-logs      # посмотреть логи
-boltushka-status    # статус
+floodilka-update    # обновить
+floodilka-logs      # посмотреть логи
+floodilka-status    # статус
 ```
 

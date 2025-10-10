@@ -21,7 +21,7 @@ NODE_ENV=development
 FRONTEND_URL=http://localhost:3000
 
 # Настройки MongoDB для Docker
-MONGODB_URI=mongodb://boltushka_user:boltushka_pass@localhost:27017/boltushka
+MONGODB_URI=mongodb://floodilka_user:floodilka_pass@localhost:27017/floodilka
 
 # JWT секрет (сгенерируйте свой)
 JWT_SECRET=your-super-secret-jwt-key-here
@@ -47,9 +47,9 @@ npm start
 
 ### Прямое подключение
 - Хост: `localhost:27017`
-- База данных: `boltushka`
-- Пользователь: `boltushka_user`
-- Пароль: `boltushka_pass`
+- База данных: `floodilka`
+- Пользователь: `floodilka_user`
+- Пароль: `floodilka_pass`
 
 ## 🛠️ Команды управления
 
@@ -74,20 +74,20 @@ npm run db:reset
 ```bash
 # Запуск только MongoDB
 docker run -d \
-  --name boltushka-mongodb \
+  --name floodilka-mongodb \
   -p 27017:27017 \
   -e MONGO_INITDB_ROOT_USERNAME=admin \
   -e MONGO_INITDB_ROOT_PASSWORD=password123 \
-  -e MONGO_INITDB_DATABASE=boltushka \
+  -e MONGO_INITDB_DATABASE=floodilka \
   mongo:7.0
 
 # Инициализация базы данных
-docker exec -i boltushka-mongodb mongosh --username admin --password password123 --authenticationDatabase admin << EOF
-use boltushka;
+docker exec -i floodilka-mongodb mongosh --username admin --password password123 --authenticationDatabase admin << EOF
+use floodilka;
 db.createUser({
-  user: 'boltushka_user',
-  pwd: 'boltushka_pass',
-  roles: [{ role: 'readWrite', db: 'boltushka' }]
+  user: 'floodilka_user',
+  pwd: 'floodilka_pass',
+  roles: [{ role: 'readWrite', db: 'floodilka' }]
 });
 EOF
 ```
@@ -118,7 +118,7 @@ npm run db:stop
 
 ## 📝 Структура базы данных
 
-База данных `boltushka` содержит следующие коллекции:
+База данных `floodilka` содержит следующие коллекции:
 - `users` - пользователи
 - `servers` - серверы
 - `channels` - каналы

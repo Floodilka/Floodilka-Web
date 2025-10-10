@@ -1,6 +1,6 @@
 # 🔄 Миграция на новые домены floodilka.com и floodilka.ru
 
-Это руководство описывает процесс миграции с `boltushka.fitronyx.com` на новые домены `floodilka.com` и `floodilka.ru`.
+Это руководство описывает процесс миграции с `floodilka.fitronyx.com` на новые домены `floodilka.com` и `floodilka.ru`.
 
 ## 📋 Предварительные требования
 
@@ -49,7 +49,7 @@ ssh root@159.89.110.44
 Используйте готовый скрипт миграции:
 
 ```bash
-cd /var/www/boltushka
+cd /var/www/floodilka
 sudo bash deployment/migrate-domains.sh
 ```
 
@@ -66,7 +66,7 @@ sudo bash deployment/migrate-domains.sh
 ### Шаг 1: Обновление репозитория
 
 ```bash
-cd /var/www/boltushka
+cd /var/www/floodilka
 git stash
 git pull origin main
 ```
@@ -74,17 +74,17 @@ git pull origin main
 ### Шаг 2: Бэкап старой конфигурации
 
 ```bash
-sudo cp /etc/nginx/sites-available/boltushka /etc/nginx/sites-available/boltushka.backup
+sudo cp /etc/nginx/sites-available/floodilka /etc/nginx/sites-available/floodilka.backup
 ```
 
 ### Шаг 3: Установка новой конфигурации nginx
 
 ```bash
 # Копируем новую конфигурацию
-sudo cp /var/www/boltushka/deployment/nginx-https.conf /etc/nginx/sites-available/floodilka
+sudo cp /var/www/floodilka/deployment/nginx-https.conf /etc/nginx/sites-available/floodilka
 
 # Удаляем старый симлинк
-sudo rm /etc/nginx/sites-enabled/boltushka
+sudo rm /etc/nginx/sites-enabled/floodilka
 
 # Создаем новый симлинк
 sudo ln -s /etc/nginx/sites-available/floodilka /etc/nginx/sites-enabled/floodilka
@@ -96,7 +96,7 @@ sudo nginx -t
 ### Шаг 4: Настройка SSL сертификатов
 
 ```bash
-cd /var/www/boltushka/deployment
+cd /var/www/floodilka/deployment
 sudo bash setup-ssl.sh
 ```
 
@@ -110,15 +110,15 @@ sudo bash setup-ssl.sh
 
 ```bash
 # Бэкап .env
-sudo cp /var/www/boltushka/backend/.env /var/www/boltushka/backend/.env.backup
+sudo cp /var/www/floodilka/backend/.env /var/www/floodilka/backend/.env.backup
 
 # Редактируем .env
-sudo nano /var/www/boltushka/backend/.env
+sudo nano /var/www/floodilka/backend/.env
 ```
 
 Измените:
 ```bash
-FRONTEND_URL=https://boltushka.fitronyx.com
+FRONTEND_URL=https://floodilka.fitronyx.com
 ```
 
 На:
@@ -133,11 +133,11 @@ FRONTEND_URL=https://floodilka.com
 sudo systemctl restart nginx
 
 # Перезапуск backend
-sudo -u boltushka pm2 restart boltushka-backend
+sudo -u floodilka pm2 restart floodilka-backend
 
 # Проверка статуса
 sudo systemctl status nginx
-sudo -u boltushka pm2 status
+sudo -u floodilka pm2 status
 ```
 
 ## ✅ Проверка работы
@@ -166,7 +166,7 @@ curl -I https://floodilka.ru
 
 ```bash
 # Логи backend
-sudo -u boltushka pm2 logs boltushka-backend
+sudo -u floodilka pm2 logs floodilka-backend
 
 # Логи nginx
 sudo tail -f /var/log/nginx/floodilka-error.log
@@ -205,7 +205,7 @@ sudo certbot certonly --nginx -d floodilka.com -d www.floodilka.com
 
 ```bash
 # Проверьте FRONTEND_URL в .env
-cat /var/www/boltushka/backend/.env | grep FRONTEND_URL
+cat /var/www/floodilka/backend/.env | grep FRONTEND_URL
 
 # Должно быть:
 # FRONTEND_URL=https://floodilka.com
@@ -215,13 +215,13 @@ cat /var/www/boltushka/backend/.env | grep FRONTEND_URL
 
 ```bash
 # Проверьте статус backend
-sudo -u boltushka pm2 status
+sudo -u floodilka pm2 status
 
 # Если не запущен, запустите:
-sudo -u boltushka pm2 restart boltushka-backend
+sudo -u floodilka pm2 restart floodilka-backend
 
 # Проверьте логи
-sudo -u boltushka pm2 logs boltushka-backend
+sudo -u floodilka pm2 logs floodilka-backend
 ```
 
 ### WebSocket не подключается
@@ -240,11 +240,11 @@ sudo cat /etc/nginx/sites-available/floodilka | grep -A 10 "socket.io"
 
 ```bash
 # Удаление старой конфигурации nginx
-sudo rm /etc/nginx/sites-available/boltushka
-sudo rm /etc/nginx/sites-available/boltushka.backup
+sudo rm /etc/nginx/sites-available/floodilka
+sudo rm /etc/nginx/sites-available/floodilka.backup
 
 # Удаление старых SSL сертификатов (опционально)
-sudo certbot delete --cert-name boltushka.fitronyx.com
+sudo certbot delete --cert-name floodilka.fitronyx.com
 ```
 
 ## 📊 Мониторинг после миграции
@@ -253,7 +253,7 @@ sudo certbot delete --cert-name boltushka.fitronyx.com
 
 ```bash
 # Все логи backend
-sudo -u boltushka pm2 logs
+sudo -u floodilka pm2 logs
 
 # Логи nginx для .com
 sudo tail -f /var/log/nginx/floodilka-access.log
@@ -293,8 +293,8 @@ sudo certbot renew --dry-run
 
 ```bash
 # Восстановление старой конфигурации
-sudo cp /etc/nginx/sites-available/boltushka.backup /etc/nginx/sites-available/boltushka
-sudo ln -sf /etc/nginx/sites-available/boltushka /etc/nginx/sites-enabled/boltushka
+sudo cp /etc/nginx/sites-available/floodilka.backup /etc/nginx/sites-available/floodilka
+sudo ln -sf /etc/nginx/sites-available/floodilka /etc/nginx/sites-enabled/floodilka
 sudo rm /etc/nginx/sites-enabled/floodilka
 sudo systemctl restart nginx
 ```

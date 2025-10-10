@@ -1,7 +1,7 @@
 {
-  "name": "boltushka-frontend",
+  "name": "floodilka-frontend",
   "version": "1.0.0",
-  "description": "Frontend for Boltushka - a Discord-like chat app",
+  "description": "Frontend for Floodilka - a Discord-like chat app",
   "private": true,
   "dependencies": {
     "@tensorflow/tfjs": "^4.22.0",

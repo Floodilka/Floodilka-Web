@@ -148,7 +148,7 @@ function EmptyServerState({ onCreateServer, user, onLogout, onAvatarUpdate }) {
               <label>Ссылка-приглашение</label>
               <input
                 type="text"
-                placeholder="https://boltushka.app/invite/abc123 или abc123"
+                placeholder="https://floodilka.com/invite/abc123 или abc123"
                 value={inviteLink}
                 onChange={(e) => {
                   setInviteLink(e.target.value);

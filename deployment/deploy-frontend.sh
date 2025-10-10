@@ -4,12 +4,12 @@
 
 set -e
 
-FRONTEND_DIR="/var/www/boltushka/frontend"
-BUILD_DIR="/var/www/boltushka/frontend/build"
-NGINX_DIR="/var/www/boltushka/public"
-USER="boltushka"
+FRONTEND_DIR="/var/www/floodilka/frontend"
+BUILD_DIR="/var/www/floodilka/frontend/build"
+NGINX_DIR="/var/www/floodilka/public"
+USER="floodilka"
 
-echo "🚀 Деплой Boltushka Frontend..."
+echo "🚀 Деплой floodilka Frontend..."
 
 # Переход в директорию
 cd $FRONTEND_DIR

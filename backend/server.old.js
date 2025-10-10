@@ -15,7 +15,7 @@ const User = require('./models/User');
 const PORT = process.env.PORT || 3001;
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:3000';
 const NODE_ENV = process.env.NODE_ENV || 'development';
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/boltushka';
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/floodilka';
 
 // Подключение к MongoDB
 mongoose.connect(MONGODB_URI)

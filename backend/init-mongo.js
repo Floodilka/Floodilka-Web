@@ -1,17 +1,17 @@
-// Скрипт инициализации MongoDB для Boltushka
+// Скрипт инициализации MongoDB для Floodilka
 // Создает базу данных и пользователя для приложения
 
-// Переключиться на базу данных boltushka
-db = db.getSiblingDB('boltushka');
+// Переключиться на базу данных floodilka
+db = db.getSiblingDB('floodilka');
 
 // Создать пользователя для приложения
 db.createUser({
-  user: 'boltushka_user',
-  pwd: 'boltushka_pass',
+  user: 'floodilka_user',
+  pwd: 'floodilka_pass',
   roles: [
     {
       role: 'readWrite',
-      db: 'boltushka'
+      db: 'floodilka'
     }
   ]
 });
@@ -34,7 +34,7 @@ db.channels.createIndex({ "serverId": 1 });
 db.roles.createIndex({ "serverId": 1 });
 db.serverroles.createIndex({ "serverId": 1, "userId": 1 }, { unique: true });
 
-print('✅ База данных boltushka инициализирована');
-print('👤 Пользователь: boltushka_user');
-print('🔑 Пароль: boltushka_pass');
-print('🌐 База данных: boltushka');
+print('✅ База данных floodilka инициализирована');
+print('👤 Пользователь: floodilka_user');
+print('🔑 Пароль: floodilka_pass');
+print('🌐 База данных: floodilka');

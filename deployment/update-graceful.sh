@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Graceful обновление Boltushka с минимальным downtime
+# Graceful обновление floodilka с минимальным downtime
 # Использование: sudo bash update-graceful.sh
 
 set -e
@@ -11,7 +11,7 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
-echo -e "${GREEN}🚀 Graceful обновление Boltushka...${NC}"
+echo -e "${GREEN}🚀 Graceful обновление floodilka...${NC}"
 echo ""
 
 # Проверка прав
@@ -22,11 +22,11 @@ if [ "$EUID" -ne 0 ]; then
 fi
 
 # Переход в корень проекта
-cd /var/www/boltushka
+cd /var/www/floodilka
 
 # Проверка активных пользователей
 echo -e "${YELLOW}📊 Проверка активных пользователей...${NC}"
-ACTIVE_CONNECTIONS=$(sudo -u boltushka pm2 describe boltushka-backend 2>/dev/null | grep -c "online" || echo "0")
+ACTIVE_CONNECTIONS=$(sudo -u floodilka pm2 describe floodilka-backend 2>/dev/null | grep -c "online" || echo "0")
 
 if [ "$ACTIVE_CONNECTIONS" -gt 0 ]; then
     echo -e "${YELLOW}⚠️  Backend активен. Пользователи могут быть онлайн.${NC}"
@@ -68,7 +68,7 @@ fi
 echo ""
 echo -e "${GREEN}🔧 Обновление backend...${NC}"
 cd backend
-sudo -u boltushka npm install --production
+sudo -u floodilka npm install --production
 
 # Проверка синтаксиса перед рестартом
 echo -e "${YELLOW}🔍 Проверка синтаксиса backend...${NC}"
@@ -80,13 +80,13 @@ fi
 
 # Graceful reload backend
 echo -e "${GREEN}🔄 Graceful reload backend...${NC}"
-sudo -u boltushka pm2 reload boltushka-backend --update-env
+sudo -u floodilka pm2 reload floodilka-backend --update-env
 
 # Проверка что backend запустился
 sleep 3
-if ! sudo -u boltushka pm2 list | grep -q "boltushka-backend.*online"; then
+if ! sudo -u floodilka pm2 list | grep -q "floodilka-backend.*online"; then
     echo -e "${RED}❌ Backend не запустился!${NC}"
-    echo -e "${YELLOW}Смотрите логи: sudo -u boltushka pm2 logs boltushka-backend${NC}"
+    echo -e "${YELLOW}Смотрите логи: sudo -u floodilka pm2 logs floodilka-backend${NC}"
     exit 1
 fi
 
@@ -96,14 +96,14 @@ cd ..
 echo ""
 echo -e "${GREEN}🎨 Обновление frontend...${NC}"
 cd frontend
-sudo -u boltushka npm install
-sudo -u boltushka npm run build
+sudo -u floodilka npm install
+sudo -u floodilka npm run build
 
 # Атомарная замена файлов frontend
 echo -e "${GREEN}📁 Обновление frontend файлов...${NC}"
-NGINX_DIR="/var/www/boltushka/public"
-BUILD_DIR="/var/www/boltushka/frontend/build"
-BACKUP_DIR="/var/www/boltushka/public.backup"
+NGINX_DIR="/var/www/floodilka/public"
+BUILD_DIR="/var/www/floodilka/frontend/build"
+BACKUP_DIR="/var/www/floodilka/public.backup"
 
 # Бэкап старой версии
 if [ -d "$NGINX_DIR" ]; then
@@ -128,13 +128,13 @@ if [ "$NGINX_CHANGED" = true ]; then
 fi
 
 # Сохранение PM2
-sudo -u boltushka pm2 save
+sudo -u floodilka pm2 save
 
 echo ""
 echo -e "${GREEN}✅ Обновление завершено!${NC}"
 echo ""
 echo -e "${GREEN}📊 Статус:${NC}"
-sudo -u boltushka pm2 status
+sudo -u floodilka pm2 status
 
 echo ""
 echo -e "${YELLOW}💡 Рекомендации для пользователей:${NC}"
@@ -142,5 +142,5 @@ echo "  • Обновить страницу (F5 или Ctrl+R)"
 echo "  • Переподключиться к голосовым каналам если были активны"
 echo ""
 echo -e "${GREEN}📜 Проверить логи:${NC}"
-echo "  sudo -u boltushka pm2 logs boltushka-backend --lines 20"
+echo "  sudo -u floodilka pm2 logs floodilka-backend --lines 20"
 

@@ -1,4 +1,4 @@
-# 💬 Болтушка (Boltushka)
+# 💬 Флудилка (Floodilka)
 
 Discord-подобное приложение для общения с текстовыми и голосовыми каналами.
 
@@ -32,9 +32,9 @@ sudo systemctl enable mongod
 1. Клонируйте репозиторий:
 ```bash
 git clone <your-repo-url>
-cd Boltushka
+cd Floodilka
 ```
-    
+
 2. Установите backend:
 ```bash
 cd backend
@@ -56,7 +56,7 @@ npm start
 ## 📦 Структура проекта
 
 ```
-Boltushka/
+Floodilka/
 ├── backend/
 │   ├── models/          # Модели MongoDB (User, Channel, Message)
 │   ├── routes/          # API роуты
@@ -90,7 +90,7 @@ Boltushka/
 **Рекомендуемый способ (graceful, минимальный downtime):**
 ```bash
 ssh root@your-server
-cd /var/www/boltushka
+cd /var/www/floodilka
 sudo bash deployment/update-graceful.sh
 ```
 
@@ -118,7 +118,7 @@ Backend `.env`:
 PORT=3001
 FRONTEND_URL=http://localhost:3000
 NODE_ENV=development
-MONGODB_URI=mongodb://localhost:27017/boltushka
+MONGODB_URI=mongodb://localhost:27017/floodilka
 JWT_SECRET=your-super-secret-jwt-key
 ```
 

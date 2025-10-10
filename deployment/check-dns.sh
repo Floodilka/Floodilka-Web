@@ -74,7 +74,7 @@ if [ "$ALL_OK" = true ]; then
     echo "   ✅ Все DNS записи настроены правильно!"
     echo ""
     echo "🚀 Можно продолжать миграцию:"
-    echo "   cd /var/www/boltushka"
+    echo "   cd /var/www/floodilka"
     echo "   sudo bash deployment/migrate-domains.sh"
 fi
 

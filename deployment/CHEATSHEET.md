@@ -1,4 +1,4 @@
-# 🚀 Шпаргалка по командам Boltushka
+# 🚀 Шпаргалка по командам floodilka
 
 ## Быстрые команды
 
@@ -6,7 +6,7 @@
 ```bash
 # На сервере
 ssh root@your-server
-cd /var/www/boltushka
+cd /var/www/floodilka
 
 # ⭐ Graceful обновление (РЕКОМЕНДУЕТСЯ, минимальный downtime)
 sudo bash deployment/update-graceful.sh
@@ -25,10 +25,10 @@ sudo bash deployment/update-nginx.sh
 ### 📊 Проверка статуса
 ```bash
 # Backend
-sudo -u boltushka pm2 status
+sudo -u floodilka pm2 status
 
 # Мониторинг ресурсов
-sudo -u boltushka pm2 monit
+sudo -u floodilka pm2 monit
 
 # Nginx
 sudo systemctl status nginx
@@ -40,16 +40,16 @@ sudo systemctl status mongod
 ### 📜 Логи
 ```bash
 # Backend (в реальном времени)
-sudo -u boltushka pm2 logs boltushka-backend
+sudo -u floodilka pm2 logs floodilka-backend
 
 # Backend (последние 50 строк)
-sudo -u boltushka pm2 logs boltushka-backend --lines 50
+sudo -u floodilka pm2 logs floodilka-backend --lines 50
 
 # Nginx ошибки
-sudo tail -f /var/log/nginx/boltushka-error.log
+sudo tail -f /var/log/nginx/floodilka-error.log
 
 # Nginx доступ
-sudo tail -f /var/log/nginx/boltushka-access.log
+sudo tail -f /var/log/nginx/floodilka-access.log
 
 # MongoDB
 sudo journalctl -u mongod -n 50
@@ -58,7 +58,7 @@ sudo journalctl -u mongod -n 50
 ### 🔄 Перезапуск
 ```bash
 # Backend
-sudo -u boltushka pm2 restart boltushka-backend
+sudo -u floodilka pm2 restart floodilka-backend
 
 # Nginx
 sudo systemctl reload nginx  # без разрыва соединений
@@ -72,20 +72,20 @@ sudo systemctl restart mongod
 
 ```bash
 # Проверить переменные окружения backend
-sudo -u boltushka pm2 env boltushka-backend
+sudo -u floodilka pm2 env floodilka-backend
 
 # Проверить .env файл
-cat /var/www/boltushka/backend/.env
+cat /var/www/floodilka/backend/.env
 
 # Проверить права файлов
-ls -la /var/www/boltushka/backend/
-ls -la /var/www/boltushka/public/
+ls -la /var/www/floodilka/backend/
+ls -la /var/www/floodilka/public/
 
 # Проверить конфигурацию nginx
 sudo nginx -t
 
 # Посмотреть активную конфигурацию
-cat /etc/nginx/sites-available/boltushka
+cat /etc/nginx/sites-available/floodilka
 ```
 
 ### 🗄️ MongoDB
@@ -95,7 +95,7 @@ mongosh
 
 # В mongosh:
 show dbs                  # список баз
-use boltushka            # выбрать базу
+use floodilka            # выбрать базу
 show collections         # список коллекций
 db.users.find()          # посмотреть пользователей
 db.users.countDocuments() # количество пользователей
@@ -116,27 +116,27 @@ sudo certbot renew
 ### 📦 NPM и зависимости
 ```bash
 # Backend
-cd /var/www/boltushka/backend
-sudo -u boltushka npm install
+cd /var/www/floodilka/backend
+sudo -u floodilka npm install
 
 # Frontend
-cd /var/www/boltushka/frontend
-sudo -u boltushka npm install
+cd /var/www/floodilka/frontend
+sudo -u floodilka npm install
 
 # Очистить кеш npm
-sudo -u boltushka npm cache clean --force
+sudo -u floodilka npm cache clean --force
 ```
 
 ### 🧹 Очистка
 ```bash
 # Очистить логи PM2
-sudo -u boltushka pm2 flush
+sudo -u floodilka pm2 flush
 
 # Очистить старые логи nginx
 sudo find /var/log/nginx -name "*.gz" -type f -delete
 
 # Очистить npm кеш
-sudo -u boltushka npm cache clean --force
+sudo -u floodilka npm cache clean --force
 ```
 
 ### 🔧 Срочные исправления (Hotfix)
@@ -149,11 +149,11 @@ git push
 
 # 2. На сервере
 ssh root@your-server
-cd /var/www/boltushka
+cd /var/www/floodilka
 sudo bash deployment/update.sh
 
 # 3. Проверить
-sudo -u boltushka pm2 logs --lines 50
+sudo -u floodilka pm2 logs --lines 50
 ```
 
 ### 📊 Мониторинг производительности
@@ -171,12 +171,12 @@ free -h
 sudo netstat -tulpn | grep LISTEN
 
 # PM2 мониторинг
-sudo -u boltushka pm2 monit
+sudo -u floodilka pm2 monit
 ```
 
 ### 🔙 Откат изменений
 ```bash
-cd /var/www/boltushka
+cd /var/www/floodilka
 
 # Посмотреть историю
 git log --oneline -10
@@ -193,15 +193,15 @@ sudo bash deployment/update.sh
 Добавьте в `~/.bashrc`:
 
 ```bash
-# Boltushka shortcuts
-alias b-update='cd /var/www/boltushka && sudo bash deployment/update-graceful.sh'
-alias b-update-fast='cd /var/www/boltushka && sudo bash deployment/update.sh'
-alias b-logs='sudo -u boltushka pm2 logs boltushka-backend'
-alias b-status='sudo -u boltushka pm2 status'
-alias b-restart='sudo -u boltushka pm2 reload boltushka-backend'
-alias b-restart-hard='sudo -u boltushka pm2 restart boltushka-backend'
-alias b-monit='sudo -u boltushka pm2 monit'
-alias b-nginx-logs='sudo tail -f /var/log/nginx/boltushka-error.log'
+# floodilka shortcuts
+alias b-update='cd /var/www/floodilka && sudo bash deployment/update-graceful.sh'
+alias b-update-fast='cd /var/www/floodilka && sudo bash deployment/update.sh'
+alias b-logs='sudo -u floodilka pm2 logs floodilka-backend'
+alias b-status='sudo -u floodilka pm2 status'
+alias b-restart='sudo -u floodilka pm2 reload floodilka-backend'
+alias b-restart-hard='sudo -u floodilka pm2 restart floodilka-backend'
+alias b-monit='sudo -u floodilka pm2 monit'
+alias b-nginx-logs='sudo tail -f /var/log/nginx/floodilka-error.log'
 alias b-nginx-reload='sudo nginx -t && sudo systemctl reload nginx'
 ```
 
@@ -228,15 +228,15 @@ b-nginx-reload   # перезагрузить nginx
 ### 1. Backend не отвечает
 ```bash
 # Смотрим логи
-sudo -u boltushka pm2 logs --lines 100
+sudo -u floodilka pm2 logs --lines 100
 
 # Перезапускаем
-sudo -u boltushka pm2 restart boltushka-backend
+sudo -u floodilka pm2 restart floodilka-backend
 
 # Если не помогло - полный перезапуск
-cd /var/www/boltushka/backend
-sudo -u boltushka pm2 delete boltushka-backend
-sudo -u boltushka pm2 start server.js --name boltushka-backend
+cd /var/www/floodilka/backend
+sudo -u floodilka pm2 delete floodilka-backend
+sudo -u floodilka pm2 start server.js --name floodilka-backend
 ```
 
 ### 2. Nginx не работает
@@ -268,24 +268,24 @@ sudo systemctl restart mongod
 # Очищаем кеш браузера: Ctrl+Shift+R (или Cmd+Shift+R)
 
 # Пересобираем frontend
-cd /var/www/boltushka
+cd /var/www/floodilka
 bash deployment/deploy-frontend.sh
 
 # Проверяем файлы
-ls -la /var/www/boltushka/public/
+ls -la /var/www/floodilka/public/
 ```
 
 ### 5. Ошибки 502 Bad Gateway
 ```bash
 # 1. Проверяем backend
-sudo -u boltushka pm2 status
+sudo -u floodilka pm2 status
 
 # 2. Если backend down - рестартим
-sudo -u boltushka pm2 restart boltushka-backend
+sudo -u floodilka pm2 restart floodilka-backend
 
 # 3. Проверяем логи
-sudo -u boltushka pm2 logs
-sudo tail -f /var/log/nginx/boltushka-error.log
+sudo -u floodilka pm2 logs
+sudo tail -f /var/log/nginx/floodilka-error.log
 ```
 
 ## 📖 Дополнительная документация

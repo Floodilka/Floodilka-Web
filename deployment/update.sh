@@ -1,11 +1,11 @@
 #!/bin/bash
 
-# Быстрое обновление Boltushka на сервере
+# Быстрое обновление floodilka на сервере
 # Использование: bash update.sh или sudo bash update.sh (если нужно обновить nginx)
 
 set -e
 
-echo "🚀 Обновление Boltushka..."
+echo "🚀 Обновление floodilka..."
 
 # Проверка, запущен ли скрипт с sudo
 NEED_SUDO=false
@@ -17,7 +17,7 @@ else
 fi
 
 # Переход в корень проекта
-cd /var/www/boltushka
+cd /var/www/floodilka
 
 # Сохранение хеша конфигурации nginx до обновления
 NGINX_HTTPS_HASH_BEFORE=$(md5sum deployment/nginx-https.conf 2>/dev/null | cut -d' ' -f1)
@@ -74,9 +74,9 @@ echo ""
 echo "✅ Обновление завершено!"
 echo ""
 echo "📊 Полезные команды:"
-echo "   Статус: sudo -u boltushka pm2 status"
-echo "   Логи backend: sudo -u boltushka pm2 logs boltushka-backend"
-echo "   Логи nginx: sudo tail -f /var/log/nginx/boltushka-error.log"
+echo "   Статус: sudo -u floodilka pm2 status"
+echo "   Логи backend: sudo -u floodilka pm2 logs floodilka-backend"
+echo "   Логи nginx: sudo tail -f /var/log/nginx/floodilka-error.log"
 if [ "$NGINX_CHANGED" = true ] && [ "$NEED_SUDO" = false ]; then
     echo ""
     echo "⚠️  ВНИМАНИЕ: Не забудьте обновить nginx!"

@@ -17,7 +17,7 @@ ssh root@159.89.110.44
 
 ### 2. Установите MongoDB
 ```bash
-cd /var/www/boltushka/deployment
+cd /var/www/floodilka/deployment
 bash setup-mongodb.sh
 ```
 
@@ -41,7 +41,7 @@ bash update.sh
 ### Быстрое обновление (рекомендуется)
 
 ```bash
-cd /var/www/boltushka
+cd /var/www/floodilka
 sudo bash deployment/update.sh
 ```
 
@@ -60,7 +60,7 @@ sudo bash deployment/update.sh
 ### Проверка статуса
 ```bash
 # Статус backend
-sudo -u boltushka pm2 status
+sudo -u floodilka pm2 status
 
 # Статус MongoDB
 sudo systemctl status mongod
@@ -72,7 +72,7 @@ sudo systemctl status nginx
 ### Логи
 ```bash
 # Логи backend
-sudo -u boltushka pm2 logs boltushka-backend
+sudo -u floodilka pm2 logs floodilka-backend
 
 # Логи MongoDB
 sudo journalctl -u mongod
@@ -84,7 +84,7 @@ sudo tail -f /var/log/nginx/error.log
 ### Перезапуск сервисов
 ```bash
 # Перезапуск backend
-sudo -u boltushka pm2 restart boltushka-backend
+sudo -u floodilka pm2 restart floodilka-backend
 
 # Перезапуск MongoDB
 sudo systemctl restart mongod
@@ -101,8 +101,8 @@ mongosh
 # Посмотреть базы данных
 show dbs
 
-# Использовать базу boltushka
-use boltushka
+# Использовать базу floodilka
+use floodilka
 
 # Посмотреть коллекции
 show collections
@@ -117,7 +117,7 @@ db.channels.find()
 ## Структура production
 
 ```
-/var/www/boltushka/
+/var/www/floodilka/
 ├── backend/
 │   ├── .env              # ⚠️ Не коммитится в Git!
 │   ├── models/
@@ -137,7 +137,7 @@ db.channels.find()
 ## Безопасность
 
 ### JWT Secret
-JWT секрет генерируется автоматически при запуске `setup-production.sh` и хранится в `/var/www/boltushka/backend/.env`.
+JWT секрет генерируется автоматически при запуске `setup-production.sh` и хранится в `/var/www/floodilka/backend/.env`.
 
 ⚠️ **Важно**: Этот файл не должен коммититься в Git!
 
@@ -165,13 +165,13 @@ sudo ufw status
 ### Backend не запускается
 ```bash
 # Проверить логи
-sudo -u boltushka pm2 logs boltushka-backend --lines 50
+sudo -u floodilka pm2 logs floodilka-backend --lines 50
 
 # Проверить .env файл
-cat /var/www/boltushka/backend/.env
+cat /var/www/floodilka/backend/.env
 
 # Проверить права
-ls -la /var/www/boltushka/backend/
+ls -la /var/www/floodilka/backend/
 ```
 
 ### MongoDB не подключается
@@ -189,15 +189,15 @@ sudo systemctl restart mongod
 ### Frontend показывает белый экран
 ```bash
 # Проверить сборку
-ls -la /var/www/boltushka/public/
+ls -la /var/www/floodilka/public/
 
 # Пересобрать frontend
-cd /var/www/boltushka/deployment
+cd /var/www/floodilka/deployment
 bash deploy-frontend.sh
 ```
 
 ### Ошибка CORS
-Проверьте, что в `/var/www/boltushka/backend/.env` правильный `FRONTEND_URL`:
+Проверьте, что в `/var/www/floodilka/backend/.env` правильный `FRONTEND_URL`:
 ```
 FRONTEND_URL=https://floodilka.com
 ```

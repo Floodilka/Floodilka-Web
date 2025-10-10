@@ -9,7 +9,7 @@ const config = {
   frontendUrl: process.env.FRONTEND_URL || 'http://localhost:3000',
   
   // Database
-  mongodbUri: process.env.MONGODB_URI || 'mongodb://localhost:27017/boltushka',
+  mongodbUri: process.env.MONGODB_URI || 'mongodb://localhost:27017/floodilka',
   
   // JWT
   jwtSecret: process.env.JWT_SECRET || 'your-secret-key-change-in-production',

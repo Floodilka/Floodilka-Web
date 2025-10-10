@@ -14,20 +14,20 @@
 ```bash
 ssh root@your-server
 
-cd /var/www/boltushka
+cd /var/www/floodilka
 git pull
 ```
 
 ### Шаг 2: Обновить конфигурацию nginx
 ```bash
 # Обновить nginx конфигурацию
-sudo bash /var/www/boltushka/deployment/update-nginx.sh
+sudo bash /var/www/floodilka/deployment/update-nginx.sh
 ```
 
 Или вручную:
 ```bash
 # Скопировать новую конфигурацию
-sudo cp /var/www/boltushka/deployment/nginx-https.conf /etc/nginx/sites-available/boltushka
+sudo cp /var/www/floodilka/deployment/nginx-https.conf /etc/nginx/sites-available/floodilka
 
 # Проверить конфигурацию
 sudo nginx -t
@@ -37,7 +37,7 @@ sudo systemctl reload nginx
 ```
 
 ### Шаг 3: Проверить
-1. Откройте https://boltushka.fitronyx.com
+1. Откройте https://floodilka.fitronyx.com
 2. Зайдите в настройки пользователя
 3. Загрузите новый аватар
 4. Проверьте, что аватар отображается
@@ -62,10 +62,10 @@ location /uploads/ {
 ## Проверка статуса
 ```bash
 # Проверить логи nginx
-sudo tail -f /var/log/nginx/boltushka-error.log
+sudo tail -f /var/log/nginx/floodilka-error.log
 
 # Проверить логи backend
-sudo -u boltushka pm2 logs boltushka-backend
+sudo -u floodilka pm2 logs floodilka-backend
 ```
 
 ## Дополнительная информация

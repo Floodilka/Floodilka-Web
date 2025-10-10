@@ -3,23 +3,23 @@ version: '3.8'
 services:
   mongodb:
     image: mongo:7.0
-    container_name: boltushka-mongodb
+    container_name: floodilka-mongodb
     restart: unless-stopped
     ports:
       - "27017:27017"
     environment:
       MONGO_INITDB_ROOT_USERNAME: admin
       MONGO_INITDB_ROOT_PASSWORD: password123
-      MONGO_INITDB_DATABASE: boltushka
+      MONGO_INITDB_DATABASE: floodilka
     volumes:
       - mongodb_data:/data/db
       - ./backend/init-mongo.js:/docker-entrypoint-initdb.d/init-mongo.js:ro
     networks:
-      - boltushka-network
+      - floodilka-network
 
   mongo-express:
     image: mongo-express:1.0.0
-    container_name: boltushka-mongo-express
+    container_name: floodilka-mongo-express
     restart: unless-stopped
     ports:
       - "8081:8081"
@@ -32,11 +32,11 @@ services:
     depends_on:
       - mongodb
     networks:
-      - boltushka-network
+      - floodilka-network
 
 volumes:
   mongodb_data:
 
 networks:
-  boltushka-network:
+  floodilka-network:
     driver: bridge

@@ -1,14 +1,14 @@
-# 📚 Документация по деплою Boltushka
+# 📚 Документация по деплою floodilka
 
-Эта директория содержит всё необходимое для деплоя и обслуживания Boltushka в продакшене.
+Эта директория содержит всё необходимое для деплоя и обслуживания floodilka в продакшене.
 
 ## 🚀 Быстрый старт
 
 ### Первый деплой
 ```bash
 # 1. Клонировать на сервер
-git clone <your-repo> /var/www/boltushka
-cd /var/www/boltushka/deployment
+git clone <your-repo> /var/www/floodilka
+cd /var/www/floodilka/deployment
 
 # 2. Установить MongoDB
 bash setup-mongodb.sh
@@ -40,13 +40,13 @@ bash migrate-to-new-server.sh
 
 **⭐ Рекомендуемый способ (с активными пользователями):**
 ```bash
-cd /var/www/boltushka
+cd /var/www/floodilka
 sudo bash deployment/update-graceful.sh
 ```
 
 **Быстрое обновление (без пользователей онлайн):**
 ```bash
-cd /var/www/boltushka
+cd /var/www/floodilka
 sudo bash deployment/update.sh
 ```
 
@@ -151,15 +151,15 @@ sudo bash deployment/update.sh
 
 ```bash
 # 1. Смотрим логи
-sudo -u boltushka pm2 logs --lines 50
+sudo -u floodilka pm2 logs --lines 50
 
 # 2. Откатываемся
-cd /var/www/boltushka
+cd /var/www/floodilka
 git reset --hard HEAD~1
 sudo bash deployment/update-graceful.sh
 
 # 3. Если не помогло - восстанавливаем backup
-mv /var/www/boltushka/public.backup /var/www/boltushka/public
+mv /var/www/floodilka/public.backup /var/www/floodilka/public
 sudo systemctl reload nginx
 ```
 
@@ -167,13 +167,13 @@ sudo systemctl reload nginx
 
 ```bash
 # Проверить процесс
-sudo -u boltushka pm2 status
+sudo -u floodilka pm2 status
 
 # Перезапустить
-sudo -u boltushka pm2 reload boltushka-backend
+sudo -u floodilka pm2 reload floodilka-backend
 
 # Посмотреть детали
-sudo -u boltushka pm2 logs boltushka-backend --lines 100
+sudo -u floodilka pm2 logs floodilka-backend --lines 100
 ```
 
 ### Nginx ошибки?
@@ -183,7 +183,7 @@ sudo -u boltushka pm2 logs boltushka-backend --lines 100
 sudo nginx -t
 
 # Посмотреть логи
-sudo tail -f /var/log/nginx/boltushka-error.log
+sudo tail -f /var/log/nginx/floodilka-error.log
 
 # Перезагрузить
 sudo systemctl reload nginx
@@ -193,16 +193,16 @@ sudo systemctl reload nginx
 
 ```bash
 # Статус всего
-sudo -u boltushka pm2 status
+sudo -u floodilka pm2 status
 sudo systemctl status nginx
 sudo systemctl status mongod
 
 # Логи
-sudo -u boltushka pm2 logs
-sudo tail -f /var/log/nginx/boltushka-error.log
+sudo -u floodilka pm2 logs
+sudo tail -f /var/log/nginx/floodilka-error.log
 
 # Мониторинг
-sudo -u boltushka pm2 monit
+sudo -u floodilka pm2 monit
 htop
 ```
 
@@ -237,7 +237,7 @@ git log --oneline deployment/
 
 ---
 
-💙 Сделано с любовью для Boltushka
+💙 Сделано с любовью для floodilka
 
 Вопросы? Смотрите [CHEATSHEET.md](./CHEATSHEET.md) или [DEPLOYMENT-BEST-PRACTICES.md](./DEPLOYMENT-BEST-PRACTICES.md)
 

@@ -153,7 +153,7 @@ dig floodilka.com NS +short
 ```bash
 # На сервере
 ssh root@159.89.110.44
-cd /var/www/boltushka
+cd /var/www/floodilka
 git pull origin main
 sudo bash deployment/migrate-domains.sh
 ```

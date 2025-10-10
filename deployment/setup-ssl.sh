@@ -25,12 +25,12 @@ fi
 # Создание директории для ACME challenge
 echo ""
 echo "📁 Создание директории для challenge файлов..."
-mkdir -p /var/www/boltushka/public/.well-known/acme-challenge
-chmod -R 755 /var/www/boltushka/public/.well-known
+mkdir -p /var/www/floodilka/public/.well-known/acme-challenge
+chmod -R 755 /var/www/floodilka/public/.well-known
 echo "✅ Директория создана"
 
 # Тестовый файл для проверки доступности
-echo "test" > /var/www/boltushka/public/.well-known/acme-challenge/test.txt
+echo "test" > /var/www/floodilka/public/.well-known/acme-challenge/test.txt
 echo ""
 echo "🧪 Проверка доступности через веб..."
 echo "   Попробуйте открыть: http://$DOMAIN_COM/.well-known/acme-challenge/test.txt"
@@ -43,13 +43,13 @@ if [[ ! $REPLY =~ ^[Yy]$ ]]; then
     echo "   DNS для $DOMAIN_COM должен указывать на этот сервер"
     exit 1
 fi
-rm /var/www/boltushka/public/.well-known/acme-challenge/test.txt
+rm /var/www/floodilka/public/.well-known/acme-challenge/test.txt
 
 # Получение сертификата для .com домена (сначала без www)
 echo ""
 echo "📜 Получение SSL сертификата для $DOMAIN_COM..."
 certbot certonly --webroot \
-    -w /var/www/boltushka/public \
+    -w /var/www/floodilka/public \
     -d $DOMAIN_COM \
     --non-interactive \
     --agree-tos \
@@ -61,7 +61,7 @@ echo "✅ Сертификат для $DOMAIN_COM получен!"
 echo ""
 echo "📜 Добавление www.$DOMAIN_COM к сертификату..."
 certbot certonly --webroot \
-    -w /var/www/boltushka/public \
+    -w /var/www/floodilka/public \
     -d $DOMAIN_COM \
     -d www.$DOMAIN_COM \
     --expand \
@@ -75,7 +75,7 @@ echo "✅ www.$DOMAIN_COM добавлен к сертификату!"
 echo ""
 echo "📜 Получение SSL сертификата для $DOMAIN_RU..."
 certbot certonly --webroot \
-    -w /var/www/boltushka/public \
+    -w /var/www/floodilka/public \
     -d $DOMAIN_RU \
     --non-interactive \
     --agree-tos \
@@ -87,7 +87,7 @@ echo "✅ Сертификат для $DOMAIN_RU получен!"
 echo ""
 echo "📜 Добавление www.$DOMAIN_RU к сертификату..."
 certbot certonly --webroot \
-    -w /var/www/boltushka/public \
+    -w /var/www/floodilka/public \
     -d $DOMAIN_RU \
     -d www.$DOMAIN_RU \
     --expand \

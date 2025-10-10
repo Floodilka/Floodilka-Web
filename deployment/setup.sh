@@ -1,11 +1,11 @@
 #!/bin/bash
 
-# Скрипт для настройки Boltushka на Ubuntu/Debian сервере
+# Скрипт для настройки floodilka на Ubuntu/Debian сервере
 # Запускать с sudo: sudo bash setup.sh
 
 set -e
 
-echo "🚀 Начинаем установку Boltushka..."
+echo "🚀 Начинаем установку floodilka..."
 
 # Обновление системы
 echo "📦 Обновление системы..."
@@ -26,20 +26,20 @@ echo "📦 Установка Nginx..."
 apt install -y nginx
 
 # Создание пользователя для приложения
-echo "👤 Создание пользователя boltushka..."
-if ! id -u boltushka > /dev/null 2>&1; then
-    useradd -m -s /bin/bash boltushka
+echo "👤 Создание пользователя floodilka..."
+if ! id -u floodilka > /dev/null 2>&1; then
+    useradd -m -s /bin/bash floodilka
 fi
 
 # Создание директории для приложения
 echo "📁 Создание директорий..."
-mkdir -p /var/www/boltushka
-chown -R boltushka:boltushka /var/www/boltushka
+mkdir -p /var/www/floodilka
+chown -R floodilka:floodilka /var/www/floodilka
 
 echo "✅ Базовая настройка завершена!"
 echo ""
 echo "Следующие шаги:"
-echo "1. Скопируйте код на сервер в /var/www/boltushka"
+echo "1. Скопируйте код на сервер в /var/www/floodilka"
 echo "2. Запустите deploy-backend.sh для деплоя backend"
 echo "3. Запустите deploy-frontend.sh для деплоя frontend"
 echo "4. Настройте Nginx (см. nginx-config.conf)"

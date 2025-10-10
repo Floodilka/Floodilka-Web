@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Скрипт миграции с boltushka.fitronyx.com на floodilka.com/floodilka.ru
+# Скрипт миграции с floodilka.fitronyx.com на floodilka.com/floodilka.ru
 # Выполняется на продакшн сервере (DigitalOcean droplet)
 
 set -e
@@ -15,12 +15,12 @@ if [ "$EUID" -ne 0 ]; then
 fi
 
 # Переменные
-OLD_DOMAIN="boltushka.fitronyx.com"
+OLD_DOMAIN="floodilka.fitronyx.com"
 NEW_DOMAIN_COM="floodilka.com"
 NEW_DOMAIN_RU="floodilka.ru"
 NGINX_SITES="/etc/nginx/sites-available"
 NGINX_ENABLED="/etc/nginx/sites-enabled"
-APP_DIR="/var/www/boltushka"
+APP_DIR="/var/www/floodilka"
 
 echo "📋 Шаги миграции:"
 echo "  1. Обновление Git репозитория"
@@ -48,9 +48,9 @@ echo "✅ Репозиторий обновлен"
 # Шаг 2: Бэкап старой конфигурации
 echo ""
 echo "💾 Шаг 2/6: Создание бэкапа конфигурации nginx..."
-if [ -f "$NGINX_SITES/boltushka" ]; then
-    cp $NGINX_SITES/boltushka $NGINX_SITES/boltushka.backup.$(date +%Y%m%d_%H%M%S)
-    echo "✅ Бэкап создан: $NGINX_SITES/boltushka.backup.$(date +%Y%m%d_%H%M%S)"
+if [ -f "$NGINX_SITES/floodilka" ]; then
+    cp $NGINX_SITES/floodilka $NGINX_SITES/floodilka.backup.$(date +%Y%m%d_%H%M%S)
+    echo "✅ Бэкап создан: $NGINX_SITES/floodilka.backup.$(date +%Y%m%d_%H%M%S)"
 else
     echo "⚠️  Старая конфигурация не найдена, пропускаем бэкап"
 fi
@@ -60,8 +60,8 @@ echo ""
 echo "🔧 Шаг 3/6: Установка временной HTTP конфигурации nginx..."
 
 # Удаляем старый симлинк
-if [ -L "$NGINX_ENABLED/boltushka" ]; then
-    rm $NGINX_ENABLED/boltushka
+if [ -L "$NGINX_ENABLED/floodilka" ]; then
+    rm $NGINX_ENABLED/floodilka
     echo "✅ Старый симлинк удален"
 fi
 
@@ -135,7 +135,7 @@ echo "✅ Nginx перезапущен с HTTPS конфигурацией"
 
 # Перезапуск backend
 echo "  Перезапуск backend..."
-sudo -u boltushka pm2 restart boltushka-backend
+sudo -u floodilka pm2 restart floodilka-backend
 echo "✅ Backend перезапущен"
 
 echo ""
@@ -147,12 +147,12 @@ echo "   - https://$NEW_DOMAIN_RU"
 echo ""
 echo "📊 Проверьте работу:"
 echo "   - Откройте браузер и перейдите на новые домены"
-echo "   - Проверьте логи: sudo -u boltushka pm2 logs"
+echo "   - Проверьте логи: sudo -u floodilka pm2 logs"
 echo "   - Проверьте логи nginx: tail -f /var/log/nginx/floodilka-error.log"
 echo ""
 echo "🗑️  Очистка (опционально):"
 echo "   После проверки можете удалить старые файлы:"
-echo "   - rm $NGINX_SITES/boltushka"
-echo "   - rm $NGINX_SITES/boltushka.backup.*"
+echo "   - rm $NGINX_SITES/floodilka"
+echo "   - rm $NGINX_SITES/floodilka.backup.*"
 echo ""
 
