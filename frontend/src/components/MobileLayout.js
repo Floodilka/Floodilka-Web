@@ -5,6 +5,7 @@ import ChannelList from './ChannelList';
 import Chat from './Chat';
 import VoiceChannel from './VoiceChannel';
 import UserList from './UserList';
+import DirectMessages from './DirectMessages';
 
 function MobileLayout({
   servers,
@@ -34,9 +35,15 @@ function MobileLayout({
   allServerMembers,
   socket,
   messages,
-  onSendMessage
+  onSendMessage,
+  autoSelectUser,
+  onAutoSelectComplete,
+  onUnreadDMsUpdate,
+  exitDirectMessages
 }) {
   const [isChatMode, setIsChatMode] = useState(false);
+  const [isDMChatMode, setIsDMChatMode] = useState(false);
+  const [selectedDMUser, setSelectedDMUser] = useState(null);
 
   const handleChannelSelect = (channel) => {
     onSelectChannel(channel);
@@ -48,6 +55,101 @@ function MobileLayout({
   const handleBackToChannels = () => {
     setIsChatMode(false);
   };
+
+  const handleBackToDMList = () => {
+    setIsDMChatMode(false);
+    setSelectedDMUser(null);
+  };
+
+  const handleDMUserSelect = (dm) => {
+    setSelectedDMUser(dm);
+    setIsDMChatMode(true);
+  };
+
+  // Если открыты личные сообщения
+  if (showDirectMessages) {
+    // Если выбран конкретный пользователь для чата
+    if (isDMChatMode && selectedDMUser) {
+      return (
+        <div className="mobile-layout mobile-dm-mode">
+          <div className="mobile-dm-fullscreen">
+            <div className="mobile-dm-header">
+              <button
+                className="mobile-dm-back-btn"
+                onClick={handleBackToDMList}
+                title="Назад к списку"
+              >
+                ←
+              </button>
+              <div className="mobile-dm-title">
+                {selectedDMUser.user?.displayName || selectedDMUser.user?.username || 'Пользователь'}
+              </div>
+              <div className="mobile-dm-spacer"></div>
+            </div>
+
+            <div className="mobile-dm-chat-content">
+              <DirectMessages
+                user={user}
+                socket={socket}
+                onLogout={onLogout}
+                onAvatarUpdate={onAvatarUpdate}
+                autoSelectUser={selectedDMUser}
+                onAutoSelectComplete={onAutoSelectComplete}
+                onUnreadDMsUpdate={onUnreadDMsUpdate}
+                isMuted={isMuted}
+                isDeafened={isDeafened}
+                isInVoice={isInVoice}
+                isSpeaking={false}
+                onToggleMute={onToggleMute}
+                onToggleDeafen={onToggleDeafen}
+                onDisconnect={onDisconnect}
+                onDMUserSelect={handleDMUserSelect}
+                showOnlyChat={true}
+              />
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // Показываем список пользователей
+    return (
+      <div className="mobile-layout mobile-dm-mode">
+        <div className="mobile-dm-fullscreen">
+          <div className="mobile-dm-header">
+            <button
+              className="mobile-dm-close-btn"
+              onClick={exitDirectMessages}
+              title="Закрыть личные сообщения"
+            >
+              ✕
+            </button>
+            <div className="mobile-dm-title">Личные сообщения</div>
+            <div className="mobile-dm-spacer"></div>
+          </div>
+
+          <div className="mobile-dm-content">
+            <DirectMessages
+              user={user}
+              socket={socket}
+              onLogout={onLogout}
+              onAvatarUpdate={onAvatarUpdate}
+              onUnreadDMsUpdate={onUnreadDMsUpdate}
+              isMuted={isMuted}
+              isDeafened={isDeafened}
+              isInVoice={isInVoice}
+              isSpeaking={false}
+              onToggleMute={onToggleMute}
+              onToggleDeafen={onToggleDeafen}
+              onDisconnect={onDisconnect}
+              onDMUserSelect={handleDMUserSelect}
+              showOnlyList={true}
+            />
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="mobile-layout">

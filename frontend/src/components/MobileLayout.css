@@ -13,21 +13,21 @@
   }
 }
 
-/* Левая панель с серверами - 20% ширины */
+/* Левая панель с серверами - 15% ширины (уменьшено с 20%) */
 .mobile-servers-panel {
   position: fixed;
   left: 0;
   top: 0;
-  width: 20%;
+  width: 15%;
   height: 100%;
   background-color: #1e1f22;
   border-right: 1px solid #313338;
   z-index: 5;
 }
 
-/* Основная секция с каналами - 80% ширины */
+/* Основная секция с каналами - 85% ширины (увеличено с 80%) */
 .mobile-channels-panel {
-  margin-left: 20%;
+  margin-left: 15%;
   height: 100vh; /* Теперь на всю высоту экрана */
   background-color: #1e1f22;
   overflow: hidden;
@@ -231,11 +231,252 @@
   /* Адаптация для очень маленьких экранов */
   @media (max-width: 480px) {
     .mobile-servers-panel {
-      width: 25%;
+      width: 20%; /* Уменьшено с 25% для более компактного вида */
     }
 
     .mobile-channels-panel {
-      margin-left: 25%;
+      margin-left: 20%; /* Соответственно уменьшено */
     }
+  }
+}
+
+/* Мобильная версия личных сообщений */
+.mobile-dm-mode {
+  width: 100%;
+  height: 100vh;
+}
+
+.mobile-dm-fullscreen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #1e1f22;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+}
+
+.mobile-dm-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 16px;
+  background-color: #1e1f22;
+  border-bottom: 1px solid #313338;
+  height: 56px;
+  flex-shrink: 0;
+  position: relative;
+}
+
+.mobile-dm-close-btn {
+  background: none;
+  border: none;
+  color: #b5bac1;
+  font-size: 28px;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 4px;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  position: absolute;
+  left: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  line-height: 1;
+}
+
+.mobile-dm-close-btn:hover {
+  background-color: #404249;
+  color: #f23f42;
+}
+
+.mobile-dm-close-btn:active {
+  transform: translateY(-50%) scale(0.95);
+}
+
+.mobile-dm-back-btn {
+  background: none;
+  border: none;
+  color: #b5bac1;
+  font-size: 24px;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 4px;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  position: absolute;
+  left: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  line-height: 1;
+  font-weight: bold;
+}
+
+.mobile-dm-back-btn:hover {
+  background-color: #404249;
+  color: #ffffff;
+}
+
+.mobile-dm-back-btn:active {
+  transform: translateY(-50%) scale(0.95);
+}
+
+.mobile-dm-title {
+  color: #ffffff;
+  font-size: 18px;
+  font-weight: 600;
+  text-align: center;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mobile-dm-spacer {
+  width: 40px;
+  position: absolute;
+  right: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.mobile-dm-content {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.mobile-dm-chat-content {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+/* Адаптация DirectMessages для мобильных */
+@media (max-width: 768px) {
+  .mobile-dm-content .direct-messages-container {
+    flex-direction: column;
+    height: 100%;
+  }
+
+  .mobile-dm-content .dm-sidebar {
+    width: 100%;
+    min-width: 100%;
+    border-right: none;
+    border-bottom: 1px solid #313338;
+    height: auto;
+    max-height: 100%;
+    flex: 1;
+  }
+
+  .mobile-dm-content .dm-chat {
+    display: none;
+  }
+
+  /* Показываем UserProfile в мобильной версии личных сообщений */
+  .mobile-dm-content .user-profile {
+    display: block;
+    margin-top: auto;
+    flex-shrink: 0;
+  }
+
+  /* Адаптация списка сообщений */
+  .mobile-dm-content .dm-list {
+    max-height: none;
+    flex: 1;
+  }
+
+  /* Увеличиваем область кликабельности элементов списка */
+  .mobile-dm-content .dm-item {
+    padding: 12px 16px;
+    min-height: 64px;
+  }
+
+  /* Убираем индикатор выбранного пользователя в мобильной версии */
+  .mobile-dm-content .dm-item.selected::before {
+    display: none;
+  }
+
+  .mobile-dm-content .dm-avatar {
+    width: 48px;
+    height: 48px;
+    font-size: 18px;
+  }
+
+  .mobile-dm-content .dm-username {
+    font-size: 17px;
+  }
+
+  .mobile-dm-content .dm-last-message {
+    font-size: 15px;
+  }
+
+  /* Адаптация поиска */
+  .mobile-dm-content .dm-search {
+    padding: 12px 16px;
+  }
+
+  .mobile-dm-content .dm-search input {
+    padding: 12px 16px;
+    font-size: 16px;
+    height: 44px;
+  }
+
+  /* Скрываем дублирующий заголовок в DirectMessages */
+  .mobile-dm-content .dm-header {
+    display: none;
+  }
+
+  /* Стили для режима только чата */
+  .mobile-dm-chat-content .direct-messages-container {
+    height: 100%;
+    flex-direction: column;
+  }
+
+  .mobile-dm-chat-content .dm-chat {
+    flex: 1;
+    height: 100%;
+    border: none;
+  }
+
+  .mobile-dm-chat-content .dm-chat-active {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Скрываем дублированный заголовок чата в мобильной версии */
+  .mobile-dm-chat-content .dm-chat-header {
+    display: none;
+  }
+
+  .mobile-dm-chat-content .dm-messages {
+    flex: 1;
+    overflow-y: auto;
+    max-height: none;
+    padding-top: 0;
+  }
+
+  .mobile-dm-chat-content .message-input-container {
+    flex-shrink: 0;
+    padding: 12px 16px;
+  }
+
+  .mobile-dm-chat-content .message-input-container input {
+    font-size: 16px; /* Предотвращает зум на iOS */
   }
 }

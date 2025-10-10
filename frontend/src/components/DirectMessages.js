@@ -7,7 +7,7 @@ const BACKEND_URL = window.location.hostname === 'localhost'
   ? 'http://localhost:3001'
   : `${window.location.protocol}//${window.location.hostname}`;
 
-function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser, onAutoSelectComplete, onUnreadDMsUpdate, isMuted, isDeafened, isInVoice, isSpeaking, onToggleMute, onToggleDeafen, onDisconnect }) {
+function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser, onAutoSelectComplete, onUnreadDMsUpdate, isMuted, isDeafened, isInVoice, isSpeaking, onToggleMute, onToggleDeafen, onDisconnect, onDMUserSelect, showOnlyList, showOnlyChat }) {
   const { globalOnlineUsers } = useGlobalUsers();
   const [directMessages, setDirectMessages] = useState([]);
   const [selectedDM, setSelectedDM] = useState(null);
@@ -36,7 +36,8 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
   const handleSendMessage = async (e) => {
     e.preventDefault();
 
-    if (!inputValue.trim() || !selectedDM || sendingMessage) {
+    const currentDM = selectedDM || autoSelectUser;
+    if (!inputValue.trim() || !currentDM || sendingMessage) {
       return;
     }
 
@@ -53,7 +54,7 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
-          receiverId: selectedDM._id,
+          receiverId: currentDM._id,
           content: inputValue.trim()
         })
       });
@@ -71,7 +72,7 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
       // Обновляем список разговоров с новым последним сообщением
       setDirectMessages(prev => {
         const updatedDMs = prev.map(dm => {
-          if (dm._id === selectedDM._id) {
+          if (dm._id === currentDM._id) {
             return {
               ...dm,
               lastMessage: {
@@ -91,8 +92,8 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
         });
 
         // Перемещаем обновленный разговор в начало списка
-        const updatedDM = updatedDMs.find(dm => dm._id === selectedDM._id);
-        const otherDMs = updatedDMs.filter(dm => dm._id !== selectedDM._id);
+        const updatedDM = updatedDMs.find(dm => dm._id === currentDM._id);
+        const otherDMs = updatedDMs.filter(dm => dm._id !== currentDM._id);
         return [updatedDM, ...otherDMs];
       });
 
@@ -169,12 +170,45 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
       const conversation = directMessages.find(dm =>
         dm?.user?._id === autoSelectUser.userId ||
         dm?.user?._id === autoSelectUser.id ||
-        dm?.user?.username === autoSelectUser.username
+        dm?.user?.username === autoSelectUser.username ||
+        dm._id === autoSelectUser._id
       );
 
       if (conversation) {
         console.log('🎯 Автоматически выбираем разговор с:', conversation.user?.username);
-        handleSelectDM(conversation);
+        setSelectedDM(conversation);
+        setInputValue('');
+        loadMessagesWithUser(conversation._id);
+
+        // Отмечаем сообщения как прочитанные
+        if (conversation.unreadCount > 0) {
+          try {
+            const token = localStorage.getItem('token');
+            if (token) {
+              console.log('📖 Отмечаем сообщения как прочитанные для пользователя:', conversation._id);
+              fetch(`${BACKEND_URL}/api/direct-messages/read/${conversation._id}`, {
+                method: 'PUT',
+                headers: {
+                  'Authorization': `Bearer ${token}`
+                }
+              }).then(response => {
+                if (response.ok) {
+                  setDirectMessages(prev => prev.map(directMsg => {
+                    if (directMsg._id === conversation._id) {
+                      return { ...directMsg, unreadCount: 0 };
+                    }
+                    return directMsg;
+                  }));
+                  console.log('✅ Сообщения отмечены как прочитанные');
+                }
+              }).catch(err => {
+                console.error('❌ Ошибка при отметке сообщений как прочитанных:', err);
+              });
+            }
+          } catch (err) {
+            console.error('❌ Ошибка при отметке сообщений как прочитанных:', err);
+          }
+        }
 
         // Уведомляем родительский компонент, что автоматический выбор завершен
         if (onAutoSelectComplete) {
@@ -346,6 +380,12 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
   };
 
   const handleSelectDM = async (dm) => {
+    // Если есть обработчик для мобильного режима, используем его
+    if (onDMUserSelect) {
+      onDMUserSelect(dm);
+      return;
+    }
+
     setSelectedDM(dm);
     setInputValue(''); // Очищаем поле ввода при смене разговора
     loadMessagesWithUser(dm._id);
@@ -383,6 +423,85 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
   const filteredDMs = directMessages.filter(dm =>
     dm?.user?.username?.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  // Если нужно показать только чат (для мобильной версии)
+  if (showOnlyChat && autoSelectUser) {
+    return (
+      <div className="direct-messages-container">
+        <div className="dm-chat">
+          <div className="dm-chat-active">
+            {/* Область сообщений */}
+            <div className="dm-messages">
+              {messagesLoading ? (
+                <div className="dm-loading">Загрузка сообщений...</div>
+              ) : selectedMessages.length === 0 ? (
+                <div className="dm-messages-empty">
+                  <h3>Это начало истории ваших личных сообщений с {autoSelectUser.user?.displayName || autoSelectUser.user?.username || autoSelectUser.username}</h3>
+                  <p>Нет общих серверов</p>
+                  <div className="dm-actions">
+                    <button className="dm-action-btn">Добавить в друзья</button>
+                    <button className="dm-action-btn">Заблокировать</button>
+                    <button className="dm-action-btn danger">Пожаловаться на спам</button>
+                  </div>
+                </div>
+              ) : (
+                groupMessages(selectedMessages).map((group, groupIndex) =>
+                  group.messages.map((message, messageIndex) => (
+                    <div key={message._id} className={`dm-message ${message.sender._id === user?.id ? 'dm-message-own' : ''} ${messageIndex > 0 ? 'dm-message-grouped' : ''}`}>
+                      {messageIndex === 0 && (
+                        <div className="dm-message-avatar">
+                          {message.sender.avatar ? (
+                            <img src={`${BACKEND_URL}${message.sender.avatar}`} alt={message.sender.username} />
+                          ) : (
+                            <span>{message.sender.username?.charAt(0).toUpperCase()}</span>
+                          )}
+                        </div>
+                      )}
+                      {messageIndex > 0 && <div className="dm-message-avatar-spacer"></div>}
+                      <div className="dm-message-content">
+                        {messageIndex === 0 && (
+                          <div className="dm-message-header">
+                            <span className="dm-message-username">{message.sender.displayName || message.sender.username}</span>
+                            <span className="dm-message-time">
+                              {new Date(message.timestamp).toLocaleTimeString('ru-RU', {
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              })}
+                            </span>
+                          </div>
+                        )}
+                        <div className="dm-message-text">{message.content}</div>
+                      </div>
+                    </div>
+                  ))
+                ).flat()
+              )}
+              {/* Невидимый элемент для прокрутки к последнему сообщению */}
+              <div ref={messagesEndRef} />
+            </div>
+
+            {/* Поле ввода */}
+            <div className="message-input-container">
+              <form onSubmit={handleSendMessage}>
+                <input
+                  type="text"
+                  placeholder={`Написать @${autoSelectUser.user?.displayName || autoSelectUser.user?.username || autoSelectUser.username}`}
+                  value={inputValue}
+                  onChange={(e) => setInputValue(e.target.value)}
+                  onKeyPress={handleKeyPress}
+                  maxLength={2000}
+                  disabled={sendingMessage}
+                />
+                <button type="submit" disabled={!inputValue.trim() || sendingMessage}>
+                  {sendingMessage ? 'Отправка...' : 'Отправить'}
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="direct-messages-container">
@@ -463,105 +582,107 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
         />
       </div>
 
-      {/* Правая панель - чат */}
-      <div className="dm-chat">
-        {selectedDM && selectedDM.user ? (
-          <div className="dm-chat-active">
-            {/* Заголовок чата */}
-            <div className="dm-chat-header">
-              <div className="dm-chat-user">
-                <div className="dm-chat-avatar">
-                  {selectedDM.user.avatar ? (
-                    <img src={`${BACKEND_URL}${selectedDM.user.avatar}`} alt={selectedDM.user.username} />
-                  ) : (
-                    <span>{selectedDM.user.username?.charAt(0).toUpperCase()}</span>
-                  )}
-                  <div className={`dm-status-indicator ${isUserOnline(selectedDM.user._id) ? 'online' : 'offline'}`}></div>
-                </div>
-                <div className="dm-chat-info">
-                  <div className="dm-chat-username">{selectedDM.user.displayName || selectedDM.user.username}</div>
-                  <div className="dm-chat-status">В сети</div>
-                </div>
-              </div>
-            </div>
-
-            {/* Область сообщений */}
-            <div className="dm-messages">
-              {messagesLoading ? (
-                <div className="dm-loading">Загрузка сообщений...</div>
-              ) : selectedMessages.length === 0 ? (
-                <div className="dm-messages-empty">
-                  <h3>Это начало истории ваших личных сообщений с {selectedDM.user.displayName || selectedDM.user.username}</h3>
-                  <p>Нет общих серверов</p>
-                  <div className="dm-actions">
-                    <button className="dm-action-btn">Добавить в друзья</button>
-                    <button className="dm-action-btn">Заблокировать</button>
-                    <button className="dm-action-btn danger">Пожаловаться на спам</button>
+      {/* Правая панель - чат - показываем только если не только список */}
+      {!showOnlyList && (
+        <div className="dm-chat">
+          {selectedDM && selectedDM.user ? (
+            <div className="dm-chat-active">
+              {/* Заголовок чата */}
+              <div className="dm-chat-header">
+                <div className="dm-chat-user">
+                  <div className="dm-chat-avatar">
+                    {selectedDM.user.avatar ? (
+                      <img src={`${BACKEND_URL}${selectedDM.user.avatar}`} alt={selectedDM.user.username} />
+                    ) : (
+                      <span>{selectedDM.user.username?.charAt(0).toUpperCase()}</span>
+                    )}
+                    <div className={`dm-status-indicator ${isUserOnline(selectedDM.user._id) ? 'online' : 'offline'}`}></div>
+                  </div>
+                  <div className="dm-chat-info">
+                    <div className="dm-chat-username">{selectedDM.user.displayName || selectedDM.user.username}</div>
+                    <div className="dm-chat-status">В сети</div>
                   </div>
                 </div>
-              ) : (
-                groupMessages(selectedMessages).map((group, groupIndex) =>
-                  group.messages.map((message, messageIndex) => (
-                    <div key={message._id} className={`dm-message ${message.sender._id === user?.id ? 'dm-message-own' : ''} ${messageIndex > 0 ? 'dm-message-grouped' : ''}`}>
-                      {messageIndex === 0 && (
-                        <div className="dm-message-avatar">
-                          {message.sender.avatar ? (
-                            <img src={`${BACKEND_URL}${message.sender.avatar}`} alt={message.sender.username} />
-                          ) : (
-                            <span>{message.sender.username?.charAt(0).toUpperCase()}</span>
-                          )}
-                        </div>
-                      )}
-                      {messageIndex > 0 && <div className="dm-message-avatar-spacer"></div>}
-                      <div className="dm-message-content">
+              </div>
+
+              {/* Область сообщений */}
+              <div className="dm-messages">
+                {messagesLoading ? (
+                  <div className="dm-loading">Загрузка сообщений...</div>
+                ) : selectedMessages.length === 0 ? (
+                  <div className="dm-messages-empty">
+                    <h3>Это начало истории ваших личных сообщений с {selectedDM.user.displayName || selectedDM.user.username}</h3>
+                    <p>Нет общих серверов</p>
+                    <div className="dm-actions">
+                      <button className="dm-action-btn">Добавить в друзья</button>
+                      <button className="dm-action-btn">Заблокировать</button>
+                      <button className="dm-action-btn danger">Пожаловаться на спам</button>
+                    </div>
+                  </div>
+                ) : (
+                  groupMessages(selectedMessages).map((group, groupIndex) =>
+                    group.messages.map((message, messageIndex) => (
+                      <div key={message._id} className={`dm-message ${message.sender._id === user?.id ? 'dm-message-own' : ''} ${messageIndex > 0 ? 'dm-message-grouped' : ''}`}>
                         {messageIndex === 0 && (
-                          <div className="dm-message-header">
-                            <span className="dm-message-username">{message.sender.displayName || message.sender.username}</span>
-                            <span className="dm-message-time">
-                              {new Date(message.timestamp).toLocaleTimeString('ru-RU', {
-                                hour: '2-digit',
-                                minute: '2-digit'
-                              })}
-                            </span>
+                          <div className="dm-message-avatar">
+                            {message.sender.avatar ? (
+                              <img src={`${BACKEND_URL}${message.sender.avatar}`} alt={message.sender.username} />
+                            ) : (
+                              <span>{message.sender.username?.charAt(0).toUpperCase()}</span>
+                            )}
                           </div>
                         )}
-                        <div className="dm-message-text">{message.content}</div>
+                        {messageIndex > 0 && <div className="dm-message-avatar-spacer"></div>}
+                        <div className="dm-message-content">
+                          {messageIndex === 0 && (
+                            <div className="dm-message-header">
+                              <span className="dm-message-username">{message.sender.displayName || message.sender.username}</span>
+                              <span className="dm-message-time">
+                                {new Date(message.timestamp).toLocaleTimeString('ru-RU', {
+                                  hour: '2-digit',
+                                  minute: '2-digit'
+                                })}
+                              </span>
+                            </div>
+                          )}
+                          <div className="dm-message-text">{message.content}</div>
+                        </div>
                       </div>
-                    </div>
-                  ))
-                ).flat()
-              )}
-              {/* Невидимый элемент для прокрутки к последнему сообщению */}
-              <div ref={messagesEndRef} />
-            </div>
+                    ))
+                  ).flat()
+                )}
+                {/* Невидимый элемент для прокрутки к последнему сообщению */}
+                <div ref={messagesEndRef} />
+              </div>
 
-            {/* Поле ввода */}
-            <div className="message-input-container">
-              <form onSubmit={handleSendMessage}>
-                <input
-                  type="text"
-                  placeholder={`Написать @${selectedDM.user.displayName || selectedDM.user.username}`}
-                  value={inputValue}
-                  onChange={(e) => setInputValue(e.target.value)}
-                  onKeyPress={handleKeyPress}
-                  maxLength={2000}
-                  disabled={sendingMessage}
-                />
-                <button type="submit" disabled={!inputValue.trim() || sendingMessage}>
-                  {sendingMessage ? 'Отправка...' : 'Отправить'}
-                </button>
-              </form>
+              {/* Поле ввода */}
+              <div className="message-input-container">
+                <form onSubmit={handleSendMessage}>
+                  <input
+                    type="text"
+                    placeholder={`Написать @${selectedDM.user.displayName || selectedDM.user.username}`}
+                    value={inputValue}
+                    onChange={(e) => setInputValue(e.target.value)}
+                    onKeyPress={handleKeyPress}
+                    maxLength={2000}
+                    disabled={sendingMessage}
+                  />
+                  <button type="submit" disabled={!inputValue.trim() || sendingMessage}>
+                    {sendingMessage ? 'Отправка...' : 'Отправить'}
+                  </button>
+                </form>
+              </div>
             </div>
-          </div>
-        ) : (
-          <div className="dm-chat-empty">
-            <div className="dm-chat-empty-content">
-              <h2>Добро пожаловать в личные сообщения!</h2>
-              <p>Выберите разговор из списка слева или начните новое сообщение.</p>
+          ) : (
+            <div className="dm-chat-empty">
+              <div className="dm-chat-empty-content">
+                <h2>Добро пожаловать в личные сообщения!</h2>
+                <p>Выберите разговор из списка слева или начните новое сообщение.</p>
+              </div>
             </div>
-          </div>
-        )}
-      </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

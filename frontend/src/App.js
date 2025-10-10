@@ -109,6 +109,64 @@ const AppContent = () => {
 
   // Если выбран режим личных сообщений
   if (showDirectMessages) {
+    // Для мобильных устройств используем MobileLayout
+    if (isMobile) {
+      return (
+        <div className="app">
+          <MobileLayout
+            servers={servers}
+            currentServer={currentServer}
+            onSelectServer={handleServerSelect}
+            onCreateServer={createServer}
+            user={user}
+            onSelectDirectMessages={selectDirectMessages}
+            showDirectMessages={showDirectMessages}
+            channels={channels}
+            currentTextChannel={currentTextChannel}
+            currentVoiceChannel={currentVoiceChannel}
+            activeVoiceChannel={activeVoiceChannel}
+            voiceChannelUsers={voiceChannelUsers}
+            speakingUsers={speakingUsers}
+            isMuted={globalMuted}
+            isDeafened={globalDeafened}
+            isInVoice={!!activeVoiceChannel}
+            onToggleMute={toggleMute}
+            onToggleDeafen={toggleDeafen}
+            onDisconnect={leaveVoiceChannel}
+            onLogout={logout}
+            onAvatarUpdate={updateUser}
+            onSelectChannel={handleChannelSelect}
+            onCreateChannel={createChannel}
+            onUpdateChannel={updateChannel}
+            onDeleteChannel={deleteChannel}
+            onlineUsers={globalOnlineUsers}
+            allServerMembers={allServerMembers}
+            socket={socket}
+            messages={messages}
+            onSendMessage={sendMessage}
+            autoSelectUser={autoSelectUser}
+            onAutoSelectComplete={clearAutoSelectUser}
+            onUnreadDMsUpdate={setHasUnreadDMs}
+            exitDirectMessages={exitDirectMessages}
+          />
+
+          {/* Голосовой канал (скрытый, работает в фоне) */}
+          {currentVoiceChannel && (
+            <VoiceChannel
+              socket={socket}
+              channel={currentVoiceChannel}
+              user={user}
+              globalMuted={globalMuted}
+              globalDeafened={globalDeafened}
+              onDisconnectRef={voiceDisconnectRef}
+              onSpeakingUpdate={updateSpeakingUsers}
+            />
+          )}
+        </div>
+      );
+    }
+
+    // Для десктопа используем обычный DirectMessages
     return (
       <div className="app">
         <ServerSidebar
