@@ -1,5 +1,13 @@
 # 🚀 Инструкция по деплою на DigitalOcean
 
+## 🌐 Текущие домены
+
+Приложение доступно на:
+- **https://floodilka.com** (основной домен)
+- **https://floodilka.ru** (зеркало)
+
+📖 **Миграция доменов**: См. [DOMAIN-MIGRATION.md](./DOMAIN-MIGRATION.md) для инструкций по смене доменов.
+
 ## Первоначальная настройка (один раз)
 
 ### 1. Подключитесь к дроплету
@@ -191,10 +199,12 @@ bash deploy-frontend.sh
 ### Ошибка CORS
 Проверьте, что в `/var/www/boltushka/backend/.env` правильный `FRONTEND_URL`:
 ```
-FRONTEND_URL=https://boltushka.fitronyx.com
+FRONTEND_URL=https://floodilka.com
 ```
 
 ## Документация
 
 - 📖 [QUICK-UPDATE.md](./QUICK-UPDATE.md) - Быстрое обновление и деплой
+- 🔄 [DOMAIN-MIGRATION.md](./DOMAIN-MIGRATION.md) - Миграция на новые домены
+- 🌐 [DNS-SETUP.md](./DNS-SETUP.md) - Настройка DNS для новых доменов
 - 🔧 [HOTFIX-UPLOADS.md](./HOTFIX-UPLOADS.md) - Hotfix для проблемы с загрузкой аватаров
