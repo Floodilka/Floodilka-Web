@@ -42,6 +42,11 @@ export const ChatProvider = ({ children }) => {
     setAutoSelectUser(null);
   }, []);
 
+  const clearChannelState = useCallback(() => {
+    setCurrentTextChannel(null);
+    setMessages([]);
+  }, []);
+
   const addMessage = useCallback((message) => {
     setMessages(prev => [...prev, message]);
   }, []);
@@ -67,6 +72,7 @@ export const ChatProvider = ({ children }) => {
     exitDirectMessages,
     sendMessage,
     clearAutoSelectUser,
+    clearChannelState,
     setMessages,
     addMessage,
     editMessage,

@@ -5,7 +5,7 @@ const BACKEND_URL = window.location.hostname === 'localhost'
   ? 'http://localhost:3001'
   : `${window.location.protocol}//${window.location.hostname}`;
 
-function Chat({ channel, messages, username, onSendMessage, hasServer, socket, onMessageSent }) {
+function Chat({ channel, messages, username, onSendMessage, hasServer, hasTextChannels, serverLoading, socket, onMessageSent }) {
   const [inputValue, setInputValue] = useState('');
   const messagesEndRef = useRef(null);
   const messagesContainerRef = useRef(null);
@@ -164,7 +164,7 @@ function Chat({ channel, messages, username, onSendMessage, hasServer, socket, o
   };
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
   };
 
   useEffect(() => {
@@ -233,8 +233,22 @@ function Chat({ channel, messages, username, onSendMessage, hasServer, socket, o
       return (
         <div className="chat">
           <div className="no-channel">
-            <h2>Добро пожаловать во Флудилку! 👋</h2>
-            <p>Выберите канал слева, чтобы начать общение</p>
+            {serverLoading ? (
+              <>
+                <h2>Загрузка...</h2>
+                <p>Загружаем каналы сервера</p>
+              </>
+            ) : hasTextChannels ? (
+              <>
+                <h2>Добро пожаловать во Флудилку! 👋</h2>
+                <p>Выберите канал слева, чтобы начать общение</p>
+              </>
+            ) : (
+              <>
+                <h2>НЕТ ТЕКСТОВЫХ КАНАЛОВ</h2>
+                <p>Вы оказались в странном месте. У вас нет доступа к текстовым каналам, или на этом сервере их нет.</p>
+              </>
+            )}
           </div>
         </div>
       );

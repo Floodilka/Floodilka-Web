@@ -36,6 +36,8 @@ function MobileLayout({
   socket,
   messages,
   onSendMessage,
+  hasTextChannels,
+  serverLoading,
   autoSelectUser,
   onAutoSelectComplete,
   onUnreadDMsUpdate,
@@ -216,6 +218,8 @@ function MobileLayout({
               username={user?.username}
               onSendMessage={onSendMessage}
               hasServer={!!currentServer}
+              hasTextChannels={hasTextChannels}
+              serverLoading={serverLoading}
               socket={socket}
             />
           </div>

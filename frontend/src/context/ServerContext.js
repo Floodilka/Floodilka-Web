@@ -31,21 +31,6 @@ export const ServerProvider = ({ children }) => {
         const data = await apiService.getServers();
         const serversArray = Array.isArray(data) ? data : [];
         setServers(serversArray);
-
-        // Попытаться восстановить последний выбранный сервер
-        const lastServerId = localStorage.getItem('lastServerId');
-        if (lastServerId && serversArray.length > 0) {
-          const lastServer = serversArray.find(s => s._id === lastServerId);
-          if (lastServer) {
-            setCurrentServer(lastServer);
-            return;
-          }
-        }
-
-        // Если не получилось восстановить, выбрать первый сервер
-        if (serversArray.length > 0 && !currentServer) {
-          setCurrentServer(serversArray[0]);
-        }
       } catch (err) {
         console.error('Ошибка загрузки серверов:', err);
         setServers([]);
@@ -121,7 +106,9 @@ export const ServerProvider = ({ children }) => {
     }
 
     setCurrentServer(server);
-    localStorage.setItem('lastServerId', server._id);
+    // Очищаем каналы при смене сервера
+    setChannels([]);
+    setAllServerMembers([]);
   }, [currentServer]);
 
   const createServer = useCallback(async (serverData) => {
@@ -129,7 +116,6 @@ export const ServerProvider = ({ children }) => {
       const newServer = await apiService.createServer(serverData);
       setServers(prev => [...prev, newServer]);
       setCurrentServer(newServer);
-      localStorage.setItem('lastServerId', newServer._id);
       return newServer;
     } catch (err) {
       console.error('Ошибка создания сервера:', err);

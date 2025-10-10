@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import './EmptyServerState.css';
 import CreateServerModal from './CreateServerModal';
 import UserSettingsModal from './UserSettingsModal';
@@ -8,6 +9,7 @@ const BACKEND_URL = window.location.hostname === 'localhost'
   : `${window.location.protocol}//${window.location.hostname}`;
 
 function EmptyServerState({ onCreateServer, user, onLogout, onAvatarUpdate }) {
+  const navigate = useNavigate();
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showJoinModal, setShowJoinModal] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
@@ -15,9 +17,12 @@ function EmptyServerState({ onCreateServer, user, onLogout, onAvatarUpdate }) {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const handleCreateServer = (serverData) => {
-    onCreateServer(serverData);
+  const handleCreateServer = async (serverData) => {
+    const newServer = await onCreateServer(serverData);
     setShowCreateModal(false);
+    if (newServer) {
+      navigate(`/channels/${newServer._id}`);
+    }
   };
 
   const extractInviteCode = (input) => {

@@ -1,10 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import './ChannelSettingsModal.css';
 
-const BACKEND_URL = window.location.hostname === 'localhost'
-  ? 'http://localhost:3001'
-  : `${window.location.protocol}//${window.location.hostname}`;
-
 function ChannelSettingsModal({ channel, currentServer, isOpen, onClose, onUpdateChannel, onDeleteChannel }) {
   const [channelName, setChannelName] = useState('');
   const [loading, setLoading] = useState(false);
@@ -16,31 +12,12 @@ function ChannelSettingsModal({ channel, currentServer, isOpen, onClose, onUpdat
   }, [channel, isOpen]);
 
   const handleSave = async () => {
-    if (!channel || !currentServer) return;
+    if (!channel || !currentServer || !onUpdateChannel) return;
 
     setLoading(true);
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${BACKEND_URL}/api/servers/${currentServer._id}/channels/${channel.id}`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          name: channelName
-        })
-      });
-
-      if (response.ok) {
-        const updatedChannel = await response.json();
-        if (onUpdateChannel) {
-          onUpdateChannel(updatedChannel);
-        }
-        onClose();
-      } else {
-        console.error('Ошибка обновления канала');
-      }
+      await onUpdateChannel(channel.id, { name: channelName });
+      onClose();
     } catch (err) {
       console.error('Ошибка обновления канала:', err);
     } finally {
@@ -49,27 +26,13 @@ function ChannelSettingsModal({ channel, currentServer, isOpen, onClose, onUpdat
   };
 
   const handleDelete = async () => {
-    if (!channel || !currentServer) return;
+    if (!channel || !currentServer || !onDeleteChannel) return;
 
     if (window.confirm(`Вы уверены, что хотите удалить канал "${channel.name}"?`)) {
       setLoading(true);
       try {
-        const token = localStorage.getItem('token');
-        const response = await fetch(`${BACKEND_URL}/api/servers/${currentServer._id}/channels/${channel.id}`, {
-          method: 'DELETE',
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
-
-        if (response.ok) {
-          if (onDeleteChannel) {
-            onDeleteChannel(channel.id);
-          }
-          onClose();
-        } else {
-          console.error('Ошибка удаления канала');
-        }
+        await onDeleteChannel(channel.id);
+        onClose();
       } catch (err) {
         console.error('Ошибка удаления канала:', err);
       } finally {

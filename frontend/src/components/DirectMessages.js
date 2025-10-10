@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import './DirectMessages.css';
 import UserProfile from './UserProfile';
 import { useGlobalUsers } from '../context/GlobalUsersContext';
@@ -8,6 +9,7 @@ const BACKEND_URL = window.location.hostname === 'localhost'
   : `${window.location.protocol}//${window.location.hostname}`;
 
 function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser, onAutoSelectComplete, onUnreadDMsUpdate, isMuted, isDeafened, isInVoice, isSpeaking, onToggleMute, onToggleDeafen, onDisconnect, onDMUserSelect, showOnlyList, showOnlyChat }) {
+  const navigate = useNavigate();
   const { globalOnlineUsers } = useGlobalUsers();
   const [directMessages, setDirectMessages] = useState([]);
   const [selectedDM, setSelectedDM] = useState(null);
@@ -164,14 +166,13 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
     }
   }, [user]);
 
-  // Автоматический выбор разговора с пользователем
+  // Автоматический выбор разговора по userId из URL
   useEffect(() => {
     if (autoSelectUser && directMessages.length > 0) {
+      // Ищем по userId из URL
       const conversation = directMessages.find(dm =>
         dm?.user?._id === autoSelectUser.userId ||
-        dm?.user?._id === autoSelectUser.id ||
-        dm?.user?.username === autoSelectUser.username ||
-        dm._id === autoSelectUser._id
+        dm?._id === autoSelectUser.userId
       );
 
       if (conversation) {
@@ -386,38 +387,8 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
       return;
     }
 
-    setSelectedDM(dm);
-    setInputValue(''); // Очищаем поле ввода при смене разговора
-    loadMessagesWithUser(dm._id);
-
-    // Отмечаем сообщения как прочитанные
-    if (dm.unreadCount > 0) {
-      try {
-        const token = localStorage.getItem('token');
-        if (!token) return;
-
-        console.log('📖 Отмечаем сообщения как прочитанные для пользователя:', dm._id);
-        const response = await fetch(`${BACKEND_URL}/api/direct-messages/read/${dm._id}`, {
-          method: 'PUT',
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
-
-        if (response.ok) {
-          // Обновляем счетчик непрочитанных в локальном состоянии
-          setDirectMessages(prev => prev.map(directMsg => {
-            if (directMsg._id === dm._id) {
-              return { ...directMsg, unreadCount: 0 };
-            }
-            return directMsg;
-          }));
-          console.log('✅ Сообщения отмечены как прочитанные');
-        }
-      } catch (err) {
-        console.error('❌ Ошибка при отметке сообщений как прочитанных:', err);
-      }
-    }
+    // Навигация через URL вместо изменения состояния
+    navigate(`/channels/@me/${dm._id}`);
   };
 
   const filteredDMs = directMessages.filter(dm =>

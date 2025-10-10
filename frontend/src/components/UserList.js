@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import './UserList.css';
 
 const BACKEND_URL = window.location.hostname === 'localhost'
@@ -6,6 +7,7 @@ const BACKEND_URL = window.location.hostname === 'localhost'
   : `${window.location.protocol}//${window.location.hostname}`;
 
 function UserList({ onlineUsers, allMembers, currentUser, onMessageSent }) {
+  const navigate = useNavigate();
   const [selectedUser, setSelectedUser] = useState(null);
   const [profilePosition, setProfilePosition] = useState({ top: 0, left: 0 });
   const [messageText, setMessageText] = useState('');
@@ -86,11 +88,11 @@ function UserList({ onlineUsers, allMembers, currentUser, onMessageSent }) {
 
       await response.json();
       setMessageText('');
+      handleCloseProfile();
 
-      // Вызываем колбэк для открытия DM с этим пользователем
-      if (onMessageSent && selectedUser) {
-        onMessageSent(selectedUser);
-      }
+      // Переходим на страницу личных сообщений с этим пользователем
+      const userId = selectedUser.userId || selectedUser.id;
+      navigate(`/channels/@me/${userId}`);
     } catch (error) {
       console.error('Ошибка отправки сообщения:', error);
     } finally {
