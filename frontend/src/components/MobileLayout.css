@@ -289,6 +289,10 @@
   top: 50%;
   transform: translateY(-50%);
   line-height: 1;
+  /* Убираем эффект селекта/подсветки на мобильных */
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  user-select: none;
 }
 
 .mobile-dm-close-btn:hover {
@@ -298,6 +302,10 @@
 
 .mobile-dm-close-btn:active {
   transform: translateY(-50%) scale(0.95);
+}
+
+.mobile-dm-close-btn:focus {
+  outline: none;
 }
 
 .mobile-dm-back-btn {

@@ -166,14 +166,14 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
     }
   }, [user]);
 
-  // Автоматический выбор разговора по userId из URL
+  // Автоматический выбор разговора (десктоп: по userId из URL; мобильный: приходит объект разговора)
   useEffect(() => {
-    if (autoSelectUser && directMessages.length > 0) {
-      // Ищем по userId из URL
-      const conversation = directMessages.find(dm =>
-        dm?.user?._id === autoSelectUser.userId ||
-        dm?._id === autoSelectUser.userId
-      );
+    if (!autoSelectUser) return;
+
+    // Попытка №1: стандартный путь — у нас есть userId в авто-выборе и загружен список разговоров
+    if (directMessages.length > 0 && (autoSelectUser.userId || autoSelectUser.user?._id)) {
+      const targetUserId = autoSelectUser.userId || autoSelectUser.user?._id;
+      const conversation = directMessages.find(dm => dm?._id === targetUserId || dm?.user?._id === targetUserId);
 
       if (conversation) {
         console.log('🎯 Автоматически выбираем разговор с:', conversation.user?.username);
@@ -181,7 +181,6 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
         setInputValue('');
         loadMessagesWithUser(conversation._id);
 
-        // Отмечаем сообщения как прочитанные
         if (conversation.unreadCount > 0) {
           try {
             const token = localStorage.getItem('token');
@@ -211,18 +210,58 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
           }
         }
 
-        // Уведомляем родительский компонент, что автоматический выбор завершен
         if (onAutoSelectComplete) {
           onAutoSelectComplete();
         }
-      } else {
-        console.log('⚠️ Разговор с пользователем не найден:', autoSelectUser);
+        return;
+      }
+    }
 
-        // Даже если разговор не найден, уведомляем о завершении
-        if (onAutoSelectComplete) {
-          onAutoSelectComplete();
+    // Попытка №2: мобильный путь — нам пришёл целый объект разговора c `_id`
+    if (autoSelectUser._id) {
+      setSelectedDM(prev => prev?._id === autoSelectUser._id ? prev : autoSelectUser);
+      setInputValue('');
+      loadMessagesWithUser(autoSelectUser._id);
+
+      if (autoSelectUser.unreadCount > 0) {
+        try {
+          const token = localStorage.getItem('token');
+          if (token) {
+            console.log('📖 Отмечаем сообщения как прочитанные для пользователя:', autoSelectUser._id);
+            fetch(`${BACKEND_URL}/api/direct-messages/read/${autoSelectUser._id}`, {
+              method: 'PUT',
+              headers: {
+                'Authorization': `Bearer ${token}`
+              }
+            }).then(response => {
+              if (response.ok) {
+                setDirectMessages(prev => prev.map(directMsg => {
+                  if (directMsg._id === autoSelectUser._id) {
+                    return { ...directMsg, unreadCount: 0 };
+                  }
+                  return directMsg;
+                }));
+                console.log('✅ Сообщения отмечены как прочитанные');
+              }
+            }).catch(err => {
+              console.error('❌ Ошибка при отметке сообщений как прочитанных:', err);
+            });
+          }
+        } catch (err) {
+          console.error('❌ Ошибка при отметке сообщений как прочитанных:', err);
         }
       }
+
+      if (onAutoSelectComplete) {
+        onAutoSelectComplete();
+      }
+      return;
+    }
+
+    // Если не нашли разговор — всё равно завершаем авто-выбор
+    console.log('⚠️ Разговор для авто-выбора не найден:', autoSelectUser);
+    if (onAutoSelectComplete) {
+      onAutoSelectComplete();
     }
   }, [autoSelectUser, directMessages, onAutoSelectComplete]);
 
