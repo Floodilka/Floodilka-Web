@@ -25,19 +25,26 @@ export const VoiceProvider = ({ children }) => {
     if (activeVoiceChannel?.id === channel.id) {
       return;
     }
-    console.log('🎤 VoiceContext joinVoiceChannel:', channel);
-    console.log('🎤 VoiceContext channel.serverId:', channel.serverId);
+
+    // Просто меняем канал - React автоматически размонтирует старый VoiceChannel
+    // и смонтирует новый, cleanup функция всё очистит
     setCurrentVoiceChannel(channel);
     setActiveVoiceChannel(channel);
-    console.log('🎤 VoiceContext activeVoiceChannel установлен:', channel);
   }, [activeVoiceChannel]);
 
   const leaveVoiceChannel = useCallback(() => {
+    // Вызываем функцию отключения из VoiceChannel
     if (voiceDisconnectRef.current) {
       voiceDisconnectRef.current();
     }
+
+    // Очищаем все состояния
     setCurrentVoiceChannel(null);
     setActiveVoiceChannel(null);
+
+    // Сбрасываем состояния mute/deafen
+    setGlobalMuted(false);
+    setGlobalDeafened(false);
   }, []);
 
   const toggleMute = useCallback(() => {

@@ -19,16 +19,9 @@ function UserList({ onlineUsers, allMembers, currentUser, onMessageSent }) {
     }
   });
 
-  console.log('👥 UserList onlineUsers:', onlineUsers);
-  console.log('👥 UserList onlineUsersMap:', Array.from(onlineUsersMap.entries()));
-  console.log('👥 UserList allMembers:', allMembers);
-
   // Разделяем участников на онлайн и оффлайн
   const onlineMembers = allMembers.filter(member => onlineUsersMap.has(member.id));
   const offlineMembers = allMembers.filter(member => !onlineUsersMap.has(member.id));
-
-  console.log('👥 UserList onlineMembers:', onlineMembers);
-  console.log('👥 UserList offlineMembers:', offlineMembers);
 
   const handleUserClick = async (user, event) => {
     const rect = event.currentTarget.getBoundingClientRect();
@@ -66,13 +59,6 @@ function UserList({ onlineUsers, allMembers, currentUser, onMessageSent }) {
     // Не отправляем сообщение самому себе
     if (selectedUser.userId === currentUser?.id || selectedUser.username === currentUser?.username) return;
 
-    console.log('📤 Отправляем сообщение:', {
-      receiverId: selectedUser.userId || selectedUser.id,
-      content: messageText.trim(),
-      selectedUser,
-      currentUser
-    });
-
     setSendingMessage(true);
     try {
       const token = localStorage.getItem('token');
@@ -82,8 +68,6 @@ function UserList({ onlineUsers, allMembers, currentUser, onMessageSent }) {
         receiverId: selectedUser.userId || selectedUser.id,
         content: messageText.trim()
       };
-
-      console.log('📨 Отправляем запрос:', requestBody);
 
       const response = await fetch(`${BACKEND_URL}/api/direct-messages/send`, {
         method: 'POST',
@@ -100,8 +84,7 @@ function UserList({ onlineUsers, allMembers, currentUser, onMessageSent }) {
         throw new Error(error.error || 'Ошибка отправки сообщения');
       }
 
-      const result = await response.json();
-      console.log('✅ Сообщение успешно отправлено:', result);
+      await response.json();
       setMessageText('');
 
       // Вызываем колбэк для открытия DM с этим пользователем

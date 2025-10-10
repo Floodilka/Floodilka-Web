@@ -43,13 +43,11 @@ export const useSocket = () => {
 
     // Server user events (для онлайн статуса на уровне сервера)
     socketService.on(SOCKET_EVENTS.SERVER_USERS_UPDATE, ({ users: newUsers }) => {
-      console.log('👥 SERVER_USERS_UPDATE событие получено:', newUsers);
       // Больше не используем setUsers - онлайн статус теперь управляется через globalOnlineUsers
     });
 
     // Global user events (для всех онлайн пользователей в приложении)
     socketService.on(SOCKET_EVENTS.GLOBAL_USERS_UPDATE, ({ users: newUsers }) => {
-      console.log('🌍 GLOBAL_USERS_UPDATE событие получено:', newUsers);
       setGlobalOnlineUsers(newUsers);
     });
 
@@ -65,9 +63,7 @@ export const useSocket = () => {
 
     // Direct message events
     socketService.on(SOCKET_EVENTS.DIRECT_MESSAGE_NEW, (message) => {
-      console.log('📨 Получено новое личное сообщение:', message);
       if (message.receiver._id === user?.id) {
-        console.log('🔴 Обновляем состояние непрочитанных сообщений');
         setHasUnreadDMs(true);
       }
     });

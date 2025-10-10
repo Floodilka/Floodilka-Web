@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import './App.css';
 
 // Contexts
@@ -66,10 +66,6 @@ const AppContent = () => {
     updateSpeakingUsers
   } = useVoice();
 
-  // Отладка activeVoiceChannel
-  useEffect(() => {
-    console.log('🎤 App.js: activeVoiceChannel изменился:', activeVoiceChannel);
-  }, [activeVoiceChannel]);
 
   const { isMobile } = useDevice();
   const socket = useSocket();
@@ -87,9 +83,6 @@ const AppContent = () => {
       if (activeVoiceChannel?.id === channel.id) {
         return;
       }
-      console.log('🎤 App.js: Выбран голосовой канал:', channel);
-      console.log('🎤 App.js: serverId канала:', channel.serverId);
-      console.log('🎤 App.js: currentServer._id:', currentServer?._id);
       joinVoiceChannel(channel);
     } else {
       selectTextChannel(channel);

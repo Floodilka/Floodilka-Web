@@ -7,11 +7,6 @@ const BACKEND_URL = window.location.hostname === 'localhost'
   : `${window.location.protocol}//${window.location.hostname}`;
 
 function ServerSidebar({ servers, currentServer, onSelectServer, onCreateServer, user, onSelectDirectMessages, showDirectMessages, hasUnreadDMs, activeVoiceChannel }) {
-  console.log('🔴 ServerSidebar hasUnreadDMs:', hasUnreadDMs);
-  console.log('🎤 ServerSidebar activeVoiceChannel:', activeVoiceChannel);
-  console.log('🎤 ServerSidebar activeVoiceChannel type:', typeof activeVoiceChannel);
-  console.log('🎤 ServerSidebar servers:', servers.map(s => ({ id: s._id, name: s.name })));
-  console.log('🎤 ServerSidebar props:', { servers: !!servers, currentServer: !!currentServer, activeVoiceChannel: !!activeVoiceChannel });
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showActionMenu, setShowActionMenu] = useState(false);
   const [showJoinModal, setShowJoinModal] = useState(false);
@@ -180,7 +175,6 @@ function ServerSidebar({ servers, currentServer, onSelectServer, onCreateServer,
                   activeVoiceChannel.serverId &&
                   server._id &&
                   activeVoiceChannel.serverId.toString() === server._id.toString();
-                console.log(`🎤 Server ${server.name}: shouldShow=${shouldShow}, activeVoiceChannel.serverId=${activeVoiceChannel?.serverId}, server._id=${server._id}`);
                 return shouldShow && (
                   <div className="server-active-indicator">
                     <img src="/icons/channel.png" alt="В голосовом канале" className="server-indicator-icon" />

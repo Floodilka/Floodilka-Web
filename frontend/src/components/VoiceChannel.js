@@ -7,6 +7,102 @@ function VoiceChannel({ socket, channel, user, globalMuted, globalDeafened, onDi
   const [speakingUsers, setSpeakingUsers] = useState(new Set());
   const [isSpeaking, setIsSpeaking] = useState(false);
 
+  // Гарантированная очистка при размонтировании компонента
+  useEffect(() => {
+    return () => {
+      // Отменить все animation frames
+      animationFramesRef.current.forEach(frameId => {
+        if (frameId) cancelAnimationFrame(frameId);
+      });
+      animationFramesRef.current = [];
+
+      // Закрыть все AudioContext
+      audioContextsRef.current.forEach(({ context, source }) => {
+        try {
+          if (source) source.disconnect();
+          if (context && context.state !== 'closed') context.close();
+        } catch (err) {
+          console.warn('Ошибка закрытия AudioContext:', err);
+        }
+      });
+      audioContextsRef.current = [];
+
+      // Остановить ВСЕ СОХРАНЕННЫЕ потоки (для StrictMode)
+      allStreamsRef.current.forEach((streamObj) => {
+        if (streamObj.original) {
+          streamObj.original.getTracks().forEach(track => track.stop());
+        }
+        if (streamObj.processed) {
+          streamObj.processed.getTracks().forEach(track => track.stop());
+        }
+      });
+      allStreamsRef.current = [];
+
+      // Также очищаем текущие ref
+      originalStreamRef.current = null;
+      localStreamRef.current = null;
+
+      // Остановить анализатор
+      localAnalyserRef.current = null;
+
+      // Остановить мониторинг сети
+      if (networkMonitorRef.current) {
+        clearInterval(networkMonitorRef.current);
+        networkMonitorRef.current = null;
+      }
+
+      // Закрыть все peer соединения
+      Object.values(peersRef.current).forEach(peer => {
+        if (peer) peer.close();
+      });
+      peersRef.current = {};
+
+      // Удалить все аудио элементы
+      document.querySelectorAll('audio[id^="audio-"]').forEach(audio => {
+        audio.pause();
+        audio.srcObject = null;
+        audio.remove();
+      });
+
+      // Сбросить флаг подключения
+      isConnectingRef.current = false;
+    };
+  }, []);
+
+  // Дополнительная защита: останавливаем все медиа-треки при закрытии/перезагрузке страницы
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      // Отменить все animation frames
+      animationFramesRef.current.forEach(frameId => {
+        if (frameId) cancelAnimationFrame(frameId);
+      });
+
+      // Закрыть все AudioContext
+      audioContextsRef.current.forEach(({ context, source }) => {
+        try {
+          if (source) source.disconnect();
+          if (context && context.state !== 'closed') context.close();
+        } catch (err) {
+          // Игнорируем ошибки при закрытии страницы
+        }
+      });
+
+      // Остановить все медиа-треки (оригинальный и обработанный)
+      if (originalStreamRef.current) {
+        originalStreamRef.current.getTracks().forEach(track => track.stop());
+      }
+      if (localStreamRef.current) {
+        localStreamRef.current.getTracks().forEach(track => track.stop());
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, []);
+
   // Проверяем поддержку браузера
   const isBrowserSupported = () => {
     return !!(navigator.mediaDevices &&
@@ -80,10 +176,15 @@ function VoiceChannel({ socket, channel, user, globalMuted, globalDeafened, onDi
   const [audioQuality] = useState(initialSettings.audioQuality);
   const [networkQuality, setNetworkQuality] = useState('good'); // Качество сети: poor, good, excellent
 
-  const localStreamRef = useRef(null);
+  const localStreamRef = useRef(null); // Обработанный поток для WebRTC
+  const originalStreamRef = useRef(null); // Оригинальный поток от getUserMedia
+  const allStreamsRef = useRef([]); // ВСЕ созданные потоки (для StrictMode)
   const peersRef = useRef({});
   const localAnalyserRef = useRef(null);
   const networkMonitorRef = useRef(null);
+  const audioContextsRef = useRef([]); // Хранить все AudioContext для их закрытия
+  const animationFramesRef = useRef([]); // Хранить все requestAnimationFrame ID
+  const isConnectingRef = useRef(false); // Флаг подключения
 
   // ICE серверы для WebRTC - улучшенная конфигурация
   const iceServers = {
@@ -203,10 +304,10 @@ function VoiceChannel({ socket, channel, user, globalMuted, globalDeafened, onDi
     socket.on('voice:answer', handleAnswer);
     socket.on('voice:ice-candidate', handleIceCandidate);
 
-    // Автоматически подключиться при входе в канал (только если еще не подключены)
-    if (!isConnected) {
-      handleConnect();
-    }
+    // Сбрасываем состояние подключения и подключаемся заново
+    setIsConnected(false);
+    isConnectingRef.current = false;
+    handleConnect();
 
     return () => {
       socket.off('voice:users');
@@ -218,10 +319,72 @@ function VoiceChannel({ socket, channel, user, globalMuted, globalDeafened, onDi
       socket.off('voice:answer');
       socket.off('voice:ice-candidate');
 
-      // Отключиться при размонтировании
-      if (isConnected) {
-        handleDisconnect();
+      // Отменить все requestAnimationFrame
+      animationFramesRef.current.forEach(frameId => {
+        if (frameId) cancelAnimationFrame(frameId);
+      });
+      animationFramesRef.current = [];
+
+      // Закрыть все AudioContext и отключить источники
+      audioContextsRef.current.forEach(({ context, source }) => {
+        try {
+          if (source) source.disconnect();
+          if (context && context.state !== 'closed') context.close();
+        } catch (err) {
+          console.warn('Ошибка закрытия AudioContext:', err);
+        }
+      });
+      audioContextsRef.current = [];
+
+      // Остановить локальные потоки
+      if (originalStreamRef.current) {
+        originalStreamRef.current.getTracks().forEach(track => track.stop());
+        originalStreamRef.current = null;
       }
+
+      if (localStreamRef.current) {
+        localStreamRef.current.getTracks().forEach(track => track.stop());
+        localStreamRef.current = null;
+      }
+
+      // Остановить все сохраненные потоки (очищаем для переключения канала)
+      allStreamsRef.current.forEach((streamObj) => {
+        if (streamObj.original) {
+          streamObj.original.getTracks().forEach(track => track.stop());
+        }
+        if (streamObj.processed) {
+          streamObj.processed.getTracks().forEach(track => track.stop());
+        }
+      });
+      allStreamsRef.current = [];
+
+      // Остановить анализатор
+      localAnalyserRef.current = null;
+
+      // Остановить мониторинг сети
+      if (networkMonitorRef.current) {
+        clearInterval(networkMonitorRef.current);
+        networkMonitorRef.current = null;
+      }
+
+      // Закрыть все peer соединения
+      Object.values(peersRef.current).forEach(peer => {
+        if (peer) peer.close();
+      });
+      peersRef.current = {};
+
+      // Удалить все удаленные аудио элементы
+      document.querySelectorAll('audio[id^="audio-"]').forEach(audio => {
+        audio.pause();
+        audio.srcObject = null;
+        audio.remove();
+      });
+
+      // Покинуть голосовой канал
+      socket.emit('voice:leave', { channelId: channel.id });
+
+      // Сбрасываем isConnected для следующего подключения
+      setIsConnected(false);
     };
   }, [socket, channel]);
 
@@ -438,6 +601,8 @@ function VoiceChannel({ socket, channel, user, globalMuted, globalDeafened, onDi
       source.connect(analyser);
       analyser.fftSize = 512;
 
+      // Сохраняем AudioContext для последующего закрытия
+      audioContextsRef.current.push({ context: audioContext, source });
       localAnalyserRef.current = analyser;
 
       const dataArray = new Uint8Array(analyser.frequencyBinCount);
@@ -451,9 +616,17 @@ function VoiceChannel({ socket, channel, user, globalMuted, globalDeafened, onDi
         // Показывать говорение только если микрофон включен
         setIsSpeaking(!globalMuted && average > 20);
 
-        requestAnimationFrame(checkMyAudioLevel);
+        const frameId = requestAnimationFrame(checkMyAudioLevel);
+        // Сохраняем только последний frameId
+        if (animationFramesRef.current.length > 0) {
+          animationFramesRef.current[animationFramesRef.current.length - 1] = frameId;
+        } else {
+          animationFramesRef.current.push(frameId);
+        }
       };
-      checkMyAudioLevel();
+
+      const initialFrameId = requestAnimationFrame(checkMyAudioLevel);
+      animationFramesRef.current.push(initialFrameId);
     } catch (err) {
       console.warn('Не удалось анализировать локальное аудио:', err);
     }
@@ -478,9 +651,15 @@ function VoiceChannel({ socket, channel, user, globalMuted, globalDeafened, onDi
     source.connect(analyser);
     analyser.fftSize = 512;
 
+    // Сохраняем AudioContext для последующего закрытия
+    audioContextsRef.current.push({ context: audioContext, source, userId });
+
     const dataArray = new Uint8Array(analyser.frequencyBinCount);
 
     const checkAudioLevel = () => {
+      // Проверяем, что AudioContext еще существует
+      if (audioContext.state === 'closed') return;
+
       analyser.getByteFrequencyData(dataArray);
       const average = dataArray.reduce((a, b) => a + b) / dataArray.length;
 
@@ -494,21 +673,31 @@ function VoiceChannel({ socket, channel, user, globalMuted, globalDeafened, onDi
         return newSet;
       });
 
-      requestAnimationFrame(checkAudioLevel);
+      const frameId = requestAnimationFrame(checkAudioLevel);
+      animationFramesRef.current.push(frameId);
     };
-    checkAudioLevel();
+
+    const initialFrameId = requestAnimationFrame(checkAudioLevel);
+    animationFramesRef.current.push(initialFrameId);
   };
 
   const handleConnect = async () => {
+    // Предотвращаем двойное подключение (для StrictMode)
+    if (isConnectingRef.current) {
+      return;
+    }
+
+    isConnectingRef.current = true;
+
     try {
       // Проверяем поддержку браузера
       if (!isBrowserSupported()) {
+        isConnectingRef.current = false;
         throw new Error('Ваш браузер не поддерживает голосовой чат. Пожалуйста, используйте современный браузер (Chrome, Firefox, Safari, Edge).');
       }
 
       // Определяем браузер для специальной конфигурации
       const browser = getBrowserInfo();
-      console.log('Обнаружен браузер:', browser);
 
       // Сначала пробуем базовую конфигурацию для максимальной совместимости
       let constraints = {
@@ -576,13 +765,22 @@ function VoiceChannel({ socket, channel, user, globalMuted, globalDeafened, onDi
         }
       }
 
+      // Сохраняем оригинальный поток для гарантированной остановки
+      originalStreamRef.current = stream;
+
+      // Сохраняем ВСЕ потоки (для StrictMode)
+      allStreamsRef.current.push({ original: stream, type: 'original' });
+
       // Применить дополнительную обработку к аудио
       const processedStream = await processAudioStream(stream);
 
       localStreamRef.current = processedStream;
-      setIsConnected(true);
+      allStreamsRef.current.push({ processed: processedStream, type: 'processed' });
 
-      // Анализировать свой собственный микрофон
+      setIsConnected(true);
+      isConnectingRef.current = false;
+
+      // Анализировать свой собственный микрофон (используем оригинальный поток)
       startLocalAudioAnalysis(stream);
 
       // Запустить мониторинг качества сети
@@ -634,6 +832,9 @@ function VoiceChannel({ socket, channel, user, globalMuted, globalDeafened, onDi
         constraint: err.constraint,
         userAgent: navigator.userAgent
       });
+
+      // Сбрасываем флаг подключения при ошибке
+      isConnectingRef.current = false;
     }
   };
 
@@ -750,6 +951,13 @@ function VoiceChannel({ socket, channel, user, globalMuted, globalDeafened, onDi
         .connect(finalGain)
         .connect(destination);
 
+      // Сохраняем AudioContext для последующего закрытия
+      audioContextsRef.current.push({
+        context: audioContext,
+        source,
+        userId: 'processing'
+      });
+
       return destination.stream;
     } catch (err) {
       console.warn('Не удалось обработать аудио, используем оригинальный поток:', err);
@@ -758,11 +966,44 @@ function VoiceChannel({ socket, channel, user, globalMuted, globalDeafened, onDi
   };
 
   const handleDisconnect = () => {
-    // Остановить локальный поток
+    // Отменить все requestAnimationFrame
+    animationFramesRef.current.forEach(frameId => {
+      if (frameId) cancelAnimationFrame(frameId);
+    });
+    animationFramesRef.current = [];
+
+    // Остановить локальные потоки (и оригинальный, и обработанный)
+    if (originalStreamRef.current) {
+      originalStreamRef.current.getTracks().forEach(track => track.stop());
+      originalStreamRef.current = null;
+    }
+
     if (localStreamRef.current) {
       localStreamRef.current.getTracks().forEach(track => track.stop());
       localStreamRef.current = null;
     }
+
+    // Остановить все сохраненные потоки
+    allStreamsRef.current.forEach((streamObj) => {
+      if (streamObj.original) {
+        streamObj.original.getTracks().forEach(track => track.stop());
+      }
+      if (streamObj.processed) {
+        streamObj.processed.getTracks().forEach(track => track.stop());
+      }
+    });
+    allStreamsRef.current = [];
+
+    // Закрыть все AudioContext и отключить источники
+    audioContextsRef.current.forEach(({ context, source }) => {
+      try {
+        if (source) source.disconnect();
+        if (context && context.state !== 'closed') context.close();
+      } catch (err) {
+        console.warn('Ошибка закрытия AudioContext:', err);
+      }
+    });
+    audioContextsRef.current = [];
 
     // Остановить анализатор
     localAnalyserRef.current = null;
@@ -771,13 +1012,16 @@ function VoiceChannel({ socket, channel, user, globalMuted, globalDeafened, onDi
     stopNetworkMonitoring();
 
     // Закрыть все peer соединения
-    Object.values(peersRef.current).forEach(peer => peer.close());
+    Object.values(peersRef.current).forEach(peer => {
+      if (peer) peer.close();
+    });
     peersRef.current = {};
 
     // Удалить все удаленные аудио элементы
-    voiceUsers.forEach(user => {
-      const audio = document.getElementById(`audio-${user.id}`);
-      if (audio) audio.remove();
+    document.querySelectorAll('audio[id^="audio-"]').forEach(audio => {
+      audio.pause();
+      audio.srcObject = null;
+      audio.remove();
     });
 
     // Покинуть голосовой канал
@@ -789,6 +1033,7 @@ function VoiceChannel({ socket, channel, user, globalMuted, globalDeafened, onDi
     setVoiceUsers([]);
     setSpeakingUsers(new Set());
     setIsSpeaking(false);
+    isConnectingRef.current = false;
   };
 
   // Прокинуть функцию disconnect наверх для использования в профиле
