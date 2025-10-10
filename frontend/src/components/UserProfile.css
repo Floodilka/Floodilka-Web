@@ -234,7 +234,7 @@
 
 /* Поле для отправки личного сообщения */
 .user-profile-message-input {
-  padding: 12px 16px;
+  padding: 8px 16px;
   background: #292b2f;
   border-top: 1px solid #313338;
 }
@@ -243,10 +243,11 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  background: #40444b;
+  background: #2b2d31;
   border-radius: 8px;
-  padding: 8px 12px;
+  padding: 6px 10px;
   border: 1px solid #000;
+  height: 32px;
 }
 
 .user-profile-message-input .message-input-field {
@@ -255,7 +256,7 @@
   border: none;
   outline: none;
   color: #ffffff;
-  font-size: 14px;
+  font-size: 13px;
   font-family: inherit;
 }
 

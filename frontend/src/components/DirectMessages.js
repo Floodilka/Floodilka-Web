@@ -447,7 +447,7 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
               ) : (
                 groupMessages(selectedMessages).map((group, groupIndex) =>
                   group.messages.map((message, messageIndex) => (
-                    <div key={message._id} className={`dm-message ${message.sender._id === user?.id ? 'dm-message-own' : ''} ${messageIndex > 0 ? 'dm-message-grouped' : ''}`}>
+                    <div key={message._id} className={`dm-message ${message.sender._id === user?.id ? 'dm-message-own' : ''} ${messageIndex > 0 ? 'dm-message-grouped' : ''} ${messageIndex === 0 && group.messages.length > 1 ? 'dm-message-group-first' : ''}`}>
                       {messageIndex === 0 && (
                         <div className="dm-message-avatar">
                           {message.sender.avatar ? (
@@ -622,7 +622,7 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
                 ) : (
                   groupMessages(selectedMessages).map((group, groupIndex) =>
                     group.messages.map((message, messageIndex) => (
-                      <div key={message._id} className={`dm-message ${message.sender._id === user?.id ? 'dm-message-own' : ''} ${messageIndex > 0 ? 'dm-message-grouped' : ''}`}>
+                      <div key={message._id} className={`dm-message ${message.sender._id === user?.id ? 'dm-message-own' : ''} ${messageIndex > 0 ? 'dm-message-grouped' : ''} ${messageIndex === 0 && group.messages.length > 1 ? 'dm-message-group-first' : ''} ${messageIndex === group.messages.length - 1 ? 'dm-message-group-last' : ''}`}>
                         {messageIndex === 0 && (
                           <div className="dm-message-avatar">
                             {message.sender.avatar ? (

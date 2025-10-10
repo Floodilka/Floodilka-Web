@@ -741,7 +741,7 @@
 
 /* Поле для отправки личного сообщения в профиле пользователя */
 .user-profile-message-input {
-  padding: 16px;
+  padding: 12px;
   background: transparent;
   border-top: none;
 }
@@ -749,18 +749,19 @@
 .user-profile-message-input .message-input-container {
   display: flex;
   align-items: center;
-  background: #36393f;
+  background: #2b2d31;
   border-radius: 4px;
   padding: 0px 8px;
   border: 1px solid #40444b;
   transition: all 0.2s ease;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  height: 32px;
 }
 
 .user-profile-message-input .message-input-container:focus-within {
   border-color: #5865f2;
   box-shadow: 0 0 0 2px rgba(88, 101, 242, 0.2);
-  background: #40444b;
+  background: #36393f;
 }
 
 .user-profile-message-input .message-input-field {
@@ -769,7 +770,7 @@
   border: none;
   outline: none;
   color: #ffffff;
-  font-size: 14px;
+  font-size: 13px;
   font-family: inherit;
   line-height: 1.0;
   padding: 1px 0;

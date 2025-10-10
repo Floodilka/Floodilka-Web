@@ -188,6 +188,45 @@ function Chat({ channel, messages, username, onSendMessage, hasServer, socket, o
     });
   };
 
+  // Функция для группировки сообщений
+  const groupMessages = (messages) => {
+    if (!messages || messages.length === 0) return [];
+
+    const grouped = [];
+    let currentGroup = null;
+
+    messages.forEach((message, index) => {
+      const messageTime = new Date(message.timestamp);
+      const messageMinute = messageTime.getMinutes();
+      const messageHour = messageTime.getHours();
+
+      // Проверяем, нужно ли начать новую группу
+      const shouldStartNewGroup = !currentGroup ||
+        currentGroup.username !== message.username ||
+        currentGroup.hour !== messageHour ||
+        currentGroup.minute !== messageMinute;
+
+      if (shouldStartNewGroup) {
+        // Создаем новую группу
+        currentGroup = {
+          username: message.username,
+          userId: message.userId,
+          hour: messageHour,
+          minute: messageMinute,
+          messages: [message],
+          timestamp: message.timestamp,
+          isOwn: message.username === username
+        };
+        grouped.push(currentGroup);
+      } else {
+        // Добавляем сообщение в существующую группу
+        currentGroup.messages.push(message);
+      }
+    });
+
+    return grouped;
+  };
+
   if (!channel) {
     // Показываем welcome-экран только если есть выбранный сервер
     if (hasServer) {
@@ -218,104 +257,112 @@ function Chat({ channel, messages, username, onSendMessage, hasServer, socket, o
           <p>Это начало канала #{channel.name}</p>
         </div>
 
-        {messages.map((message) => (
-          <div
-            key={message.id}
-            className={`message ${message.isSystem ? 'system-message' : ''} ${message.username === username ? 'own-message' : ''} ${editingMessage?.id === message.id ? 'message-edit-mode' : ''} ${contextMenu?.message.id === message.id ? 'show-actions' : ''}`}
-          >
+        {groupMessages(messages).map((group, groupIndex) =>
+          group.messages.map((message, messageIndex) => (
             <div
-              className="message-avatar"
-              onClick={(e) => !message.isSystem && handleUserClick(message, e)}
-              style={{ cursor: message.isSystem ? 'default' : 'pointer' }}
+              key={message.id}
+              className={`message ${message.isSystem ? 'system-message' : ''} ${message.username === username ? 'own-message' : ''} ${editingMessage?.id === message.id ? 'message-edit-mode' : ''} ${contextMenu?.message.id === message.id ? 'show-actions' : ''} ${messageIndex > 0 ? 'message-grouped' : ''} ${messageIndex === 0 && group.messages.length > 1 ? 'message-group-first' : ''} ${messageIndex === group.messages.length - 1 ? 'message-group-last' : ''}`}
             >
-              {message.isSystem ? (
-                '🤖'
-              ) : message.avatar ? (
-                <img
-                  src={`${BACKEND_URL}${message.avatar}`}
-                  alt={message.username}
-                  onError={(e) => {
-                    // Если изображение не загрузилось, показываем букву
-                    e.target.style.display = 'none';
-                    e.target.nextSibling.style.display = 'flex';
-                  }}
-                />
-              ) : null}
-              <div className="message-avatar-fallback" style={{ display: message.avatar ? 'none' : 'flex' }}>
-                {(message.displayName || message.username)[0].toUpperCase()}
-              </div>
-            </div>
-            <div className="message-content">
-              <div className="message-header">
-                <span
-                  className="message-username"
+              {messageIndex === 0 ? (
+                <div
+                  className="message-avatar"
                   onClick={(e) => !message.isSystem && handleUserClick(message, e)}
                   style={{ cursor: message.isSystem ? 'default' : 'pointer' }}
                 >
-                  {message.displayName || message.username}
-                </span>
-                {message.badge && message.badge !== 'User' && (
-                  <span
-                    className="message-badge"
-                    title={message.badgeTooltip || message.badge}
-                  >
-                    {message.badge}
-                  </span>
-                )}
-                <span className="message-time">{formatTime(message.timestamp)}</span>
-              </div>
-
-              {editingMessage?.id === message.id ? (
-                <div>
-                  <textarea
-                    className="message-edit-input"
-                    value={editValue}
-                    onChange={(e) => setEditValue(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && !e.shiftKey) {
-                        e.preventDefault();
-                        handleSaveEdit();
-                      } else if (e.key === 'Escape') {
-                        handleCancelEdit();
-                      }
-                    }}
-                    autoFocus
-                  />
-                  <div className="message-edit-buttons">
-                    <button
-                      className="message-edit-button save"
-                      onClick={handleSaveEdit}
-                      disabled={!editValue.trim()}
-                    >
-                      Сохранить
-                    </button>
-                    <button
-                      className="message-edit-button cancel"
-                      onClick={handleCancelEdit}
-                    >
-                      Отмена
-                    </button>
+                  {message.isSystem ? (
+                    '🤖'
+                  ) : message.avatar ? (
+                    <img
+                      src={`${BACKEND_URL}${message.avatar}`}
+                      alt={message.username}
+                      onError={(e) => {
+                        // Если изображение не загрузилось, показываем букву
+                        e.target.style.display = 'none';
+                        e.target.nextSibling.style.display = 'flex';
+                      }}
+                    />
+                  ) : null}
+                  <div className="message-avatar-fallback" style={{ display: message.avatar ? 'none' : 'flex' }}>
+                    {(message.displayName || message.username)[0].toUpperCase()}
                   </div>
                 </div>
               ) : (
-                <div className="message-text">{message.content}</div>
+                <div className="message-avatar-spacer"></div>
+              )}
+              <div className="message-content">
+                {messageIndex === 0 && (
+                  <div className="message-header">
+                    <span
+                      className="message-username"
+                      onClick={(e) => !message.isSystem && handleUserClick(message, e)}
+                      style={{ cursor: message.isSystem ? 'default' : 'pointer' }}
+                    >
+                      {message.displayName || message.username}
+                    </span>
+                    {message.badge && message.badge !== 'User' && (
+                      <span
+                        className="message-badge"
+                        title={message.badgeTooltip || message.badge}
+                      >
+                        {message.badge}
+                      </span>
+                    )}
+                    <span className="message-time">{formatTime(message.timestamp)}</span>
+                  </div>
+                )}
+
+                {editingMessage?.id === message.id ? (
+                  <div>
+                    <textarea
+                      className="message-edit-input"
+                      value={editValue}
+                      onChange={(e) => setEditValue(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                          e.preventDefault();
+                          handleSaveEdit();
+                        } else if (e.key === 'Escape') {
+                          handleCancelEdit();
+                        }
+                      }}
+                      autoFocus
+                    />
+                    <div className="message-edit-buttons">
+                      <button
+                        className="message-edit-button save"
+                        onClick={handleSaveEdit}
+                        disabled={!editValue.trim()}
+                      >
+                        Сохранить
+                      </button>
+                      <button
+                        className="message-edit-button cancel"
+                        onClick={handleCancelEdit}
+                      >
+                        Отмена
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="message-text">{message.content}</div>
+                )}
+              </div>
+
+              {/* Меню действий - показываем только для собственных сообщений */}
+              {message.username === username && !message.isSystem && (
+                <div className="message-actions">
+                  <button
+                    className="message-actions-button"
+                    onClick={(e) => handleMoreActions(message, e)}
+                    title="Больше действий"
+                  >
+                    ⋯
+                  </button>
+                </div>
               )}
             </div>
-
-            {/* Меню действий - показываем только для собственных сообщений */}
-            {message.username === username && !message.isSystem && (
-              <div className="message-actions">
-                <button
-                  className="message-actions-button"
-                  onClick={(e) => handleMoreActions(message, e)}
-                  title="Больше действий"
-                >
-                  ⋯
-                </button>
-              </div>
-            )}
-          </div>
-        ))}
+          ))
+        ).flat()}
         <div ref={messagesEndRef} />
       </div>
 

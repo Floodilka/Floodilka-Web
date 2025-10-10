@@ -489,7 +489,7 @@
 .dm-message {
   display: flex;
   padding: 6px 16px;
-  margin-bottom: 3px;
+  margin-bottom: 10px;
   transition: background-color 0.1s;
   border-radius: 8px;
   position: relative;
@@ -497,10 +497,20 @@
 
 /* Стили для сгруппированных сообщений */
 .dm-message-grouped {
-  margin-top: 1px;
+  margin-top: 3px;
   margin-bottom: 0px;
   padding-top: 2px;
   padding-bottom: 2px;
+}
+
+/* Стили для первого сообщения в группе */
+.dm-message-group-first {
+  margin-bottom: -4px;
+}
+
+/* Стили для последнего сообщения в группе */
+.dm-message-group-last {
+  margin-bottom: 10px;
 }
 
 /* Спейсер для аватара в сгруппированных сообщениях */
