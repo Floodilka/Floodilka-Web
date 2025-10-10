@@ -600,7 +600,7 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
                   </div>
                   <div className="dm-chat-info">
                     <div className="dm-chat-username">{selectedDM.user.displayName || selectedDM.user.username}</div>
-                    <div className="dm-chat-status">В сети</div>
+                    <div className="dm-chat-status">{isUserOnline(selectedDM.user._id) ? 'В сети' : 'Не в сети'}</div>
                   </div>
                 </div>
               </div>
