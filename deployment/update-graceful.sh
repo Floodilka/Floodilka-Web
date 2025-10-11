@@ -116,8 +116,14 @@ if [ $NPM_EXIT_CODE -ne 0 ]; then
     fi
 fi
 
-echo -e "${YELLOW}🏗️  Сборка frontend...${NC}"
-sudo -u floodilka npm run build
+echo -e "${YELLOW}🏗️  Сборка frontend (может занять 2-5 минут)...${NC}"
+sudo -u floodilka NODE_OPTIONS="--max-old-space-size=2048" npm run build
+
+if [ $? -ne 0 ]; then
+    echo -e "${RED}❌ Ошибка сборки frontend!${NC}"
+    echo -e "${YELLOW}Попробуйте вручную: cd /var/www/floodilka/frontend && sudo -u floodilka npm run build${NC}"
+    exit 1
+fi
 
 # Атомарная замена файлов frontend
 echo -e "${GREEN}📁 Обновление frontend файлов...${NC}"
