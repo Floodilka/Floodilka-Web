@@ -10,7 +10,7 @@ function AuthModal() {
     <div className="auth-modal-overlay">
       <div className="auth-modal-content">
         <div className="auth-header">
-          <h1>Добро пожаловать в Болтушку!</h1>
+          <h1>Добро пожаловать во Флудилку!</h1>
           <p>Войдите или создайте аккаунт для продолжения</p>
         </div>
 
