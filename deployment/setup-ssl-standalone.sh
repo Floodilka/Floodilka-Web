@@ -34,6 +34,7 @@ echo "📜 Получение SSL сертификата для $DOMAIN_COM и w
 certbot certonly --standalone \
     -d $DOMAIN_COM \
     -d www.$DOMAIN_COM \
+    --expand \
     --non-interactive \
     --agree-tos \
     --email $EMAIL \
@@ -54,6 +55,7 @@ echo "📜 Получение SSL сертификата для $DOMAIN_RU и ww
 certbot certonly --standalone \
     -d $DOMAIN_RU \
     -d www.$DOMAIN_RU \
+    --expand \
     --non-interactive \
     --agree-tos \
     --email $EMAIL \
