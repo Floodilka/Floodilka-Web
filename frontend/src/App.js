@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo, useCallback } from 'react';
 import { Routes, Route, useNavigate, useParams, Navigate } from 'react-router-dom';
 import './App.css';
 
@@ -49,14 +49,29 @@ const DirectMessagesRoute = () => {
   const { isMobile } = useDevice();
   const socket = useSocket();
 
-  const handleServerSelect = (server) => {
-    // Навигация на сервер через URL
+  // Мемоизируем обработчики для предотвращения лишних перерендеров
+  const handleServerSelect = useCallback((server) => {
     navigate(`/channels/${server._id}`);
-  };
+  }, [navigate]);
 
-  const handleSelectDirectMessages = () => {
+  const handleSelectDirectMessages = useCallback(() => {
     navigate('/channels/@me');
-  };
+  }, [navigate]);
+
+  const handleAutoSelectComplete = useCallback(() => {}, []);
+
+  const handleExitDirectMessages = useCallback(() => {
+    navigate(`/channels/${servers[0]?._id}`);
+  }, [navigate, servers]);
+
+  // Мемоизируем объекты и вычисляемые значения
+  const autoSelectUser = useMemo(() =>
+    userId ? { userId } : null
+  , [userId]);
+
+  const isSpeaking = useMemo(() =>
+    activeVoiceChannel && speakingUsers[activeVoiceChannel.id]?.has('me')
+  , [activeVoiceChannel, speakingUsers]);
 
   // Для мобильной версии
   if (isMobile) {
@@ -93,22 +108,11 @@ const DirectMessagesRoute = () => {
           socket={socket}
           messages={[]}
           onSendMessage={() => {}}
-          autoSelectUser={userId ? { userId } : null}
-          onAutoSelectComplete={() => {}}
+          autoSelectUser={autoSelectUser}
+          onAutoSelectComplete={handleAutoSelectComplete}
           onUnreadDMsUpdate={setHasUnreadDMs}
-          exitDirectMessages={() => navigate(`/channels/${servers[0]?._id}`)}
+          exitDirectMessages={handleExitDirectMessages}
         />
-        {currentVoiceChannel && (
-          <VoiceChannel
-            socket={socket}
-            channel={currentVoiceChannel}
-            user={user}
-            globalMuted={globalMuted}
-            globalDeafened={globalDeafened}
-            onDisconnectRef={voiceDisconnectRef}
-            onSpeakingUpdate={updateSpeakingUsers}
-          />
-        )}
       </div>
     );
   }
@@ -132,13 +136,13 @@ const DirectMessagesRoute = () => {
         socket={socket}
         onLogout={logout}
         onAvatarUpdate={updateUser}
-        autoSelectUser={userId ? { userId } : null}
-        onAutoSelectComplete={() => {}}
+        autoSelectUser={autoSelectUser}
+        onAutoSelectComplete={handleAutoSelectComplete}
         onUnreadDMsUpdate={setHasUnreadDMs}
         isMuted={globalMuted}
         isDeafened={globalDeafened}
         isInVoice={!!activeVoiceChannel}
-        isSpeaking={activeVoiceChannel && speakingUsers[activeVoiceChannel.id]?.has('me')}
+        isSpeaking={isSpeaking}
         onToggleMute={toggleMute}
         onToggleDeafen={toggleDeafen}
         onDisconnect={leaveVoiceChannel}
@@ -340,17 +344,6 @@ const ServerRoute = () => {
           hasTextChannels={!serverLoading && channels.some(c => c.type === 'text')}
           serverLoading={serverLoading}
         />
-        {currentVoiceChannel && (
-          <VoiceChannel
-            socket={socket}
-            channel={currentVoiceChannel}
-            user={user}
-            globalMuted={globalMuted}
-            globalDeafened={globalDeafened}
-            onDisconnectRef={voiceDisconnectRef}
-            onSpeakingUpdate={updateSpeakingUsers}
-          />
-        )}
       </div>
     );
   }
@@ -393,18 +386,6 @@ const ServerRoute = () => {
         onDeleteChannel={deleteChannel}
         onMessageSent={handleMessageSent}
       />
-
-      {currentVoiceChannel && (
-        <VoiceChannel
-          socket={socket}
-          channel={currentVoiceChannel}
-          user={user}
-          globalMuted={globalMuted}
-          globalDeafened={globalDeafened}
-          onDisconnectRef={voiceDisconnectRef}
-          onSpeakingUpdate={updateSpeakingUsers}
-        />
-      )}
 
       <Chat
         channel={currentTextChannel}
@@ -476,11 +457,34 @@ const AppContent = () => {
   );
 };
 
+// Обёртка для VoiceChannel вне маршрутов
+const VoiceChannelWrapper = () => {
+  const { currentVoiceChannel, globalMuted, globalDeafened, voiceDisconnectRef, updateSpeakingUsers } = useVoice();
+  const { user } = useAuth();
+  const socket = useSocket();
+
+  if (!currentVoiceChannel) return null;
+
+  return (
+    <VoiceChannel
+      socket={socket}
+      channel={currentVoiceChannel}
+      user={user}
+      globalMuted={globalMuted}
+      globalDeafened={globalDeafened}
+      onDisconnectRef={voiceDisconnectRef}
+      onSpeakingUpdate={updateSpeakingUsers}
+    />
+  );
+};
+
 function App() {
   return (
     <AppProvider>
       <GlobalUsersProvider>
         <AppContent />
+        {/* VoiceChannel живёт здесь и не размонтируется при смене маршрутов */}
+        <VoiceChannelWrapper />
       </GlobalUsersProvider>
     </AppProvider>
   );

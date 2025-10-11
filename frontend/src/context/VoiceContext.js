@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback, useRef } from 'react';
+import React, { createContext, useContext, useState, useCallback, useRef, useMemo } from 'react';
 
 const VoiceContext = createContext();
 
@@ -68,7 +68,8 @@ export const VoiceProvider = ({ children }) => {
     }
   }, [currentVoiceChannel]);
 
-  const value = {
+  // Мемоизируем value для предотвращения лишних обновлений контекста
+  const value = useMemo(() => ({
     currentVoiceChannel,
     activeVoiceChannel,
     voiceChannelUsers,
@@ -84,7 +85,19 @@ export const VoiceProvider = ({ children }) => {
     updateSpeakingUsers,
     setCurrentVoiceChannel,
     setActiveVoiceChannel
-  };
+  }), [
+    currentVoiceChannel,
+    activeVoiceChannel,
+    voiceChannelUsers,
+    speakingUsers,
+    globalMuted,
+    globalDeafened,
+    joinVoiceChannel,
+    leaveVoiceChannel,
+    toggleMute,
+    toggleDeafen,
+    updateSpeakingUsers
+  ]);
 
   return <VoiceContext.Provider value={value}>{children}</VoiceContext.Provider>;
 };

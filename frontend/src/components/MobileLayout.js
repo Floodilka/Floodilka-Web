@@ -3,7 +3,6 @@ import './MobileLayout.css';
 import ServerSidebar from './ServerSidebar';
 import ChannelList from './ChannelList';
 import Chat from './Chat';
-import VoiceChannel from './VoiceChannel';
 import UserList from './UserList';
 import DirectMessages from './DirectMessages';
 
@@ -46,6 +45,9 @@ function MobileLayout({
   const [isChatMode, setIsChatMode] = useState(false);
   const [isDMChatMode, setIsDMChatMode] = useState(false);
   const [selectedDMUser, setSelectedDMUser] = useState(null);
+
+  // Вычисляем, говорит ли текущий пользователь
+  const isSpeaking = activeVoiceChannel && speakingUsers[activeVoiceChannel.id]?.has('me');
 
   const handleChannelSelect = (channel) => {
     onSelectChannel(channel);
@@ -101,7 +103,7 @@ function MobileLayout({
                 isMuted={isMuted}
                 isDeafened={isDeafened}
                 isInVoice={isInVoice}
-                isSpeaking={false}
+                isSpeaking={isSpeaking}
                 onToggleMute={onToggleMute}
                 onToggleDeafen={onToggleDeafen}
                 onDisconnect={onDisconnect}
@@ -140,7 +142,7 @@ function MobileLayout({
               isMuted={isMuted}
               isDeafened={isDeafened}
               isInVoice={isInVoice}
-              isSpeaking={false}
+              isSpeaking={isSpeaking}
               onToggleMute={onToggleMute}
               onToggleDeafen={onToggleDeafen}
               onDisconnect={onDisconnect}
@@ -227,22 +229,6 @@ function MobileLayout({
           </div>
         </div>
       )}
-
-
-
-      {/* Голосовой канал (скрытый, работает в фоне) */}
-      {currentVoiceChannel && (
-        <VoiceChannel
-          socket={socket}
-          channel={currentVoiceChannel}
-          user={user}
-          globalMuted={isMuted}
-          globalDeafened={isDeafened}
-          onDisconnectRef={null}
-          onSpeakingUpdate={() => {}}
-        />
-      )}
-
       {/* Список пользователей (скрыт на мобильных) */}
       <div className="mobile-user-list-hidden">
         <UserList

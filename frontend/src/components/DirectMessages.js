@@ -697,4 +697,4 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
   );
 }
 
-export default DirectMessages;
+export default React.memo(DirectMessages);
