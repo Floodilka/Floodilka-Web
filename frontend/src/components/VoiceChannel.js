@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import './VoiceChannel.css';
 
 function VoiceChannel({ socket, channel, user, globalMuted, globalDeafened, onDisconnectRef, onSpeakingUpdate }) {
@@ -154,26 +154,46 @@ function VoiceChannel({ socket, channel, user, globalMuted, globalDeafened, onDi
       return {
         noiseSuppression: settings.noiseSuppression ?? true,
         echoCancellation: settings.echoCancellation ?? true,
-        micSensitivity: settings.micSensitivity ?? 15,
+        autoGainControl: settings.autoGainControl ?? true,
+        micSensitivity: settings.micSensitivity ?? 1,
         audioBitrate: settings.audioBitrate ?? 512000,
-        audioQuality: settings.audioQuality ?? 'ultra'
+        audioQuality: settings.audioQuality ?? 'ultra',
+        selectedMicrophone: settings.selectedMicrophone ?? 'default',
+        selectedSpeaker: settings.selectedSpeaker ?? 'default',
+        inputVolume: settings.inputVolume ?? 100,
+        outputVolume: settings.outputVolume ?? 100,
+        voiceMode: settings.voiceMode ?? 'vad',
+        pttKey: settings.pttKey ?? 'ControlLeft'
       };
     }
     return {
       noiseSuppression: true,
       echoCancellation: true,
-      micSensitivity: 15,
+      autoGainControl: true,
+      micSensitivity: 1,
       audioBitrate: 512000, // Максимальный битрейт по умолчанию
-      audioQuality: 'ultra'
+      audioQuality: 'ultra',
+      selectedMicrophone: 'default',
+      selectedSpeaker: 'default',
+      inputVolume: 100,
+      outputVolume: 100,
+      voiceMode: 'vad',
+      pttKey: 'ControlLeft'
     };
   };
 
   const initialSettings = loadAudioSettings();
   const [noiseSuppression, setNoiseSuppression] = useState(initialSettings.noiseSuppression);
   const [echoCancellation, setEchoCancellation] = useState(initialSettings.echoCancellation);
-  const [micSensitivity] = useState(initialSettings.micSensitivity);
+  const [micSensitivity, setMicSensitivity] = useState(initialSettings.micSensitivity);
   const [audioBitrate, setAudioBitrate] = useState(initialSettings.audioBitrate);
-  const [audioQuality] = useState(initialSettings.audioQuality);
+  const [selectedMicrophone, setSelectedMicrophone] = useState(initialSettings.selectedMicrophone);
+  const [selectedSpeaker, setSelectedSpeaker] = useState(initialSettings.selectedSpeaker);
+  const [voiceMode, setVoiceMode] = useState(initialSettings.voiceMode);
+  const [pttKey, setPttKey] = useState(initialSettings.pttKey);
+  const [isPttActive, setIsPttActive] = useState(false);
+  const [inputVolume, setInputVolume] = useState(initialSettings.inputVolume);
+  const [outputVolume, setOutputVolume] = useState(initialSettings.outputVolume);
   const [networkQuality, setNetworkQuality] = useState('good'); // Качество сети: poor, good, excellent
 
   const localStreamRef = useRef(null); // Обработанный поток для WebRTC
@@ -228,13 +248,11 @@ function VoiceChannel({ socket, channel, user, globalMuted, globalDeafened, onDi
         if (peerConnections.length === 0) return;
 
         const stats = await peerConnections[0].getStats();
-        let totalBytesReceived = 0;
         let totalPacketsLost = 0;
         let totalPacketsSent = 0;
 
         stats.forEach(report => {
           if (report.type === 'inbound-rtp' && report.mediaType === 'audio') {
-            totalBytesReceived += report.bytesReceived || 0;
             totalPacketsLost += report.packetsLost || 0;
           }
           if (report.type === 'outbound-rtp' && report.mediaType === 'audio') {
@@ -613,8 +631,19 @@ function VoiceChannel({ socket, channel, user, globalMuted, globalDeafened, onDi
         analyser.getByteFrequencyData(dataArray);
         const average = dataArray.reduce((a, b) => a + b) / dataArray.length;
 
-        // Показывать говорение только если микрофон включен
-        setIsSpeaking(!globalMuted && average > 20);
+        // В режиме PTT не используем автоматическую детекцию голоса
+        // Состояние isSpeaking контролируется только нажатием клавиши PTT
+        const currentVoiceMode = localStorage.getItem('audioSettings');
+        const settings = currentVoiceMode ? JSON.parse(currentVoiceMode) : {};
+        const isVADMode = !settings.voiceMode || settings.voiceMode === 'vad';
+
+        // Показывать говорение только если:
+        // 1. Микрофон включен (!globalMuted)
+        // 2. Уровень звука выше порога (average > 20)
+        // 3. Включен режим Voice Activation (не PTT)
+        if (isVADMode) {
+          setIsSpeaking(!globalMuted && average > 20);
+        }
 
         const frameId = requestAnimationFrame(checkMyAudioLevel);
         // Сохраняем только последний frameId
@@ -632,17 +661,31 @@ function VoiceChannel({ socket, channel, user, globalMuted, globalDeafened, onDi
     }
   };
 
-  const playRemoteAudio = (stream, userId) => {
+  const playRemoteAudio = async (stream, userId) => {
     // Создать аудио элемент для воспроизведения
     let audio = document.getElementById(`audio-${userId}`);
     if (!audio) {
       audio = document.createElement('audio');
       audio.id = `audio-${userId}`;
       audio.autoplay = true;
-      audio.volume = 1.0;
       document.body.appendChild(audio);
     }
+
+    // Устанавливаем громкость входящего звука (0-200% преобразуется в 0-2.0)
+    audio.volume = Math.min(2.0, Math.max(0, outputVolume / 100));
     audio.srcObject = stream;
+
+    // Устанавливаем выбранное устройство вывода звука (если поддерживается)
+    if (selectedSpeaker && selectedSpeaker !== 'default' && typeof audio.setSinkId === 'function') {
+      try {
+        await audio.setSinkId(selectedSpeaker);
+        console.log('🔊 Установлены динамики:', selectedSpeaker);
+      } catch (err) {
+        console.warn('Не удалось установить устройство вывода:', err);
+      }
+    }
+
+    console.log(`🔊 Громкость входящего звука для ${userId}:`, audio.volume);
 
     // Анализ громкости для индикатора говорения
     const audioContext = new AudioContext();
@@ -699,24 +742,38 @@ function VoiceChannel({ socket, channel, user, globalMuted, globalDeafened, onDi
       // Определяем браузер для специальной конфигурации
       const browser = getBrowserInfo();
 
+      // Базовая конфигурация аудио
+      const audioConstraints = {
+        echoCancellation: echoCancellation,
+        noiseSuppression: noiseSuppression,
+        autoGainControl: true
+      };
+
+      // Добавляем deviceId если выбрано конкретное устройство
+      if (selectedMicrophone && selectedMicrophone !== 'default') {
+        audioConstraints.deviceId = { exact: selectedMicrophone };
+        console.log('🎤 Используется микрофон:', selectedMicrophone);
+      }
+
       // Сначала пробуем базовую конфигурацию для максимальной совместимости
       let constraints = {
-        audio: {
-          echoCancellation: echoCancellation,
-          noiseSuppression: noiseSuppression,
-          autoGainControl: true
-        },
+        audio: audioConstraints,
         video: false
       };
 
       // Для Яндекс браузера используем более простую конфигурацию
       if (browser === 'yandex') {
+        const yandexAudio = {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true
+        };
+        // Добавляем deviceId для Яндекс браузера тоже
+        if (selectedMicrophone && selectedMicrophone !== 'default') {
+          yandexAudio.deviceId = { exact: selectedMicrophone };
+        }
         constraints = {
-          audio: {
-            echoCancellation: true,
-            noiseSuppression: true,
-            autoGainControl: true
-          },
+          audio: yandexAudio,
           video: false
         };
       }
@@ -730,21 +787,28 @@ function VoiceChannel({ socket, channel, user, globalMuted, globalDeafened, onDi
         console.warn('Базовый доступ не удался, пробуем расширенную конфигурацию:', basicError);
 
         // Если базовая конфигурация не работает, пробуем расширенную
+        const advancedAudioConstraints = {
+          echoCancellation: echoCancellation,
+          noiseSuppression: noiseSuppression,
+          autoGainControl: true,
+          sampleRate: { ideal: 48000, min: 44100 },
+          channelCount: { ideal: 1, min: 1, max: 2 },
+          // Добавляем только основные goog параметры для Chrome-совместимых браузеров
+          googEchoCancellation: true,
+          googAutoGainControl: true,
+          googNoiseSuppression: noiseSuppression,
+          googHighpassFilter: true,
+          googTypingNoiseDetection: true,
+          googAudioMirroring: false
+        };
+
+        // Добавляем deviceId в расширенную конфигурацию
+        if (selectedMicrophone && selectedMicrophone !== 'default') {
+          advancedAudioConstraints.deviceId = { exact: selectedMicrophone };
+        }
+
         constraints = {
-          audio: {
-            echoCancellation: echoCancellation,
-            noiseSuppression: noiseSuppression,
-            autoGainControl: true,
-            sampleRate: { ideal: 48000, min: 44100 },
-            channelCount: { ideal: 1, min: 1, max: 2 },
-            // Добавляем только основные goog параметры для Chrome-совместимых браузеров
-            googEchoCancellation: true,
-            googAutoGainControl: true,
-            googNoiseSuppression: noiseSuppression,
-            googHighpassFilter: true,
-            googTypingNoiseDetection: true,
-            googAudioMirroring: false
-          },
+          audio: advancedAudioConstraints,
           video: false
         };
 
@@ -755,8 +819,13 @@ function VoiceChannel({ socket, channel, user, globalMuted, globalDeafened, onDi
           console.warn('Расширенный доступ не удался, пробуем минимальную конфигурацию:', advancedError);
 
           // Последняя попытка - минимальная конфигурация
+          let minimalAudio = true;
+          if (selectedMicrophone && selectedMicrophone !== 'default') {
+            minimalAudio = { deviceId: { exact: selectedMicrophone } };
+          }
+
           constraints = {
-            audio: true,
+            audio: minimalAudio,
             video: false
           };
 
@@ -779,6 +848,15 @@ function VoiceChannel({ socket, channel, user, globalMuted, globalDeafened, onDi
 
       setIsConnected(true);
       isConnectingRef.current = false;
+
+      // Воспроизводим звук подключения к голосовому каналу
+      try {
+        const audio = new Audio('/user_join.mp3');
+        audio.volume = 0.5;
+        audio.play().catch(err => console.log('Не удалось воспроизвести звук подключения:', err));
+      } catch (err) {
+        console.log('Ошибка при воспроизведении звука подключения:', err);
+      }
 
       // Анализировать свой собственный микрофон (используем оригинальный поток)
       startLocalAudioAnalysis(stream);
@@ -856,99 +934,123 @@ function VoiceChannel({ socket, channel, user, globalMuted, globalDeafened, onDi
       const source = audioContext.createMediaStreamSource(stream);
       const destination = audioContext.createMediaStreamDestination();
 
-      // 1. Предварительный усилитель с автоматической регулировкой усиления
-      const preAmp = audioContext.createGain();
-      preAmp.gain.value = 1.2; // Небольшое предварительное усиление
-
-      // 2. Высокочастотный фильтр (High-pass filter) - убирает низкочастотные шумы
+      // 1. Высокочастотный фильтр (High-pass filter) - убирает низкочастотные шумы (гул, шум кондиционера)
       const highPassFilter = audioContext.createBiquadFilter();
       highPassFilter.type = 'highpass';
-      highPassFilter.frequency.value = 85; // Оптимизированная частота
-      highPassFilter.Q.value = 0.7; // Более крутой спад
+      highPassFilter.frequency.value = 100; // Убираем всё ниже 100Hz
+      highPassFilter.Q.value = 1.0;
 
-      // 3. Шумовые ворота (Noise Gate) - убирают фоновый шум
-      const noiseGate = audioContext.createDynamicsCompressor();
-      noiseGate.threshold.value = -65; // Более чувствительный порог
-      noiseGate.knee.value = 2;
-      noiseGate.ratio.value = 25; // Более агрессивное подавление
-      noiseGate.attack.value = 0.0005; // Быстрее срабатывание
-      noiseGate.release.value = 0.15; // Плавнее отпускание
+      // 2. Notch фильтр для устранения гудения 50/60Hz от электросети
+      const notchFilter = audioContext.createBiquadFilter();
+      notchFilter.type = 'notch';
+      notchFilter.frequency.value = 50; // Европейские 50Hz
+      notchFilter.Q.value = 10;
 
-      // 4. Многочастотный эквалайзер (5 полос)
-      const eq1 = audioContext.createBiquadFilter(); // Суббасы (60-250 Гц)
-      eq1.type = 'lowshelf';
-      eq1.frequency.value = 200;
-      eq1.gain.value = 1.5; // Легкое усиление суббасов
+      // 3. Анализатор для Noise Gate
+      const analyser = audioContext.createAnalyser();
+      analyser.fftSize = 2048;
+      analyser.smoothingTimeConstant = 0.3;
 
-      const eq2 = audioContext.createBiquadFilter(); // Низкие средние (250-1000 Гц)
-      eq2.type = 'peaking';
-      eq2.frequency.value = 500;
-      eq2.Q.value = 0.8;
-      eq2.gain.value = 2; // Усиление низких средних
+      // 4. Noise Gate (шумовые ворота) - настоящая реализация
+      const noiseGateGain = audioContext.createGain();
+      noiseGateGain.gain.value = 0; // По умолчанию закрыт
 
-      const eq3 = audioContext.createBiquadFilter(); // Средние (1000-4000 Гц) - голосовой диапазон
-      eq3.type = 'peaking';
-      eq3.frequency.value = 2000;
-      eq3.Q.value = 1.2;
-      eq3.gain.value = 4; // Максимальное усиление голосового диапазона
+      // Используем анализатор для определения уровня сигнала
+      const dataArray = new Uint8Array(analyser.frequencyBinCount);
+      let gateOpen = false;
+      const gateThreshold = micSensitivity / 50 * 255; // Порог от 0 до 255
+      const attackTime = 0.01; // 10ms
+      const releaseTime = 0.1; // 100ms
 
-      const eq4 = audioContext.createBiquadFilter(); // Высокие средние (4000-8000 Гц)
-      eq4.type = 'peaking';
-      eq4.frequency.value = 5000;
-      eq4.Q.value = 1.0;
-      eq4.gain.value = 2.5; // Усиление четкости
+      const updateNoiseGate = () => {
+        analyser.getByteTimeDomainData(dataArray);
 
-      const eq5 = audioContext.createBiquadFilter(); // Высокие (8000+ Гц)
-      eq5.type = 'highshelf';
-      eq5.frequency.value = 8000;
-      eq5.gain.value = 1.5; // Легкое усиление высоких
+        // Вычисляем RMS (среднеквадратичное значение)
+        let sum = 0;
+        for (let i = 0; i < dataArray.length; i++) {
+          const normalized = (dataArray[i] - 128) / 128;
+          sum += normalized * normalized;
+        }
+        const rms = Math.sqrt(sum / dataArray.length);
+        const level = rms * 255;
 
-      // 5. Низкочастотный фильтр (Low-pass filter) - убирает высокочастотные шумы
-      const lowPassFilter = audioContext.createBiquadFilter();
-      lowPassFilter.type = 'lowpass';
-      lowPassFilter.frequency.value = 12000; // Расширенный диапазон для лучшего качества
-      lowPassFilter.Q.value = 0.5;
+        const currentTime = audioContext.currentTime;
 
-      // 6. Компрессор для выравнивания громкости (более мягкий)
-      const compressor = audioContext.createDynamicsCompressor();
-      compressor.threshold.value = -25; // Более мягкий порог
-      compressor.knee.value = 15; // Более мягкое колено
-      compressor.ratio.value = 3.5; // Менее агрессивное сжатие
-      compressor.attack.value = 0.005; // Немного медленнее атака
-      compressor.release.value = 0.15; // Плавнее отпускание
+        // Открываем/закрываем ворота
+        if (level > gateThreshold) {
+          if (!gateOpen) {
+            // Открываем ворота плавно
+            noiseGateGain.gain.cancelScheduledValues(currentTime);
+            noiseGateGain.gain.setValueAtTime(noiseGateGain.gain.value, currentTime);
+            noiseGateGain.gain.linearRampToValueAtTime(1.0, currentTime + attackTime);
+            gateOpen = true;
+          }
+        } else if (level < gateThreshold * 0.7) { // Гистерезис для предотвращения дребезга
+          if (gateOpen) {
+            // Закрываем ворота плавно
+            noiseGateGain.gain.cancelScheduledValues(currentTime);
+            noiseGateGain.gain.setValueAtTime(noiseGateGain.gain.value, currentTime);
+            noiseGateGain.gain.linearRampToValueAtTime(0.0, currentTime + releaseTime);
+            gateOpen = false;
+          }
+        }
 
-      // 7. Дополнительный компрессор для голоса (Vocal Compressor)
-      const vocalCompressor = audioContext.createDynamicsCompressor();
-      vocalCompressor.threshold.value = -20;
-      vocalCompressor.knee.value = 5;
-      vocalCompressor.ratio.value = 2.5;
-      vocalCompressor.attack.value = 0.01;
-      vocalCompressor.release.value = 0.1;
+        if (audioContext.state !== 'closed') {
+          requestAnimationFrame(updateNoiseGate);
+        }
+      };
+      updateNoiseGate();
 
-      // 8. Лимитер для предотвращения клиппинга (более мягкий)
-      const limiter = audioContext.createDynamicsCompressor();
-      limiter.threshold.value = -2; // Более мягкий лимит
-      limiter.knee.value = 1;
-      limiter.ratio.value = 15; // Менее агрессивное ограничение
-      limiter.attack.value = 0.0005; // Очень быстрая атака
-      limiter.release.value = 0.02; // Быстрое отпускание
-
-      // 9. Финальный усилитель с нормализацией
-      const finalGain = audioContext.createGain();
-      finalGain.gain.value = 0.95; // Легкое снижение для предотвращения перегрузки
-
-      // 10. Дополнительный фильтр для устранения артефактов
+      // 5. De-esser - убирает шипение
       const deEsser = audioContext.createBiquadFilter();
       deEsser.type = 'peaking';
-      deEsser.frequency.value = 6000; // Частота шипения
-      deEsser.Q.value = 2.0;
-      deEsser.gain.value = -1.5; // Легкое подавление шипения
+      deEsser.frequency.value = 7000;
+      deEsser.Q.value = 1.5;
+      deEsser.gain.value = -3; // Подавляем шипение на 3dB
 
-      // Упрощенная цепочка обработки для лучшей совместимости
+      // 6. Компрессор для выравнивания громкости
+      const compressor = audioContext.createDynamicsCompressor();
+      compressor.threshold.value = -24;
+      compressor.knee.value = 30;
+      compressor.ratio.value = 12;
+      compressor.attack.value = 0.003;
+      compressor.release.value = 0.25;
+
+      // 7. Низкочастотный фильтр (Low-pass filter) - убирает ультразвук и высокочастотные шумы
+      const lowPassFilter = audioContext.createBiquadFilter();
+      lowPassFilter.type = 'lowpass';
+      lowPassFilter.frequency.value = 10000; // Убираем всё выше 10kHz
+      lowPassFilter.Q.value = 0.7;
+
+      // 8. Финальный усилитель
+      const finalGain = audioContext.createGain();
+      finalGain.gain.value = 1.5; // Усиление после обработки
+
+      // 9. Контроль исходящей громкости (inputVolume)
+      const volumeControl = audioContext.createGain();
+      volumeControl.gain.value = Math.min(2.0, Math.max(0, inputVolume / 100));
+      console.log('🎤 Громкость исходящего звука (микрофон):', volumeControl.gain.value);
+
+      // 10. Лимитер для предотвращения перегрузки
+      const limiter = audioContext.createDynamicsCompressor();
+      limiter.threshold.value = -1;
+      limiter.knee.value = 0;
+      limiter.ratio.value = 20;
+      limiter.attack.value = 0.001;
+      limiter.release.value = 0.01;
+
+      // ПОЛНАЯ ЦЕПОЧКА ОБРАБОТКИ (как в Discord)
       source
-        .connect(highPassFilter)
-        .connect(compressor)
-        .connect(finalGain)
+        .connect(highPassFilter)     // Убираем низкие частоты (гул)
+        .connect(notchFilter)         // Убираем гудение сети
+        .connect(analyser)            // Анализируем уровень для noise gate
+        .connect(noiseGateGain)       // Шумовые ворота (главная фича!)
+        .connect(deEsser)             // Убираем шипение
+        .connect(compressor)          // Выравниваем громкость
+        .connect(lowPassFilter)       // Убираем высокочастотные шумы
+        .connect(finalGain)           // Усиливаем
+        .connect(volumeControl)       // Контролируем громкость
+        .connect(limiter)             // Предотвращаем перегрузку
         .connect(destination);
 
       // Сохраняем AudioContext для последующего закрытия
@@ -1024,6 +1126,15 @@ function VoiceChannel({ socket, channel, user, globalMuted, globalDeafened, onDi
       audio.remove();
     });
 
+    // Воспроизводим звук отключения от голосового канала
+    try {
+      const audio = new Audio('/user_leave.mp3');
+      audio.volume = 0.5;
+      audio.play().catch(err => console.log('Не удалось воспроизвести звук отключения:', err));
+    } catch (err) {
+      console.log('Ошибка при воспроизведении звука отключения:', err);
+    }
+
     // Покинуть голосовой канал
     if (socket && channel) {
       socket.emit('voice:leave', { channelId: channel.id });
@@ -1094,6 +1205,114 @@ function VoiceChannel({ socket, channel, user, globalMuted, globalDeafened, onDi
         setAudioBitrate(newSettings.audioBitrate);
       }
 
+      // Обработка изменения микрофона
+      if (newSettings.selectedMicrophone !== undefined && newSettings.selectedMicrophone !== selectedMicrophone) {
+        setSelectedMicrophone(newSettings.selectedMicrophone);
+
+        // Если уже подключены, нужно переподключиться с новым микрофоном
+        if (isConnected && socket && channel) {
+          console.log('🔄 Переподключение с новым микрофоном...');
+          // Отключаемся и подключаемся заново
+          handleDisconnect();
+          // Небольшая задержка перед переподключением
+          setTimeout(() => {
+            handleConnect();
+          }, 500);
+        }
+        return; // Выходим, чтобы не применять другие настройки при переподключении
+      }
+
+      // Обработка изменения динамиков
+      if (newSettings.selectedSpeaker !== undefined && newSettings.selectedSpeaker !== selectedSpeaker) {
+        setSelectedSpeaker(newSettings.selectedSpeaker);
+
+        // Обновляем sinkId для всех существующих audio элементов
+        const audioElements = document.querySelectorAll('audio[id^="audio-"]');
+        audioElements.forEach(async (audio) => {
+          if (typeof audio.setSinkId === 'function') {
+            try {
+              const deviceId = newSettings.selectedSpeaker === 'default' ? '' : newSettings.selectedSpeaker;
+              await audio.setSinkId(deviceId);
+              console.log('🔊 Динамики обновлены для', audio.id);
+            } catch (err) {
+              console.warn('Не удалось обновить устройство вывода:', err);
+            }
+          }
+        });
+      }
+
+      // Обработка изменения громкости входящего звука
+      if (newSettings.outputVolume !== undefined && newSettings.outputVolume !== outputVolume) {
+        setOutputVolume(newSettings.outputVolume);
+
+        // Обновляем громкость для всех существующих audio элементов
+        const audioElements = document.querySelectorAll('audio[id^="audio-"]');
+        audioElements.forEach((audio) => {
+          const newVolume = Math.min(2.0, Math.max(0, newSettings.outputVolume / 100));
+          audio.volume = newVolume;
+          console.log('🔊 Громкость обновлена для', audio.id, ':', newVolume);
+        });
+      }
+
+      // Обработка изменения громкости исходящего звука (микрофона)
+      if (newSettings.inputVolume !== undefined && newSettings.inputVolume !== inputVolume) {
+        setInputVolume(newSettings.inputVolume);
+
+        // Для изменения громкости микрофона нужно переподключиться
+        if (isConnected && socket && channel) {
+          console.log('🔄 Переподключение для применения новой громкости микрофона...');
+          handleDisconnect();
+          setTimeout(() => {
+            handleConnect();
+          }, 500);
+        }
+      }
+
+      // Обработка изменения чувствительности микрофона
+      if (newSettings.micSensitivity !== undefined && newSettings.micSensitivity !== micSensitivity) {
+        setMicSensitivity(newSettings.micSensitivity);
+        console.log('🎯 Порог активации голоса обновлен:', newSettings.micSensitivity);
+        // Применяется автоматически, не нужно переподключаться
+      }
+
+      // Обработка изменения режима активации (PTT/VAD)
+      if (newSettings.voiceMode !== undefined && newSettings.voiceMode !== voiceMode) {
+        setVoiceMode(newSettings.voiceMode);
+        console.log('🎙️ Режим активации изменен на:', newSettings.voiceMode === 'ptt' ? 'Push-to-Talk' : 'Voice Activation');
+
+        // При переключении в режим PTT, автоматически выключаем микрофон и сбрасываем состояния
+        if (newSettings.voiceMode === 'ptt' && !globalMuted) {
+          setIsPttActive(false);
+          setIsSpeaking(false);
+
+          // Выключаем аудио трек
+          if (localStreamRef.current) {
+            const audioTrack = localStreamRef.current.getAudioTracks()[0];
+            if (audioTrack) {
+              audioTrack.enabled = false;
+              console.log('🎙️ Режим PTT: микрофон выключен');
+            }
+          }
+        }
+
+        // При переключении обратно в VAD, включаем микрофон
+        if (newSettings.voiceMode === 'vad' && !globalMuted) {
+          if (localStreamRef.current) {
+            const audioTrack = localStreamRef.current.getAudioTracks()[0];
+            if (audioTrack) {
+              audioTrack.enabled = true;
+              console.log('🎙️ Режим VAD: микрофон включен');
+            }
+          }
+        }
+      }
+
+      // Обработка изменения клавиши PTT
+      if (newSettings.pttKey !== undefined && newSettings.pttKey !== pttKey) {
+        setPttKey(newSettings.pttKey);
+        console.log('⌨️ Клавиша PTT изменена на:', newSettings.pttKey);
+      }
+
       // Если уже подключены, применяем настройки к существующему потоку
       if (localStreamRef.current && isConnected) {
         const audioTrack = localStreamRef.current.getAudioTracks()[0];
@@ -1134,9 +1353,98 @@ function VoiceChannel({ socket, channel, user, globalMuted, globalDeafened, onDi
 
     window.addEventListener('audioSettingsChanged', handleSettingsChange);
     return () => window.removeEventListener('audioSettingsChanged', handleSettingsChange);
-  }, [isConnected, echoCancellation, noiseSuppression]);
+  }, [isConnected, echoCancellation, noiseSuppression, selectedMicrophone, selectedSpeaker, inputVolume, outputVolume, micSensitivity, voiceMode, pttKey, socket, channel, globalMuted]);
 
-  // Голосовой канал теперь скрыт - работает в фоне
+  // Обработка PTT (Push-to-Talk)
+  useEffect(() => {
+    if (voiceMode !== 'ptt' || !isConnected) return;
+
+    const handleKeyDown = (e) => {
+      // Игнорируем, если фокус в input/textarea
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+      if (e.code === pttKey && !isPttActive) {
+        e.preventDefault();
+        setIsPttActive(true);
+        setIsSpeaking(true); // Устанавливаем состояние говорения
+
+        // Воспроизводим звук активации PTT
+        try {
+          const audio = new Audio('/ptt_start.mp3');
+          audio.volume = 0.3;
+          audio.play().catch(err => console.log('Не удалось воспроизвести звук PTT:', err));
+        } catch (err) {
+          console.log('Ошибка при воспроизведении звука PTT:', err);
+        }
+
+        // Включаем микрофон (снимаем mute)
+        if (localStreamRef.current) {
+          const audioTrack = localStreamRef.current.getAudioTracks()[0];
+          if (audioTrack) {
+            audioTrack.enabled = true;
+            console.log('🎙️ PTT активирован - микрофон включен');
+
+            // Отправляем событие о том, что начали говорить
+            if (socket && channel) {
+              socket.emit('speaking-start', { channelId: channel._id, userId: user._id });
+            }
+          }
+        }
+      }
+    };
+
+    const handleKeyUp = (e) => {
+      if (e.code === pttKey && isPttActive) {
+        e.preventDefault();
+        setIsPttActive(false);
+        setIsSpeaking(false); // Сбрасываем состояние говорения
+
+        // Воспроизводим звук деактивации PTT
+        try {
+          const audio = new Audio('/ptt_stop.mp3');
+          audio.volume = 0.3;
+          audio.play().catch(err => console.log('Не удалось воспроизвести звук PTT:', err));
+        } catch (err) {
+          console.log('Ошибка при воспроизведении звука PTT:', err);
+        }
+
+        // Выключаем микрофон (ставим mute)
+        if (localStreamRef.current) {
+          const audioTrack = localStreamRef.current.getAudioTracks()[0];
+          if (audioTrack) {
+            audioTrack.enabled = false;
+            console.log('🎙️ PTT деактивирован - микрофон выключен');
+
+            // Отправляем событие о том, что перестали говорить
+            if (socket && channel) {
+              socket.emit('speaking-stop', { channelId: channel._id, userId: user._id });
+            }
+          }
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+    };
+  }, [voiceMode, pttKey, isPttActive, isConnected, socket, channel, user]);
+
+  // При подключении в режиме PTT микрофон должен быть выключен по умолчанию
+  useEffect(() => {
+    if (isConnected && voiceMode === 'ptt' && localStreamRef.current) {
+      const audioTrack = localStreamRef.current.getAudioTracks()[0];
+      if (audioTrack && !isPttActive) {
+        audioTrack.enabled = false;
+        console.log('🎙️ PTT режим: микрофон выключен по умолчанию');
+      }
+    }
+  }, [isConnected, voiceMode, isPttActive]);
+
+  // Голосовой канал работает в фоне
   return null;
 }
 

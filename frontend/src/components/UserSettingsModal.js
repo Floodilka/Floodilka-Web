@@ -20,9 +20,37 @@ function UserSettingsModal({ user, onClose, onLogout, onAvatarUpdate }) {
     return saved ? JSON.parse(saved) : {
       echoCancellation: true,
       noiseSuppression: true,
-      autoGainControl: true
+      autoGainControl: true,
+      selectedMicrophone: 'default',
+      selectedSpeaker: 'default',
+      inputVolume: 100,  // Громкость исходящего звука (микрофона) 0-200%
+      outputVolume: 100,  // Громкость входящего звука (динамиков) 0-200%
+      micSensitivity: 1,  // Порог активации голоса (Voice Activation) 0-50
+      voiceMode: 'vad',  // Режим активации: 'vad' (Voice Activation) или 'ptt' (Push-to-Talk)
+      pttKey: 'ControlLeft'  // Клавиша для PTT (по умолчанию Left Ctrl)
     };
   });
+
+  // Состояния для устройств
+  const [audioDevices, setAudioDevices] = useState({
+    microphones: [],
+    speakers: []
+  });
+  const [isLoadingDevices, setIsLoadingDevices] = useState(true);
+  const [isMicTesting, setIsMicTesting] = useState(false);
+  const [micLevel, setMicLevel] = useState(0);
+  const [testStream, setTestStream] = useState(null);
+  const [testAudioContext, setTestAudioContext] = useState(null);
+
+  // Состояния для тестового режима (loopback)
+  const [isTestMode, setIsTestMode] = useState(false);
+  const [loopbackStream, setLoopbackStream] = useState(null);
+  const [loopbackAudioContext, setLoopbackAudioContext] = useState(null);
+  const [loopbackAudioElement, setLoopbackAudioElement] = useState(null);
+
+  // Состояния для PTT
+  const [isRecordingKey, setIsRecordingKey] = useState(false);
+  const [pressedKeys, setPressedKeys] = useState(new Set());
 
   // Состояния для управления тегами (только для puncher)
   const [targetUsername, setTargetUsername] = useState('');
@@ -36,6 +64,133 @@ function UserSettingsModal({ user, onClose, onLogout, onAvatarUpdate }) {
   const [currentUser, setCurrentUser] = useState(user);
 
   const isPuncher = currentUser?.username === 'puncher';
+
+  // Функция загрузки списка аудиоустройств
+  const loadAudioDevices = async () => {
+    try {
+      setIsLoadingDevices(true);
+
+      // Сначала запрашиваем разрешения, чтобы получить реальные имена устройств
+      await navigator.mediaDevices.getUserMedia({ audio: true, video: false })
+        .then(stream => {
+          // Сразу останавливаем поток, он нам нужен только для получения разрешений
+          stream.getTracks().forEach(track => track.stop());
+        })
+        .catch(err => {
+          console.warn('Не удалось получить разрешение на микрофон:', err);
+        });
+
+      // Получаем список устройств
+      const devices = await navigator.mediaDevices.enumerateDevices();
+
+      const microphones = devices
+        .filter(device => device.kind === 'audioinput')
+        .map(device => ({
+          deviceId: device.deviceId,
+          label: device.label || `Микрофон ${device.deviceId.substring(0, 5)}`,
+          groupId: device.groupId
+        }));
+
+      const speakers = devices
+        .filter(device => device.kind === 'audiooutput')
+        .map(device => ({
+          deviceId: device.deviceId,
+          label: device.label || `Динамик ${device.deviceId.substring(0, 5)}`,
+          groupId: device.groupId
+        }));
+
+      // Добавляем устройство по умолчанию в начало списка (только если его еще нет)
+      const hasDefaultMic = microphones.some(mic => mic.deviceId === 'default');
+      if (!hasDefaultMic) {
+        microphones.unshift({
+          deviceId: 'default',
+          label: 'По умолчанию',
+          groupId: ''
+        });
+      }
+
+      const hasDefaultSpeaker = speakers.some(speaker => speaker.deviceId === 'default');
+      if (!hasDefaultSpeaker) {
+        speakers.unshift({
+          deviceId: 'default',
+          label: 'По умолчанию',
+          groupId: ''
+        });
+      }
+
+      setAudioDevices({
+        microphones,
+        speakers
+      });
+
+      console.log('✅ Загружено устройств:', {
+        microphones: microphones.length,
+        speakers: speakers.length
+      });
+    } catch (error) {
+      console.error('Ошибка загрузки аудиоустройств:', error);
+      // В случае ошибки показываем хотя бы устройство по умолчанию
+      setAudioDevices({
+        microphones: [{ deviceId: 'default', label: 'По умолчанию', groupId: '' }],
+        speakers: [{ deviceId: 'default', label: 'По умолчанию', groupId: '' }]
+      });
+    } finally {
+      setIsLoadingDevices(false);
+    }
+  };
+
+  // Загрузка аудиоустройств при открытии вкладки звука
+  useEffect(() => {
+    if (activeTab === 'audio') {
+      loadAudioDevices();
+
+      // Слушаем изменения подключенных устройств
+      const handleDeviceChange = () => {
+        console.log('🔄 Обнаружено изменение аудиоустройств');
+        loadAudioDevices();
+      };
+
+      navigator.mediaDevices.addEventListener('devicechange', handleDeviceChange);
+
+      return () => {
+        navigator.mediaDevices.removeEventListener('devicechange', handleDeviceChange);
+      };
+    }
+  }, [activeTab]);
+
+  // Автоматический запуск мониторинга микрофона при открытии вкладки звука
+  useEffect(() => {
+    if (activeTab === 'audio' && !isMicTesting) {
+      // Небольшая задержка, чтобы устройства успели загрузиться
+      const timer = setTimeout(() => {
+        startMicMonitoring();
+      }, 500);
+
+      return () => {
+        clearTimeout(timer);
+      };
+    } else if (activeTab !== 'audio') {
+      // Останавливаем мониторинг и тестовый режим при переходе на другую вкладку
+      if (isMicTesting) {
+        stopMicMonitoring();
+      }
+      if (isTestMode) {
+        stopTestMode();
+      }
+    }
+  }, [activeTab, audioSettings.selectedMicrophone, isMicTesting, isTestMode]);
+
+  // Очистка тестового потока при закрытии модального окна
+  useEffect(() => {
+    return () => {
+      if (testStream) {
+        testStream.getTracks().forEach(track => track.stop());
+      }
+      if (testAudioContext && testAudioContext.state !== 'closed') {
+        testAudioContext.close();
+      }
+    };
+  }, [testStream, testAudioContext]);
 
   // Загрузка актуальных данных пользователя при открытии
   useEffect(() => {
@@ -192,6 +347,407 @@ function UserSettingsModal({ user, onClose, onLogout, onAvatarUpdate }) {
     window.dispatchEvent(new CustomEvent('audioSettingsChanged', {
       detail: newSettings
     }));
+  };
+
+  // Обработка изменения громкости
+  const handleVolumeChange = (type, value) => {
+    const numValue = parseInt(value, 10);
+    const setting = type === 'input' ? 'inputVolume' : 'outputVolume';
+    handleAudioSettingChange(setting, numValue);
+  };
+
+  // Получить читаемое имя клавиши
+  const getKeyName = (code) => {
+    // Проверка на undefined или пустую строку
+    if (!code) return 'Не задано';
+
+    const keyNames = {
+      'ControlLeft': 'Left Ctrl',
+      'ControlRight': 'Right Ctrl',
+      'ShiftLeft': 'Left Shift',
+      'ShiftRight': 'Right Shift',
+      'AltLeft': 'Left Alt',
+      'AltRight': 'Right Alt',
+      'Space': 'Space',
+      'CapsLock': 'Caps Lock',
+      'Tab': 'Tab',
+      'Enter': 'Enter',
+      'Backquote': '`',
+      'Backslash': '\\',
+      'BracketLeft': '[',
+      'BracketRight': ']',
+      'Semicolon': ';',
+      'Quote': "'",
+      'Comma': ',',
+      'Period': '.',
+      'Slash': '/',
+      'Minus': '-',
+      'Equal': '='
+    };
+
+    // Если есть специальное имя, используем его
+    if (keyNames[code]) return keyNames[code];
+
+    // Для букв и цифр убираем Key/Digit префикс
+    if (code.startsWith('Key')) return code.replace('Key', '');
+    if (code.startsWith('Digit')) return code.replace('Digit', '');
+
+    // Для F-клавиш и других
+    return code;
+  };
+
+  // Начать запись клавиши для PTT
+  const startKeyRecording = () => {
+    setIsRecordingKey(true);
+    setPressedKeys(new Set());
+  };
+
+  // Обработка нажатия клавиши при записи PTT
+  useEffect(() => {
+    if (!isRecordingKey) return;
+
+    const handleKeyDown = (e) => {
+      e.preventDefault();
+      const newKeys = new Set(pressedKeys);
+      newKeys.add(e.code);
+      setPressedKeys(newKeys);
+
+      // Сохраняем клавишу и завершаем запись
+      handleAudioSettingChange('pttKey', e.code);
+      setIsRecordingKey(false);
+      console.log('🎹 Клавиша PTT установлена:', e.code);
+    };
+
+    const handleKeyUp = (e) => {
+      e.preventDefault();
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+    };
+  }, [isRecordingKey, pressedKeys]);
+
+  // Обработка выбора устройства
+  const handleDeviceChange = (deviceType, deviceId) => {
+    const setting = deviceType === 'microphone' ? 'selectedMicrophone' : 'selectedSpeaker';
+    const newSettings = { ...audioSettings, [setting]: deviceId };
+    setAudioSettings(newSettings);
+    localStorage.setItem('audioSettings', JSON.stringify(newSettings));
+
+    console.log(`✅ Выбрано устройство ${deviceType}:`, deviceId);
+
+    // Отправляем событие для применения изменений
+    window.dispatchEvent(new CustomEvent('audioSettingsChanged', {
+      detail: newSettings
+    }));
+  };
+
+  // Остановка мониторинга микрофона
+  const stopMicMonitoring = () => {
+    if (testStream) {
+      testStream.getTracks().forEach(track => track.stop());
+      setTestStream(null);
+    }
+    if (testAudioContext && testAudioContext.state !== 'closed') {
+      testAudioContext.close();
+      setTestAudioContext(null);
+    }
+    setIsMicTesting(false);
+    setMicLevel(0);
+  };
+
+  // Запуск мониторинга микрофона
+  const startMicMonitoring = async () => {
+    // Если уже работает, не запускаем повторно
+    if (isMicTesting) return;
+
+    try {
+      setIsMicTesting(true);
+
+      // Получаем поток с выбранного микрофона
+      const constraints = {
+        audio: audioSettings.selectedMicrophone === 'default'
+          ? true
+          : { deviceId: { exact: audioSettings.selectedMicrophone } },
+        video: false
+      };
+
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      setTestStream(stream);
+
+      // Создаем анализатор звука
+      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      setTestAudioContext(audioContext);
+
+      const analyser = audioContext.createAnalyser();
+      const microphone = audioContext.createMediaStreamSource(stream);
+
+      analyser.fftSize = 2048;
+      analyser.smoothingTimeConstant = 0.8;
+      microphone.connect(analyser);
+
+      const bufferLength = analyser.frequencyBinCount;
+      const dataArray = new Uint8Array(bufferLength);
+
+      let animationId = null;
+      let isRunning = true;
+
+      // Функция для обновления уровня
+      const updateLevel = () => {
+        // Проверяем, что поток все еще активен
+        if (!stream.active || !isRunning || audioContext.state === 'closed') {
+          if (animationId) {
+            cancelAnimationFrame(animationId);
+          }
+          setMicLevel(0);
+          return;
+        }
+
+        analyser.getByteTimeDomainData(dataArray);
+
+        // Вычисляем RMS (root mean square) для более точного уровня
+        let sum = 0;
+        for (let i = 0; i < bufferLength; i++) {
+          const normalized = (dataArray[i] - 128) / 128;
+          sum += normalized * normalized;
+        }
+        const rms = Math.sqrt(sum / bufferLength);
+        const normalizedLevel = Math.min(100, rms * 200);
+
+        setMicLevel(normalizedLevel);
+        animationId = requestAnimationFrame(updateLevel);
+      };
+
+      // Сохраняем ID анимации для возможности остановки
+      stream.onended = () => {
+        isRunning = false;
+        if (animationId) {
+          cancelAnimationFrame(animationId);
+        }
+        setMicLevel(0);
+      };
+
+      console.log('🎤 Тест микрофона запущен, stream active:', stream.active);
+      updateLevel();
+    } catch (error) {
+      console.error('Ошибка тестирования микрофона:', error);
+      alert('Не удалось получить доступ к микрофону. Проверьте разрешения браузера.');
+      setIsMicTesting(false);
+      setMicLevel(0);
+    }
+  };
+
+  // Остановка тестового loopback режима
+  const stopTestMode = () => {
+    console.log('🛑 Остановка тестового режима...');
+
+    // Останавливаем аудио элемент
+    if (loopbackAudioElement) {
+      loopbackAudioElement.pause();
+      loopbackAudioElement.srcObject = null;
+      setLoopbackAudioElement(null);
+    }
+
+    // Закрываем AudioContext
+    if (loopbackAudioContext && loopbackAudioContext.state !== 'closed') {
+      loopbackAudioContext.close();
+      setLoopbackAudioContext(null);
+    }
+
+    // Останавливаем поток
+    if (loopbackStream) {
+      loopbackStream.getTracks().forEach(track => track.stop());
+      setLoopbackStream(null);
+    }
+
+    setIsTestMode(false);
+    console.log('✅ Тестовый режим остановлен');
+  };
+
+  // Запуск тестового loopback режима с применением всех настроек
+  const startTestMode = async () => {
+    if (isTestMode) return;
+
+    try {
+      console.log('🎙️ Запуск тестового режима...');
+      setIsTestMode(true);
+
+      // Получаем поток с микрофона с текущими настройками
+      const constraints = {
+        audio: {
+          deviceId: audioSettings.selectedMicrophone === 'default'
+            ? undefined
+            : { exact: audioSettings.selectedMicrophone },
+          echoCancellation: audioSettings.echoCancellation ?? true,
+          noiseSuppression: audioSettings.noiseSuppression ?? true,
+          autoGainControl: audioSettings.autoGainControl ?? true
+        },
+        video: false
+      };
+
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      setLoopbackStream(stream);
+
+      // Создаем AudioContext для обработки звука
+      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      setLoopbackAudioContext(audioContext);
+
+      // Применяем ПОЛНУЮ аудио обработку (идентично VoiceChannel)
+      const source = audioContext.createMediaStreamSource(stream);
+      const destination = audioContext.createMediaStreamDestination();
+
+      // 1. Высокочастотный фильтр - убирает низкочастотные шумы
+      const highPassFilter = audioContext.createBiquadFilter();
+      highPassFilter.type = 'highpass';
+      highPassFilter.frequency.value = 100;
+      highPassFilter.Q.value = 1.0;
+
+      // 2. Notch фильтр - устраняет гудение от электросети
+      const notchFilter = audioContext.createBiquadFilter();
+      notchFilter.type = 'notch';
+      notchFilter.frequency.value = 50;
+      notchFilter.Q.value = 10;
+
+      // 3. Анализатор для Noise Gate
+      const analyser = audioContext.createAnalyser();
+      analyser.fftSize = 2048;
+      analyser.smoothingTimeConstant = 0.3;
+
+      // 4. Noise Gate (шумовые ворота) - ГЛАВНАЯ ФИЧА для чистоты звука!
+      const noiseGateGain = audioContext.createGain();
+      noiseGateGain.gain.value = 0;
+
+      const dataArray = new Uint8Array(analyser.frequencyBinCount);
+      let gateOpen = false;
+      const gateThreshold = audioSettings.micSensitivity / 50 * 255;
+      const attackTime = 0.01;
+      const releaseTime = 0.1;
+
+      const updateNoiseGate = () => {
+        if (audioContext.state === 'closed') return;
+
+        analyser.getByteTimeDomainData(dataArray);
+
+        let sum = 0;
+        for (let i = 0; i < dataArray.length; i++) {
+          const normalized = (dataArray[i] - 128) / 128;
+          sum += normalized * normalized;
+        }
+        const rms = Math.sqrt(sum / dataArray.length);
+        const level = rms * 255;
+
+        const currentTime = audioContext.currentTime;
+
+        if (level > gateThreshold) {
+          if (!gateOpen) {
+            noiseGateGain.gain.cancelScheduledValues(currentTime);
+            noiseGateGain.gain.setValueAtTime(noiseGateGain.gain.value, currentTime);
+            noiseGateGain.gain.linearRampToValueAtTime(1.0, currentTime + attackTime);
+            gateOpen = true;
+          }
+        } else if (level < gateThreshold * 0.7) {
+          if (gateOpen) {
+            noiseGateGain.gain.cancelScheduledValues(currentTime);
+            noiseGateGain.gain.setValueAtTime(noiseGateGain.gain.value, currentTime);
+            noiseGateGain.gain.linearRampToValueAtTime(0.0, currentTime + releaseTime);
+            gateOpen = false;
+          }
+        }
+
+        requestAnimationFrame(updateNoiseGate);
+      };
+      updateNoiseGate();
+
+      // 5. De-esser - убирает шипение
+      const deEsser = audioContext.createBiquadFilter();
+      deEsser.type = 'peaking';
+      deEsser.frequency.value = 7000;
+      deEsser.Q.value = 1.5;
+      deEsser.gain.value = -3;
+
+      // 6. Компрессор для выравнивания громкости
+      const compressor = audioContext.createDynamicsCompressor();
+      compressor.threshold.value = -24;
+      compressor.knee.value = 30;
+      compressor.ratio.value = 12;
+      compressor.attack.value = 0.003;
+      compressor.release.value = 0.25;
+
+      // 7. Низкочастотный фильтр - убирает высокочастотные шумы
+      const lowPassFilter = audioContext.createBiquadFilter();
+      lowPassFilter.type = 'lowpass';
+      lowPassFilter.frequency.value = 10000;
+      lowPassFilter.Q.value = 0.7;
+
+      // 8. Финальный усилитель
+      const finalGain = audioContext.createGain();
+      finalGain.gain.value = 1.5;
+
+      // 9. Контроль громкости
+      const volumeControl = audioContext.createGain();
+      volumeControl.gain.value = Math.min(2.0, Math.max(0, audioSettings.inputVolume / 100));
+
+      // 10. Лимитер для предотвращения перегрузки
+      const limiter = audioContext.createDynamicsCompressor();
+      limiter.threshold.value = -1;
+      limiter.knee.value = 0;
+      limiter.ratio.value = 20;
+      limiter.attack.value = 0.001;
+      limiter.release.value = 0.01;
+
+      // ПОЛНАЯ ЦЕПОЧКА ОБРАБОТКИ
+      source
+        .connect(highPassFilter)
+        .connect(notchFilter)
+        .connect(analyser)
+        .connect(noiseGateGain)
+        .connect(deEsser)
+        .connect(compressor)
+        .connect(lowPassFilter)
+        .connect(finalGain)
+        .connect(volumeControl)
+        .connect(limiter)
+        .connect(destination);
+
+      // Создаем аудио элемент для воспроизведения
+      const audio = new Audio();
+      audio.srcObject = destination.stream;
+      audio.volume = Math.min(2.0, Math.max(0, audioSettings.outputVolume / 100));
+
+      // Устанавливаем выходное устройство
+      if (audioSettings.selectedSpeaker && audioSettings.selectedSpeaker !== 'default' && typeof audio.setSinkId === 'function') {
+        try {
+          await audio.setSinkId(audioSettings.selectedSpeaker);
+          console.log('🔊 Выбрано устройство вывода:', audioSettings.selectedSpeaker);
+        } catch (err) {
+          console.warn('Не удалось установить устройство вывода:', err);
+        }
+      }
+
+      audio.play().catch(err => {
+        console.error('Ошибка воспроизведения:', err);
+      });
+
+      setLoopbackAudioElement(audio);
+      console.log('✅ Тестовый режим запущен - вы можете слышать себя');
+    } catch (error) {
+      console.error('Ошибка запуска тестового режима:', error);
+      alert('Не удалось запустить тестовый режим. Проверьте разрешения микрофона.');
+      setIsTestMode(false);
+    }
+  };
+
+  // Переключение тестового режима
+  const toggleTestMode = () => {
+    if (isTestMode) {
+      stopTestMode();
+    } else {
+      startTestMode();
+    }
   };
 
   const handleAssignBadge = async () => {
@@ -368,11 +924,288 @@ function UserSettingsModal({ user, onClose, onLogout, onAvatarUpdate }) {
             </div>
             <button className="settings-change-btn">Изменить</button>
           </div>
+
+          <button className="settings-logout-btn" onClick={handleLogout}>
+            Выйти из аккаунта
+          </button>
             </>
           )}
 
           {activeTab === 'audio' && (
             <div className="audio-settings-content">
+              {/* Секция выбора устройств */}
+              <div className="audio-settings-section">
+                <h3 className="audio-settings-title">Аудиоустройства</h3>
+                <p className="audio-settings-description">
+                  Выберите микрофон и динамики для голосового чата
+                </p>
+
+                {isLoadingDevices ? (
+                  <div className="audio-loading">Загрузка устройств...</div>
+                ) : (
+                  <>
+                    <div className="audio-setting-item">
+                      <div className="audio-setting-info">
+                        <div className="audio-setting-label">
+                          <img src="/icons/microphone.png" alt="Microphone" className="audio-setting-icon" />
+                          Микрофон
+                        </div>
+                        <div className="audio-setting-desc">
+                          Выберите устройство для записи голоса
+                        </div>
+                      </div>
+                      <select
+                        className="audio-select"
+                        value={audioSettings.selectedMicrophone}
+                        onChange={(e) => handleDeviceChange('microphone', e.target.value)}
+                      >
+                        {audioDevices.microphones.map(mic => (
+                          <option key={mic.deviceId} value={mic.deviceId}>
+                            {mic.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="audio-setting-item">
+                      <div className="audio-setting-info">
+                        <div className="audio-setting-label">
+                          <img src="/icons/headset.png" alt="Headset" className="audio-setting-icon" />
+                          Динамики
+                        </div>
+                        <div className="audio-setting-desc">
+                          Выберите устройство для воспроизведения звука
+                        </div>
+                      </div>
+                      <select
+                        className="audio-select"
+                        value={audioSettings.selectedSpeaker}
+                        onChange={(e) => handleDeviceChange('speaker', e.target.value)}
+                        disabled={!document.createElement('audio').setSinkId}
+                      >
+                        {audioDevices.speakers.map(speaker => (
+                          <option key={speaker.deviceId} value={speaker.deviceId}>
+                            {speaker.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Индикатор уровня микрофона */}
+                    <div className="mic-monitor-container">
+                      <div className="mic-monitor-header">
+                        <div className="mic-monitor-title">
+                          <img src="/icons/wave_sound.png" alt="Wave" className="audio-setting-icon" />
+                          Индикатор микрофона
+                        </div>
+                        <div className={`mic-status ${isMicTesting ? 'active' : 'inactive'}`}>
+                          {isMicTesting ? '● Активен' : '○ Загрузка...'}
+                        </div>
+                      </div>
+
+                      <div className="mic-level-container">
+                        <div className="mic-level-label">Уровень входящего сигнала:</div>
+                        <div className="mic-level-bar">
+                          <div
+                            className="mic-level-fill"
+                            style={{ width: `${micLevel}%` }}
+                          ></div>
+                          {/* Порог активации голоса */}
+                          <div
+                            className="mic-threshold-line"
+                            style={{ left: `${audioSettings.micSensitivity * 2}%` }}
+                            title={`Порог активации: ${audioSettings.micSensitivity}`}
+                          ></div>
+                        </div>
+                        <div className="mic-level-value">{Math.round(micLevel)}%</div>
+                      </div>
+
+                      {/* Настройка чувствительности */}
+                      <div className="mic-sensitivity-container">
+                        <div className="mic-sensitivity-header">
+                          <div className="mic-sensitivity-label">
+                            Порог активации голоса:
+                          </div>
+                          <div className="mic-sensitivity-value">{audioSettings.micSensitivity}</div>
+                        </div>
+                        <input
+                          type="range"
+                          min="0"
+                          max="50"
+                          value={audioSettings.micSensitivity}
+                          onChange={(e) => handleAudioSettingChange('micSensitivity', parseInt(e.target.value, 10))}
+                          className="mic-sensitivity-slider"
+                          style={{ '--sensitivity-percent': audioSettings.micSensitivity * 2 }}
+                        />
+                        <div className="mic-sensitivity-desc">
+                          Чем выше значение, тем больше нужна громкость голоса для активации. Оптимально: 1-5 для максимальной чистоты
+                        </div>
+                      </div>
+
+                      {isMicTesting && micLevel < 5 && (
+                        <div className="mic-tip">
+                          💡 Говорите в микрофон, чтобы увидеть уровень сигнала
+                        </div>
+                      )}
+
+                      {isMicTesting && micLevel >= 5 && micLevel < 30 && (
+                        <div className="mic-tip mic-tip-warning">
+                          ⚠️ Низкий уровень сигнала. Попробуйте говорить громче или увеличьте громкость микрофона
+                        </div>
+                      )}
+
+                      {/* Кнопка тестового режима */}
+                      <div className="test-mode-container">
+                        <button
+                          className={`test-mode-button ${isTestMode ? 'active' : ''}`}
+                          onClick={toggleTestMode}
+                        >
+                          {isTestMode ? (
+                            <>
+                              <span className="test-mode-icon">🔊</span>
+                              <span>Остановить тест</span>
+                            </>
+                          ) : (
+                            <>
+                              <span className="test-mode-icon">🎧</span>
+                              <span>Услышать свой голос</span>
+                            </>
+                          )}
+                        </button>
+                        <div className="test-mode-desc">
+                          {isTestMode ? (
+                            <>
+                              ✅ <strong>Тест активен:</strong> Вы слышите свой голос со всеми настройками обработки звука
+                            </>
+                          ) : (
+                            'Нажмите для проверки качества микрофона и настроек звука'
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+
+              {/* Секция режима активации */}
+              <div className="audio-settings-section">
+                <h3 className="audio-settings-title">Режим активации голоса</h3>
+                <p className="audio-settings-description">
+                  Выберите способ активации микрофона
+                </p>
+
+                <div className="voice-mode-selector">
+                  <div
+                    className={`voice-mode-option ${audioSettings.voiceMode === 'vad' ? 'active' : ''}`}
+                    onClick={() => handleAudioSettingChange('voiceMode', 'vad')}
+                  >
+                    <div className="voice-mode-icon">🎙️</div>
+                    <div className="voice-mode-info">
+                      <div className="voice-mode-name">Voice Activation</div>
+                      <div className="voice-mode-desc">Микрофон включается автоматически при обнаружении голоса</div>
+                    </div>
+                  </div>
+
+                  <div
+                    className={`voice-mode-option ${audioSettings.voiceMode === 'ptt' ? 'active' : ''}`}
+                    onClick={() => handleAudioSettingChange('voiceMode', 'ptt')}
+                  >
+                    <div className="voice-mode-icon">⌨️</div>
+                    <div className="voice-mode-info">
+                      <div className="voice-mode-name">Push-to-Talk (PTT)</div>
+                      <div className="voice-mode-desc">Удерживайте клавишу для активации микрофона</div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Настройка клавиши PTT */}
+                {audioSettings.voiceMode === 'ptt' && (
+                  <div className="ptt-key-setting">
+                    <div className="ptt-key-info">
+                      <div className="ptt-key-label">Клавиша PTT:</div>
+                      <div className="ptt-key-desc">
+                        Выберите клавишу, которую нужно удерживать для активации микрофона
+                      </div>
+                    </div>
+                    <div className="ptt-key-control">
+                      <button
+                        className={`ptt-key-button ${isRecordingKey ? 'recording' : ''}`}
+                        onClick={startKeyRecording}
+                        disabled={isRecordingKey}
+                      >
+                        {isRecordingKey ? 'Нажмите клавишу...' : getKeyName(audioSettings.pttKey)}
+                      </button>
+                      {!isRecordingKey && (
+                        <div className="ptt-key-hint">
+                          Нажмите для изменения
+                        </div>
+                      )}
+                      {isRecordingKey && (
+                        <div className="ptt-key-hint recording">
+                          Нажмите любую клавишу
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Секция громкости */}
+              <div className="audio-settings-section">
+                <h3 className="audio-settings-title">Громкость</h3>
+                <p className="audio-settings-description">
+                  Настройка уровня громкости микрофона и динамиков
+                </p>
+
+                <div className="volume-setting-item">
+                  <div className="volume-setting-info">
+                    <div className="volume-setting-label">
+                      <img src="/icons/microphone.png" alt="Microphone" className="audio-setting-icon" />
+                      Исходящий звук (микрофон)
+                    </div>
+                    <div className="volume-setting-desc">
+                      Насколько громко вас слышат другие пользователи
+                    </div>
+                  </div>
+                  <div className="volume-control">
+                    <input
+                      type="range"
+                      min="0"
+                      max="200"
+                      value={audioSettings.inputVolume}
+                      onChange={(e) => handleVolumeChange('input', e.target.value)}
+                      className="volume-slider"
+                      style={{ '--volume-percent': audioSettings.inputVolume / 2 }}
+                    />
+                    <span className="volume-value">{audioSettings.inputVolume}%</span>
+                  </div>
+                </div>
+
+                <div className="volume-setting-item">
+                  <div className="volume-setting-info">
+                    <div className="volume-setting-label">
+                      <img src="/icons/headset.png" alt="Headset" className="audio-setting-icon" />
+                      Входящий звук (динамики)
+                    </div>
+                    <div className="volume-setting-desc">
+                      Общая громкость голосов других пользователей
+                    </div>
+                  </div>
+                  <div className="volume-control">
+                    <input
+                      type="range"
+                      min="0"
+                      max="200"
+                      value={audioSettings.outputVolume}
+                      onChange={(e) => handleVolumeChange('output', e.target.value)}
+                      className="volume-slider"
+                      style={{ '--volume-percent': audioSettings.outputVolume / 2 }}
+                    />
+                    <span className="volume-value">{audioSettings.outputVolume}%</span>
+                  </div>
+                </div>
+              </div>
+
               <div className="audio-settings-section">
                 <h3 className="audio-settings-title">Улучшение звука</h3>
                 <p className="audio-settings-description">
@@ -494,10 +1327,6 @@ function UserSettingsModal({ user, onClose, onLogout, onAvatarUpdate }) {
             </div>
           )}
         </div>
-
-        <button className="settings-logout-btn" onClick={handleLogout}>
-          Выйти из аккаунта
-        </button>
       </div>
     </div>
   );
