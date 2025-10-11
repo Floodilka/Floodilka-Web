@@ -99,7 +99,10 @@ cd frontend
 
 # Попытка обновления с обработкой ошибки ENOTEMPTY
 echo -e "${YELLOW}📦 Установка зависимостей frontend...${NC}"
-if ! sudo -u floodilka npm install 2>&1 | tee /tmp/npm-install.log; then
+sudo -u floodilka npm install 2>&1 | tee /tmp/npm-install.log
+NPM_EXIT_CODE=${PIPESTATUS[0]}
+
+if [ $NPM_EXIT_CODE -ne 0 ]; then
     if grep -q "ENOTEMPTY" /tmp/npm-install.log; then
         echo -e "${YELLOW}⚠️  Обнаружена ошибка ENOTEMPTY, очистка node_modules...${NC}"
         sudo -u floodilka rm -rf node_modules
