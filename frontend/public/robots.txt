@@ -1,0 +1,36 @@
+# robots.txt для Floodilka - Русский Discord
+
+User-agent: *
+Allow: /
+Allow: /icons/
+Allow: /static/
+
+# Sitemap
+Sitemap: https://floodilka.com/sitemap.xml
+
+# Популярные боты
+User-agent: Googlebot
+Allow: /
+
+User-agent: Yandex
+Allow: /
+
+User-agent: bingbot
+Allow: /
+
+User-agent: Mail.RU_Bot
+Allow: /
+
+# Блокируем плохих ботов
+User-agent: AhrefsBot
+Disallow: /
+
+User-agent: SemrushBot
+Disallow: /
+
+User-agent: MJ12bot
+Disallow: /
+
+# Crawl-delay для вежливости
+Crawl-delay: 1
+

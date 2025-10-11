@@ -1,0 +1,4 @@
+Contact: mailto:security@floodilka.com
+Preferred-Languages: ru, en
+Canonical: https://floodilka.com/.well-known/security.txt
+

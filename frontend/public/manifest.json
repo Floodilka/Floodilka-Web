@@ -1,7 +1,10 @@
 {
   "short_name": "Floodilka",
-  "name": "Floodilka - Простой чат для общения",
-  "description": "Floodilka - простой чат для общения",
+  "name": "Floodilka — Платформа для голосового и текстового общения",
+  "description": "Профессиональная платформа для общения. Голосовые каналы, текстовые чаты, серверы для команд и сообществ. Для России и СНГ.",
+  "categories": ["social", "communication", "entertainment"],
+  "lang": "ru",
+  "dir": "ltr",
   "icons": [
     {
       "src": "icons/logo.png",
@@ -17,8 +20,19 @@
     }
   ],
   "start_url": ".",
+  "scope": "/",
   "display": "standalone",
+  "orientation": "any",
   "theme_color": "#5865F2",
-  "background_color": "#2C2F33"
+  "background_color": "#2C2F33",
+  "shortcuts": [
+    {
+      "name": "Открыть чат",
+      "short_name": "Чат",
+      "description": "Открыть текстовый чат",
+      "url": "/",
+      "icons": [{ "src": "icons/chat.png", "sizes": "96x96" }]
+    }
+  ]
 }
 

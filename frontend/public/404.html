@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, follow" />
+    <title>404 — Страница не найдена | Floodilka</title>
+    <meta name="description" content="Страница не найдена. Вернитесь на главную страницу Floodilka." />
+    <link rel="icon" type="image/png" href="/icons/logo.png" />
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+                'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+            background: linear-gradient(135deg, #2C2F33 0%, #23272A 100%);
+            color: #ffffff;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 600px;
+        }
+
+        .error-code {
+            font-size: 120px;
+            font-weight: 700;
+            color: #5865F2;
+            line-height: 1;
+            margin-bottom: 20px;
+            text-shadow: 0 4px 20px rgba(88, 101, 242, 0.5);
+        }
+
+        h1 {
+            font-size: 32px;
+            margin-bottom: 16px;
+            font-weight: 600;
+        }
+
+        p {
+            font-size: 18px;
+            color: #B9BBBE;
+            margin-bottom: 32px;
+            line-height: 1.6;
+        }
+
+        .btn-home {
+            display: inline-block;
+            padding: 14px 40px;
+            background-color: #5865F2;
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(88, 101, 242, 0.4);
+        }
+
+        .btn-home:hover {
+            background-color: #4752C4;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(88, 101, 242, 0.6);
+        }
+
+        .links {
+            margin-top: 40px;
+        }
+
+        .links a {
+            color: #5865F2;
+            text-decoration: none;
+            margin: 0 12px;
+            font-size: 16px;
+            transition: color 0.2s ease;
+        }
+
+        .links a:hover {
+            color: #4752C4;
+            text-decoration: underline;
+        }
+
+        @media (max-width: 600px) {
+            .error-code {
+                font-size: 80px;
+            }
+
+            h1 {
+                font-size: 24px;
+            }
+
+            p {
+                font-size: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="error-code">404</div>
+        <h1>Страница не найдена</h1>
+        <p>
+            К сожалению, запрашиваемая страница не существует или была перемещена.
+            Возможно, вы ошиблись в адресе или страница была удалена.
+        </p>
+        <a href="/" class="btn-home">Вернуться на главную</a>
+        <div class="links">
+            <a href="/">Главная</a>
+            <a href="/login">Войти</a>
+            <a href="/register">Регистрация</a>
+        </div>
+    </div>
+</body>
+</html>
+

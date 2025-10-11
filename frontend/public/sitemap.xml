@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"
+        xmlns:xhtml="http://www.w3.org/1999/xhtml"
+        xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9
+                           http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd">
+
+  <!-- Главная страница -->
+  <url>
+    <loc>https://floodilka.com/</loc>
+    <lastmod>2025-10-11</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>1.0</priority>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://floodilka.com/" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://floodilka.com/en" />
+    <image:image>
+      <image:loc>https://floodilka.com/icons/logo.png</image:loc>
+      <image:title>Floodilka — Платформа для общения</image:title>
+      <image:caption>Современная платформа для голосового и текстового общения</image:caption>
+    </image:image>
+  </url>
+
+  <!-- Страница входа -->
+  <url>
+    <loc>https://floodilka.com/login</loc>
+    <lastmod>2025-10-11</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <!-- Страница регистрации -->
+  <url>
+    <loc>https://floodilka.com/register</loc>
+    <lastmod>2025-10-11</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+</urlset>
