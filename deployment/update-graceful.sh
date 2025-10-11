@@ -96,7 +96,24 @@ cd ..
 echo ""
 echo -e "${GREEN}🎨 Обновление frontend...${NC}"
 cd frontend
-sudo -u floodilka npm install
+
+# Попытка обновления с обработкой ошибки ENOTEMPTY
+echo -e "${YELLOW}📦 Установка зависимостей frontend...${NC}"
+if ! sudo -u floodilka npm install 2>&1 | tee /tmp/npm-install.log; then
+    if grep -q "ENOTEMPTY" /tmp/npm-install.log; then
+        echo -e "${YELLOW}⚠️  Обнаружена ошибка ENOTEMPTY, очистка node_modules...${NC}"
+        sudo -u floodilka rm -rf node_modules
+        sudo -u floodilka npm cache clean --force
+        echo -e "${YELLOW}🔄 Повторная установка зависимостей...${NC}"
+        sudo -u floodilka npm install
+    else
+        echo -e "${RED}❌ Ошибка установки зависимостей frontend!${NC}"
+        cat /tmp/npm-install.log
+        exit 1
+    fi
+fi
+
+echo -e "${YELLOW}🏗️  Сборка frontend...${NC}"
 sudo -u floodilka npm run build
 
 # Атомарная замена файлов frontend
