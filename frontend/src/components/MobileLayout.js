@@ -216,6 +216,8 @@ function MobileLayout({
               channel={currentTextChannel}
               messages={messages}
               username={user?.username}
+              user={user}
+              currentServer={currentServer}
               onSendMessage={onSendMessage}
               hasServer={!!currentServer}
               hasTextChannels={hasTextChannels}
@@ -247,6 +249,7 @@ function MobileLayout({
           onlineUsers={onlineUsers}
           allMembers={allServerMembers}
           currentUser={user}
+          currentServer={currentServer}
         />
       </div>
     </div>

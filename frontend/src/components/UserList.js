@@ -6,12 +6,14 @@ const BACKEND_URL = window.location.hostname === 'localhost'
   ? 'http://localhost:3001'
   : `${window.location.protocol}//${window.location.hostname}`;
 
-function UserList({ onlineUsers, allMembers, currentUser, onMessageSent }) {
+function UserList({ onlineUsers, allMembers, currentUser, currentServer, onMessageSent }) {
   const navigate = useNavigate();
   const [selectedUser, setSelectedUser] = useState(null);
   const [profilePosition, setProfilePosition] = useState({ top: 0, left: 0 });
   const [messageText, setMessageText] = useState('');
   const [sendingMessage, setSendingMessage] = useState(false);
+  const [showOwnerTooltip, setShowOwnerTooltip] = useState(false);
+  const [tooltipPosition, setTooltipPosition] = useState({ top: 0, left: 0 });
 
   // Создаем Map из онлайн пользователей по userId для быстрой проверки
   const onlineUsersMap = new Map();
@@ -107,12 +109,26 @@ function UserList({ onlineUsers, allMembers, currentUser, onMessageSent }) {
     }
   };
 
+  const handleOwnerIconMouseEnter = (e) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    setTooltipPosition({
+      top: rect.top - 40,
+      left: rect.left + rect.width / 2
+    });
+    setShowOwnerTooltip(true);
+  };
+
+  const handleOwnerIconMouseLeave = () => {
+    setShowOwnerTooltip(false);
+  };
+
   const renderUserItem = (member, isOnline) => {
     const username = member.username;
     const avatar = member.avatar;
     const badge = member.badge;
     const badgeTooltip = member.badgeTooltip;
     const displayName = member.displayName;
+    const isOwner = currentServer && currentServer.ownerId === member.id;
 
     return (
       <div
@@ -134,6 +150,15 @@ function UserList({ onlineUsers, allMembers, currentUser, onMessageSent }) {
         <div className="user-info">
           <div className="user-name-row">
             <div className="user-name">{displayName || username}</div>
+            {isOwner && (
+              <img
+                src="/icons/owner.png"
+                alt="Владелец"
+                className="owner-icon"
+                onMouseEnter={handleOwnerIconMouseEnter}
+                onMouseLeave={handleOwnerIconMouseLeave}
+              />
+            )}
             {badge && badge !== 'User' && (
               <span
                 className="user-badge"
@@ -262,6 +287,22 @@ function UserList({ onlineUsers, allMembers, currentUser, onMessageSent }) {
             )}
           </div>
         </>
+      )}
+
+      {/* Информационное меню для иконки владельца */}
+      {showOwnerTooltip && (
+        <div
+          className="owner-tooltip"
+          style={{
+            top: `${tooltipPosition.top}px`,
+            left: `${tooltipPosition.left}px`
+          }}
+        >
+          <div className="owner-tooltip-content">
+            <div className="owner-tooltip-title">Владелец сервера</div>
+            <div className="owner-tooltip-arrow"></div>
+          </div>
+        </div>
       )}
     </div>
   );

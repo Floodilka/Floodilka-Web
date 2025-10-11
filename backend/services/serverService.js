@@ -19,21 +19,21 @@ class ServerService {
     // Добавляем информацию о правах пользователя для каждого сервера
     const serversWithPermissions = await Promise.all(servers.map(async (server) => {
       const isOwner = server.ownerId.toString() === userId;
-      
+
       let canManageChannels = isOwner;
-      
+
       if (!isOwner) {
         const userRoles = await ServerRole.find({
           userId: userId,
           serverId: server._id
         }).populate('roleId');
-        
+
         canManageChannels = userRoles.some(userRole =>
           userRole.roleId.permissions.manageChannels ||
           userRole.roleId.permissions.manageServer
         );
       }
-      
+
       return {
         ...server.toObject(),
         isOwner,
@@ -70,6 +70,7 @@ class ServerService {
         manageChannels: true,
         manageRoles: true,
         manageMembers: true,
+        manageMessages: true,
         kickMembers: true,
         banMembers: true
       },
@@ -120,7 +121,7 @@ class ServerService {
 
   async verifyServerAccess(serverId, userId) {
     const server = await this.getServerById(serverId);
-    
+
     if (!server.members.includes(userId) && server.ownerId.toString() !== userId) {
       throw new ForbiddenError('Нет доступа к этому серверу');
     }
@@ -182,7 +183,7 @@ class ServerService {
 
   async getServerInvites(serverId, userId) {
     await this.verifyServerAccess(serverId, userId);
-    
+
     const invites = await Invite.find({ serverId }).populate('createdBy', 'username');
     return invites;
   }

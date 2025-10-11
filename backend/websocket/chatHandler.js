@@ -1,6 +1,10 @@
 const messageService = require('../services/messageService');
 const { SOCKET_EVENTS } = require('../constants/events');
 const logger = require('../utils/logger');
+const Message = require('../models/Message');
+const Channel = require('../models/Channel');
+const Server = require('../models/Server');
+const ServerRole = require('../models/ServerRole');
 
 class ChatHandler {
   constructor(io) {
@@ -81,14 +85,73 @@ class ChatHandler {
   }
 
   handleMessageDelete(socket) {
-    socket.on(SOCKET_EVENTS.MESSAGE_DELETE, async ({ messageId }) => {
+    socket.on(SOCKET_EVENTS.MESSAGE_DELETE, async ({ messageId, userId }) => {
       try {
+        // Получаем сообщение
+        const message = await Message.findById(messageId);
+        if (!message) {
+          socket.emit(SOCKET_EVENTS.ERROR, { message: 'Сообщение не найдено' });
+          return;
+        }
+
+        // Проверяем права на удаление
+        let canDelete = false;
+
+        // 1. Если это свое сообщение - можно удалить
+        if (message.userId && userId && message.userId.toString() === userId.toString()) {
+          canDelete = true;
+        }
+
+        // 2. Если нет userId у сообщения, но username совпадает
+        if (!canDelete && message.username === socket.currentUsername) {
+          canDelete = true;
+        }
+
+        // 3. Проверяем права администратора/модератора
+        if (!canDelete && userId) {
+          // Получаем канал и сервер
+          const channel = await Channel.findById(message.channelId);
+
+          if (channel && channel.serverId) {
+            const server = await Server.findById(channel.serverId);
+
+            if (server) {
+              // Проверяем, является ли пользователь владельцем сервера
+              if (server.ownerId.toString() === userId.toString()) {
+                canDelete = true;
+              } else {
+                // Проверяем роли пользователя
+                const userRoles = await ServerRole.find({
+                  userId: userId,
+                  serverId: server._id
+                }).populate('roleId');
+
+                // Проверяем, есть ли права на управление сообщениями или сервером
+                for (const userRole of userRoles) {
+                  if (userRole.roleId && (
+                    userRole.roleId.permissions.manageMessages ||
+                    userRole.roleId.permissions.manageServer
+                  )) {
+                    canDelete = true;
+                    break;
+                  }
+                }
+              }
+            }
+          }
+        }
+
+        if (!canDelete) {
+          socket.emit(SOCKET_EVENTS.ERROR, { message: 'Недостаточно прав для удаления сообщения' });
+          return;
+        }
+
         const { messageId: deletedId, channelId } = await messageService.deleteMessage(messageId);
 
         // Отправляем уведомление об удалении всем в канале
         this.io.to(channelId).emit(SOCKET_EVENTS.MESSAGE_DELETED, { messageId: deletedId });
 
-        logger.debug(`Сообщение ${messageId} удалено`);
+        logger.debug(`Сообщение ${messageId} удалено пользователем ${socket.currentUsername}`);
       } catch (error) {
         logger.error('Ошибка удаления сообщения:', error);
         socket.emit(SOCKET_EVENTS.ERROR, { message: error.message || 'Ошибка удаления сообщения' });

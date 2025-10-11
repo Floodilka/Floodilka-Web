@@ -5,7 +5,7 @@ const BACKEND_URL = window.location.hostname === 'localhost'
   ? 'http://localhost:3001'
   : `${window.location.protocol}//${window.location.hostname}`;
 
-function Chat({ channel, messages, username, onSendMessage, hasServer, hasTextChannels, serverLoading, socket, onMessageSent }) {
+function Chat({ channel, messages, username, user, currentServer, onSendMessage, hasServer, hasTextChannels, serverLoading, socket, onMessageSent }) {
   const [inputValue, setInputValue] = useState('');
   const messagesEndRef = useRef(null);
   const messagesContainerRef = useRef(null);
@@ -16,6 +16,8 @@ function Chat({ channel, messages, username, onSendMessage, hasServer, hasTextCh
   const [editValue, setEditValue] = useState('');
   const [messageText, setMessageText] = useState('');
   const [sendingMessage, setSendingMessage] = useState(false);
+  const [userPermissions, setUserPermissions] = useState(null);
+  const [deletingMessageId, setDeletingMessageId] = useState(null);
 
   const handleUserClick = async (message, event) => {
     const rect = event.currentTarget.getBoundingClientRect();
@@ -52,6 +54,57 @@ function Chat({ channel, messages, username, onSendMessage, hasServer, hasTextCh
     setSelectedUser(null);
     setMessageText('');
   };
+
+  // Загрузка прав пользователя при смене сервера
+  useEffect(() => {
+    const loadUserPermissions = async () => {
+      if (!currentServer || !user?.id) {
+        setUserPermissions(null);
+        return;
+      }
+
+      try {
+        const response = await fetch(
+          `${BACKEND_URL}/api/roles/servers/${currentServer._id}/users/${user.id}/roles`,
+          {
+            headers: {
+              'Authorization': `Bearer ${localStorage.getItem('token')}`
+            }
+          }
+        );
+
+        if (response.ok) {
+          const userRoles = await response.json();
+
+          // Объединяем права из всех ролей
+          const combinedPermissions = userRoles.reduce((acc, userRole) => {
+            if (userRole.roleId && userRole.roleId.permissions) {
+              Object.keys(userRole.roleId.permissions).forEach(key => {
+                if (userRole.roleId.permissions[key]) {
+                  acc[key] = true;
+                }
+              });
+            }
+            return acc;
+          }, {});
+
+          // Проверяем, является ли владельцем
+          if (currentServer.ownerId === user.id) {
+            combinedPermissions.isOwner = true;
+            combinedPermissions.manageServer = true;
+            combinedPermissions.manageMessages = true;
+          }
+
+          setUserPermissions(combinedPermissions);
+        }
+      } catch (err) {
+        console.error('Ошибка загрузки прав:', err);
+        setUserPermissions(null);
+      }
+    };
+
+    loadUserPermissions();
+  }, [currentServer, user]);
 
   const handleSendDirectMessage = async () => {
     if (!messageText.trim() || !selectedUser || sendingMessage) return;
@@ -108,7 +161,7 @@ function Chat({ channel, messages, username, onSendMessage, hasServer, hasTextCh
     setContextMenu({
       message,
       position: {
-        top: rect.top,
+        top: rect.top + rect.height / 2 - 18, // Центрируем по вертикали
         left: rect.left - 210
       }
     });
@@ -127,6 +180,24 @@ function Chat({ channel, messages, username, onSendMessage, hasServer, hasTextCh
     const diffInHours = (now - messageTime) / (1000 * 60 * 60);
 
     return diffInHours <= 24;
+  };
+
+  const canDeleteMessage = (message) => {
+    if (message.isSystem) return false;
+
+    // Можно удалить свое сообщение
+    if (message.username === username) return true;
+
+    // Проверяем права администратора
+    if (userPermissions && (
+      userPermissions.manageMessages ||
+      userPermissions.manageServer ||
+      userPermissions.isOwner
+    )) {
+      return true;
+    }
+
+    return false;
   };
 
   const handleEditMessage = (message) => {
@@ -156,19 +227,52 @@ function Chat({ channel, messages, username, onSendMessage, hasServer, hasTextCh
     if (!window.confirm('Вы уверены, что хотите удалить это сообщение?')) return;
     if (!socket) return;
 
-    socket.emit('message:delete', {
-      messageId: message.id
-    });
-
+    // Сначала запускаем анимацию
+    setDeletingMessageId(message.id);
     setContextMenu(null);
+
+    // Через 300мс отправляем запрос на удаление
+    setTimeout(() => {
+      socket.emit('message:delete', {
+        messageId: message.id,
+        userId: user?.id
+      });
+
+      // Сбрасываем состояние после удаления
+      setTimeout(() => setDeletingMessageId(null), 100);
+    }, 300);
   };
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
   };
 
+  // Скролл вниз при смене канала
+  const prevChannelRef = useRef(null);
   useEffect(() => {
-    scrollToBottom();
+    if (channel?.id !== prevChannelRef.current) {
+      prevChannelRef.current = channel?.id;
+      // При смене канала всегда скроллим вниз
+      setTimeout(scrollToBottom, 100);
+    }
+  }, [channel?.id]);
+
+  // Умный автоскролл - скроллит только если пользователь был внизу
+  const prevMessagesLengthRef = useRef(0);
+  useEffect(() => {
+    if (!messagesContainerRef.current) return;
+
+    const container = messagesContainerRef.current;
+    const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 100;
+
+    // Скроллим вниз только если:
+    // 1. Пользователь был близко к низу (читал новые сообщения)
+    // 2. И количество сообщений увеличилось (новое сообщение, а не удаление)
+    if (isNearBottom && messages.length >= prevMessagesLengthRef.current) {
+      scrollToBottom();
+    }
+
+    prevMessagesLengthRef.current = messages.length;
   }, [messages]);
 
   const handleSubmit = (e) => {
@@ -275,7 +379,7 @@ function Chat({ channel, messages, username, onSendMessage, hasServer, hasTextCh
           group.messages.map((message, messageIndex) => (
             <div
               key={message.id}
-              className={`message ${message.isSystem ? 'system-message' : ''} ${message.username === username ? 'own-message' : ''} ${editingMessage?.id === message.id ? 'message-edit-mode' : ''} ${contextMenu?.message.id === message.id ? 'show-actions' : ''} ${messageIndex > 0 ? 'message-grouped' : ''} ${messageIndex === 0 && group.messages.length > 1 ? 'message-group-first' : ''} ${messageIndex === group.messages.length - 1 ? 'message-group-last' : ''}`}
+              className={`message ${message.isSystem ? 'system-message' : ''} ${message.username === username ? 'own-message' : ''} ${editingMessage?.id === message.id ? 'message-edit-mode' : ''} ${contextMenu?.message.id === message.id ? 'show-actions' : ''} ${messageIndex > 0 ? 'message-grouped' : ''} ${messageIndex === 0 && group.messages.length > 1 ? 'message-group-first' : ''} ${messageIndex === group.messages.length - 1 ? 'message-group-last' : ''} ${deletingMessageId === message.id ? 'message-deleting' : ''}`}
             >
               {messageIndex === 0 ? (
                 <div
@@ -362,8 +466,8 @@ function Chat({ channel, messages, username, onSendMessage, hasServer, hasTextCh
                 )}
               </div>
 
-              {/* Меню действий - показываем только для собственных сообщений */}
-              {message.username === username && !message.isSystem && (
+              {/* Меню действий - показываем если можно редактировать или удалить */}
+              {!message.isSystem && (canEditMessage(message) || canDeleteMessage(message)) && (
                 <div className="message-actions">
                   <button
                     className="message-actions-button"
@@ -480,19 +584,22 @@ function Chat({ channel, messages, username, onSendMessage, hasServer, hasTextCh
               left: `${contextMenu.position.left}px`
             }}
           >
-            <button
-              className={`message-context-menu-item ${!canEditMessage(contextMenu.message) ? 'disabled' : ''}`}
-              onClick={() => canEditMessage(contextMenu.message) && handleEditMessage(contextMenu.message)}
-              disabled={!canEditMessage(contextMenu.message)}
-            >
-              Редактировать
-            </button>
-            <button
-              className="message-context-menu-item danger"
-              onClick={() => handleDeleteMessage(contextMenu.message)}
-            >
-              Удалить сообщение
-            </button>
+            {canEditMessage(contextMenu.message) && (
+              <button
+                className="message-context-menu-item"
+                onClick={() => handleEditMessage(contextMenu.message)}
+              >
+                Редактировать
+              </button>
+            )}
+            {canDeleteMessage(contextMenu.message) && (
+              <button
+                className="message-context-menu-item danger"
+                onClick={() => handleDeleteMessage(contextMenu.message)}
+              >
+                Удалить сообщение
+              </button>
+            )}
           </div>
         </>
       )}

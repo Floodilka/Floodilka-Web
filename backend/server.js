@@ -62,7 +62,7 @@ connectDB().then(async () => {
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/servers', serverRoutes);
-app.use('/api', roleRoutes);
+app.use('/api/roles', roleRoutes);
 app.use('/api/direct-messages', directMessageRoutes);
 app.use('/api/messages', messageRoutes);
 

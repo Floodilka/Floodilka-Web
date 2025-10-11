@@ -29,6 +29,10 @@ const roleSchema = new mongoose.Schema({
       type: Boolean,
       default: false
     },
+    manageMessages: {
+      type: Boolean,
+      default: false
+    },
     kickMembers: {
       type: Boolean,
       default: false

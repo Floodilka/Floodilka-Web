@@ -410,6 +410,8 @@ const ServerRoute = () => {
         channel={currentTextChannel}
         messages={messages}
         username={user?.username}
+        user={user}
+        currentServer={currentServer}
         onSendMessage={sendMessage}
         hasServer={!!currentServer}
         hasTextChannels={!serverLoading && channels.some(c => c.type === 'text')}
@@ -422,6 +424,7 @@ const ServerRoute = () => {
         onlineUsers={globalOnlineUsers}
         allMembers={allServerMembers}
         currentUser={user}
+        currentServer={currentServer}
         onMessageSent={handleMessageSent}
       />
     </div>
