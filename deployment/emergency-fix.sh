@@ -81,24 +81,9 @@ echo ""
 
 echo -e "${GREEN}✅ Экстренное восстановление завершено!${NC}"
 echo ""
-echo -e "${YELLOW}📋 Что делать дальше:${NC}"
+echo -e "${YELLOW}🚀 Запускаю graceful update...${NC}"
 echo ""
-echo -e "${GREEN}Вариант 1 - Сборка на сервере (5-7 минут):${NC}"
-echo "  cd /var/www/floodilka/frontend"
-echo "  sudo -u floodilka NODE_OPTIONS=\"--max-old-space-size=2048\" npm install"
-echo "  sudo -u floodilka NODE_OPTIONS=\"--max-old-space-size=2048\" npm run build"
-echo "  sudo cp -r build/* /var/www/floodilka/public/"
-echo "  sudo chown -R www-data:www-data /var/www/floodilka/public"
-echo ""
-echo -e "${GREEN}Вариант 2 - Сборка локально (2 минуты):${NC}"
-echo "  На локальном компьютере:"
-echo "    cd frontend && npm run build"
-echo "    rsync -avz --delete build/ root@159.89.110.44:/var/www/floodilka/public/"
-echo "  На сервере:"
-echo "    sudo chown -R www-data:www-data /var/www/floodilka/public"
-echo ""
-echo -e "${GREEN}Вариант 3 - Graceful update (автоматически):${NC}"
-echo "  cd /var/www/floodilka"
-echo "  sudo bash deployment/update-graceful.sh"
-echo ""
+
+cd /var/www/floodilka
+bash deployment/update-graceful.sh
 
