@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import './ChannelList.css';
 import UserProfile from './UserProfile';
 import ChannelSettingsModal from './ChannelSettingsModal';
@@ -19,6 +19,17 @@ function ChannelList({ channels, currentTextChannel, currentVoiceChannel, voiceC
   const [messageText, setMessageText] = useState('');
   const [sendingMessage, setSendingMessage] = useState(false);
   const [hoveredScreenSharingUser, setHoveredScreenSharingUser] = useState(null);
+  const [voiceVolumeMenu, setVoiceVolumeMenu] = useState(null);
+  const [userVolumeOverrides, setUserVolumeOverrides] = useState(() => {
+    try {
+      const saved = localStorage.getItem('voiceUserVolumes');
+      return saved ? JSON.parse(saved) : {};
+    } catch (err) {
+      console.warn('Не удалось загрузить индивидуальные громкости пользователей:', err);
+      return {};
+    }
+  });
+  const volumeMenuRef = useRef(null);
 
   // Состояния для управления каналами
   const [showChannelSettings, setShowChannelSettings] = useState(false);
@@ -26,6 +37,7 @@ function ChannelList({ channels, currentTextChannel, currentVoiceChannel, voiceC
 
   const handleVoiceUserClick = async (voiceUser, event) => {
     event.stopPropagation();
+    setVoiceVolumeMenu(null);
     const rect = event.currentTarget.getBoundingClientRect();
     setProfilePosition({
       top: rect.top,
@@ -53,6 +65,91 @@ function ChannelList({ channels, currentTextChannel, currentVoiceChannel, voiceC
   const handleCloseProfile = () => {
     setSelectedUser(null);
     setMessageText('');
+  };
+
+  const getUserVolumeValue = (accountId) => {
+    if (!accountId) return 100;
+    const raw = userVolumeOverrides?.[accountId];
+    if (typeof raw !== 'number' || Number.isNaN(raw)) {
+      return 100;
+    }
+    return Math.min(200, Math.max(0, raw));
+  };
+
+  const handleVoiceUserContextMenu = (voiceUser, event, channel) => {
+    event.preventDefault();
+    event.stopPropagation();
+
+    if (!voiceUser || voiceUser.id === 'me') return;
+    // Убрали проверку на нахождение в том же голосовом канале - меню должно открываться всегда
+
+    const accountId = voiceUser.userId || voiceUser.id;
+    if (!accountId) return;
+
+    setSelectedUser(null);
+    setHoveredScreenSharingUser(null);
+
+    const menuWidth = 220;
+    const menuHeight = 150;
+    const padding = 12;
+
+    const rawX = event.clientX;
+    const rawY = event.clientY;
+
+    const clampedX = Math.min(
+      Math.max(padding, rawX),
+      window.innerWidth - menuWidth - padding
+    );
+    const clampedY = Math.min(
+      Math.max(padding, rawY),
+      window.innerHeight - menuHeight - padding
+    );
+
+    setVoiceVolumeMenu({
+      accountId,
+      username: voiceUser.displayName || voiceUser.username,
+      position: { x: clampedX, y: clampedY },
+      channelId: channel.id,
+      volume: getUserVolumeValue(accountId)
+    });
+  };
+
+  const closeVoiceVolumeMenu = () => {
+    setVoiceVolumeMenu(null);
+  };
+
+  const updateVoiceUserVolume = (accountId, nextVolume) => {
+    const numericValue = Math.min(200, Math.max(0, Number(nextVolume)));
+
+    setUserVolumeOverrides(prev => {
+      const updated = { ...prev };
+      if (numericValue === 100) {
+        delete updated[accountId];
+      } else {
+        updated[accountId] = numericValue;
+      }
+      try {
+        localStorage.setItem('voiceUserVolumes', JSON.stringify(updated));
+      } catch (err) {
+        console.warn('Не удалось сохранить индивидуальную громкость:', err);
+      }
+      return updated;
+    });
+
+    setVoiceVolumeMenu(prev => {
+      if (!prev || prev.accountId !== accountId) {
+        return prev;
+      }
+      return { ...prev, volume: numericValue };
+    });
+
+    window.dispatchEvent(new CustomEvent('voiceUserVolumeChanged', {
+      detail: { userId: accountId, volume: numericValue }
+    }));
+  };
+
+  const handleResetVoiceVolume = (accountId) => {
+    updateVoiceUserVolume(accountId, 100);
   };
 
   const handleOpenStream = (screenSharingUser) => {
@@ -137,6 +234,47 @@ function ChannelList({ channels, currentTextChannel, currentVoiceChannel, voiceC
     setShowServerMenu(false);
     setMenuClosing(false);
   }, [currentServer?._id]);
+
+  useEffect(() => {
+    if (!voiceVolumeMenu) return;
+
+    const handleGlobalClick = (event) => {
+      if (volumeMenuRef.current && volumeMenuRef.current.contains(event.target)) {
+        return;
+      }
+      setVoiceVolumeMenu(null);
+    };
+
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        setVoiceVolumeMenu(null);
+      }
+    };
+
+    window.addEventListener('mousedown', handleGlobalClick);
+    window.addEventListener('contextmenu', handleGlobalClick);
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      window.removeEventListener('mousedown', handleGlobalClick);
+      window.removeEventListener('contextmenu', handleGlobalClick);
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [voiceVolumeMenu]);
+
+  useEffect(() => {
+    if (!voiceVolumeMenu) return;
+    const raw = userVolumeOverrides?.[voiceVolumeMenu.accountId];
+    const normalized = typeof raw === 'number' && !Number.isNaN(raw)
+      ? Math.min(200, Math.max(0, raw))
+      : 100;
+    if (normalized !== voiceVolumeMenu.volume) {
+      setVoiceVolumeMenu(prev => prev ? { ...prev, volume: normalized } : prev);
+    }
+  }, [userVolumeOverrides, voiceVolumeMenu]);
+
+  // Убрали проверки, которые закрывали меню при выходе из голосового канала
+  // Меню должно оставаться открытым, даже если пользователь не в том же канале
 
   const loadOrCreateInvite = async () => {
     if (!currentServer) return;
@@ -507,6 +645,7 @@ function ChannelList({ channels, currentTextChannel, currentVoiceChannel, voiceC
                           key={user.id}
                           className="voice-user-sidebar"
                           onClick={(e) => handleVoiceUserClick(user, e)}
+                          onContextMenu={(e) => handleVoiceUserContextMenu(user, e, channel)}
                           onMouseEnter={() => isInVoice && currentVoiceChannel?.id === channel.id && user.id !== 'me' && isUserScreenSharing && setHoveredScreenSharingUser(user)}
                           onMouseLeave={() => setHoveredScreenSharingUser(null)}
                         >
@@ -677,9 +816,56 @@ function ChannelList({ channels, currentTextChannel, currentVoiceChannel, voiceC
         onUpdateChannel={onUpdateChannel}
         onDeleteChannel={onDeleteChannel}
       />
+
+      {voiceVolumeMenu && (
+        <div
+          ref={volumeMenuRef}
+          className="voice-volume-menu"
+          style={{ top: `${voiceVolumeMenu.position.y}px`, left: `${voiceVolumeMenu.position.x}px` }}
+          onMouseDown={(e) => e.stopPropagation()}
+          onContextMenu={(e) => e.preventDefault()}
+        >
+          <div className="voice-volume-header">
+            <span className="voice-volume-title">
+              {voiceVolumeMenu.username}
+            </span>
+            <button
+              className="voice-volume-close"
+              onClick={closeVoiceVolumeMenu}
+              type="button"
+              aria-label="Закрыть"
+            >
+              ×
+            </button>
+          </div>
+          <div className="voice-volume-body">
+            <div className="voice-volume-label">Громкость пользователя</div>
+            <div className="voice-volume-slider-row">
+              <input
+                type="range"
+                min="0"
+                max="150"
+                step="5"
+                value={voiceVolumeMenu.volume}
+                onChange={(e) => updateVoiceUserVolume(voiceVolumeMenu.accountId, e.target.value)}
+                className="voice-volume-slider"
+                style={{ '--volume-progress': voiceVolumeMenu.volume }}
+              />
+              <span className="voice-volume-value">{voiceVolumeMenu.volume}%</span>
+            </div>
+            <div className="voice-volume-hint">Настройка слышимости только для вас</div>
+          </div>
+          <button
+            type="button"
+            className="voice-volume-reset"
+            onClick={() => handleResetVoiceVolume(voiceVolumeMenu.accountId)}
+          >
+            Сбросить до 100%
+          </button>
+        </div>
+      )}
     </div>
   );
 }
 
 export default ChannelList;
-

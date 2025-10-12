@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import './VoiceChannel.css';
 import ScreenShare from './ScreenShare';
 import { useVoice } from '../context/VoiceContext';
@@ -198,6 +198,15 @@ function VoiceChannel({ socket, channel, user, globalMuted, globalDeafened, onDi
   const [isPttActive, setIsPttActive] = useState(false);
   const [inputVolume, setInputVolume] = useState(initialSettings.inputVolume);
   const [outputVolume, setOutputVolume] = useState(initialSettings.outputVolume);
+  const [userVolumes, setUserVolumes] = useState(() => {
+    try {
+      const saved = localStorage.getItem('voiceUserVolumes');
+      return saved ? JSON.parse(saved) : {};
+    } catch (err) {
+      console.warn('Не удалось загрузить индивидуальные громкости пользователей:', err);
+      return {};
+    }
+  });
   const [networkQuality, setNetworkQuality] = useState('good'); // Качество сети: poor, good, excellent
 
   const localStreamRef = useRef(null); // Обработанный поток для WebRTC
@@ -209,6 +218,8 @@ function VoiceChannel({ socket, channel, user, globalMuted, globalDeafened, onDi
   const audioContextsRef = useRef([]); // Хранить все AudioContext для их закрытия
   const animationFramesRef = useRef([]); // Хранить все requestAnimationFrame ID
   const isConnectingRef = useRef(false); // Флаг подключения
+  const socketToUserIdRef = useRef({});
+  const userIdToSocketsRef = useRef({});
 
   // ICE серверы для WebRTC - улучшенная конфигурация
   const iceServers = {
@@ -240,6 +251,31 @@ function VoiceChannel({ socket, channel, user, globalMuted, globalDeafened, onDi
         return 192000;
     }
   };
+
+  const getStoredUserVolume = useCallback((identifier) => {
+    if (!identifier) return 100;
+    const accountKey = socketToUserIdRef.current[identifier] || identifier;
+    const raw = userVolumes?.[accountKey];
+    if (typeof raw !== 'number' || Number.isNaN(raw)) {
+      return 100;
+    }
+    return Math.min(200, Math.max(0, raw));
+  }, [userVolumes]);
+
+  const calculateFinalVolume = useCallback((userId, baseVolumePercent) => {
+    const base = Math.min(1, Math.max(0, baseVolumePercent / 100));
+    const userVolumePercent = getStoredUserVolume(userId);
+    const multiplier = Math.min(2, Math.max(0, userVolumePercent / 100));
+    return Math.min(1, Math.max(0, base * multiplier));
+  }, [getStoredUserVolume]);
+
+  const applyAudioVolume = useCallback((audioEl, userId, baseVolumePercent) => {
+    if (!audioEl) return null;
+    const basePercent = typeof baseVolumePercent === 'number' ? baseVolumePercent : outputVolume;
+    const finalVolume = calculateFinalVolume(userId, basePercent);
+    audioEl.volume = finalVolume;
+    return finalVolume;
+  }, [calculateFinalVolume, outputVolume]);
 
   // Мониторинг качества сети
   const startNetworkMonitoring = () => {
@@ -410,16 +446,45 @@ function VoiceChannel({ socket, channel, user, globalMuted, globalDeafened, onDi
     };
   }, [socket, channel]);
 
+  const registerVoiceUser = (user) => {
+    if (!user || !user.id) return;
+    const accountId = user.userId || user.id;
+    socketToUserIdRef.current[user.id] = accountId;
+
+    if (!userIdToSocketsRef.current[accountId]) {
+      userIdToSocketsRef.current[accountId] = new Set();
+    }
+    userIdToSocketsRef.current[accountId].add(user.id);
+  };
+
+  const unregisterVoiceUser = (socketId) => {
+    if (!socketId) return;
+    const accountId = socketToUserIdRef.current[socketId];
+    delete socketToUserIdRef.current[socketId];
+
+    if (accountId && userIdToSocketsRef.current[accountId]) {
+      userIdToSocketsRef.current[accountId].delete(socketId);
+      if (userIdToSocketsRef.current[accountId].size === 0) {
+        delete userIdToSocketsRef.current[accountId];
+      }
+    }
+  };
+
   const handleVoiceUsers = (users) => {
     setVoiceUsers(users);
+    socketToUserIdRef.current = {};
+    userIdToSocketsRef.current = {};
+
     // Создать соединения со всеми существующими пользователями
     users.forEach(user => {
+      registerVoiceUser(user);
       createPeerConnection(user.id, true);
     });
   };
 
   const handleUserJoined = (user) => {
     setVoiceUsers(prev => [...prev, user]);
+    registerVoiceUser(user);
     // Не создаем соединение сразу, ждем offer от нового пользователя
   };
 
@@ -430,6 +495,8 @@ function VoiceChannel({ socket, channel, user, globalMuted, globalDeafened, onDi
       newSet.delete(id);
       return newSet;
     });
+
+    unregisterVoiceUser(id);
 
     // Закрыть соединение с пользователем
     if (peersRef.current[id]) {
@@ -675,8 +742,8 @@ function VoiceChannel({ socket, channel, user, globalMuted, globalDeafened, onDi
       document.body.appendChild(audio);
     }
 
-    // Устанавливаем громкость входящего звука (0-100% преобразуется в 0-1.0)
-    audio.volume = Math.min(1.0, Math.max(0, outputVolume / 100));
+    // Устанавливаем индивидуальную громкость входящего звука
+    const appliedVolume = applyAudioVolume(audio, userId);
     audio.srcObject = stream;
 
     // Устанавливаем выбранное устройство вывода звука (если поддерживается)
@@ -689,7 +756,7 @@ function VoiceChannel({ socket, channel, user, globalMuted, globalDeafened, onDi
       }
     }
 
-    console.log(`🔊 Громкость входящего звука для ${userId}:`, audio.volume);
+    console.log(`🔊 Громкость входящего звука для ${userId}:`, appliedVolume);
 
     // Анализ громкости для индикатора говорения
     const audioContext = new AudioContext();
@@ -1122,6 +1189,8 @@ function VoiceChannel({ socket, channel, user, globalMuted, globalDeafened, onDi
       if (peer) peer.close();
     });
     peersRef.current = {};
+    socketToUserIdRef.current = {};
+    userIdToSocketsRef.current = {};
 
     // Удалить все удаленные аудио элементы
     document.querySelectorAll('audio[id^="audio-"]').forEach(audio => {
@@ -1145,6 +1214,8 @@ function VoiceChannel({ socket, channel, user, globalMuted, globalDeafened, onDi
     }
 
     setIsConnected(false);
+    socketToUserIdRef.current = {};
+    userIdToSocketsRef.current = {};
     setVoiceUsers([]);
     setSpeakingUsers(new Set());
     setIsSpeaking(false);
@@ -1274,8 +1345,8 @@ function VoiceChannel({ socket, channel, user, globalMuted, globalDeafened, onDi
         // Обновляем громкость для всех существующих audio элементов
         const audioElements = document.querySelectorAll('audio[id^="audio-"]');
         audioElements.forEach((audio) => {
-          const newVolume = Math.min(1.0, Math.max(0, newSettings.outputVolume / 100));
-          audio.volume = newVolume;
+          const targetUserId = audio.id.replace('audio-', '');
+          const newVolume = applyAudioVolume(audio, targetUserId, newSettings.outputVolume);
           console.log('🔊 Громкость обновлена для', audio.id, ':', newVolume);
         });
       }
@@ -1379,7 +1450,61 @@ function VoiceChannel({ socket, channel, user, globalMuted, globalDeafened, onDi
 
     window.addEventListener('audioSettingsChanged', handleSettingsChange);
     return () => window.removeEventListener('audioSettingsChanged', handleSettingsChange);
-  }, [isConnected, echoCancellation, noiseSuppression, selectedMicrophone, selectedSpeaker, inputVolume, outputVolume, micSensitivity, voiceMode, pttKey, socket, channel, globalMuted]);
+  }, [isConnected, echoCancellation, noiseSuppression, selectedMicrophone, selectedSpeaker, inputVolume, outputVolume, micSensitivity, voiceMode, pttKey, socket, channel, globalMuted, applyAudioVolume]);
+
+  // Применяем изменения индивидуальной громкости пользователей
+  useEffect(() => {
+    const handleUserVolumeChange = (event) => {
+      const { userId, volume } = event.detail || {};
+      if (!userId) return;
+
+      const accountKey = socketToUserIdRef.current[userId] || userId;
+      const normalizedVolume = typeof volume === 'number'
+        ? Math.min(200, Math.max(0, volume))
+        : 100;
+
+      setUserVolumes(prev => {
+        const next = { ...prev };
+        if (normalizedVolume === 100) {
+          delete next[accountKey];
+        } else {
+          next[accountKey] = normalizedVolume;
+        }
+        try {
+          localStorage.setItem('voiceUserVolumes', JSON.stringify(next));
+        } catch (err) {
+          console.warn('Не удалось сохранить индивидуальные громкости пользователей:', err);
+        }
+        return next;
+      });
+
+      const socketsSet = userIdToSocketsRef.current[accountKey];
+      const targetSockets = socketsSet ? Array.from(socketsSet) : [];
+
+      if (targetSockets.length === 0 && socketToUserIdRef.current[userId]) {
+        targetSockets.push(userId);
+      }
+
+      targetSockets.forEach(socketId => {
+        const audioElement = document.getElementById(`audio-${socketId}`);
+        if (audioElement) {
+          const basePercent = outputVolume;
+          const finalVolume = Math.min(
+            1,
+            Math.max(0, (Math.min(1, Math.max(0, basePercent / 100))) * (normalizedVolume / 100))
+          );
+          audioElement.volume = finalVolume;
+          console.log(`🔊 Индивидуальная громкость применена для ${socketId}:`, finalVolume);
+        }
+      });
+    };
+
+    window.addEventListener('voiceUserVolumeChanged', handleUserVolumeChange);
+
+    return () => {
+      window.removeEventListener('voiceUserVolumeChanged', handleUserVolumeChange);
+    };
+  }, [outputVolume]);
 
   // Обработка PTT (Push-to-Talk)
   useEffect(() => {
@@ -1484,4 +1609,3 @@ function VoiceChannel({ socket, channel, user, globalMuted, globalDeafened, onDi
 }
 
 export default VoiceChannel;
-
