@@ -14,6 +14,79 @@ function UserSettingsModal({ user, onClose, onLogout, onAvatarUpdate }) {
   // Состояния для вкладок
   const [activeTab, setActiveTab] = useState('account');
 
+  // Состояние для поиска
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // Обработка изменения поискового запроса
+  const handleSearchChange = (value) => {
+    setSearchQuery(value);
+
+    // Если поисковый запрос точно совпадает с названием вкладки, переключаемся на неё
+    if (value.trim()) {
+      const exactMatch = navigationItems.find(item =>
+        item.label.toLowerCase() === value.toLowerCase().trim()
+      );
+      if (exactMatch) {
+        setActiveTab(exactMatch.id);
+      }
+    }
+  };
+
+  // Функция для фильтрации элементов навигации по поисковому запросу
+  const filterNavigationItems = (items) => {
+    if (!searchQuery.trim()) return items;
+
+    const query = searchQuery.toLowerCase().trim();
+    return items.filter(item =>
+      item.label.toLowerCase().includes(query) ||
+      item.description?.toLowerCase().includes(query)
+    );
+  };
+
+  // Элементы навигации с описаниями для поиска
+  const navigationItems = [
+    {
+      id: 'account',
+      label: 'Моя учётная запись',
+      description: 'Профиль, аватар, отображение имени'
+    },
+    {
+      id: 'audio',
+      label: 'Голос и видео',
+      description: 'Микрофон, динамики, громкость, качество звука'
+    },
+    {
+      id: 'chat',
+      label: 'Чат',
+      description: 'Настройки сообщений, форматирование'
+    },
+    {
+      id: 'notifications',
+      label: 'Уведомления',
+      description: 'Звуки, всплывающие окна, email'
+    },
+    {
+      id: 'hotkeys',
+      label: 'Горячие клавиши',
+      description: 'Клавиши быстрого доступа'
+    },
+    {
+      id: 'language',
+      label: 'Язык',
+      description: 'Язык интерфейса, регион'
+    },
+    {
+      id: 'streamer',
+      label: 'Режим стримера',
+      description: 'Скрытие личной информации'
+    },
+    {
+      id: 'advanced',
+      label: 'Расширенные',
+      description: 'Дополнительные настройки, отладка'
+    }
+  ];
+
   // Состояния для настроек звука
   const [audioSettings, setAudioSettings] = useState(() => {
     const saved = localStorage.getItem('audioSettings');
@@ -70,17 +143,7 @@ function UserSettingsModal({ user, onClose, onLogout, onAvatarUpdate }) {
     try {
       setIsLoadingDevices(true);
 
-      // Сначала запрашиваем разрешения, чтобы получить реальные имена устройств
-      await navigator.mediaDevices.getUserMedia({ audio: true, video: false })
-        .then(stream => {
-          // Сразу останавливаем поток, он нам нужен только для получения разрешений
-          stream.getTracks().forEach(track => track.stop());
-        })
-        .catch(err => {
-          console.warn('Не удалось получить разрешение на микрофон:', err);
-        });
-
-      // Получаем список устройств
+      // Быстрая загрузка без запроса разрешений (для ускорения)
       const devices = await navigator.mediaDevices.enumerateDevices();
 
       const microphones = devices
@@ -127,6 +190,12 @@ function UserSettingsModal({ user, onClose, onLogout, onAvatarUpdate }) {
         microphones: microphones.length,
         speakers: speakers.length
       });
+
+      // Минимальная задержка для плавности скелетона
+      setTimeout(() => {
+        setIsLoadingDevices(false);
+      }, 200);
+
     } catch (error) {
       console.error('Ошибка загрузки аудиоустройств:', error);
       // В случае ошибки показываем хотя бы устройство по умолчанию
@@ -134,12 +203,25 @@ function UserSettingsModal({ user, onClose, onLogout, onAvatarUpdate }) {
         microphones: [{ deviceId: 'default', label: 'По умолчанию', groupId: '' }],
         speakers: [{ deviceId: 'default', label: 'По умолчанию', groupId: '' }]
       });
-    } finally {
       setIsLoadingDevices(false);
     }
   };
 
   // Загрузка аудиоустройств при открытии вкладки звука
+  // Обработчик ESC для закрытия настроек
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        onClose();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [onClose]);
+
   useEffect(() => {
     if (activeTab === 'audio') {
       loadAudioDevices();
@@ -352,8 +434,10 @@ function UserSettingsModal({ user, onClose, onLogout, onAvatarUpdate }) {
   // Обработка изменения громкости
   const handleVolumeChange = (type, value) => {
     const numValue = parseInt(value, 10);
+    // Ограничиваем значение в допустимом диапазоне 0-200%
+    const clampedValue = Math.min(200, Math.max(0, numValue));
     const setting = type === 'input' ? 'inputVolume' : 'outputVolume';
-    handleAudioSettingChange(setting, numValue);
+    handleAudioSettingChange(setting, clampedValue);
   };
 
   // Получить читаемое имя клавиши
@@ -576,8 +660,13 @@ function UserSettingsModal({ user, onClose, onLogout, onAvatarUpdate }) {
       console.log('🎙️ Запуск тестового режима...');
       setIsTestMode(true);
 
+      // Проверяем доступность API
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error('getUserMedia не поддерживается в этом браузере');
+      }
+
       // Получаем поток с микрофона с текущими настройками
-      const constraints = {
+      let constraints = {
         audio: {
           deviceId: audioSettings.selectedMicrophone === 'default'
             ? undefined
@@ -589,7 +678,27 @@ function UserSettingsModal({ user, onClose, onLogout, onAvatarUpdate }) {
         video: false
       };
 
-      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      console.log('📋 Запрашиваем разрешения с ограничениями:', constraints);
+      let stream;
+
+      try {
+        stream = await navigator.mediaDevices.getUserMedia(constraints);
+        console.log('✅ Поток микрофона получен успешно');
+      } catch (deviceError) {
+        console.log('⚠️ Выбранный микрофон недоступен, пробуем устройство по умолчанию:', deviceError);
+        // Fallback: пробуем с устройством по умолчанию
+        constraints = {
+          audio: {
+            echoCancellation: audioSettings.echoCancellation ?? true,
+            noiseSuppression: audioSettings.noiseSuppression ?? true,
+            autoGainControl: audioSettings.autoGainControl ?? true
+          },
+          video: false
+        };
+        stream = await navigator.mediaDevices.getUserMedia(constraints);
+        console.log('✅ Поток микрофона получен с устройством по умолчанию');
+      }
+
       setLoopbackStream(stream);
 
       // Создаем AudioContext для обработки звука
@@ -689,7 +798,9 @@ function UserSettingsModal({ user, onClose, onLogout, onAvatarUpdate }) {
 
       // 9. Контроль громкости
       const volumeControl = audioContext.createGain();
-      volumeControl.gain.value = Math.min(2.0, Math.max(0, audioSettings.inputVolume / 100));
+      // Для inputVolume > 100% используем максимальное усиление 2.0
+      const inputGain = audioSettings.inputVolume >= 100 ? 2.0 : Math.max(0.1, audioSettings.inputVolume / 100);
+      volumeControl.gain.value = inputGain;
 
       // 10. Лимитер для предотвращения перегрузки
       const limiter = audioContext.createDynamicsCompressor();
@@ -716,7 +827,9 @@ function UserSettingsModal({ user, onClose, onLogout, onAvatarUpdate }) {
       // Создаем аудио элемент для воспроизведения
       const audio = new Audio();
       audio.srcObject = destination.stream;
-      audio.volume = Math.min(2.0, Math.max(0, audioSettings.outputVolume / 100));
+      // Ограничиваем громкость HTML элемента в диапазоне [0, 1]
+      // Для значений > 100% используем максимальную громкость 1.0
+      audio.volume = audioSettings.outputVolume >= 100 ? 1.0 : audioSettings.outputVolume / 100;
 
       // Устанавливаем выходное устройство
       if (audioSettings.selectedSpeaker && audioSettings.selectedSpeaker !== 'default' && typeof audio.setSinkId === 'function') {
@@ -736,17 +849,61 @@ function UserSettingsModal({ user, onClose, onLogout, onAvatarUpdate }) {
       console.log('✅ Тестовый режим запущен - вы можете слышать себя');
     } catch (error) {
       console.error('Ошибка запуска тестового режима:', error);
-      alert('Не удалось запустить тестовый режим. Проверьте разрешения микрофона.');
       setIsTestMode(false);
+
+      // Определяем тип ошибки и показываем соответствующее сообщение
+      let errorMessage = 'Не удалось запустить тестовый режим.';
+
+      if (error.name === 'NotAllowedError') {
+        errorMessage = '❌ Доступ к микрофону запрещен. Разрешите использование микрофона в настройках браузера и обновите страницу.';
+      } else if (error.name === 'NotFoundError') {
+        errorMessage = '❌ Микрофон не найден. Проверьте подключение микрофона и выберите правильное устройство в настройках.';
+      } else if (error.name === 'NotReadableError') {
+        errorMessage = '❌ Микрофон используется другим приложением. Закройте другие программы, использующие микрофон.';
+      } else if (error.name === 'OverconstrainedError') {
+        errorMessage = '❌ Выбранный микрофон не поддерживает текущие настройки. Попробуйте выбрать другое устройство.';
+      } else if (error.message.includes('не поддерживается')) {
+        errorMessage = '❌ Ваш браузер не поддерживает тестовый режим микрофона. Используйте современный браузер (Chrome, Firefox, Safari).';
+      } else {
+        errorMessage = `❌ Ошибка: ${error.message || 'Неизвестная ошибка'}`;
+      }
+
+      alert(errorMessage);
+    }
+  };
+
+  // Проверка разрешений микрофона
+  const checkMicPermissions = async () => {
+    try {
+      if (!navigator.permissions) {
+        console.log('⚠️ Permissions API не поддерживается');
+        return true; // Пробуем запустить без проверки
+      }
+
+      const permission = await navigator.permissions.query({ name: 'microphone' });
+      console.log('🔍 Статус разрешений микрофона:', permission.state);
+
+      if (permission.state === 'denied') {
+        alert('❌ Доступ к микрофону запрещен. Разрешите использование микрофона в настройках браузера и обновите страницу.');
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      console.log('⚠️ Не удалось проверить разрешения:', error);
+      return true; // Пробуем запустить без проверки
     }
   };
 
   // Переключение тестового режима
-  const toggleTestMode = () => {
+  const toggleTestMode = async () => {
     if (isTestMode) {
       stopTestMode();
     } else {
-      startTestMode();
+      const hasPermission = await checkMicPermissions();
+      if (hasPermission) {
+        startTestMode();
+      }
     }
   };
 
@@ -809,42 +966,75 @@ function UserSettingsModal({ user, onClose, onLogout, onAvatarUpdate }) {
   };
 
   return (
-    <div className="settings-modal-overlay" onClick={onClose}>
-      <div className="settings-modal-content" onClick={(e) => e.stopPropagation()}>
-        <div className="settings-modal-header">
-          <h2>Настройки</h2>
-          <button className="settings-close-btn" onClick={onClose}>
-            <span>✕</span>
-          </button>
-        </div>
+    <div className="settings-overlay" onClick={onClose}>
+      <div className="settings-container" onClick={(e) => e.stopPropagation()}>
+        {/* Кнопка закрытия - всегда справа */}
+        <button className="settings-close-btn" onClick={onClose}>
+          ✕
+        </button>
 
-        {/* Вкладки */}
-        <div className="settings-tabs">
-          <button
-            className={`settings-tab ${activeTab === 'account' ? 'active' : ''}`}
-            onClick={() => setActiveTab('account')}
-          >
-            Моя учётная запись
-          </button>
-          <button
-            className={`settings-tab ${activeTab === 'audio' ? 'active' : ''}`}
-            onClick={() => setActiveTab('audio')}
-          >
-            Настройки звука
-          </button>
-          {isPuncher && (
-            <button
-              className={`settings-tab ${activeTab === 'admin' ? 'active' : ''}`}
-              onClick={() => setActiveTab('admin')}
-            >
-              <span className="tab-admin-icon">Admin panel</span>
-            </button>
-          )}
-        </div>
+        <div className="settings-content">
+          {/* Боковая панель навигации */}
+          <div className="settings-sidebar">
+            <div className="settings-search">
+              <input
+                type="text"
+                placeholder="Поиск настроек..."
+                className="settings-search-input"
+                value={searchQuery}
+                onChange={(e) => handleSearchChange(e.target.value)}
+              />
+            </div>
+
+            <div className="settings-nav-section">
+              <h3>НАСТРОЙКИ ПОЛЬЗОВАТЕЛЯ</h3>
+              {filterNavigationItems(navigationItems.slice(0, 2)).map((item) => (
+                <button
+                  key={item.id}
+                  className={`settings-nav-item ${activeTab === item.id ? 'active' : ''}`}
+                  onClick={() => setActiveTab(item.id)}
+                  title={item.description}
+                >
+                  {item.label}
+                </button>
+              ))}
+              {filterNavigationItems(navigationItems.slice(0, 2)).length === 0 && searchQuery.trim() && (
+                <div className="search-no-results">
+                  <p>Ничего не найдено для "{searchQuery}"</p>
+                </div>
+              )}
+            </div>
+
+            {isPuncher && (
+              <div className="settings-nav-section">
+                <h3>АДМИНИСТРАТОР</h3>
+                <button
+                  className={`settings-nav-item ${activeTab === 'admin' ? 'active' : ''}`}
+                  onClick={() => setActiveTab('admin')}
+                >
+                  Admin panel
+                </button>
+              </div>
+            )}
+
+            {/* Кнопка выхода */}
+            <div className="settings-nav-section settings-logout-section">
+              <button
+                className="settings-nav-item settings-logout-item"
+                onClick={onLogout}
+              >
+                Выйти из аккаунта
+              </button>
+            </div>
+          </div>
 
         <div className="settings-profile-section">
           {activeTab === 'account' && (
             <>
+            <div className="settings-page-header">
+              <h1 className="settings-page-title">Моя учётная запись</h1>
+              <p className="settings-page-subtitle">Управляйте своей учётной записью и настройками профиля</p>
+            </div>
           <div className="settings-profile-banner">
             <label className="settings-profile-avatar-wrapper" title="Изменить аватар">
               <input
@@ -925,13 +1115,15 @@ function UserSettingsModal({ user, onClose, onLogout, onAvatarUpdate }) {
             <button className="settings-change-btn">Изменить</button>
           </div>
 
-          <button className="settings-logout-btn" onClick={handleLogout}>
-            Выйти из аккаунта
-          </button>
             </>
           )}
 
           {activeTab === 'audio' && (
+            <>
+            <div className="settings-page-header">
+              <h1 className="settings-page-title">Голос и видео</h1>
+              <p className="settings-page-subtitle">Настройте свои аудио и видео устройства</p>
+            </div>
             <div className="audio-settings-content">
               {/* Секция выбора устройств */}
               <div className="audio-settings-section">
@@ -941,7 +1133,24 @@ function UserSettingsModal({ user, onClose, onLogout, onAvatarUpdate }) {
                 </p>
 
                 {isLoadingDevices ? (
-                  <div className="audio-loading">Загрузка устройств...</div>
+                  <div className="audio-skeleton">
+                    <div className="skeleton-item">
+                      <div className="skeleton-icon"></div>
+                      <div className="skeleton-content">
+                        <div className="skeleton-title"></div>
+                        <div className="skeleton-subtitle"></div>
+                      </div>
+                      <div className="skeleton-select"></div>
+                    </div>
+                    <div className="skeleton-item">
+                      <div className="skeleton-icon"></div>
+                      <div className="skeleton-content">
+                        <div className="skeleton-title"></div>
+                        <div className="skeleton-subtitle"></div>
+                      </div>
+                      <div className="skeleton-select"></div>
+                    </div>
+                  </div>
                 ) : (
                   <>
                     <div className="audio-setting-item">
@@ -1099,7 +1308,6 @@ function UserSettingsModal({ user, onClose, onLogout, onAvatarUpdate }) {
                     className={`voice-mode-option ${audioSettings.voiceMode === 'vad' ? 'active' : ''}`}
                     onClick={() => handleAudioSettingChange('voiceMode', 'vad')}
                   >
-                    <div className="voice-mode-icon">🎙️</div>
                     <div className="voice-mode-info">
                       <div className="voice-mode-name">Voice Activation</div>
                       <div className="voice-mode-desc">Микрофон включается автоматически при обнаружении голоса</div>
@@ -1110,7 +1318,6 @@ function UserSettingsModal({ user, onClose, onLogout, onAvatarUpdate }) {
                     className={`voice-mode-option ${audioSettings.voiceMode === 'ptt' ? 'active' : ''}`}
                     onClick={() => handleAudioSettingChange('voiceMode', 'ptt')}
                   >
-                    <div className="voice-mode-icon">⌨️</div>
                     <div className="voice-mode-info">
                       <div className="voice-mode-name">Push-to-Talk (PTT)</div>
                       <div className="voice-mode-desc">Удерживайте клавишу для активации микрофона</div>
@@ -1268,9 +1475,15 @@ function UserSettingsModal({ user, onClose, onLogout, onAvatarUpdate }) {
               </div>
 
             </div>
+            </>
           )}
 
           {activeTab === 'admin' && isPuncher && (
+            <>
+            <div className="settings-page-header">
+              <h1 className="settings-page-title">Admin panel</h1>
+              <p className="settings-page-subtitle">Панель администратора для управления системой</p>
+            </div>
             <div className="settings-admin-section-content">
               <div className="settings-admin-header">
                 <h3>Admin panel</h3>
@@ -1325,7 +1538,9 @@ function UserSettingsModal({ user, onClose, onLogout, onAvatarUpdate }) {
             </button>
           </div>
             </div>
+            </>
           )}
+        </div>
         </div>
       </div>
     </div>
