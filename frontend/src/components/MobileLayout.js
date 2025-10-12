@@ -40,7 +40,9 @@ function MobileLayout({
   autoSelectUser,
   onAutoSelectComplete,
   onUnreadDMsUpdate,
-  exitDirectMessages
+  exitDirectMessages,
+  isLoadingMessages,
+  preloadedMessages
 }) {
   const [isChatMode, setIsChatMode] = useState(false);
   const [isDMChatMode, setIsDMChatMode] = useState(false);
@@ -225,6 +227,8 @@ function MobileLayout({
               hasTextChannels={hasTextChannels}
               serverLoading={serverLoading}
               socket={socket}
+              isLoadingMessages={isLoadingMessages}
+              preloadedMessages={preloadedMessages}
             />
           </div>
         </div>

@@ -73,6 +73,7 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     localStorage.removeItem('lastServerId');
+    localStorage.removeItem('lastChannelId');
 
     setUser(null);
     setShowAuthModal(true);

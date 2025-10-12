@@ -39,17 +39,14 @@ class SocketService {
 
   // Event emitters
   joinServer(serverData) {
-    console.log('📡 Отправка SERVER_JOIN:', serverData);
     this.socket?.emit(SOCKET_EVENTS.SERVER_JOIN, serverData);
   }
 
   leaveServer(serverId, userId) {
-    console.log('📡 Отправка SERVER_LEAVE:', { serverId, userId });
     this.socket?.emit(SOCKET_EVENTS.SERVER_LEAVE, { serverId, userId });
   }
 
   joinChannel(channelData) {
-    console.log('📡 Отправка CHANNEL_JOIN:', channelData);
     this.socket?.emit(SOCKET_EVENTS.CHANNEL_JOIN, channelData);
   }
 

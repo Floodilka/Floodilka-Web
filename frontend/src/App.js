@@ -5,7 +5,7 @@ import './App.css';
 // Contexts
 import { AppProvider } from './context/AppContext';
 import { useAuth } from './context/AuthContext';
-import { GlobalUsersProvider, useGlobalUsers } from './context/GlobalUsersContext';
+import { useGlobalUsers } from './context/GlobalUsersContext';
 import { useServer } from './context/ServerContext';
 import { useChat } from './context/ChatContext';
 import { useVoice } from './context/VoiceContext';
@@ -47,10 +47,11 @@ const DirectMessagesRoute = () => {
     updateSpeakingUsers
   } = useVoice();
   const { isMobile } = useDevice();
-  const socket = useSocket();
+  const socket = useSocket(); // Получаем уже инициализированный сокет
 
   // Мемоизируем обработчики для предотвращения лишних перерендеров
   const handleServerSelect = useCallback((server) => {
+    localStorage.setItem('lastServerId', server._id);
     navigate(`/channels/${server._id}`);
   }, [navigate]);
 
@@ -112,6 +113,8 @@ const DirectMessagesRoute = () => {
           onAutoSelectComplete={handleAutoSelectComplete}
           onUnreadDMsUpdate={setHasUnreadDMs}
           exitDirectMessages={handleExitDirectMessages}
+          isLoadingMessages={false}
+          preloadedMessages={false}
         />
       </div>
     );
@@ -185,6 +188,8 @@ const ServerRoute = () => {
     currentTextChannel,
     messages,
     hasUnreadDMs,
+    preloadedMessages,
+    isLoadingMessages,
     selectTextChannel,
     clearChannelState,
     sendMessage: handleMessageSent
@@ -204,7 +209,7 @@ const ServerRoute = () => {
     updateSpeakingUsers
   } = useVoice();
   const { isMobile } = useDevice();
-  const socket = useSocket();
+  const socket = useSocket(); // Получаем уже инициализированный сокет
   const { sendMessage } = useChannel();
   const { globalOnlineUsers } = useGlobalUsers();
 
@@ -271,6 +276,7 @@ const ServerRoute = () => {
             joinVoiceChannel(channel);
           }
         } else {
+          localStorage.setItem('lastChannelId', channel.id);
           selectTextChannel(channel);
         }
       }
@@ -280,6 +286,7 @@ const ServerRoute = () => {
     // Если channelId нет в URL, но каналы есть — редиректим на первый текстовый канал (если он есть)
     const firstTextChannel = channels.find(c => c.type === 'text');
     if (firstTextChannel) {
+      localStorage.setItem('lastChannelId', firstTextChannel.id);
       navigate(`/channels/${serverId}/${firstTextChannel.id}`, { replace: true });
     } else {
       // Нет текстовых каналов — чистим возможное старое состояние выбранного канала
@@ -290,6 +297,7 @@ const ServerRoute = () => {
   }, [channelId, channels, currentTextChannel, selectTextChannel, joinVoiceChannel, activeVoiceChannel, navigate, serverId, currentServer, clearChannelState]);
 
   const handleServerSelect = (server) => {
+    localStorage.setItem('lastServerId', server._id);
     navigate(`/channels/${server._id}`);
   };
 
@@ -301,6 +309,7 @@ const ServerRoute = () => {
       joinVoiceChannel(channel);
       // Для голосовых каналов не меняем URL, остаемся на текстовом канале
     } else {
+      localStorage.setItem('lastChannelId', channel.id);
       navigate(`/channels/${serverId}/${channel.id}`);
     }
   };
@@ -346,6 +355,8 @@ const ServerRoute = () => {
           onSendMessage={sendMessage}
           hasTextChannels={!serverLoading && channels.some(c => c.type === 'text')}
           serverLoading={serverLoading}
+          isLoadingMessages={isLoadingMessages}
+          preloadedMessages={preloadedMessages}
         />
       </div>
     );
@@ -402,6 +413,8 @@ const ServerRoute = () => {
         serverLoading={serverLoading}
         socket={socket}
         onMessageSent={handleMessageSent}
+        preloadedMessages={preloadedMessages}
+        isLoadingMessages={isLoadingMessages}
       />
 
       <UserList
@@ -464,7 +477,7 @@ const AppContent = () => {
 const VoiceChannelWrapper = () => {
   const { currentVoiceChannel, globalMuted, globalDeafened, voiceDisconnectRef, updateSpeakingUsers } = useVoice();
   const { user } = useAuth();
-  const socket = useSocket();
+  const socket = useSocket(); // Получаем уже инициализированный сокет
 
   if (!currentVoiceChannel) return null;
 
@@ -484,11 +497,9 @@ const VoiceChannelWrapper = () => {
 function App() {
   return (
     <AppProvider>
-      <GlobalUsersProvider>
-        <AppContent />
-        {/* VoiceChannel живёт здесь и не размонтируется при смене маршрутов */}
-        <VoiceChannelWrapper />
-      </GlobalUsersProvider>
+      <AppContent />
+      {/* VoiceChannel живёт здесь и не размонтируется при смене маршрутов */}
+      <VoiceChannelWrapper />
     </AppProvider>
   );
 }

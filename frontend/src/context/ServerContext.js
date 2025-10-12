@@ -3,6 +3,7 @@ import apiService from '../services/api';
 import socketService from '../services/socket';
 import { useAuth } from './AuthContext';
 import { useVoice } from './VoiceContext';
+import { useChat } from './ChatContext';
 
 const ServerContext = createContext();
 
@@ -17,22 +18,71 @@ export const useServer = () => {
 export const ServerProvider = ({ children }) => {
   const { user, showAuthModal } = useAuth();
   const { tryRestoreVoiceConnection, finishVoiceReconnect, pendingReconnect } = useVoice();
+  const { preloadChannelMessages } = useChat();
   const [servers, setServers] = useState([]);
   const [currentServer, setCurrentServer] = useState(null);
   const [channels, setChannels] = useState([]);
   const [allServerMembers, setAllServerMembers] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true); // Изначально true для первой загрузки
 
   // Загрузка серверов пользователя
   useEffect(() => {
-    if (!user || showAuthModal) return;
+    if (!user) {
+      setLoading(false);
+      return;
+    }
 
+    // Не ждем пока showAuthModal станет false - начинаем загрузку сразу
     const loadServers = async () => {
       try {
         setLoading(true);
         const data = await apiService.getServers();
         const serversArray = Array.isArray(data) ? data : [];
         setServers(serversArray);
+
+        // Предзагружаем данные сервера для быстрого отображения
+        if (serversArray.length > 0) {
+          // Проверяем, есть ли сохраненный сервер
+          const lastServerId = localStorage.getItem('lastServerId');
+          let targetServer = serversArray[0]; // По умолчанию первый сервер
+
+          if (lastServerId) {
+            const savedServer = serversArray.find(s => s._id === lastServerId);
+            if (savedServer) {
+              targetServer = savedServer;
+            }
+          }
+
+          try {
+            const [channelsData, membersData] = await Promise.all([
+              apiService.getServerChannels(targetServer._id),
+              apiService.getServerMembers(targetServer._id)
+            ]);
+
+            const channelsArray = Array.isArray(channelsData) ? channelsData : [];
+            const membersArray = Array.isArray(membersData) ? membersData : [];
+
+            setChannels(channelsArray);
+            setAllServerMembers(membersArray);
+
+            // Предзагружаем сообщения канала
+            const lastChannelId = localStorage.getItem('lastChannelId');
+            let targetChannel = channelsArray.find(c => c.type === 'text'); // По умолчанию первый текстовый канал
+
+            if (lastChannelId) {
+              const savedChannel = channelsArray.find(c => c.id === lastChannelId && c.type === 'text');
+              if (savedChannel) {
+                targetChannel = savedChannel;
+              }
+            }
+
+            if (targetChannel) {
+              await preloadChannelMessages(targetChannel.id, targetServer._id);
+            }
+          } catch (err) {
+            console.error('Ошибка предзагрузки данных сервера:', err);
+          }
+        }
       } catch (err) {
         console.error('Ошибка загрузки серверов:', err);
         setServers([]);
@@ -42,7 +92,7 @@ export const ServerProvider = ({ children }) => {
     };
 
     loadServers();
-  }, [user, showAuthModal]);
+  }, [user]);
 
   // Попытка восстановить соединение после загрузки серверов
   useEffect(() => {
@@ -84,8 +134,6 @@ export const ServerProvider = ({ children }) => {
   // Присоединение ко ВСЕМ серверам пользователя для отображения онлайн-статуса
   useEffect(() => {
     if (!servers.length || !user) return;
-
-    console.log('🌐 Присоединяемся ко всем серверам для онлайн-статуса:', servers.length);
 
     // Присоединиться ко всем серверам пользователя
     servers.forEach(server => {
