@@ -90,6 +90,22 @@ const messageSchema = new mongoose.Schema({
       }
     }]
   }],
+  mentions: [{
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      default: null
+    },
+    username: {
+      type: String,
+      required: true
+    },
+    type: {
+      type: String,
+      enum: ['user', 'everyone'],
+      default: 'user'
+    }
+  }],
   createdAt: {
     type: Date,
     default: Date.now

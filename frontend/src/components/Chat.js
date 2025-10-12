@@ -4,6 +4,7 @@ import { useChat } from '../context/ChatContext';
 import { SOCKET_EVENTS } from '../constants/events';
 import EmojiPicker from './EmojiPicker';
 import MessageReactions from './MessageReactions';
+import MentionAutocomplete from './MentionAutocomplete';
 
 const BACKEND_URL = window.location.hostname === 'localhost'
   ? 'http://localhost:3001'
@@ -31,11 +32,49 @@ function Chat({ channel, messages, username, user, currentServer, onSendMessage,
   const [emojiPickerPosition, setEmojiPickerPosition] = useState(null);
   const [selectedMessageForReaction, setSelectedMessageForReaction] = useState(null);
 
+  // Состояния для автокомплита упоминаний
+  const [showMentionAutocomplete, setShowMentionAutocomplete] = useState(false);
+  const [mentionFilter, setMentionFilter] = useState('');
+  const [mentionPosition, setMentionPosition] = useState({ top: 0, left: 0, width: 0 });
+  const [mentionSelectedIndex, setMentionSelectedIndex] = useState(0);
+  const [serverMembers, setServerMembers] = useState([]);
+  const inputRef = useRef(null);
+  const messageInputFieldRef = useRef(null);
+
   const handleUserClick = async (message, event) => {
     const rect = event.currentTarget.getBoundingClientRect();
+    const cardWidth = 300; // Примерная ширина карточки
+    const cardHeight = 200; // Примерная высота карточки
+    const padding = 10; // Отступ от края экрана
+
+    let top = rect.top;
+    let left = rect.right + 8;
+
+    // Проверяем, не уходит ли карточка за правый край экрана
+    if (left + cardWidth > window.innerWidth - padding) {
+      left = rect.left - cardWidth - 8; // Показываем слева от элемента
+    }
+
+    // Проверяем, не уходит ли карточка за нижний край экрана
+    if (top + cardHeight > window.innerHeight - padding) {
+      // Если места внизу мало, показываем над элементом
+      // Выравниваем нижний край карточки с верхним краем элемента
+      top = rect.top - cardHeight - 8;
+    }
+
+    // Проверяем, не уходит ли карточка за верхний край экрана
+    if (top < padding) {
+      top = padding;
+    }
+
+    // Проверяем, не уходит ли карточка за левый край экрана
+    if (left < padding) {
+      left = padding;
+    }
+
     setProfilePosition({
-      top: rect.top,
-      left: rect.right + 8
+      top: Math.max(padding, top),
+      left: Math.max(padding, left)
     });
 
     // Если есть userId, загрузить актуальные данные пользователя
@@ -117,6 +156,37 @@ function Chat({ channel, messages, username, user, currentServer, onSendMessage,
 
     loadUserPermissions();
   }, [currentServer, user]);
+
+  // Загрузка участников сервера для автокомплита упоминаний
+  useEffect(() => {
+    const loadServerMembers = async () => {
+      if (!currentServer?._id) {
+        setServerMembers([]);
+        return;
+      }
+
+      try {
+        const response = await fetch(
+          `${BACKEND_URL}/api/servers/${currentServer._id}/members`,
+          {
+            headers: {
+              'Authorization': `Bearer ${localStorage.getItem('token')}`
+            }
+          }
+        );
+
+        if (response.ok) {
+          const members = await response.json();
+          setServerMembers(members);
+        }
+      } catch (err) {
+        console.error('Ошибка загрузки участников:', err);
+        setServerMembers([]);
+      }
+    };
+
+    loadServerMembers();
+  }, [currentServer]);
 
   const handleSendDirectMessage = async () => {
     if (!messageText.trim() || !selectedUser || sendingMessage) return;
@@ -748,8 +818,108 @@ function Chat({ channel, messages, username, user, currentServer, onSendMessage,
     }
   }, [messages.length, channel?.id, preloadedMessages, getSavedScrollPosition]);
 
+  // Обработка изменения в поле ввода для автокомплита упоминаний
+  const handleInputChange = (e) => {
+    const value = e.target.value;
+    setInputValue(value);
+
+    // Проверяем, есть ли @ в тексте
+    const cursorPosition = e.target.selectionStart;
+    const textBeforeCursor = value.substring(0, cursorPosition);
+    const lastAtIndex = textBeforeCursor.lastIndexOf('@');
+
+    if (lastAtIndex !== -1) {
+      const textAfterAt = textBeforeCursor.substring(lastAtIndex + 1);
+      // Проверяем, что после @ нет пробела
+      if (!textAfterAt.includes(' ')) {
+        // Показываем автокомплит
+        // Получаем размеры родительского контейнера поля ввода
+        const fieldRect = messageInputFieldRef.current?.getBoundingClientRect();
+        if (fieldRect) {
+          setMentionPosition({
+            top: fieldRect.top - 8, // Показываем прямо над полем ввода с небольшим отступом
+            left: fieldRect.left,
+            width: fieldRect.width
+          });
+          setMentionFilter(textAfterAt);
+          setShowMentionAutocomplete(true);
+          setMentionSelectedIndex(0);
+        }
+      } else {
+        setShowMentionAutocomplete(false);
+      }
+    } else {
+      setShowMentionAutocomplete(false);
+    }
+  };
+
+  // Выбор пользователя из автокомплита
+  const handleMentionSelect = (user) => {
+    const cursorPosition = inputRef.current.selectionStart;
+    const textBeforeCursor = inputValue.substring(0, cursorPosition);
+    const textAfterCursor = inputValue.substring(cursorPosition);
+    const lastAtIndex = textBeforeCursor.lastIndexOf('@');
+
+    if (lastAtIndex !== -1) {
+      const newValue =
+        inputValue.substring(0, lastAtIndex) +
+        `@${user.username} ` +
+        textAfterCursor;
+      setInputValue(newValue);
+
+      // Устанавливаем курсор после упоминания
+      setTimeout(() => {
+        const newCursorPos = lastAtIndex + user.username.length + 2;
+        inputRef.current.setSelectionRange(newCursorPos, newCursorPos);
+        inputRef.current.focus();
+      }, 0);
+    }
+
+    setShowMentionAutocomplete(false);
+  };
+
+  // Обработка клавиш в поле ввода
+  const handleInputKeyDown = (e) => {
+    if (showMentionAutocomplete) {
+      const filteredUsers = serverMembers.filter(user =>
+        user.username.toLowerCase().startsWith(mentionFilter.toLowerCase())
+      );
+
+      // Добавляем @everyone если подходит
+      let suggestions = [];
+      if ('everyone'.startsWith(mentionFilter.toLowerCase())) {
+        suggestions.push({ id: 'everyone', username: 'everyone' });
+      }
+      suggestions = [...suggestions, ...filteredUsers];
+
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        setMentionSelectedIndex(prev =>
+          prev < suggestions.length - 1 ? prev + 1 : prev
+        );
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        setMentionSelectedIndex(prev => prev > 0 ? prev - 1 : 0);
+      } else if (e.key === 'Enter') {
+        e.preventDefault();
+        if (suggestions[mentionSelectedIndex]) {
+          handleMentionSelect(suggestions[mentionSelectedIndex]);
+        }
+        return;
+      } else if (e.key === 'Escape') {
+        setShowMentionAutocomplete(false);
+      }
+    }
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
+
+    // Закрываем автокомплит если он открыт
+    if (showMentionAutocomplete) {
+      setShowMentionAutocomplete(false);
+    }
+
     const trimmedValue = inputValue.trim();
     if (trimmedValue || selectedFiles.length > 0) {
       console.log('[SCROLL] 📤 Отправка сообщения - будет скролл через 100мс');
@@ -802,6 +972,112 @@ function Chat({ channel, messages, username, user, currentServer, onSendMessage,
     return date.toLocaleTimeString('ru-RU', {
       hour: '2-digit',
       minute: '2-digit'
+    });
+  };
+
+  // Обработка клика на упоминание пользователя
+  const handleMentionClick = async (mentionUsername, event) => {
+    // Не показываем профиль для @everyone
+    if (mentionUsername === 'everyone') return;
+
+    // Ищем пользователя среди участников сервера
+    const mentionedUser = serverMembers.find(member =>
+      member.username.toLowerCase() === mentionUsername.toLowerCase()
+    );
+
+    if (!mentionedUser) return;
+
+    // Умное позиционирование профильной карточки
+    const rect = event.currentTarget.getBoundingClientRect();
+    const cardWidth = 300; // Примерная ширина карточки
+    const cardHeight = 200; // Примерная высота карточки
+    const padding = 10; // Отступ от края экрана
+
+    let top = rect.top;
+    let left = rect.right + 8;
+
+    // Проверяем, не уходит ли карточка за правый край экрана
+    if (left + cardWidth > window.innerWidth - padding) {
+      left = rect.left - cardWidth - 8; // Показываем слева от элемента
+    }
+
+    // Проверяем, не уходит ли карточка за нижний край экрана
+    if (top + cardHeight > window.innerHeight - padding) {
+      // Если места внизу мало, показываем над элементом
+      // Выравниваем нижний край карточки с верхним краем элемента
+      top = rect.top - cardHeight - 8;
+    }
+
+    // Проверяем, не уходит ли карточка за верхний край экрана
+    if (top < padding) {
+      top = padding;
+    }
+
+    // Проверяем, не уходит ли карточка за левый край экрана
+    if (left < padding) {
+      left = padding;
+    }
+
+    setProfilePosition({
+      top: Math.max(padding, top),
+      left: Math.max(padding, left)
+    });
+
+    setSelectedUser({
+      username: mentionedUser.username,
+      displayName: mentionedUser.displayName,
+      avatar: mentionedUser.avatar,
+      badge: mentionedUser.badge,
+      badgeTooltip: mentionedUser.badgeTooltip,
+      userId: mentionedUser.id
+    });
+  };
+
+  // Функция для подсветки упоминаний в тексте
+  const highlightMentions = (text) => {
+    if (!text) return null;
+
+    // Регулярное выражение для поиска упоминаний
+    const mentionRegex = /(@\w+)/g;
+    const parts = text.split(mentionRegex);
+
+    return parts.map((part, index) => {
+      if (part.startsWith('@')) {
+        const mentionUsername = part.substring(1);
+        const isCurrentUser = mentionUsername === username;
+        const isEveryone = mentionUsername === 'everyone';
+
+        return (
+          <span
+            key={index}
+            className={`message-mention ${isCurrentUser ? 'mention-current-user' : ''} ${isEveryone ? 'mention-everyone' : ''} ${!isEveryone ? 'mention-clickable' : ''}`}
+            title={isEveryone ? 'Все участники' : `@${mentionUsername}`}
+            onClick={(e) => handleMentionClick(mentionUsername, e)}
+            style={{ cursor: isEveryone ? 'default' : 'pointer' }}
+          >
+            {part}
+          </span>
+        );
+      }
+      return part;
+    });
+  };
+
+  // Функция для проверки, упомянут ли текущий пользователь в сообщении
+  const isUserMentioned = (message) => {
+    if (!message.mentions || !username) return false;
+
+    // Проверяем только упоминания текущего пользователя или @everyone
+    return message.mentions.some(mention => {
+      // Если это @everyone - всегда подсвечиваем
+      if (mention.type === 'everyone') {
+        return true;
+      }
+      // Если это обычное упоминание - проверяем имя пользователя
+      if (mention.type === 'user' && mention.username) {
+        return mention.username.toLowerCase() === username.toLowerCase();
+      }
+      return false;
     });
   };
 
@@ -916,7 +1192,7 @@ function Chat({ channel, messages, username, user, currentServer, onSendMessage,
           group.messages.map((message, messageIndex) => (
             <div
               key={message.id}
-              className={`message ${message.isSystem ? 'system-message' : ''} ${message.username === username ? 'own-message' : ''} ${editingMessage?.id === message.id ? 'message-edit-mode' : ''} ${contextMenu?.message.id === message.id ? 'show-actions' : ''} ${messageIndex > 0 ? 'message-grouped' : ''} ${messageIndex === 0 && group.messages.length > 1 ? 'message-group-first' : ''} ${messageIndex === group.messages.length - 1 ? 'message-group-last' : ''} ${deletingMessageId === message.id ? 'message-deleting' : ''}`}
+              className={`message ${message.isSystem ? 'system-message' : ''} ${message.username === username ? 'own-message' : ''} ${isUserMentioned(message) ? 'message-mentioned' : ''} ${editingMessage?.id === message.id ? 'message-edit-mode' : ''} ${contextMenu?.message.id === message.id ? 'show-actions' : ''} ${messageIndex > 0 ? 'message-grouped' : ''} ${messageIndex === 0 && group.messages.length > 1 ? 'message-group-first' : ''} ${messageIndex === group.messages.length - 1 ? 'message-group-last' : ''} ${deletingMessageId === message.id ? 'message-deleting' : ''}`}
             >
               {messageIndex === 0 ? (
                 <div
@@ -1008,7 +1284,7 @@ function Chat({ channel, messages, username, user, currentServer, onSendMessage,
                 ) : (
                   <div className="message-content-wrapper">
                     {message.content && (
-                      <div className="message-text">{message.content}</div>
+                      <div className="message-text">{highlightMentions(message.content)}</div>
                     )}
                     {message.attachments && message.attachments.length > 0 && (
                       <div className="message-attachments">
@@ -1116,7 +1392,7 @@ function Chat({ channel, messages, username, user, currentServer, onSendMessage,
               onChange={handleFileSelect}
               style={{ display: 'none' }}
             />
-            <div className="message-input-field">
+            <div className="message-input-field" ref={messageInputFieldRef}>
               <button
                 type="button"
                 className="file-attach-button"
@@ -1127,10 +1403,12 @@ function Chat({ channel, messages, username, user, currentServer, onSendMessage,
               </button>
               <div className="input-divider"></div>
               <input
+                ref={inputRef}
                 type="text"
                 placeholder={`Написать в #${channel.name}`}
                 value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
+                onChange={handleInputChange}
+                onKeyDown={handleInputKeyDown}
                 maxLength={2000}
               />
               <div className="input-divider"></div>
@@ -1288,6 +1566,17 @@ function Chat({ channel, messages, username, user, currentServer, onSendMessage,
             setSelectedMessageForReaction(null);
           }}
           position={emojiPickerPosition}
+        />
+      )}
+
+      {/* Автокомплит для упоминаний */}
+      {showMentionAutocomplete && (
+        <MentionAutocomplete
+          users={serverMembers}
+          filter={mentionFilter}
+          onSelect={handleMentionSelect}
+          position={mentionPosition}
+          selectedIndex={mentionSelectedIndex}
         />
       )}
     </div>

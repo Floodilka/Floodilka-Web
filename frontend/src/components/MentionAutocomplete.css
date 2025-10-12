@@ -1,0 +1,109 @@
+.mention-autocomplete {
+  position: fixed;
+  background: #2b2d31;
+  border-radius: 8px;
+  box-shadow: 0 -8px 16px rgba(0, 0, 0, 0.24);
+  max-height: 300px;
+  overflow: hidden;
+  z-index: 1000;
+  border: 1px solid #1e1f22;
+  transform: translateY(-100%);
+}
+
+.mention-autocomplete ul {
+  list-style: none;
+  padding: 4px;
+  margin: 0;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.mention-autocomplete ul::-webkit-scrollbar {
+  width: 8px;
+}
+
+.mention-autocomplete ul::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.mention-autocomplete ul::-webkit-scrollbar-thumb {
+  background: #1a1b1e;
+  border-radius: 4px;
+}
+
+.mention-autocomplete ul::-webkit-scrollbar-thumb:hover {
+  background: #18191c;
+}
+
+.mention-item {
+  display: flex;
+  align-items: center;
+  padding: 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.1s;
+  gap: 12px;
+}
+
+.mention-item:hover,
+.mention-item.selected {
+  background: #404249;
+}
+
+.mention-avatar,
+.mention-avatar-fallback,
+.mention-everyone-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.mention-avatar {
+  object-fit: cover;
+}
+
+.mention-avatar-fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #5865f2 0%, #3b45c4 100%);
+  color: white;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.mention-everyone-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #f23f43 0%, #d62d35 100%);
+  color: white;
+  font-weight: 700;
+  font-size: 18px;
+}
+
+.mention-info {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  flex: 1;
+}
+
+.mention-username {
+  color: #f2f3f5;
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mention-display-name {
+  color: #b5bac1;
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+

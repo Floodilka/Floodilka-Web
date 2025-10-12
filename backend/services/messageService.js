@@ -1,10 +1,68 @@
 const Message = require('../models/Message');
 const User = require('../models/User');
+const Server = require('../models/Server');
+const Channel = require('../models/Channel');
 const { NotFoundError, ValidationError } = require('../utils/errors');
 const { validateMessageContent, canEditMessage } = require('../validators/messageValidator');
 const { MESSAGE_EDIT_TIME_LIMIT } = require('../constants');
 
 class MessageService {
+  /**
+   * Парсит упоминания из текста сообщения
+   * @param {string} content - Текст сообщения
+   * @param {string} channelId - ID канала
+   * @returns {Promise<Array>} - Массив упоминаний
+   */
+  async parseMentions(content, channelId) {
+    if (!content) return [];
+
+    const mentions = [];
+    const mentionRegex = /@(\w+)/g;
+    let match;
+
+    // Получаем канал и сервер для доступа к списку участников
+    const channel = await Channel.findById(channelId);
+    if (!channel || !channel.serverId) return mentions;
+
+    const server = await Server.findById(channel.serverId);
+    if (!server) return mentions;
+
+    // Проверяем упоминание @everyone
+    if (content.includes('@everyone')) {
+      mentions.push({
+        username: 'everyone',
+        type: 'everyone',
+        userId: null
+      });
+    }
+
+    // Получаем всех участников сервера
+    const memberIds = [...new Set([server.ownerId, ...server.members])];
+
+    // Находим все упоминания пользователей
+    while ((match = mentionRegex.exec(content)) !== null) {
+      const username = match[1];
+
+      // Пропускаем @everyone (уже обработали выше)
+      if (username === 'everyone') continue;
+
+      // Ищем пользователя среди участников сервера
+      const user = await User.findOne({
+        _id: { $in: memberIds },
+        username: { $regex: new RegExp(`^${username}$`, 'i') }
+      });
+
+      if (user && !mentions.find(m => m.userId && m.userId.toString() === user._id.toString())) {
+        mentions.push({
+          userId: user._id,
+          username: user.username,
+          type: 'user'
+        });
+      }
+    }
+
+    return mentions;
+  }
   async getChannelMessages(channelId, limit = 100) {
     const messages = await Message.find({ channelId })
       .populate('userId', 'username displayName avatar badge badgeTooltip')
@@ -56,6 +114,9 @@ class MessageService {
       }
     }
 
+    // Парсим упоминания
+    const mentions = await this.parseMentions(validatedContent, channelId);
+
     const message = new Message({
       channelId,
       userId: userId || null,
@@ -66,7 +127,8 @@ class MessageService {
       badgeTooltip: actualUserData.badgeTooltip,
       content: validatedContent,
       isSystem: false,
-      attachments: attachments || []
+      attachments: attachments || [],
+      mentions: mentions
     });
 
     await message.save();
