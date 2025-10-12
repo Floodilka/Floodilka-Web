@@ -1,11 +1,15 @@
 import { useState, useEffect, useRef } from 'react';
 import './VoiceChannel.css';
+import ScreenShare from './ScreenShare';
+import { useVoice } from '../context/VoiceContext';
 
 function VoiceChannel({ socket, channel, user, globalMuted, globalDeafened, onDisconnectRef, onSpeakingUpdate }) {
   const [isConnected, setIsConnected] = useState(false);
   const [voiceUsers, setVoiceUsers] = useState([]);
   const [speakingUsers, setSpeakingUsers] = useState(new Set());
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const screenShareRef = useRef(null);
+  const { screenShareRef: globalScreenShareRef, connectToStreamRef } = useVoice();
 
   // Гарантированная очистка при размонтировании компонента
   useEffect(() => {
@@ -671,8 +675,8 @@ function VoiceChannel({ socket, channel, user, globalMuted, globalDeafened, onDi
       document.body.appendChild(audio);
     }
 
-    // Устанавливаем громкость входящего звука (0-200% преобразуется в 0-2.0)
-    audio.volume = Math.min(2.0, Math.max(0, outputVolume / 100));
+    // Устанавливаем громкость входящего звука (0-100% преобразуется в 0-1.0)
+    audio.volume = Math.min(1.0, Math.max(0, outputVolume / 100));
     audio.srcObject = stream;
 
     // Устанавливаем выбранное устройство вывода звука (если поддерживается)
@@ -1028,7 +1032,7 @@ function VoiceChannel({ socket, channel, user, globalMuted, globalDeafened, onDi
 
       // 9. Контроль исходящей громкости (inputVolume)
       const volumeControl = audioContext.createGain();
-      volumeControl.gain.value = Math.min(2.0, Math.max(0, inputVolume / 100));
+      volumeControl.gain.value = Math.min(3.0, Math.max(0, inputVolume / 100));
       console.log('🎤 Громкость исходящего звука (микрофон):', volumeControl.gain.value);
 
       // 10. Лимитер для предотвращения перегрузки
@@ -1157,6 +1161,28 @@ function VoiceChannel({ socket, channel, user, globalMuted, globalDeafened, onDi
     }
   }, []);
 
+  // Прокинуть функцию toggleScreenShare наверх
+  useEffect(() => {
+    if (globalScreenShareRef && screenShareRef.current) {
+      globalScreenShareRef.current = () => {
+        if (screenShareRef.current?.toggleScreenShare) {
+          screenShareRef.current.toggleScreenShare();
+        }
+      };
+    }
+  }, [globalScreenShareRef]);
+
+  // Прокинуть функцию connectToStream наверх
+  useEffect(() => {
+    if (connectToStreamRef && screenShareRef.current) {
+      connectToStreamRef.current = (socketId) => {
+        if (screenShareRef.current?.connectToStream) {
+          screenShareRef.current.connectToStream(socketId);
+        }
+      };
+    }
+  }, [connectToStreamRef]);
+
   // Синхронизация с глобальными состояниями
   useEffect(() => {
     if (!localStreamRef.current || !socket || !channel) return;
@@ -1248,7 +1274,7 @@ function VoiceChannel({ socket, channel, user, globalMuted, globalDeafened, onDi
         // Обновляем громкость для всех существующих audio элементов
         const audioElements = document.querySelectorAll('audio[id^="audio-"]');
         audioElements.forEach((audio) => {
-          const newVolume = Math.min(2.0, Math.max(0, newSettings.outputVolume / 100));
+          const newVolume = Math.min(1.0, Math.max(0, newSettings.outputVolume / 100));
           audio.volume = newVolume;
           console.log('🔊 Громкость обновлена для', audio.id, ':', newVolume);
         });
@@ -1444,8 +1470,17 @@ function VoiceChannel({ socket, channel, user, globalMuted, globalDeafened, onDi
     }
   }, [isConnected, voiceMode, isPttActive]);
 
-  // Голосовой канал работает в фоне
-  return null;
+  // Голосовой канал работает в фоне, но рендерим ScreenShare компонент
+  return (
+    <ScreenShare
+      ref={screenShareRef}
+      socket={socket}
+      channel={channel}
+      user={user}
+      isInVoice={isConnected}
+      voiceUsers={voiceUsers}
+    />
+  );
 }
 
 export default VoiceChannel;

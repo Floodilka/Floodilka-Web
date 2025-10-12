@@ -505,6 +505,7 @@
   border-radius: 4px;
   transition: background-color 0.2s;
   cursor: pointer;
+  position: relative;
 }
 
 .voice-user-sidebar:hover {
@@ -609,6 +610,33 @@
   width: 16px;
   height: 16px;
 }
+
+/* Индикатор демонстрации экрана "В ЭФИРЕ" */
+.voice-user-screen-sharing-indicator {
+  background: #e74c3c;
+  color: #ffffff;
+  font-size: 9px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 3px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+  box-shadow: 0 1px 3px rgba(231, 76, 60, 0.3);
+  animation: pulse-on-air 2s infinite;
+  margin-left: auto;
+  margin-top: 2px;
+}
+
+@keyframes pulse-on-air {
+  0%, 100% {
+    box-shadow: 0 1px 3px rgba(231, 76, 60, 0.3);
+  }
+  50% {
+    box-shadow: 0 1px 8px rgba(231, 76, 60, 0.6);
+  }
+}
+
 
 /* Оверлей для карточки профиля */
 .user-profile-overlay {
@@ -796,5 +824,114 @@
 .user-profile-message-input .message-input-container:focus-within .message-input-field {
   background: none !important;
   background-color: transparent !important;
+}
+
+/* Специальные стили для полей в карточке профиля в голосовом канале */
+.user-profile-card-voice .user-profile-message-input {
+  padding: 16px;
+  background: transparent;
+  border-top: none;
+}
+
+.user-profile-card-voice .user-profile-message-input .message-input-container {
+  display: flex;
+  align-items: center;
+  background: #2b2d31;
+  border-radius: 4px;
+  padding: 0px 8px;
+  border: 1px solid #40444b;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  height: 32px;
+}
+
+.user-profile-card-voice .user-profile-message-input .message-input-container:focus-within {
+  border-color: #5865f2;
+  box-shadow: 0 0 0 2px rgba(88, 101, 242, 0.2);
+  background: #36393f;
+}
+
+.user-profile-card-voice .user-profile-message-input .message-input-field {
+  flex: 1;
+  background: none !important;
+  border: none;
+  outline: none;
+  color: #ffffff;
+  font-size: 13px;
+  font-family: inherit;
+  line-height: 1.0;
+  padding: 1px 0;
+  background-color: transparent !important;
+}
+
+.user-profile-card-voice .user-profile-message-input .message-input-field::placeholder {
+  color: #8e9297;
+  font-weight: 400;
+}
+
+.user-profile-card-voice .user-profile-message-input .message-input-field:focus {
+  outline: none;
+  background: none !important;
+  background-color: transparent !important;
+}
+
+.user-profile-card-voice .user-profile-message-input .message-input-container:focus-within .message-input-field {
+  background: none !important;
+  background-color: transparent !important;
+}
+
+/* Контекстное меню для стримящих пользователей */
+.voice-user-context-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  background: #2b2d31;
+  border: 1px solid #40444b;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  z-index: 1000;
+  padding: 4px;
+  min-width: 160px;
+  animation: contextMenuFadeIn 0.15s ease-out;
+}
+
+.context-menu-button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 12px;
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  color: #dcddde;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  text-align: left;
+}
+
+.context-menu-button:hover {
+  background-color: #5865f2;
+  color: #ffffff;
+}
+
+.context-menu-icon {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  filter: brightness(0) invert(1); /* Покрасить иконку в белый цвет */
+}
+
+@keyframes contextMenuFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 

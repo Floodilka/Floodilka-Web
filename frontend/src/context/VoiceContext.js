@@ -18,9 +18,13 @@ export const VoiceProvider = ({ children }) => {
   const [globalMuted, setGlobalMuted] = useState(false);
   const [globalDeafened, setGlobalDeafened] = useState(false);
   const [pendingReconnect, setPendingReconnect] = useState(null);
+  const [isScreenSharing, setIsScreenSharing] = useState(false);
+  const [screenSharingUsers, setScreenSharingUsers] = useState({}); // channelId -> Map(socketId -> { userId, username })
 
   const voiceDisconnectRef = useRef(null);
   const speakingUsersRef = useRef({});
+  const screenShareRef = useRef(null);
+  const connectToStreamRef = useRef(null);
 
   const joinVoiceChannel = useCallback((channel) => {
     if (activeVoiceChannel?.id === channel.id) {
@@ -57,6 +61,7 @@ export const VoiceProvider = ({ children }) => {
     // Сбрасываем состояния mute/deafen
     setGlobalMuted(false);
     setGlobalDeafened(false);
+    setIsScreenSharing(false);
 
     // Удаляем информацию о подключении из localStorage
     try {
@@ -86,6 +91,38 @@ export const VoiceProvider = ({ children }) => {
       setSpeakingUsers({...speakingUsersRef.current});
     }
   }, [currentVoiceChannel]);
+
+  const toggleScreenShare = useCallback(() => {
+    if (screenShareRef.current) {
+      screenShareRef.current();
+    }
+  }, []);
+
+  const connectToStream = useCallback((socketId) => {
+    if (connectToStreamRef.current) {
+      connectToStreamRef.current(socketId);
+    }
+  }, []);
+
+  const updateScreenSharingUsers = useCallback((channelId, socketId, isSharing, userInfo = null) => {
+    setScreenSharingUsers(prev => {
+      const newState = { ...prev };
+      if (!newState[channelId]) {
+        newState[channelId] = new Map();
+      }
+
+      if (isSharing && userInfo) {
+        newState[channelId].set(socketId, userInfo);
+      } else {
+        newState[channelId].delete(socketId);
+        if (newState[channelId].size === 0) {
+          delete newState[channelId];
+        }
+      }
+
+      return newState;
+    });
+  }, []);
 
   // Функция для попытки восстановления соединения с голосовым каналом
   const tryRestoreVoiceConnection = useCallback((servers) => {
@@ -158,15 +195,24 @@ export const VoiceProvider = ({ children }) => {
     speakingUsers,
     globalMuted,
     globalDeafened,
+    isScreenSharing,
+    screenSharingUsers,
     voiceDisconnectRef,
+    screenShareRef,
+    connectToStreamRef,
     joinVoiceChannel,
     leaveVoiceChannel,
     toggleMute,
     toggleDeafen,
+    toggleScreenShare,
+    connectToStream,
     setVoiceChannelUsers,
+    setScreenSharingUsers,
     updateSpeakingUsers,
+    updateScreenSharingUsers,
     setCurrentVoiceChannel,
     setActiveVoiceChannel,
+    setIsScreenSharing,
     tryRestoreVoiceConnection,
     finishVoiceReconnect,
     pendingReconnect
@@ -177,11 +223,16 @@ export const VoiceProvider = ({ children }) => {
     speakingUsers,
     globalMuted,
     globalDeafened,
+    isScreenSharing,
+    screenSharingUsers,
     joinVoiceChannel,
     leaveVoiceChannel,
     toggleMute,
     toggleDeafen,
+    toggleScreenShare,
+    connectToStream,
     updateSpeakingUsers,
+    updateScreenSharingUsers,
     tryRestoreVoiceConnection,
     finishVoiceReconnect,
     pendingReconnect

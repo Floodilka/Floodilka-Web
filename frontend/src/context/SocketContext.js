@@ -20,7 +20,7 @@ export const useSocketContext = () => {
 export const SocketProvider = ({ children }) => {
   const [socket, setSocket] = useState(null);
   const { addMessage, editMessage, deleteMessage, setMessages, setHasUnreadDMs } = useChat();
-  const { setVoiceChannelUsers } = useVoice();
+  const { setVoiceChannelUsers, setScreenSharingUsers } = useVoice();
   const { user } = useAuth();
   const { setChannels } = useServer();
   const { setGlobalOnlineUsers } = useGlobalUsers();
@@ -69,6 +69,23 @@ export const SocketProvider = ({ children }) => {
         filteredData[channelId] = voiceData[channelId].filter(u => u.id !== newSocket.id);
       });
       setVoiceChannelUsers(filteredData);
+    });
+
+    // Screen sharing update event (обновление для всех пользователей)
+    socketService.on(SOCKET_EVENTS.SCREEN_SHARING_UPDATE, (screenSharingData) => {
+      console.log('📺 Получено глобальное обновление screen sharing:', screenSharingData);
+      // Обновляем состояние screen sharing для всех каналов
+      const updatedScreenSharing = {};
+      Object.keys(screenSharingData).forEach(channelId => {
+        const channelMap = new Map();
+        screenSharingData[channelId].forEach(({ socketId, username, userId }) => {
+          console.log(`  🎥 Канал ${channelId}: ${username} (userId: ${userId}, socketId: ${socketId})`);
+          channelMap.set(userId, { userId, username, socketId });
+        });
+        updatedScreenSharing[channelId] = channelMap;
+      });
+      console.log('✅ Обновлено состояние screenSharingUsers:', updatedScreenSharing);
+      setScreenSharingUsers(updatedScreenSharing);
     });
 
     // Direct message events

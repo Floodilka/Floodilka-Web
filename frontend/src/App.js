@@ -201,11 +201,14 @@ const ServerRoute = () => {
     speakingUsers,
     globalMuted,
     globalDeafened,
+    isScreenSharing,
+    screenSharingUsers,
     voiceDisconnectRef,
     joinVoiceChannel,
     leaveVoiceChannel,
     toggleMute,
     toggleDeafen,
+    toggleScreenShare,
     updateSpeakingUsers
   } = useVoice();
   const { isMobile } = useDevice();
@@ -387,10 +390,13 @@ const ServerRoute = () => {
         isMuted={globalMuted}
         isDeafened={globalDeafened}
         isInVoice={!!activeVoiceChannel}
+        isScreenSharing={isScreenSharing}
+        screenSharingUsers={screenSharingUsers}
         serverName={currentServer?.name}
         currentServer={currentServer}
         onToggleMute={toggleMute}
         onToggleDeafen={toggleDeafen}
+        onToggleScreenShare={toggleScreenShare}
         onDisconnect={leaveVoiceChannel}
         onLogout={logout}
         onAvatarUpdate={updateUser}

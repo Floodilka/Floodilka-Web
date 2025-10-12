@@ -162,6 +162,15 @@
   background-color: #c03537;
 }
 
+.voice-control-btn.screen-sharing {
+  background-color: #23a55a;
+  color: white;
+}
+
+.voice-control-btn.screen-sharing:hover {
+  background-color: #1e8e4f;
+}
+
 .voice-control-btn.disconnect-btn {
   background-color: #ed4245;
   color: white;
@@ -212,6 +221,7 @@
 }
 
 .voice-control-btn.active .control-icon,
+.voice-control-btn.screen-sharing .control-icon,
 .voice-control-btn.disconnect-btn .control-icon {
   filter: invert(100%) sepia(0%) saturate(0%) hue-rotate(0deg) brightness(100%) contrast(100%);
 }

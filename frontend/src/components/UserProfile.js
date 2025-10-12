@@ -16,7 +16,9 @@ function UserProfile({
   onToggleDeafen,
   onDisconnect,
   onLogout,
-  onAvatarUpdate
+  onAvatarUpdate,
+  isScreenSharing,
+  onToggleScreenShare
 }) {
   const [showSettings, setShowSettings] = useState(false);
   const [showVoiceControls, setShowVoiceControls] = useState(false);
@@ -109,6 +111,18 @@ function UserProfile({
               <img
                 src={isDeafened ? "/icons/headset_off.png" : "/icons/headset.png"}
                 alt="audio"
+                className="control-icon"
+              />
+            </button>
+
+            <button
+              className={`voice-control-btn ${isScreenSharing ? 'screen-sharing' : ''}`}
+              onClick={onToggleScreenShare}
+              title={isScreenSharing ? "Остановить демонстрацию экрана" : "Демонстрировать экран"}
+            >
+              <img
+                src="/cast.png"
+                alt="screen share"
                 className="control-icon"
               />
             </button>

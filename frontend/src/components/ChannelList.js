@@ -2,12 +2,14 @@ import React, { useState, useEffect } from 'react';
 import './ChannelList.css';
 import UserProfile from './UserProfile';
 import ChannelSettingsModal from './ChannelSettingsModal';
+import { useVoice } from '../context/VoiceContext';
 
 const BACKEND_URL = window.location.hostname === 'localhost'
   ? 'http://localhost:3001'
   : `${window.location.protocol}//${window.location.hostname}`;
 
-function ChannelList({ channels, currentTextChannel, currentVoiceChannel, voiceChannelUsers, speakingUsers, user, isMuted, isDeafened, isInVoice, serverName, currentServer, onToggleMute, onToggleDeafen, onDisconnect, onLogout, onAvatarUpdate, onSelectChannel, onCreateChannel, onUpdateChannel, onDeleteChannel, onMessageSent }) {
+function ChannelList({ channels, currentTextChannel, currentVoiceChannel, voiceChannelUsers, speakingUsers, user, isMuted, isDeafened, isInVoice, isScreenSharing, screenSharingUsers, serverName, currentServer, onToggleMute, onToggleDeafen, onToggleScreenShare, onDisconnect, onLogout, onAvatarUpdate, onSelectChannel, onCreateChannel, onUpdateChannel, onDeleteChannel, onMessageSent }) {
+  const { connectToStream } = useVoice();
   const [showTextForm, setShowTextForm] = useState(false);
   const [showVoiceForm, setShowVoiceForm] = useState(false);
   const [newChannelName, setNewChannelName] = useState('');
@@ -16,6 +18,7 @@ function ChannelList({ channels, currentTextChannel, currentVoiceChannel, voiceC
   const [profilePosition, setProfilePosition] = useState({ top: 0, left: 0 });
   const [messageText, setMessageText] = useState('');
   const [sendingMessage, setSendingMessage] = useState(false);
+  const [hoveredScreenSharingUser, setHoveredScreenSharingUser] = useState(null);
 
   // Состояния для управления каналами
   const [showChannelSettings, setShowChannelSettings] = useState(false);
@@ -50,6 +53,30 @@ function ChannelList({ channels, currentTextChannel, currentVoiceChannel, voiceC
   const handleCloseProfile = () => {
     setSelectedUser(null);
     setMessageText('');
+  };
+
+  const handleOpenStream = (screenSharingUser) => {
+    // Закрыть профиль пользователя если он открыт
+    setSelectedUser(null);
+    setHoveredScreenSharingUser(null);
+
+    // Получаем информацию о пользователе из screenSharingUsers
+    const channelScreenSharing = screenSharingUsers[currentVoiceChannel?.id] || new Map();
+    let socketId = null;
+
+    // Ищем socketId по userId (теперь ключом является userId)
+    const targetUserId = screenSharingUser.userId || screenSharingUser.id;
+    const userInfo = channelScreenSharing.get(targetUserId);
+    if (userInfo && userInfo.socketId) {
+      socketId = userInfo.socketId;
+    }
+
+    if (socketId) {
+      console.log('Открываем стрим пользователя:', screenSharingUser.username, 'socketId:', socketId);
+      connectToStream(socketId);
+    } else {
+      console.log('❌ Не удалось найти socketId для пользователя:', screenSharingUser.username);
+    }
   };
 
   const handleSendDirectMessage = async () => {
@@ -468,11 +495,20 @@ function ChannelList({ channels, currentTextChannel, currentVoiceChannel, voiceC
                       const isSpeaking = user.id === 'me'
                         ? channelSpeaking.has('me')
                         : channelSpeaking.has(user.id);
+
+                      // Проверяем, демонстрирует ли пользователь экран
+                      const channelScreenSharing = screenSharingUsers[channel.id] || new Map();
+                      const isUserScreenSharing = user.id === 'me'
+                        ? isScreenSharing
+                        : channelScreenSharing.has(user.userId || user.id);
+
                       return (
                         <div
                           key={user.id}
                           className="voice-user-sidebar"
                           onClick={(e) => handleVoiceUserClick(user, e)}
+                          onMouseEnter={() => isInVoice && currentVoiceChannel?.id === channel.id && user.id !== 'me' && isUserScreenSharing && setHoveredScreenSharingUser(user)}
+                          onMouseLeave={() => setHoveredScreenSharingUser(null)}
                         >
                           {user.avatar ? (
                             <img
@@ -488,6 +524,11 @@ function ChannelList({ channels, currentTextChannel, currentVoiceChannel, voiceC
                           <div className="voice-user-info-tiny">
                             <div className="voice-user-name-row">
                               <span className="voice-user-name-tiny">{user.displayName || user.username}</span>
+                              {isUserScreenSharing && (
+                                <span className="voice-user-screen-sharing-indicator" title="Демонстрирует экран">
+                                  В ЭФИРЕ
+                                </span>
+                              )}
                               {user.badge && user.badge !== 'User' && (
                                 <span
                                   className="voice-user-badge"
@@ -506,6 +547,25 @@ function ChannelList({ channels, currentTextChannel, currentVoiceChannel, voiceC
                               <img src="/icons/microphone_off.png" alt="Микрофон выкл" className="status-icon mic-icon" />
                             )}
                           </div>
+                          {/* Контекстное меню для стримящих пользователей - только если мы в том же канале что и стример, и это не мы сами */}
+                          {isInVoice && currentVoiceChannel?.id === channel.id && user.id !== 'me' && hoveredScreenSharingUser && hoveredScreenSharingUser.id === user.id && (
+                            <div className="voice-user-context-menu">
+                              <button
+                                className="context-menu-button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleOpenStream({
+                                    username: user.displayName || user.username,
+                                    userId: user.userId || user.id,
+                                    id: user.id
+                                  });
+                                }}
+                              >
+                                <img src="/cast_watch.png" alt="Стрим" className="context-menu-icon" />
+                                Открыть стрим
+                              </button>
+                            </div>
+                          )}
                         </div>
                       );
                     })}
@@ -524,8 +584,10 @@ function ChannelList({ channels, currentTextChannel, currentVoiceChannel, voiceC
         isDeafened={isDeafened}
         isInVoice={isInVoice}
         isSpeaking={currentVoiceChannel && speakingUsers[currentVoiceChannel.id]?.has('me')}
+        isScreenSharing={isScreenSharing}
         onToggleMute={onToggleMute}
         onToggleDeafen={onToggleDeafen}
+        onToggleScreenShare={onToggleScreenShare}
         onDisconnect={onDisconnect}
         onLogout={onLogout}
         onAvatarUpdate={onAvatarUpdate}

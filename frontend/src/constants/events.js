@@ -42,6 +42,15 @@ export const SOCKET_EVENTS = {
   VOICE_ANSWER: 'voice:answer',
   VOICE_ICE_CANDIDATE: 'voice:ice-candidate',
 
+  // Screen sharing events
+  SCREEN_SHARE_START: 'screen-share:start',
+  SCREEN_SHARE_STOP: 'screen-share:stop',
+  SCREEN_SHARE_NEW_VIEWER: 'screen-share:new-viewer',
+  SCREEN_SHARE_OFFER: 'screen-share:offer',
+  SCREEN_SHARE_ANSWER: 'screen-share:answer',
+  SCREEN_SHARE_ICE_CANDIDATE: 'screen-share:ice-candidate',
+  SCREEN_SHARING_UPDATE: 'screen-sharing:update',
+
   // Direct message events
   DIRECT_MESSAGE_NEW: 'direct-message:new',
   DIRECT_MESSAGE_EDITED: 'direct-message:edited',
