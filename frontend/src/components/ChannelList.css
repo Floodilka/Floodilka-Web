@@ -9,7 +9,7 @@
   overflow: hidden;
   /* Оптимизация производительности */
   will-change: contents;
-  contain: layout style;
+  /* contain: layout style; - убираем, так как может ломать z-index для модальных окон */
 }
 
 /* Мобильная адаптация */

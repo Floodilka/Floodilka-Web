@@ -6,7 +6,7 @@
   opacity: 0;
   animation: dmContainerFadeIn 0.3s ease-out forwards;
   /* Оптимизация производительности */
-  contain: layout style;
+  /* contain: layout style; - убираем, так как может ломать z-index для модальных окон */
 }
 
 @keyframes dmContainerFadeIn {

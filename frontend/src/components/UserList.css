@@ -7,7 +7,7 @@
   overflow-y: auto;
   /* Оптимизация производительности */
   will-change: contents;
-  contain: layout style;
+  /* contain: layout style; - убираем, так как это ломает z-index для модальных окон профиля */
   /* Оптимизация скроллинга */
   -webkit-overflow-scrolling: touch;
 }

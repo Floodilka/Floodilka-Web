@@ -7,7 +7,7 @@
   min-width: 0;
   /* Оптимизация производительности */
   will-change: contents;
-  contain: layout style;
+  /* contain: layout style; - убираем, так как может ломать z-index для модальных окон профилей */
 }
 
 .no-channel {
