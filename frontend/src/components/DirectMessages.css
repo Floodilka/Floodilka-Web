@@ -474,17 +474,33 @@
 .dm-list::-webkit-scrollbar-track,
 .dm-messages::-webkit-scrollbar-track {
   background: transparent;
+  margin: 4px 0;
 }
 
 .dm-list::-webkit-scrollbar-thumb,
 .dm-messages::-webkit-scrollbar-thumb {
-  background: #202225;
-  border-radius: 4px;
+  background-color: #3a3d44;
+  border-radius: 10px;
+  border: 2px solid #1e1f22;
+  transition: background-color 0.2s ease;
 }
 
 .dm-list::-webkit-scrollbar-thumb:hover,
 .dm-messages::-webkit-scrollbar-thumb:hover {
-  background: #1a1d21;
+  background-color: #4f545c;
+  border: 2px solid #1e1f22;
+}
+
+.dm-list::-webkit-scrollbar-thumb:active,
+.dm-messages::-webkit-scrollbar-thumb:active {
+  background-color: #5865f2;
+}
+
+/* Для Firefox */
+.dm-list,
+.dm-messages {
+  scrollbar-width: thin;
+  scrollbar-color: #3a3d44 #1e1f22;
 }
 
 /* Стили для сообщений */

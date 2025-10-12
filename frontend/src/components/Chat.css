@@ -66,6 +66,38 @@
   scroll-behavior: auto;
 }
 
+/* Кастомный скроллбар */
+.messages-container::-webkit-scrollbar {
+  width: 8px;
+}
+
+.messages-container::-webkit-scrollbar-track {
+  background: transparent;
+  margin: 4px 0;
+}
+
+.messages-container::-webkit-scrollbar-thumb {
+  background-color: #3a3d44;
+  border-radius: 10px;
+  border: 2px solid #1e1f22;
+  transition: background-color 0.2s ease;
+}
+
+.messages-container::-webkit-scrollbar-thumb:hover {
+  background-color: #4f545c;
+  border: 2px solid #1e1f22;
+}
+
+.messages-container::-webkit-scrollbar-thumb:active {
+  background-color: #5865f2;
+}
+
+/* Для Firefox */
+.messages-container {
+  scrollbar-width: thin;
+  scrollbar-color: #3a3d44 #1e1f22;
+}
+
 .messages-welcome {
   padding: 24px 16px;
   margin-bottom: 16px;
