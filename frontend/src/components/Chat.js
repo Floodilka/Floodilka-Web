@@ -310,8 +310,11 @@ function Chat({ channel, messages, username, user, currentServer, onSendMessage,
           messagesEndRef.current.scrollIntoView({ behavior: 'auto' });
         }
       });
+    } else if (messages.length === 0 && channel?.id) {
+      // Если сообщений нет, показываем приветственное сообщение сразу
+      setShowMessages(true);
     }
-  }, [messages.length]);
+  }, [messages.length, channel?.id]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -409,7 +412,6 @@ function Chat({ channel, messages, username, user, currentServer, onSendMessage,
       <div
         className="messages-container"
         ref={messagesContainerRef}
-        style={{ opacity: showMessages ? 1 : 0, transition: 'opacity 0.15s ease' }}
       >
         <div className="messages-welcome">
           <div className="welcome-icon">#</div>
@@ -417,6 +419,7 @@ function Chat({ channel, messages, username, user, currentServer, onSendMessage,
           <p>Это начало канала #{channel.name}</p>
         </div>
 
+        <div style={{ opacity: showMessages ? 1 : 0, transition: 'opacity 0.15s ease' }}>
         {groupMessages(messages).map((group, groupIndex) =>
           group.messages.map((message, messageIndex) => (
             <div
@@ -523,6 +526,7 @@ function Chat({ channel, messages, username, user, currentServer, onSendMessage,
             </div>
           ))
         ).flat()}
+        </div>
         <div ref={messagesEndRef} />
       </div>
 
