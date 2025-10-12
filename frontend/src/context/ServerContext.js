@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import apiService from '../services/api';
 import socketService from '../services/socket';
 import { useAuth } from './AuthContext';
+import { useVoice } from './VoiceContext';
 
 const ServerContext = createContext();
 
@@ -15,6 +16,7 @@ export const useServer = () => {
 
 export const ServerProvider = ({ children }) => {
   const { user, showAuthModal } = useAuth();
+  const { tryRestoreVoiceConnection, finishVoiceReconnect, pendingReconnect } = useVoice();
   const [servers, setServers] = useState([]);
   const [currentServer, setCurrentServer] = useState(null);
   const [channels, setChannels] = useState([]);
@@ -41,6 +43,43 @@ export const ServerProvider = ({ children }) => {
 
     loadServers();
   }, [user, showAuthModal]);
+
+  // Попытка восстановить соединение после загрузки серверов
+  useEffect(() => {
+    if (servers.length > 0) {
+      tryRestoreVoiceConnection(servers);
+    }
+  }, [servers, tryRestoreVoiceConnection]);
+
+  // Если есть pendingReconnect, но пользователь на другом сервере или в ЛС,
+  // загружаем каналы нужного сервера для переподключения
+  useEffect(() => {
+    if (!pendingReconnect || !user) return;
+
+    // Проверяем, загружены ли каналы для нужного сервера
+    const needServer = servers.find(s => s._id === pendingReconnect.serverId);
+    if (!needServer) return;
+
+    // Если текущий сервер - не тот, где нужно переподключиться, загружаем каналы вручную
+    if (!currentServer || currentServer._id !== pendingReconnect.serverId) {
+      console.log('📡 Загружаем каналы сервера для восстановления голосового соединения:', needServer.name);
+
+      const loadChannelsForReconnect = async () => {
+        try {
+          const channelsData = await apiService.getServerChannels(pendingReconnect.serverId);
+          const channelsArray = Array.isArray(channelsData) ? channelsData : [];
+
+          // Пытаемся восстановить соединение
+          finishVoiceReconnect(channelsArray);
+        } catch (err) {
+          console.error('Ошибка загрузки каналов для восстановления:', err);
+          localStorage.removeItem('voiceChannelConnection');
+        }
+      };
+
+      loadChannelsForReconnect();
+    }
+  }, [pendingReconnect, currentServer, servers, user, finishVoiceReconnect]);
 
   // Присоединение ко ВСЕМ серверам пользователя для отображения онлайн-статуса
   useEffect(() => {
@@ -94,6 +133,11 @@ export const ServerProvider = ({ children }) => {
 
         setChannels(channelsArray);
         setAllServerMembers(membersArray);
+
+        // Проверяем, нужно ли восстановить голосовое соединение для этого сервера
+        if (pendingReconnect && pendingReconnect.serverId === currentServer._id) {
+          finishVoiceReconnect(channelsArray);
+        }
       } catch (err) {
         console.error('Ошибка загрузки данных сервера:', err);
         setChannels([]);
@@ -104,7 +148,7 @@ export const ServerProvider = ({ children }) => {
     };
 
     loadServerData();
-  }, [currentServer, user]);
+  }, [currentServer, user, pendingReconnect, finishVoiceReconnect]);
 
   const selectServer = useCallback((server) => {
     if (currentServer && currentServer._id === server._id) {

@@ -10,13 +10,13 @@ import { VoiceProvider } from './VoiceContext';
 export const AppProvider = ({ children }) => {
   return (
     <AuthProvider>
-      <ServerProvider>
-        <ChatProvider>
-          <VoiceProvider>
+      <VoiceProvider>
+        <ServerProvider>
+          <ChatProvider>
             {children}
-          </VoiceProvider>
-        </ChatProvider>
-      </ServerProvider>
+          </ChatProvider>
+        </ServerProvider>
+      </VoiceProvider>
     </AuthProvider>
   );
 };
