@@ -10,10 +10,10 @@
 .empty-server-content {
   max-width: 600px;
   text-align: center;
-  animation: fadeIn 0.5s ease;
+  animation: emptyServerFadeIn 0.5s ease;
 }
 
-@keyframes fadeIn {
+@keyframes emptyServerFadeIn {
   from {
     opacity: 0;
     transform: translateY(20px);

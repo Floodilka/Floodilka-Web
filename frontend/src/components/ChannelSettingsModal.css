@@ -33,10 +33,10 @@
   flex-direction: column;
   overflow: hidden;
   box-shadow: 0 16px 32px rgba(0, 0, 0, 0.4);
-  animation: modalSlideIn 0.3s ease-out;
+  animation: channelSettingsModalSlideIn 0.3s ease-out;
 }
 
-@keyframes modalSlideIn {
+@keyframes channelSettingsModalSlideIn {
   from {
     opacity: 0;
     transform: scale(0.95) translateY(20px);

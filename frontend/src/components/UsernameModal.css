@@ -1,4 +1,4 @@
-.modal-overlay {
+.username-modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
@@ -11,7 +11,7 @@
   z-index: 1000;
 }
 
-.modal-content {
+.username-modal-content {
   background-color: #1e1f22;
   padding: 40px;
   border-radius: 12px;
@@ -21,25 +21,25 @@
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
 }
 
-.modal-content h1 {
+.username-modal-content h1 {
   color: #ffffff;
   margin-bottom: 16px;
   font-size: 28px;
 }
 
-.modal-content p {
+.username-modal-content p {
   color: #b9bbbe;
   margin-bottom: 24px;
   font-size: 16px;
 }
 
-.modal-content form {
+.username-modal-content form {
   display: flex;
   flex-direction: column;
   gap: 16px;
 }
 
-.modal-content input {
+.username-modal-content input {
   padding: 12px 16px;
   border-radius: 8px;
   border: none;
@@ -50,11 +50,11 @@
   transition: background-color 0.2s;
 }
 
-.modal-content input:focus {
+.username-modal-content input:focus {
   background-color: #2f3136;
 }
 
-.modal-content button {
+.username-modal-content button {
   padding: 12px 24px;
   border-radius: 8px;
   border: none;
@@ -66,11 +66,11 @@
   transition: background-color 0.2s;
 }
 
-.modal-content button:hover:not(:disabled) {
+.username-modal-content button:hover:not(:disabled) {
   background-color: #4752c4;
 }
 
-.modal-content button:disabled {
+.username-modal-content button:disabled {
   background-color: #4752c4;
   opacity: 0.5;
   cursor: not-allowed;

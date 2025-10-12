@@ -292,7 +292,7 @@
 }
 
 /* Оверлей для модального окна присоединения */
-.modal-overlay {
+.join-server-overlay {
   position: fixed;
   top: 0;
   left: 0;
@@ -311,6 +311,17 @@
   to { opacity: 1; }
 }
 
+@keyframes joinModalSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 /* Модалка присоединения */
 .join-server-modal {
   background: #1e1f22;
@@ -320,11 +331,11 @@
   width: 440px;
   max-width: 90vw;
   position: relative;
-  animation: modalSlideIn 0.2s ease;
+  animation: joinModalSlideIn 0.2s ease;
   z-index: 2147483647;
 }
 
-.modal-close {
+.join-server-close {
   position: absolute;
   top: 12px;
   right: 12px;
@@ -345,7 +356,7 @@
   z-index: 10;
 }
 
-.modal-close:hover {
+.join-server-close:hover {
   background: #404249;
   color: #f2f3f5;
 }

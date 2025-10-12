@@ -250,9 +250,9 @@ const ServerSidebar = memo(function ServerSidebar({ servers, currentServer, onSe
       )}
 
       {showJoinModal && createPortal(
-        <div className="modal-overlay" onClick={() => setShowJoinModal(false)}>
+        <div className="join-server-overlay" onClick={() => setShowJoinModal(false)}>
           <div className="join-server-modal" onClick={(e) => e.stopPropagation()}>
-            <button className="modal-close" onClick={() => setShowJoinModal(false)}>×</button>
+            <button className="join-server-close" onClick={() => setShowJoinModal(false)}>×</button>
 
             <h2>Присоединиться к серверу</h2>
             <p className="modal-subtitle">

@@ -1,4 +1,4 @@
-.modal-overlay {
+.create-server-overlay {
   position: fixed;
   top: 0;
   left: 0;
@@ -9,6 +9,16 @@
   justify-content: center;
   align-items: center;
   z-index: 2147483646;
+  animation: overlayFadeIn 0.2s ease;
+}
+
+@keyframes overlayFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 .create-server-modal {
@@ -19,17 +29,17 @@
   width: 440px;
   max-width: 90vw;
   position: relative;
-  animation: modalSlideIn 0.2s ease;
+  animation: createServerModalSlideIn 0.2s ease;
 }
 
-@keyframes modalSlideIn {
+@keyframes createServerModalSlideIn {
   from {
     opacity: 0;
-    transform: scale(0.9);
+    transform: translateY(-20px);
   }
   to {
     opacity: 1;
-    transform: scale(1);
+    transform: translateY(0);
   }
 }
 
@@ -48,7 +58,7 @@
   line-height: 1.5;
 }
 
-.modal-close {
+.create-server-close {
   position: absolute;
   top: 16px;
   right: 16px;
@@ -69,7 +79,7 @@
   z-index: 10;
 }
 
-.modal-close:hover {
+.create-server-close:hover {
   background: #404249;
   color: #f2f3f5;
 }
@@ -142,7 +152,7 @@
   object-fit: cover;
 }
 
-.emoji-picker {
+.server-emoji-picker {
   display: flex;
   gap: 8px;
   justify-content: center;
@@ -150,7 +160,7 @@
   margin-bottom: 20px;
 }
 
-.emoji-button {
+.server-emoji-button {
   width: 40px;
   height: 40px;
   border-radius: 8px;
@@ -164,12 +174,12 @@
   justify-content: center;
 }
 
-.emoji-button:hover {
+.server-emoji-button:hover {
   background: #404249;
   transform: scale(1.1);
 }
 
-.emoji-button.selected {
+.server-emoji-button.selected {
   border-color: #5865f2;
   background: rgba(88, 101, 242, 0.2);
 }

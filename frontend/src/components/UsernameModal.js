@@ -13,8 +13,8 @@ function UsernameModal({ onSubmit }) {
   };
 
   return (
-    <div className="modal-overlay">
-      <div className="modal-content">
+    <div className="username-modal-overlay">
+      <div className="username-modal-content">
         <h1>👋 Добро пожаловать в Болтушку!</h1>
         <p>Введите ваше имя, чтобы начать общение</p>
         <form onSubmit={handleSubmit}>

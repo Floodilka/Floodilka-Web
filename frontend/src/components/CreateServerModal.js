@@ -108,9 +108,9 @@ function CreateServerModal({ onClose, onCreate }) {
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
+    <div className="create-server-overlay" onClick={onClose}>
       <div className="create-server-modal" onClick={(e) => e.stopPropagation()}>
-        <button className="modal-close" onClick={onClose}>×</button>
+        <button className="create-server-close" onClick={onClose}>×</button>
 
         <h2>Персонализируйте свой сервер</h2>
         <p className="modal-subtitle">
@@ -141,11 +141,11 @@ function CreateServerModal({ onClose, onCreate }) {
           )}
         </div>
 
-        <div className="emoji-picker">
+        <div className="server-emoji-picker">
           {emojis.map((emoji, index) => (
             <button
               key={index}
-              className={`emoji-button ${serverIcon === emoji ? 'selected' : ''}`}
+              className={`server-emoji-button ${serverIcon === emoji ? 'selected' : ''}`}
               onClick={() => {
                 setServerIcon(emoji);
                 setUploadedImage(null); // Очистить загруженное изображение
