@@ -374,16 +374,63 @@
   flex-direction: column;
 }
 
-.message-attachment-image {
-  max-width: 350px;
-  max-height: 350px;
+/* Контейнер для изображения с shimmer эффектом */
+.message-attachment-image-wrapper {
+  width: 350px;
+  height: 350px;
   border-radius: 8px;
+  position: relative;
+  overflow: hidden;
   cursor: pointer;
-  transition: opacity 0.2s;
-  object-fit: cover;
 }
 
-.message-attachment-image:hover {
+/* Эффект shimmer во время загрузки */
+.message-attachment-image-wrapper::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.03) 25%,
+    rgba(255, 255, 255, 0.06) 50%,
+    rgba(255, 255, 255, 0.03) 75%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Когда изображение загружено - убираем shimmer */
+.message-attachment-image-wrapper[data-loaded="true"]::before {
+  display: none;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* Само изображение */
+.message-attachment-image {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  position: relative;
+  z-index: 2;
+  display: block;
+}
+
+.message-attachment-image-wrapper:hover {
   opacity: 0.9;
 }
 

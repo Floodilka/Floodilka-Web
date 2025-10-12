@@ -368,6 +368,7 @@ function Chat({ channel, messages, username, user, currentServer, onSendMessage,
   };
 
   const scrollToBottom = () => {
+    console.log('[SCROLL] 📍 scrollToBottom вызван');
     messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
   };
 
@@ -409,6 +410,7 @@ function Chat({ channel, messages, username, user, currentServer, onSendMessage,
     }
 
     handleScroll.timeoutId = setTimeout(() => {
+      console.log('[SCROLL] 💾 Сохраняем позицию скролла для канала:', channel.id, 'позиция:', scrollTop);
       saveScrollPosition(scrollTop);
     }, 300);
   }, [channel?.id, saveScrollPosition]);
@@ -418,16 +420,24 @@ function Chat({ channel, messages, username, user, currentServer, onSendMessage,
   const isInitialLoad = useRef(true); // true по умолчанию для первой загрузки при обновлении страницы
   const scrolledChannelsRef = useRef(new Set()); // Список каналов, для которых уже делали скролл
   const shouldRestoreScroll = useRef(false); // Флаг для восстановления скролла
+  const resizeObserverRef = useRef(null); // ResizeObserver для отслеживания изменения высоты
 
   useEffect(() => {
     // Игнорируем смену на undefined/null (промежуточное состояние при clearChannelState)
     const newChannelId = channel?.id;
     const oldChannelId = prevChannelRef.current;
 
+    console.log('[SCROLL] 🔄 useEffect смены канала:', {
+      oldChannelId,
+      newChannelId,
+      changed: newChannelId !== oldChannelId
+    });
+
     if (newChannelId !== oldChannelId) {
       // СНАЧАЛА сохраняем позицию СТАРОГО канала перед переключением
       if (oldChannelId && messagesContainerRef.current) {
         const currentScrollPos = messagesContainerRef.current.scrollTop;
+        console.log('[SCROLL] 💾 Сохраняем старую позицию перед сменой канала:', oldChannelId, 'позиция:', currentScrollPos);
         if (currentScrollPos > 0) {
           saveScrollPosition(currentScrollPos, oldChannelId);
         }
@@ -443,23 +453,39 @@ function Chat({ channel, messages, username, user, currentServer, onSendMessage,
         // Проверяем, есть ли сохраненная позиция скролла для НОВОГО канала
         const savedPosition = getSavedScrollPosition(newChannelId);
 
+        console.log('[SCROLL] 🔍 Проверка нового канала:', {
+          newChannelId,
+          hasScrolledForThisChannel,
+          savedPosition,
+          scrolledChannels: Array.from(scrolledChannelsRef.current)
+        });
+
         if (savedPosition !== null) {
           // Если есть сохраненная позиция - ВСЕГДА восстанавливаем, даже если уже скроллили
+          console.log('[SCROLL] 📋 Есть сохраненная позиция:', savedPosition, '- будем восстанавливать');
           shouldRestoreScroll.current = true;
           isInitialLoad.current = false; // НЕ скроллим вниз
           // Убираем из scrolledChannels чтобы разрешить восстановление
           scrolledChannelsRef.current.delete(newChannelId);
         } else if (!hasScrolledForThisChannel) {
+          console.log('[SCROLL] ⬇️ Нет сохраненной позиции и канал новый - будем скроллить вниз');
           shouldRestoreScroll.current = false;
           isInitialLoad.current = true; // Скроллим вниз
         } else {
+          console.log('[SCROLL] ⏸️ Канал уже был проскроллен ранее - ничего не делаем');
           shouldRestoreScroll.current = false;
           isInitialLoad.current = false;
         }
 
+        console.log('[SCROLL] 🎯 Установлены флаги:', {
+          shouldRestoreScroll: shouldRestoreScroll.current,
+          isInitialLoad: isInitialLoad.current
+        });
+
         setShowMessages(false); // Скрываем сообщения при смене канала
       } else {
         // Если канал стал null/undefined, просто обновляем ref
+        console.log('[SCROLL] ❌ Канал стал null/undefined');
         prevChannelRef.current = null;
       }
     }
@@ -469,6 +495,15 @@ function Chat({ channel, messages, username, user, currentServer, onSendMessage,
   useLayoutEffect(() => {
     const hasScrolledForThisChannel = scrolledChannelsRef.current.has(channel?.id);
 
+    console.log('[SCROLL] 🎨 useLayoutEffect восстановление позиции:', {
+      channelId: channel?.id,
+      preloadedMessages,
+      messagesLength: messages.length,
+      hasScrolledForThisChannel,
+      hasContainer: !!messagesContainerRef.current,
+      shouldRestoreScroll: shouldRestoreScroll.current
+    });
+
     if (preloadedMessages && messages.length > 0 && !hasScrolledForThisChannel && messagesContainerRef.current && channel?.id) {
       // Показываем сообщения
       setShowMessages(true);
@@ -476,13 +511,17 @@ function Chat({ channel, messages, username, user, currentServer, onSendMessage,
       // Проверяем позицию скролла прямо здесь
       const savedPosition = getSavedScrollPosition(channel.id);
 
+      console.log('[SCROLL] 🔍 Проверка сохраненной позиции:', savedPosition);
+
       if (savedPosition !== null) {
         // Есть сохраненная позиция - восстанавливаем
+        console.log('[SCROLL] ✅ Восстанавливаем позицию:', savedPosition);
         messagesContainerRef.current.scrollTop = savedPosition;
         shouldRestoreScroll.current = false;
         scrolledChannelsRef.current.add(channel.id);
       } else if (shouldRestoreScroll.current) {
         // Флаг установлен но позиция не найдена
+        console.log('[SCROLL] ⚠️ Флаг shouldRestoreScroll был true, но позиция не найдена - переключаем на isInitialLoad');
         shouldRestoreScroll.current = false;
         isInitialLoad.current = true;
       }
@@ -493,19 +532,38 @@ function Chat({ channel, messages, username, user, currentServer, onSendMessage,
   // Используем useLayoutEffect для синхронного скролла после рендеринга DOM
   const prevMessagesLengthRef = useRef(0);
   useLayoutEffect(() => {
-    if (!messagesContainerRef.current || !messagesEndRef.current) return;
+    if (!messagesContainerRef.current || !messagesEndRef.current) {
+      console.log('[SCROLL] ⚠️ useLayoutEffect автоскролл: нет контейнера или endRef');
+      return;
+    }
 
     const container = messagesContainerRef.current;
     const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 100;
     const hasScrolledForThisChannel = scrolledChannelsRef.current.has(channel?.id);
 
+    console.log('[SCROLL] 🤖 useLayoutEffect автоскролл:', {
+      channelId: channel?.id,
+      messagesLength: messages.length,
+      prevMessagesLength: prevMessagesLengthRef.current,
+      isNearBottom,
+      hasScrolledForThisChannel,
+      isInitialLoad: isInitialLoad.current,
+      shouldRestoreScroll: shouldRestoreScroll.current,
+      scrollHeight: container.scrollHeight,
+      scrollTop: container.scrollTop,
+      clientHeight: container.clientHeight,
+      distanceFromBottom: container.scrollHeight - container.scrollTop - container.clientHeight
+    });
+
     // НЕ скроллим вниз если нужно восстановить позицию скролла
     if (shouldRestoreScroll.current) {
+      console.log('[SCROLL] ⛔ НЕ скроллим: нужно восстановить позицию (shouldRestoreScroll=true)');
       return;
     }
 
     // НЕ скроллим если уже скроллили для этого канала
     if (hasScrolledForThisChannel) {
+      console.log('[SCROLL] ⛔ НЕ скроллим: канал уже был проскроллен');
       return;
     }
 
@@ -514,26 +572,104 @@ function Chat({ channel, messages, username, user, currentServer, onSendMessage,
     // 2. ИЛИ пользователь был близко к низу И количество сообщений увеличилось
     const shouldScroll = (isInitialLoad.current && messages.length > 0) || (isNearBottom && messages.length >= prevMessagesLengthRef.current);
 
+    console.log('[SCROLL] 🔎 Проверка shouldScroll:', {
+      shouldScroll,
+      condition1: isInitialLoad.current && messages.length > 0,
+      condition2: isNearBottom && messages.length >= prevMessagesLengthRef.current
+    });
+
     if (shouldScroll) {
-      // Двойной вызов для гарантии: синхронно + в следующем кадре
+      console.log('[SCROLL] ✅ СКРОЛЛИМ ВНИЗ');
+
+      // Скролл вниз
       messagesEndRef.current.scrollIntoView({ behavior: 'auto' });
+
+      // Второй скролл в следующем кадре для надежности
       requestAnimationFrame(() => {
         if (messagesEndRef.current) {
           messagesEndRef.current.scrollIntoView({ behavior: 'auto' });
+          console.log('[SCROLL] ✅ Второй скролл в requestAnimationFrame выполнен');
         }
       });
 
       // Сбрасываем флаг только если есть сообщения (не пустой массив)
       if (isInitialLoad.current && messages.length > 0) {
+        console.log('[SCROLL] 🏁 Сбрасываем isInitialLoad и добавляем канал в scrolledChannels');
         isInitialLoad.current = false;
         if (channel?.id) {
           scrolledChannelsRef.current.add(channel.id); // Отмечаем что скроллили
         }
       }
+    } else {
+      console.log('[SCROLL] ⏭️ НЕ скроллим по условию');
     }
 
     prevMessagesLengthRef.current = messages.length;
   }, [messages, channel?.id]);
+
+  // ResizeObserver для автоматического скролла при росте высоты (загрузка изображений)
+  useEffect(() => {
+    const container = messagesContainerRef.current;
+    if (!container || !channel?.id) return;
+
+    // Проверяем, нужно ли следить за изменением высоты для этого канала
+    // ResizeObserver нужен только если НЕТ сохраненной позиции (т.е. это новый канал или первая загрузка)
+    const savedPosition = getSavedScrollPosition(channel.id);
+    const needsAutoScroll = savedPosition === null && !shouldRestoreScroll.current;
+
+    if (!needsAutoScroll) {
+      console.log('[SCROLL] 👁️ ResizeObserver НЕ нужен для этого канала (есть savedPosition или shouldRestoreScroll)');
+      return;
+    }
+
+    console.log('[SCROLL] 👁️ Создаем ResizeObserver для канала:', channel.id);
+
+    let lastHeight = container.scrollHeight;
+    let resizeCount = 0;
+    const maxResizes = 50; // Максимум 50 ресайзов, потом отключаемся
+
+    const resizeObserver = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const newHeight = entry.target.scrollHeight;
+
+        if (newHeight > lastHeight) {
+          resizeCount++;
+          console.log('[SCROLL] 📏 ResizeObserver: высота увеличилась с', lastHeight, 'до', newHeight, `(resize #${resizeCount})`);
+
+          // Скроллим вниз при увеличении высоты
+          if (messagesEndRef.current) {
+            messagesEndRef.current.scrollIntoView({ behavior: 'auto' });
+            console.log('[SCROLL] ✅ ResizeObserver: автоскролл выполнен');
+          }
+
+          lastHeight = newHeight;
+
+          // Останавливаем наблюдение после максимального количества ресайзов
+          if (resizeCount >= maxResizes) {
+            console.log('[SCROLL] 🛑 ResizeObserver: достигнут лимит ресайзов, останавливаем');
+            resizeObserver.disconnect();
+          }
+        }
+      }
+    });
+
+    resizeObserver.observe(container);
+    resizeObserverRef.current = resizeObserver;
+
+    // Автоматически останавливаем наблюдение через 5 секунд
+    const timeout = setTimeout(() => {
+      console.log('[SCROLL] ⏱️ ResizeObserver: таймаут 5 секунд, останавливаем');
+      resizeObserver.disconnect();
+      resizeObserverRef.current = null;
+    }, 5000);
+
+    return () => {
+      console.log('[SCROLL] 🧹 ResizeObserver: cleanup');
+      resizeObserver.disconnect();
+      resizeObserverRef.current = null;
+      clearTimeout(timeout);
+    };
+  }, [channel?.id, getSavedScrollPosition]);
 
   // Привязываем обработчик скролла
   useEffect(() => {
@@ -552,8 +688,17 @@ function Chat({ channel, messages, username, user, currentServer, onSendMessage,
 
   // Дополнительный эффект для скролла при первом рендере с сообщениями
   useEffect(() => {
+    console.log('[SCROLL] 🔧 useEffect дополнительный скролл:', {
+      channelId: channel?.id,
+      preloadedMessages,
+      messagesLength: messages.length,
+      hasScrolledForThisChannel: scrolledChannelsRef.current.has(channel?.id),
+      shouldRestoreScroll: shouldRestoreScroll.current
+    });
+
     // Если есть предзагруженные сообщения, показываем их сразу
     if (preloadedMessages && messages.length > 0) {
+      console.log('[SCROLL] 📦 Есть предзагруженные сообщения - показываем сразу');
       setShowMessages(true);
       return;
     }
@@ -562,10 +707,15 @@ function Chat({ channel, messages, username, user, currentServer, onSendMessage,
 
     // Если есть сообщения и мы еще не скроллили этот канал
     if (messages.length > 0 && !hasScrolledForThisChannel && messagesEndRef.current) {
+      console.log('[SCROLL] 📝 Есть сообщения и канал не был проскроллен');
+
       // Проверяем, нужно ли восстановить скролл
       if (shouldRestoreScroll.current && channel?.id) {
         const savedPosition = getSavedScrollPosition(channel.id);
+        console.log('[SCROLL] 🔄 Проверяем восстановление скролла, savedPosition:', savedPosition);
+
         if (savedPosition !== null && messagesContainerRef.current) {
+          console.log('[SCROLL] ✅ Восстанавливаем сохраненную позицию:', savedPosition);
           messagesContainerRef.current.scrollTop = savedPosition;
           shouldRestoreScroll.current = false;
           scrolledChannelsRef.current.add(channel.id);
@@ -575,6 +725,7 @@ function Chat({ channel, messages, username, user, currentServer, onSendMessage,
       }
 
       // Скроллим вниз для нового канала
+      console.log('[SCROLL] ⬇️ Скроллим вниз для нового канала');
       messagesEndRef.current.scrollIntoView({ behavior: 'auto' });
       if (channel?.id) {
         scrolledChannelsRef.current.add(channel.id);
@@ -586,11 +737,13 @@ function Chat({ channel, messages, username, user, currentServer, onSendMessage,
       // Дополнительный скролл через микрозадачу для надежности
       Promise.resolve().then(() => {
         if (messagesEndRef.current) {
+          console.log('[SCROLL] ✅ Дополнительный скролл через Promise выполнен');
           messagesEndRef.current.scrollIntoView({ behavior: 'auto' });
         }
       });
     } else if (messages.length === 0 && channel?.id) {
       // Если сообщений нет, показываем приветственное сообщение сразу
+      console.log('[SCROLL] 📄 Нет сообщений - показываем приветственное сообщение');
       setShowMessages(true);
     }
   }, [messages.length, channel?.id, preloadedMessages, getSavedScrollPosition]);
@@ -599,6 +752,7 @@ function Chat({ channel, messages, username, user, currentServer, onSendMessage,
     e.preventDefault();
     const trimmedValue = inputValue.trim();
     if (trimmedValue || selectedFiles.length > 0) {
+      console.log('[SCROLL] 📤 Отправка сообщения - будет скролл через 100мс');
       onSendMessage(trimmedValue, selectedFiles);
       setInputValue('');
       setSelectedFiles([]);
@@ -773,19 +927,26 @@ function Chat({ channel, messages, username, user, currentServer, onSendMessage,
                   {message.isSystem ? (
                     '🤖'
                   ) : message.avatar ? (
-                    <img
-                      src={`${BACKEND_URL}${message.avatar}`}
-                      alt={message.username}
-                      onError={(e) => {
-                        // Если изображение не загрузилось, показываем букву
-                        e.target.style.display = 'none';
-                        e.target.nextSibling.style.display = 'flex';
-                      }}
-                    />
-                  ) : null}
-                  <div className="message-avatar-fallback" style={{ display: message.avatar ? 'none' : 'flex' }}>
-                    {(message.displayName || message.username)[0].toUpperCase()}
-                  </div>
+                    <>
+                      <img
+                        src={`${BACKEND_URL}${message.avatar}`}
+                        alt={message.username}
+                        loading="lazy"
+                        onError={(e) => {
+                          // Если изображение не загрузилось, показываем букву
+                          e.target.style.display = 'none';
+                          e.target.nextSibling.style.display = 'flex';
+                        }}
+                      />
+                      <div className="message-avatar-fallback" style={{ display: 'none' }}>
+                        {(message.displayName || message.username)[0].toUpperCase()}
+                      </div>
+                    </>
+                  ) : (
+                    <div className="message-avatar-fallback">
+                      {(message.displayName || message.username)[0].toUpperCase()}
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="message-avatar-spacer"></div>
@@ -854,12 +1015,24 @@ function Chat({ channel, messages, username, user, currentServer, onSendMessage,
                         {message.attachments.map((attachment, index) => (
                           <div key={index} className="message-attachment">
                             {attachment.mimetype.startsWith('image/') ? (
-                              <img
-                                src={`${BACKEND_URL}${attachment.path}`}
-                                alt={attachment.originalName}
-                                className="message-attachment-image"
+                              <div
+                                className="message-attachment-image-wrapper"
                                 onClick={() => window.open(`${BACKEND_URL}${attachment.path}`, '_blank')}
-                              />
+                              >
+                                <img
+                                  src={`${BACKEND_URL}${attachment.path}`}
+                                  alt={attachment.originalName}
+                                  className="message-attachment-image"
+                                  loading="lazy"
+                                  onLoad={(e) => {
+                                    // Убираем shimmer когда изображение загрузилось
+                                    const wrapper = e.target.parentElement;
+                                    if (wrapper) {
+                                      wrapper.setAttribute('data-loaded', 'true');
+                                    }
+                                  }}
+                                />
+                              </div>
                             ) : (
                               <div className="message-attachment-file">
                                 <span className="attachment-icon">📎</span>
