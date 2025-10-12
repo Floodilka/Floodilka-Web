@@ -14,6 +14,9 @@
   contain: layout style;
   /* Оптимизация скроллинга */
   -webkit-overflow-scrolling: touch;
+  /* Убеждаемся, что меню не обрезается */
+  position: relative;
+  z-index: 1;
 }
 
 /* Мобильная адаптация */
@@ -202,7 +205,8 @@
   right: 0;
   bottom: 0;
   background: transparent;
-  z-index: 9998;
+  z-index: 2147483647;
+  pointer-events: auto;
 }
 
 /* Меню действий */
@@ -213,8 +217,22 @@
   padding: 8px;
   min-width: 200px;
   box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
-  z-index: 9999;
+  z-index: 2147483647;
   animation: menuSlideIn 0.15s ease;
+  /* Убеждаемся, что меню не обрезается */
+  transform: translateZ(0);
+  will-change: transform;
+  /* Принудительно создаем новый stacking context */
+  isolation: isolate;
+  /* Убираем любые ограничения overflow от родителей */
+  clip-path: none;
+  overflow: visible;
+  /* Дополнительная защита */
+  pointer-events: auto;
+  visibility: visible;
+  opacity: 1;
+  /* Принудительное позиционирование */
+  position: fixed !important;
 }
 
 @keyframes menuSlideIn {
@@ -252,10 +270,45 @@
 
 .action-menu-icon {
   font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+}
+
+.action-menu-icon img {
+  filter: brightness(0) invert(1);
+  opacity: 0.8;
+  transition: opacity 0.2s;
+}
+
+.action-menu-item:hover .action-menu-icon img {
+  opacity: 1;
 }
 
 .action-menu-text {
   font-weight: 500;
+}
+
+/* Оверлей для модального окна присоединения */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2147483646;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 /* Модалка присоединения */
@@ -268,6 +321,7 @@
   max-width: 90vw;
   position: relative;
   animation: modalSlideIn 0.2s ease;
+  z-index: 2147483647;
 }
 
 .modal-close {

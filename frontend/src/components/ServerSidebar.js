@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, memo, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import './ServerSidebar.css';
 import CreateServerModal from './CreateServerModal';
 
@@ -198,7 +199,7 @@ const ServerSidebar = memo(function ServerSidebar({ servers, currentServer, onSe
         </div>
       </div>
 
-      {showActionMenu && (
+      {showActionMenu && createPortal(
         <>
           <div
             className="menu-overlay"
@@ -218,7 +219,9 @@ const ServerSidebar = memo(function ServerSidebar({ servers, currentServer, onSe
                 setShowActionMenu(false);
               }}
             >
-              <span className="action-menu-icon">➕</span>
+              <span className="action-menu-icon">
+                <img src="/icons/plus.png" alt="Создать" width="16" height="16" />
+              </span>
               <span className="action-menu-text">Создать сервер</span>
             </button>
             <button
@@ -228,21 +231,25 @@ const ServerSidebar = memo(function ServerSidebar({ servers, currentServer, onSe
                 setShowActionMenu(false);
               }}
             >
-              <span className="action-menu-icon">🔗</span>
+              <span className="action-menu-icon">
+                <img src="/icons/link.png" alt="Присоединиться" width="16" height="16" />
+              </span>
               <span className="action-menu-text">Присоединиться</span>
             </button>
           </div>
-        </>
+        </>,
+        document.body
       )}
 
-      {showCreateModal && (
+      {showCreateModal && createPortal(
         <CreateServerModal
           onClose={() => setShowCreateModal(false)}
           onCreate={handleCreateServer}
-        />
+        />,
+        document.body
       )}
 
-      {showJoinModal && (
+      {showJoinModal && createPortal(
         <div className="modal-overlay" onClick={() => setShowJoinModal(false)}>
           <div className="join-server-modal" onClick={(e) => e.stopPropagation()}>
             <button className="modal-close" onClick={() => setShowJoinModal(false)}>×</button>
@@ -290,7 +297,8 @@ const ServerSidebar = memo(function ServerSidebar({ servers, currentServer, onSe
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {hoveredServer && (
