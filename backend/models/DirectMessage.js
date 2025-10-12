@@ -48,6 +48,23 @@ const directMessageSchema = new mongoose.Schema({
       required: true
     }
   }],
+  reactions: [{
+    emoji: {
+      type: String,
+      required: true
+    },
+    users: [{
+      userId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+        required: true
+      },
+      username: {
+        type: String,
+        required: true
+      }
+    }]
+  }],
   timestamp: {
     type: Date,
     default: Date.now

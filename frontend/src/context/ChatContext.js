@@ -173,6 +173,30 @@ export const ChatProvider = ({ children }) => {
     });
   }, [currentTextChannel, cleanupCache]);
 
+  const updateMessageReactions = useCallback((messageId, reactions) => {
+    setMessages(prev => {
+      const updated = prev.map(msg =>
+        msg.id === messageId ? { ...msg, reactions } : msg
+      );
+      // Обновляем кеш для текущего канала
+      if (currentTextChannel?.id) {
+        setMessagesCache(cache => {
+          const oldCache = cache[currentTextChannel.id] || {};
+          const newCache = {
+            ...cache,
+            [currentTextChannel.id]: {
+              messages: updated,
+              scrollPosition: oldCache.scrollPosition, // Сохраняем scrollPosition
+              timestamp: Date.now()
+            }
+          };
+          return cleanupCache(newCache);
+        });
+      }
+      return updated;
+    });
+  }, [currentTextChannel, cleanupCache]);
+
   const saveScrollPosition = useCallback((scrollPosition, channelId) => {
     // Если channelId передан явно, используем его, иначе берем из currentTextChannel
     const targetChannelId = channelId || currentTextChannel?.id;
@@ -263,6 +287,7 @@ export const ChatProvider = ({ children }) => {
     addMessage,
     editMessage,
     deleteMessage,
+    updateMessageReactions,
     setHasUnreadDMs,
     preloadChannelMessages,
     setIsLoadingMessages,

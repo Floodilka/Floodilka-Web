@@ -886,3 +886,105 @@
   opacity: 0.9;
 }
 
+/* Кнопка действий для сообщений */
+.dm-message-actions {
+  position: absolute;
+  top: 0px;
+  right: 8px;
+  transform: translateY(-50%);
+  display: flex;
+  gap: 4px;
+  opacity: 0;
+  transition: opacity 0.1s;
+  background: #1e1f22;
+  border-radius: 8px;
+  padding: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  border: 1px solid #2f3136;
+}
+
+.dm-message:hover:not(.dm-message-edit-mode) .dm-message-actions,
+.dm-message.show-actions .dm-message-actions {
+  opacity: 1;
+}
+
+.dm-message-actions-button {
+  width: 28px;
+  height: 25px;
+  border: none;
+  background: transparent;
+  color: #8e9297;
+  cursor: pointer;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  transition: all 0.1s;
+}
+
+.dm-message-actions-button:hover {
+  background: #3a3d44;
+  color: #ffffff;
+}
+
+/* Редактирование сообщений */
+.dm-message-edit {
+  margin-top: 4px;
+}
+
+.dm-edit-textarea {
+  width: 100%;
+  min-height: 60px;
+  background: #383a40;
+  border: 1px solid #5865f2;
+  border-radius: 8px;
+  padding: 8px 12px;
+  color: #ffffff;
+  font-size: 14px;
+  font-family: inherit;
+  resize: vertical;
+  outline: none;
+  margin-bottom: 8px;
+}
+
+.dm-edit-textarea::placeholder {
+  color: #949ba4;
+}
+
+.dm-edit-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.dm-edit-save,
+.dm-edit-cancel {
+  padding: 6px 12px;
+  border-radius: 4px;
+  border: none;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.1s ease;
+}
+
+.dm-edit-save {
+  background: #5865f2;
+  color: #ffffff;
+}
+
+.dm-edit-save:hover {
+  background: #4752c4;
+}
+
+.dm-edit-cancel {
+  background: #2b2d31;
+  color: #b5bac1;
+}
+
+.dm-edit-cancel:hover {
+  background: #3a3d44;
+  color: #ffffff;
+}
+

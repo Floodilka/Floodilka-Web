@@ -39,6 +39,57 @@ class ChatHandler {
     });
   }
 
+  handleDirectMessageJoin(socket) {
+    socket.on('dm:join', async ({ userId, otherUserId, username, avatar, badge, badgeTooltip, displayName }) => {
+      try {
+        // Создаем уникальную комнату для разговора между двумя пользователями
+        const room1 = `dm-${userId}-${otherUserId}`;
+        const room2 = `dm-${otherUserId}-${userId}`;
+
+        // Покидаем предыдущие комнаты DM
+        const rooms = Array.from(socket.rooms);
+        rooms.forEach(room => {
+          if (room.startsWith('dm-')) {
+            socket.leave(room);
+          }
+        });
+
+        // Присоединяемся к комнатам личного сообщения
+        socket.join(room1);
+        socket.join(room2);
+
+        // Сохраняем информацию о текущем DM
+        socket.currentDM = otherUserId;
+        socket.currentUsername = username || `Гость${Math.floor(Math.random() * 1000)}`;
+        socket.currentAvatar = avatar;
+
+        logger.debug(`Пользователь ${socket.currentUsername} присоединился к DM с ${otherUserId}`);
+      } catch (error) {
+        logger.error('Ошибка при присоединении к DM:', error);
+        socket.emit(SOCKET_EVENTS.ERROR, { message: 'Ошибка присоединения к личному сообщению' });
+      }
+    });
+  }
+
+  handleDirectMessageLeave(socket) {
+    socket.on('dm:leave', async () => {
+      try {
+        // Покидаем все комнаты DM
+        const rooms = Array.from(socket.rooms);
+        rooms.forEach(room => {
+          if (room.startsWith('dm-')) {
+            socket.leave(room);
+          }
+        });
+
+        socket.currentDM = null;
+        logger.debug(`Пользователь ${socket.currentUsername} покинул DM`);
+      } catch (error) {
+        logger.error('Ошибка при покидании DM:', error);
+      }
+    });
+  }
+
   handleMessageSend(socket) {
     socket.on(SOCKET_EVENTS.MESSAGE_SEND, async ({ channelId, content, username, avatar, badge, badgeTooltip, displayName, userId, attachments }) => {
       try {
@@ -74,14 +125,31 @@ class ChatHandler {
   }
 
   handleMessageEdit(socket) {
-    socket.on(SOCKET_EVENTS.MESSAGE_EDIT, async ({ messageId, content }) => {
+    socket.on(SOCKET_EVENTS.MESSAGE_EDIT, async ({ messageId, content, isDM = false }) => {
       try {
-        const message = await messageService.editMessage(messageId, content);
+        if (isDM) {
+          // Редактирование личного сообщения
+          const message = await messageService.editDirectMessage(messageId, content);
 
-        // Отправляем обновление всем в канале
-        this.io.to(message.channelId).emit(SOCKET_EVENTS.MESSAGE_EDITED, message);
+          // Отправляем обновление участникам личного сообщения
+          this.io.to(`dm-${message.sender}-${message.receiver}`).emit(SOCKET_EVENTS.MESSAGE_EDITED, {
+            messageId: message._id.toString(),
+            content: message.content,
+            edited: message.edited
+          });
+          this.io.to(`dm-${message.receiver}-${message.sender}`).emit(SOCKET_EVENTS.MESSAGE_EDITED, {
+            messageId: message._id.toString(),
+            content: message.content,
+            edited: message.edited
+          });
 
-        logger.debug(`Сообщение ${messageId} отредактировано`);
+          logger.debug(`Личное сообщение ${messageId} отредактировано`);
+        } else {
+          // Редактирование обычного сообщения
+          const message = await messageService.editMessage(messageId, content);
+          this.io.to(message.channelId).emit(SOCKET_EVENTS.MESSAGE_EDITED, message);
+          logger.debug(`Сообщение ${messageId} отредактировано`);
+        }
       } catch (error) {
         logger.error('Ошибка редактирования сообщения:', error);
         socket.emit(SOCKET_EVENTS.ERROR, { message: error.message || 'Ошибка редактирования сообщения' });
@@ -90,9 +158,21 @@ class ChatHandler {
   }
 
   handleMessageDelete(socket) {
-    socket.on(SOCKET_EVENTS.MESSAGE_DELETE, async ({ messageId, userId }) => {
+    socket.on(SOCKET_EVENTS.MESSAGE_DELETE, async ({ messageId, userId, isDM = false }) => {
       try {
-        // Получаем сообщение
+        if (isDM) {
+          // Удаление личного сообщения
+          const { messageId: deletedId, senderId, receiverId } = await messageService.deleteDirectMessage(messageId);
+
+          // Отправляем уведомление об удалении участникам личного сообщения
+          this.io.to(`dm-${senderId}-${receiverId}`).emit(SOCKET_EVENTS.MESSAGE_DELETED, { messageId: deletedId });
+          this.io.to(`dm-${receiverId}-${senderId}`).emit(SOCKET_EVENTS.MESSAGE_DELETED, { messageId: deletedId });
+
+          logger.debug(`Личное сообщение ${messageId} удалено`);
+          return;
+        }
+
+        // Получаем сообщение для обычных каналов
         const message = await Message.findById(messageId);
         if (!message) {
           socket.emit(SOCKET_EVENTS.ERROR, { message: 'Сообщение не найдено' });
@@ -164,6 +244,125 @@ class ChatHandler {
     });
   }
 
+
+  handleReactionAdd(socket) {
+    socket.on(SOCKET_EVENTS.REACTION_ADD, async ({ messageId, emoji, userId, username, isDM = false }) => {
+      try {
+        const MessageModel = isDM ? require('../models/DirectMessage') : Message;
+        const message = await MessageModel.findById(messageId);
+
+        if (!message) {
+          socket.emit(SOCKET_EVENTS.ERROR, { message: 'Сообщение не найдено' });
+          return;
+        }
+
+        // Инициализируем массив реакций если его нет
+        if (!message.reactions) {
+          message.reactions = [];
+        }
+
+        // Найти существующую реакцию с этим эмодзи
+        let reaction = message.reactions.find(r => r.emoji === emoji);
+
+        if (reaction) {
+          // Проверить, не добавил ли уже пользователь эту реакцию
+          const userAlreadyReacted = reaction.users.some(u => u.userId.toString() === userId.toString());
+
+          if (!userAlreadyReacted) {
+            reaction.users.push({ userId, username });
+          }
+        } else {
+          // Создать новую реакцию
+          message.reactions.push({
+            emoji,
+            users: [{ userId, username }]
+          });
+        }
+
+        await message.save();
+
+        // Отправить обновление
+        const eventData = {
+          messageId: message._id.toString(),
+          reactions: message.reactions,
+          isDM
+        };
+
+        if (isDM) {
+          // Для личных сообщений отправляем обеим сторонам
+          socket.emit(SOCKET_EVENTS.REACTION_ADDED, eventData);
+          this.io.to(`dm-${message.sender}-${message.receiver}`).emit(SOCKET_EVENTS.REACTION_ADDED, eventData);
+          this.io.to(`dm-${message.receiver}-${message.sender}`).emit(SOCKET_EVENTS.REACTION_ADDED, eventData);
+        } else {
+          // Для канальных сообщений
+          this.io.to(message.channelId).emit(SOCKET_EVENTS.REACTION_ADDED, eventData);
+        }
+
+        logger.debug(`Реакция ${emoji} добавлена к сообщению ${messageId} пользователем ${username}`);
+      } catch (error) {
+        logger.error('Ошибка добавления реакции:', error);
+        socket.emit(SOCKET_EVENTS.ERROR, { message: error.message || 'Ошибка добавления реакции' });
+      }
+    });
+  }
+
+  handleReactionRemove(socket) {
+    socket.on(SOCKET_EVENTS.REACTION_REMOVE, async ({ messageId, emoji, userId, isDM = false }) => {
+      try {
+        const MessageModel = isDM ? require('../models/DirectMessage') : Message;
+        const message = await MessageModel.findById(messageId);
+
+        if (!message) {
+          socket.emit(SOCKET_EVENTS.ERROR, { message: 'Сообщение не найдено' });
+          return;
+        }
+
+        if (!message.reactions || message.reactions.length === 0) {
+          return;
+        }
+
+        // Найти реакцию
+        const reactionIndex = message.reactions.findIndex(r => r.emoji === emoji);
+
+        if (reactionIndex !== -1) {
+          const reaction = message.reactions[reactionIndex];
+
+          // Удалить пользователя из списка
+          reaction.users = reaction.users.filter(u => u.userId.toString() !== userId.toString());
+
+          // Если больше нет пользователей с этой реакцией, удалить её полностью
+          if (reaction.users.length === 0) {
+            message.reactions.splice(reactionIndex, 1);
+          }
+
+          await message.save();
+
+          // Отправить обновление
+          const eventData = {
+            messageId: message._id.toString(),
+            reactions: message.reactions,
+            isDM
+          };
+
+          if (isDM) {
+            // Для личных сообщений отправляем обеим сторонам
+            socket.emit(SOCKET_EVENTS.REACTION_REMOVED, eventData);
+            this.io.to(`dm-${message.sender}-${message.receiver}`).emit(SOCKET_EVENTS.REACTION_REMOVED, eventData);
+            this.io.to(`dm-${message.receiver}-${message.sender}`).emit(SOCKET_EVENTS.REACTION_REMOVED, eventData);
+          } else {
+            // Для канальных сообщений
+            this.io.to(message.channelId).emit(SOCKET_EVENTS.REACTION_REMOVED, eventData);
+          }
+
+          logger.debug(`Реакция ${emoji} удалена из сообщения ${messageId} пользователем ${userId}`);
+        }
+      } catch (error) {
+        logger.error('Ошибка удаления реакции:', error);
+        socket.emit(SOCKET_EVENTS.ERROR, { message: error.message || 'Ошибка удаления реакции' });
+      }
+    });
+  }
+
   handleDisconnect(socket) {
     socket.on(SOCKET_EVENTS.DISCONNECT, () => {
       logger.debug('Отключение:', socket.id);
@@ -177,9 +376,13 @@ class ChatHandler {
 
   register(socket) {
     this.handleChannelJoin(socket);
+    this.handleDirectMessageJoin(socket);
+    this.handleDirectMessageLeave(socket);
     this.handleMessageSend(socket);
     this.handleMessageEdit(socket);
     this.handleMessageDelete(socket);
+    this.handleReactionAdd(socket);
+    this.handleReactionRemove(socket);
     this.handleDisconnect(socket);
   }
 }

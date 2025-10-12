@@ -118,6 +118,44 @@ class MessageService {
 
     return { messageId, channelId };
   }
+
+  // Методы для личных сообщений
+  async editDirectMessage(messageId, content) {
+    const DirectMessage = require('../models/DirectMessage');
+    const validatedContent = validateMessageContent(content);
+
+    const message = await DirectMessage.findById(messageId);
+    if (!message) {
+      throw new NotFoundError('Сообщение не найдено');
+    }
+
+    // Проверяем, можно ли редактировать
+    if (!canEditMessage(message)) {
+      throw new ValidationError(`Сообщение можно редактировать только в течение ${MESSAGE_EDIT_TIME_LIMIT} часов`);
+    }
+
+    // Обновляем сообщение
+    message.content = validatedContent;
+    message.edited = true;
+    await message.save();
+
+    return message;
+  }
+
+  async deleteDirectMessage(messageId) {
+    const DirectMessage = require('../models/DirectMessage');
+
+    const message = await DirectMessage.findById(messageId);
+    if (!message) {
+      throw new NotFoundError('Сообщение не найдено');
+    }
+
+    const senderId = message.sender;
+    const receiverId = message.receiver;
+    await DirectMessage.findByIdAndDelete(messageId);
+
+    return { messageId, senderId, receiverId };
+  }
 }
 
 module.exports = new MessageService();

@@ -1,0 +1,128 @@
+.message-reactions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+  margin-left: 0; /* Реакции с левого края */
+}
+
+.message-reaction {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 6px;
+  background: transparent;
+  border: 1px solid #3f4147;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.1s ease;
+  font-size: 14px;
+  color: #dbdee1;
+  position: relative;
+  min-width: 42px;
+  justify-content: center;
+}
+
+.message-reaction:hover {
+  border-color: #5865f2;
+  background: rgba(88, 101, 242, 0.1);
+}
+
+.message-reaction.reacted {
+  background: rgba(88, 101, 242, 0.15);
+  border-color: #5865f2;
+}
+
+.message-reaction.reacted:hover {
+  background: rgba(88, 101, 242, 0.25);
+  border-color: #5865f2;
+}
+
+/* Старые стили для кнопки add-reaction больше не нужны */
+
+.reaction-emoji {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.reaction-count {
+  font-size: 12px;
+  font-weight: 500;
+  color: #b5bac1;
+  line-height: 1;
+}
+
+.message-reaction.reacted .reaction-count {
+  color: #5865f2;
+}
+
+.reaction-tooltip {
+  position: fixed; /* Изменено с absolute на fixed чтобы не обрезалось */
+  background: #111214;
+  border-radius: 4px;
+  padding: 6px 8px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
+  z-index: 10000; /* Высокий z-index чтобы быть поверх всего */
+  min-width: auto;
+  max-width: 180px;
+  pointer-events: none;
+  animation: tooltipFadeIn 0.15s ease-out;
+  white-space: nowrap;
+}
+
+@keyframes tooltipFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.reaction-tooltip-user {
+  color: #f2f3f5;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 1px 0;
+  line-height: 1.2;
+}
+
+/* Адаптация для мобильных устройств */
+@media (max-width: 768px) {
+  .message-reactions {
+    margin-left: 0;
+  }
+
+  .message-reaction {
+    padding: 4px 8px;
+    font-size: 13px;
+  }
+
+  .reaction-emoji {
+    font-size: 15px;
+  }
+
+  .reaction-tooltip {
+    display: none; /* На мобильных используем встроенный title */
+  }
+}
+
+/* Анимация при добавлении новой реакции */
+@keyframes reactionPop {
+  0% {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.message-reaction.new {
+  animation: reactionPop 0.3s ease-out;
+}
+

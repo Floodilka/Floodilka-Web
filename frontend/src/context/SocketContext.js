@@ -19,7 +19,7 @@ export const useSocketContext = () => {
 
 export const SocketProvider = ({ children }) => {
   const [socket, setSocket] = useState(null);
-  const { addMessage, editMessage, deleteMessage, setMessages, setHasUnreadDMs } = useChat();
+  const { addMessage, editMessage, deleteMessage, updateMessageReactions, setMessages, setHasUnreadDMs } = useChat();
   const { setVoiceChannelUsers, setScreenSharingUsers } = useVoice();
   const { user } = useAuth();
   const { setChannels } = useServer();
@@ -49,6 +49,15 @@ export const SocketProvider = ({ children }) => {
 
     socketService.on(SOCKET_EVENTS.MESSAGE_DELETED, ({ messageId }) => {
       deleteMessage(messageId);
+    });
+
+    // Reaction events
+    socketService.on(SOCKET_EVENTS.REACTION_ADDED, ({ messageId, reactions }) => {
+      updateMessageReactions(messageId, reactions);
+    });
+
+    socketService.on(SOCKET_EVENTS.REACTION_REMOVED, ({ messageId, reactions }) => {
+      updateMessageReactions(messageId, reactions);
     });
 
     // Server user events (для онлайн статуса на уровне сервера)
@@ -109,6 +118,8 @@ export const SocketProvider = ({ children }) => {
       socketService.removeAllListeners(SOCKET_EVENTS.MESSAGE_NEW);
       socketService.removeAllListeners(SOCKET_EVENTS.MESSAGE_EDITED);
       socketService.removeAllListeners(SOCKET_EVENTS.MESSAGE_DELETED);
+      socketService.removeAllListeners(SOCKET_EVENTS.REACTION_ADDED);
+      socketService.removeAllListeners(SOCKET_EVENTS.REACTION_REMOVED);
       socketService.removeAllListeners(SOCKET_EVENTS.SERVER_USERS_UPDATE);
       socketService.removeAllListeners(SOCKET_EVENTS.GLOBAL_USERS_UPDATE);
       socketService.removeAllListeners(SOCKET_EVENTS.VOICE_CHANNELS_UPDATE);

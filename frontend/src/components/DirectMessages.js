@@ -3,6 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import './DirectMessages.css';
 import UserProfile from './UserProfile';
 import { useGlobalUsers } from '../context/GlobalUsersContext';
+import { SOCKET_EVENTS } from '../constants/events';
+import EmojiPicker from './EmojiPicker';
+import MessageReactions from './MessageReactions';
 
 const BACKEND_URL = window.location.hostname === 'localhost'
   ? 'http://localhost:3001'
@@ -22,6 +25,12 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
   const [sendingMessage, setSendingMessage] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState([]);
   const [showFileSizeError, setShowFileSizeError] = useState(false);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [emojiPickerPosition, setEmojiPickerPosition] = useState(null);
+  const [selectedMessageForReaction, setSelectedMessageForReaction] = useState(null);
+  const [contextMenu, setContextMenu] = useState(null);
+  const [editingMessage, setEditingMessage] = useState(null);
+  const [editValue, setEditValue] = useState('');
   const messagesEndRef = useRef(null);
   const lastProcessedUserIdRef = useRef(null);
 
@@ -185,6 +194,177 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
     }
   };
 
+  // Обработчики реакций
+  const handleAddReaction = (messageId, event) => {
+    const rect = event.currentTarget.getBoundingClientRect();
+
+    // Размеры EmojiPicker (примерные)
+    const pickerHeight = 444; // Высота picker
+    const pickerWidth = 352; // Ширина picker
+    const padding = 10; // Отступ от края экрана
+
+    // Позиция по умолчанию (рядом с кнопкой)
+    let top = rect.top;
+    let left = rect.left;
+
+    // Проверяем, помещается ли picker вниз
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const spaceAbove = rect.top;
+
+    // Если места внизу мало, показываем вверху
+    if (spaceBelow < pickerHeight && spaceAbove > spaceBelow) {
+      top = rect.top - pickerHeight - 5; // Показываем над кнопкой
+    }
+
+    // Проверяем, не уходит ли picker за правый край экрана
+    if (left + pickerWidth > window.innerWidth - padding) {
+      left = window.innerWidth - pickerWidth - padding;
+    }
+
+    // Проверяем, не уходит ли picker за левый край экрана
+    if (left < padding) {
+      left = padding;
+    }
+
+    // Проверяем, не уходит ли picker за верхний край экрана
+    if (top < padding) {
+      top = padding;
+    }
+
+    setEmojiPickerPosition({
+      top: Math.max(padding, top),
+      left: Math.max(padding, left)
+    });
+    setSelectedMessageForReaction(messageId);
+    setShowEmojiPicker(true);
+  };
+
+  const handleEmojiSelect = (emoji) => {
+    if (!selectedMessageForReaction || !socket || !user) return;
+
+    socket.emit(SOCKET_EVENTS.REACTION_ADD, {
+      messageId: selectedMessageForReaction,
+      emoji,
+      userId: user.id,
+      username: user.username,
+      isDM: true
+    });
+
+    setShowEmojiPicker(false);
+    setSelectedMessageForReaction(null);
+  };
+
+  const handleReactionClick = (messageId, emoji, userReacted) => {
+    if (!socket || !user) return;
+
+    if (userReacted) {
+      // Удалить реакцию
+      socket.emit(SOCKET_EVENTS.REACTION_REMOVE, {
+        messageId,
+        emoji,
+        userId: user.id,
+        isDM: true
+      });
+    } else {
+      // Добавить реакцию
+      socket.emit(SOCKET_EVENTS.REACTION_ADD, {
+        messageId,
+        emoji,
+        userId: user.id,
+        username: user.username,
+        isDM: true
+      });
+    }
+  };
+
+  // Обработчики контекстного меню
+  const handleMoreActions = (message, event) => {
+    event.stopPropagation();
+    const rect = event.currentTarget.getBoundingClientRect();
+
+    // Размеры контекстного меню (примерные)
+    const menuHeight = 120; // Высота меню
+    const menuWidth = 210; // Ширина меню
+    const padding = 10; // Отступ от края экрана
+
+    // Вычисляем позицию по умолчанию (справа от кнопки)
+    let top = rect.top + rect.height / 2 - 18; // Центрируем по вертикали
+    let left = rect.left - menuWidth;
+
+    // Проверяем, помещается ли меню вниз
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const spaceAbove = rect.top;
+
+    // Если места внизу мало, но вверху больше - показываем вверху
+    if (spaceBelow < menuHeight && spaceAbove > spaceBelow) {
+      top = rect.top - menuHeight - 5; // Показываем над сообщением
+    }
+
+    // Проверяем, не уходит ли меню за левый край экрана
+    if (left < padding) {
+      left = rect.right + 5; // Показываем справа от кнопки
+    }
+
+    // Проверяем, не уходит ли меню за правый край экрана
+    if (left + menuWidth > window.innerWidth - padding) {
+      left = window.innerWidth - menuWidth - padding;
+    }
+
+    setContextMenu({
+      message,
+      position: {
+        top: Math.max(padding, top), // Минимум 10px от верха
+        left: Math.max(padding, left) // Минимум 10px слева
+      }
+    });
+  };
+
+  const handleCloseContextMenu = () => {
+    setContextMenu(null);
+  };
+
+  const canEditMessage = (message) => {
+    if (message.sender._id !== user?.id) return false;
+    return true;
+  };
+
+  const canDeleteMessage = (message) => {
+    if (message.sender._id !== user?.id) return false;
+    return true;
+  };
+
+  const handleEditMessage = (message) => {
+    setEditingMessage(message);
+    setEditValue(message.content || '');
+    setContextMenu(null);
+  };
+
+  const handleSaveEdit = () => {
+    if (!editingMessage || !editValue.trim()) return;
+    if (!socket) return;
+
+    socket.emit(SOCKET_EVENTS.MESSAGE_EDIT, {
+      messageId: editingMessage._id,
+      content: editValue.trim(),
+      isDM: true
+    });
+
+    setEditingMessage(null);
+    setEditValue('');
+  };
+
+  const handleDeleteMessage = (message) => {
+    if (!window.confirm('Вы уверены, что хотите удалить это сообщение?')) return;
+    if (!socket) return;
+
+    socket.emit(SOCKET_EVENTS.MESSAGE_DELETE, {
+      messageId: message._id,
+      isDM: true
+    });
+
+    setContextMenu(null);
+  };
+
   // Функция для группировки сообщений
   const groupMessages = (messages) => {
     if (!messages || messages.length === 0) return [];
@@ -223,6 +403,23 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
 
     return grouped;
   };
+
+  // Обработка кликов вне контекстного меню
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (contextMenu) {
+        setContextMenu(null);
+      }
+    };
+
+    if (contextMenu) {
+      document.addEventListener('click', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('click', handleClickOutside);
+    };
+  }, [contextMenu]);
 
   // Мемоизируем функцию загрузки разговоров
   const loadDirectMessages = useCallback(async () => {
@@ -280,6 +477,19 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
       if (!token) return;
 
       console.log('📥 Загружаем сообщения с пользователем:', userId);
+
+      // Присоединяемся к комнате DM для получения обновлений в реальном времени
+      if (socket && user) {
+        socket.emit('dm:join', {
+          userId: user.id,
+          otherUserId: userId,
+          username: user.username,
+          avatar: user.avatar,
+          displayName: user.displayName
+        });
+        console.log('🔗 Присоединились к комнате DM:', `dm-${user.id}-${userId}`);
+      }
+
       const response = await fetch(`${BACKEND_URL}/api/direct-messages/conversation/${userId}`, {
         headers: {
           'Authorization': `Bearer ${token}`
@@ -299,7 +509,7 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
     } finally {
       setMessagesLoading(false);
     }
-  }, []);
+  }, [socket, user]);
 
   useEffect(() => {
     if (user) {
@@ -486,10 +696,97 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
       }
     };
 
+    // Обработчик обновления реакций
+    const handleReactionUpdate = (data) => {
+      const { messageId, reactions } = data;
+
+      // Обновляем реакции в текущих сообщениях
+      setSelectedMessages(prev =>
+        prev.map(msg =>
+          msg._id === messageId ? { ...msg, reactions } : msg
+        )
+      );
+
+      // Также обновляем последнее сообщение в списке DM если нужно
+      setDirectMessages(prev =>
+        prev.map(dm => {
+          if (dm.lastMessage?._id === messageId) {
+            return {
+              ...dm,
+              lastMessage: { ...dm.lastMessage, reactions }
+            };
+          }
+          return dm;
+        })
+      );
+    };
+
+    const handleMessageEdited = (data) => {
+      if (data.messageId) {
+        setSelectedMessages(prev =>
+          prev.map(msg =>
+            msg._id === data.messageId
+              ? { ...msg, content: data.content, edited: true }
+              : msg
+          )
+        );
+
+        // Обновляем также в списке разговоров
+        setDirectMessages(prev =>
+          prev.map(dm => {
+            if (dm.lastMessage && dm.lastMessage._id === data.messageId) {
+              return {
+                ...dm,
+                lastMessage: { ...dm.lastMessage, content: data.content, edited: true }
+              };
+            }
+            return dm;
+          })
+        );
+      }
+    };
+
+    const handleMessageDeleted = (data) => {
+      if (data.messageId) {
+        setSelectedMessages(prev => prev.filter(msg => msg._id !== data.messageId));
+
+        // Обновляем также в списке разговоров
+        setDirectMessages(prev =>
+          prev.map(dm => {
+            if (dm.lastMessage && dm.lastMessage._id === data.messageId) {
+              // Если удаленное сообщение было последним, обновляем lastMessage
+              const updatedMessages = selectedMessages.filter(msg => msg._id !== data.messageId);
+              if (updatedMessages.length > 0) {
+                const newLastMessage = updatedMessages[updatedMessages.length - 1];
+                return {
+                  ...dm,
+                  lastMessage: newLastMessage
+                };
+              } else {
+                return {
+                  ...dm,
+                  lastMessage: null
+                };
+              }
+            }
+            return dm;
+          })
+        );
+      }
+    };
+
     socket.on('direct-message:new', handleDirectMessageNew);
+    socket.on(SOCKET_EVENTS.REACTION_ADDED, handleReactionUpdate);
+    socket.on(SOCKET_EVENTS.REACTION_REMOVED, handleReactionUpdate);
+    socket.on(SOCKET_EVENTS.MESSAGE_EDITED, handleMessageEdited);
+    socket.on(SOCKET_EVENTS.MESSAGE_DELETED, handleMessageDeleted);
 
     return () => {
       socket.off('direct-message:new', handleDirectMessageNew);
+      socket.off(SOCKET_EVENTS.REACTION_ADDED, handleReactionUpdate);
+      socket.off(SOCKET_EVENTS.REACTION_REMOVED, handleReactionUpdate);
+      socket.off(SOCKET_EVENTS.MESSAGE_EDITED, handleMessageEdited);
+      socket.off(SOCKET_EVENTS.MESSAGE_DELETED, handleMessageDeleted);
     };
   }, [socket, user, selectedDM]);
 
@@ -500,6 +797,16 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
       onUnreadDMsUpdate(hasUnread);
     }
   }, [directMessages, onUnreadDMsUpdate]);
+
+  // Покидаем комнату DM при размонтировании компонента
+  useEffect(() => {
+    return () => {
+      if (socket) {
+        socket.emit('dm:leave');
+        console.log('🔗 Покинули комнату DM');
+      }
+    };
+  }, [socket]);
 
   const handleSelectDM = useCallback(async (dm) => {
     // Если есть обработчик для мобильного режима, используем его
@@ -581,6 +888,13 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
                             ))}
                           </div>
                         )}
+
+                        {/* Реакции на сообщение */}
+                        <MessageReactions
+                          reactions={message.reactions}
+                          onReactionClick={(emoji, userReacted) => handleReactionClick(message._id, emoji, userReacted)}
+                          currentUserId={user?.id}
+                        />
                       </div>
                     </div>
                   ))
@@ -792,7 +1106,7 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
                 ) : (
                   groupMessages(selectedMessages).map((group, groupIndex) =>
                     group.messages.map((message, messageIndex) => (
-                      <div key={message._id} className={`dm-message ${message.sender._id === user?.id ? 'dm-message-own' : ''} ${messageIndex > 0 ? 'dm-message-grouped' : ''} ${messageIndex === 0 && group.messages.length > 1 ? 'dm-message-group-first' : ''} ${messageIndex === group.messages.length - 1 ? 'dm-message-group-last' : ''}`}>
+                      <div key={message._id} className={`dm-message ${message.sender._id === user?.id ? 'dm-message-own' : ''} ${messageIndex > 0 ? 'dm-message-grouped' : ''} ${messageIndex === 0 && group.messages.length > 1 ? 'dm-message-group-first' : ''} ${messageIndex === group.messages.length - 1 ? 'dm-message-group-last' : ''} ${editingMessage?._id === message._id ? 'dm-message-edit-mode' : ''}`}>
                         {messageIndex === 0 && (
                           <div className="dm-message-avatar">
                             {message.sender.avatar ? (
@@ -815,8 +1129,61 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
                               </span>
                             </div>
                           )}
-                          {message.content && (
-                            <div className="dm-message-text">{message.content}</div>
+                          {editingMessage?._id === message._id ? (
+                            <div className="dm-message-edit">
+                              <textarea
+                                value={editValue}
+                                onChange={(e) => setEditValue(e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter' && !e.shiftKey) {
+                                    e.preventDefault();
+                                    handleSaveEdit();
+                                  }
+                                  if (e.key === 'Escape') {
+                                    setEditingMessage(null);
+                                    setEditValue('');
+                                  }
+                                }}
+                                className="dm-edit-textarea"
+                                autoFocus
+                              />
+                              <div className="dm-edit-actions">
+                                <button
+                                  className="dm-edit-save"
+                                  onClick={handleSaveEdit}
+                                >
+                                  Сохранить
+                                </button>
+                                <button
+                                  className="dm-edit-cancel"
+                                  onClick={() => {
+                                    setEditingMessage(null);
+                                    setEditValue('');
+                                  }}
+                                >
+                                  Отмена
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            <>
+                              {message.content && (
+                                <div className="dm-message-text">{message.content}</div>
+                              )}
+
+                              {/* Меню действий - показываем только для своих сообщений */}
+                              {message.sender._id === user?.id && (
+                                <div className="dm-message-actions">
+                                  <button
+                                    className="dm-message-actions-button"
+                                    onClick={(e) => handleMoreActions(message, e)}
+                                    title="Больше действий"
+                                  >
+                                    ⋯
+                                  </button>
+                                </div>
+                              )}
+                            </>
                           )}
                           {message.attachments && message.attachments.length > 0 && (
                             <div className="message-attachments">
@@ -832,6 +1199,13 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
                               ))}
                             </div>
                           )}
+
+                          {/* Реакции на сообщение */}
+                          <MessageReactions
+                            reactions={message.reactions}
+                            onReactionClick={(emoji, userReacted) => handleReactionClick(message._id, emoji, userReacted)}
+                            currentUserId={user?.id}
+                          />
                         </div>
                       </div>
                     ))
@@ -938,6 +1312,58 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
               Максимальный размер для загрузки — 5 МБ.<br />
               Сейчас мы не умеем загружать такие тяжелые файлы, но когда-нибудь мы победим эту проблему
             </p>
+          </div>
+        </>
+      )}
+
+      {/* Emoji Picker для реакций */}
+      {showEmojiPicker && (
+        <EmojiPicker
+          onEmojiSelect={handleEmojiSelect}
+          onClose={() => {
+            setShowEmojiPicker(false);
+            setSelectedMessageForReaction(null);
+          }}
+          position={emojiPickerPosition}
+        />
+      )}
+
+      {/* Контекстное меню */}
+      {contextMenu && (
+        <>
+          <div className="message-context-overlay" onClick={handleCloseContextMenu} />
+          <div
+            className="message-context-menu"
+            style={{
+              top: `${contextMenu.position.top}px`,
+              left: `${contextMenu.position.left}px`
+            }}
+          >
+            <button
+              className="message-context-menu-item"
+              onClick={(e) => {
+                handleAddReaction(contextMenu.message._id, e);
+                setContextMenu(null);
+              }}
+            >
+              😊 Добавить реакцию
+            </button>
+            {canEditMessage(contextMenu.message) && (
+              <button
+                className="message-context-menu-item"
+                onClick={() => handleEditMessage(contextMenu.message)}
+              >
+                ✏️ Редактировать
+              </button>
+            )}
+            {canDeleteMessage(contextMenu.message) && (
+              <button
+                className="message-context-menu-item danger"
+                onClick={() => handleDeleteMessage(contextMenu.message)}
+              >
+                🗑️ Удалить сообщение
+              </button>
+            )}
           </div>
         </>
       )}

@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useLayoutEffect, useRef, useCallback } from 'react';
 import './Chat.css';
 import { useChat } from '../context/ChatContext';
+import { SOCKET_EVENTS } from '../constants/events';
+import EmojiPicker from './EmojiPicker';
+import MessageReactions from './MessageReactions';
 
 const BACKEND_URL = window.location.hostname === 'localhost'
   ? 'http://localhost:3001'
@@ -24,6 +27,9 @@ function Chat({ channel, messages, username, user, currentServer, onSendMessage,
   const [selectedFiles, setSelectedFiles] = useState([]);
   const [uploadingFiles, setUploadingFiles] = useState(false);
   const [showFileSizeError, setShowFileSizeError] = useState(false);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [emojiPickerPosition, setEmojiPickerPosition] = useState(null);
+  const [selectedMessageForReaction, setSelectedMessageForReaction] = useState(null);
 
   const handleUserClick = async (message, event) => {
     const rect = event.currentTarget.getBoundingClientRect();
@@ -164,11 +170,40 @@ function Chat({ channel, messages, username, user, currentServer, onSendMessage,
   const handleMoreActions = (message, event) => {
     event.stopPropagation();
     const rect = event.currentTarget.getBoundingClientRect();
+
+    // Размеры контекстного меню (примерные)
+    const menuHeight = 120; // Высота меню
+    const menuWidth = 210; // Ширина меню
+    const padding = 10; // Отступ от края экрана
+
+    // Вычисляем позицию по умолчанию (справа от кнопки)
+    let top = rect.top + rect.height / 2 - 18; // Центрируем по вертикали
+    let left = rect.left - menuWidth;
+
+    // Проверяем, помещается ли меню вниз
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const spaceAbove = rect.top;
+
+    // Если места внизу мало, но вверху больше - показываем вверху
+    if (spaceBelow < menuHeight && spaceAbove > spaceBelow) {
+      top = rect.top - menuHeight - 5; // Показываем над сообщением
+    }
+
+    // Проверяем, не уходит ли меню за левый край экрана
+    if (left < padding) {
+      left = rect.right + 5; // Показываем справа от кнопки
+    }
+
+    // Проверяем, не уходит ли меню за правый край экрана
+    if (left + menuWidth > window.innerWidth - padding) {
+      left = window.innerWidth - menuWidth - padding;
+    }
+
     setContextMenu({
       message,
       position: {
-        top: rect.top + rect.height / 2 - 18, // Центрируем по вертикали
-        left: rect.left - 210
+        top: Math.max(padding, top), // Минимум 10px от верха
+        left: Math.max(padding, left) // Минимум 10px слева
       }
     });
   };
@@ -247,6 +282,89 @@ function Chat({ channel, messages, username, user, currentServer, onSendMessage,
       // Сбрасываем состояние после удаления
       setTimeout(() => setDeletingMessageId(null), 100);
     }, 300);
+  };
+
+  // Обработчики реакций
+  const handleAddReaction = (messageId, event) => {
+    const rect = event.currentTarget.getBoundingClientRect();
+
+    // Размеры EmojiPicker (примерные)
+    const pickerHeight = 444; // Высота picker
+    const pickerWidth = 352; // Ширина picker
+    const padding = 10; // Отступ от края экрана
+
+    // Позиция по умолчанию (рядом с кнопкой)
+    let top = rect.top;
+    let left = rect.left;
+
+    // Проверяем, помещается ли picker вниз
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const spaceAbove = rect.top;
+
+    // Если места внизу мало, показываем вверху
+    if (spaceBelow < pickerHeight && spaceAbove > spaceBelow) {
+      top = rect.top - pickerHeight - 5; // Показываем над кнопкой
+    }
+
+    // Проверяем, не уходит ли picker за правый край экрана
+    if (left + pickerWidth > window.innerWidth - padding) {
+      left = window.innerWidth - pickerWidth - padding;
+    }
+
+    // Проверяем, не уходит ли picker за левый край экрана
+    if (left < padding) {
+      left = padding;
+    }
+
+    // Проверяем, не уходит ли picker за верхний край экрана
+    if (top < padding) {
+      top = padding;
+    }
+
+    setEmojiPickerPosition({
+      top: Math.max(padding, top),
+      left: Math.max(padding, left)
+    });
+    setSelectedMessageForReaction(messageId);
+    setShowEmojiPicker(true);
+  };
+
+  const handleEmojiSelect = (emoji) => {
+    if (!selectedMessageForReaction || !socket || !user) return;
+
+    socket.emit(SOCKET_EVENTS.REACTION_ADD, {
+      messageId: selectedMessageForReaction,
+      emoji,
+      userId: user.id,
+      username: user.username,
+      isDM: false
+    });
+
+    setShowEmojiPicker(false);
+    setSelectedMessageForReaction(null);
+  };
+
+  const handleReactionClick = (messageId, emoji, userReacted) => {
+    if (!socket || !user) return;
+
+    if (userReacted) {
+      // Удалить реакцию
+      socket.emit(SOCKET_EVENTS.REACTION_REMOVE, {
+        messageId,
+        emoji,
+        userId: user.id,
+        isDM: false
+      });
+    } else {
+      // Добавить реакцию
+      socket.emit(SOCKET_EVENTS.REACTION_ADD, {
+        messageId,
+        emoji,
+        userId: user.id,
+        username: user.username,
+        isDM: false
+      });
+    }
   };
 
   const scrollToBottom = () => {
@@ -755,10 +873,19 @@ function Chat({ channel, messages, username, user, currentServer, onSendMessage,
                     )}
                   </div>
                 )}
+
+                {/* Реакции на сообщение */}
+                {!message.isSystem && !editingMessage && (
+                  <MessageReactions
+                    reactions={message.reactions}
+                    onReactionClick={(emoji, userReacted) => handleReactionClick(message.id, emoji, userReacted)}
+                    currentUserId={user?.id}
+                  />
+                )}
               </div>
 
-              {/* Меню действий - показываем если можно редактировать или удалить */}
-              {!message.isSystem && (canEditMessage(message) || canDeleteMessage(message)) && (
+              {/* Меню действий - показываем для всех не системных сообщений */}
+              {!message.isSystem && (
                 <div className="message-actions">
                   <button
                     className="message-actions-button"
@@ -932,12 +1059,21 @@ function Chat({ channel, messages, username, user, currentServer, onSendMessage,
               left: `${contextMenu.position.left}px`
             }}
           >
+            <button
+              className="message-context-menu-item"
+              onClick={(e) => {
+                handleAddReaction(contextMenu.message.id, e);
+                setContextMenu(null);
+              }}
+            >
+              😊 Добавить реакцию
+            </button>
             {canEditMessage(contextMenu.message) && (
               <button
                 className="message-context-menu-item"
                 onClick={() => handleEditMessage(contextMenu.message)}
               >
-                Редактировать
+                ✏️ Редактировать
               </button>
             )}
             {canDeleteMessage(contextMenu.message) && (
@@ -945,7 +1081,7 @@ function Chat({ channel, messages, username, user, currentServer, onSendMessage,
                 className="message-context-menu-item danger"
                 onClick={() => handleDeleteMessage(contextMenu.message)}
               >
-                Удалить сообщение
+                🗑️ Удалить сообщение
               </button>
             )}
           </div>
@@ -968,6 +1104,18 @@ function Chat({ channel, messages, username, user, currentServer, onSendMessage,
             </p>
           </div>
         </>
+      )}
+
+      {/* Emoji Picker для реакций */}
+      {showEmojiPicker && (
+        <EmojiPicker
+          onEmojiSelect={handleEmojiSelect}
+          onClose={() => {
+            setShowEmojiPicker(false);
+            setSelectedMessageForReaction(null);
+          }}
+          position={emojiPickerPosition}
+        />
       )}
     </div>
   );

@@ -24,6 +24,12 @@ const SOCKET_EVENTS = {
   MESSAGE_DELETED: 'message:deleted',
   MESSAGES_HISTORY: 'messages:history',
 
+  // Reaction events
+  REACTION_ADD: 'reaction:add',
+  REACTION_ADDED: 'reaction:added',
+  REACTION_REMOVE: 'reaction:remove',
+  REACTION_REMOVED: 'reaction:removed',
+
   // Voice events
   VOICE_JOIN: 'voice:join',
   VOICE_LEAVE: 'voice:leave',
