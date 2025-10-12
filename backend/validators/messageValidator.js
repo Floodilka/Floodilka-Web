@@ -1,13 +1,18 @@
 const { ValidationError } = require('../utils/errors');
 const { MESSAGE_MAX_LENGTH } = require('../constants');
 
-const validateMessageContent = (content) => {
+const validateMessageContent = (content, hasAttachments = false) => {
+  // Если есть вложения, разрешаем пустой content
+  if (hasAttachments && (!content || content.trim().length === 0)) {
+    return ''; // Возвращаем пустую строку, если есть файлы
+  }
+
   if (!content || typeof content !== 'string') {
     throw new ValidationError('Содержимое сообщения обязательно');
   }
 
   const trimmedContent = content.trim();
-  
+
   if (trimmedContent.length === 0) {
     throw new ValidationError('Сообщение не может быть пустым');
   }

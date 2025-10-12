@@ -20,6 +20,8 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
   const [error, setError] = useState('');
   const [inputValue, setInputValue] = useState('');
   const [sendingMessage, setSendingMessage] = useState(false);
+  const [selectedFiles, setSelectedFiles] = useState([]);
+  const [showFileSizeError, setShowFileSizeError] = useState(false);
   const messagesEndRef = useRef(null);
   const lastProcessedUserIdRef = useRef(null);
 
@@ -35,12 +37,46 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
     }
   }, []);
 
+  // Функции для работы с файлами
+  const handleFileSelect = (e) => {
+    const files = Array.from(e.target.files);
+    const maxSize = 5 * 1024 * 1024; // 5MB
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+
+    // Проверяем, есть ли файл больше 5 МБ
+    const hasOversizedFile = files.some(file => file.size > maxSize);
+    if (hasOversizedFile) {
+      setShowFileSizeError(true);
+      e.target.value = ''; // Очищаем input
+      return;
+    }
+
+    const validFiles = files.filter(file => {
+      if (!allowedTypes.includes(file.type)) {
+        alert(`Файл "${file.name}" не поддерживается. Разрешены только изображения (JPEG, PNG, GIF, WebP)`);
+        return false;
+      }
+      return true;
+    });
+
+    setSelectedFiles(prev => [...prev, ...validFiles]);
+    e.target.value = ''; // Очищаем input для возможности выбора того же файла
+  };
+
+  const removeFile = (index) => {
+    setSelectedFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const openFileDialog = () => {
+    document.getElementById('dm-file-input').click();
+  };
+
   // Функция для отправки сообщения
   const handleSendMessage = async (e) => {
     e.preventDefault();
 
     const currentDM = selectedDM || autoSelectUser;
-    if (!inputValue.trim() || !currentDM || sendingMessage) {
+    if ((!inputValue.trim() && selectedFiles.length === 0) || !currentDM || sendingMessage) {
       return;
     }
 
@@ -50,6 +86,31 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
       const token = localStorage.getItem('token');
       if (!token) return;
 
+      let attachments = [];
+
+      // Если есть файлы, сначала загружаем их
+      if (selectedFiles.length > 0) {
+        const formData = new FormData();
+        selectedFiles.forEach(file => {
+          formData.append('files', file);
+        });
+
+        const uploadResponse = await fetch(`${BACKEND_URL}/api/messages/upload`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          },
+          body: formData
+        });
+
+        if (!uploadResponse.ok) {
+          throw new Error('Ошибка загрузки файлов');
+        }
+
+        const uploadResult = await uploadResponse.json();
+        attachments = uploadResult.files;
+      }
+
       const response = await fetch(`${BACKEND_URL}/api/direct-messages/send`, {
         method: 'POST',
         headers: {
@@ -58,7 +119,8 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
         },
         body: JSON.stringify({
           receiverId: currentDM._id,
-          content: inputValue.trim()
+          content: inputValue.trim(),
+          attachments: attachments
         })
       });
 
@@ -100,8 +162,9 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
         return [updatedDM, ...otherDMs];
       });
 
-      // Очищаем поле ввода
+      // Очищаем поле ввода и файлы
       setInputValue('');
+      setSelectedFiles([]);
 
       // Прокручиваем к последнему сообщению
       setTimeout(() => scrollToBottom(), 100);
@@ -501,7 +564,23 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
                             </span>
                           </div>
                         )}
-                        <div className="dm-message-text">{message.content}</div>
+                        {message.content && (
+                          <div className="dm-message-text">{message.content}</div>
+                        )}
+                        {message.attachments && message.attachments.length > 0 && (
+                          <div className="message-attachments">
+                            {message.attachments.map((attachment, index) => (
+                              <div key={index} className="message-attachment">
+                                <img
+                                  src={`${BACKEND_URL}${attachment.path}`}
+                                  alt={attachment.originalName}
+                                  className="message-attachment-image"
+                                  onClick={() => window.open(`${BACKEND_URL}${attachment.path}`, '_blank')}
+                                />
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     </div>
                   ))
@@ -513,19 +592,73 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
 
             {/* Поле ввода */}
             <div className="message-input-container">
+              {/* Превью выбранных файлов */}
+              {selectedFiles.length > 0 && (
+                <div className="file-preview-container">
+                  {selectedFiles.map((file, index) => (
+                    <div key={index} className="file-preview">
+                      <img
+                        src={URL.createObjectURL(file)}
+                        alt={file.name}
+                        className="file-preview-image"
+                      />
+                      <div className="file-preview-info">
+                        <span className="file-preview-name">{file.name}</span>
+                        <span className="file-preview-size">{(file.size / 1024 / 1024).toFixed(2)} MB</span>
+                      </div>
+                      <button
+                        type="button"
+                        className="file-preview-remove"
+                        onClick={() => removeFile(index)}
+                        title="Удалить файл"
+                      >
+                        <img src="/icons/trash.png" alt="Удалить" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
               <form onSubmit={handleSendMessage}>
                 <input
-                  type="text"
-                  placeholder={`Написать @${autoSelectUser.user?.displayName || autoSelectUser.user?.username || autoSelectUser.username}`}
-                  value={inputValue}
-                  onChange={(e) => setInputValue(e.target.value)}
-                  onKeyPress={handleKeyPress}
-                  maxLength={2000}
-                  disabled={sendingMessage}
+                  id="dm-file-input"
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={handleFileSelect}
+                  style={{ display: 'none' }}
                 />
-                <button type="submit" disabled={!inputValue.trim() || sendingMessage}>
-                  {sendingMessage ? 'Отправка...' : 'Отправить'}
-                </button>
+                <div className="message-input-wrapper">
+                  <div className="message-input-field">
+                    <button
+                      type="button"
+                      className="file-attach-button"
+                      onClick={openFileDialog}
+                      title="Прикрепить файл"
+                    >
+                      <img src="/icons/plus.png" alt="+" />
+                    </button>
+                    <div className="input-divider"></div>
+                    <input
+                      type="text"
+                      placeholder={`Написать @${autoSelectUser.user?.displayName || autoSelectUser.user?.username || autoSelectUser.username}`}
+                      value={inputValue}
+                      onChange={(e) => setInputValue(e.target.value)}
+                      onKeyPress={handleKeyPress}
+                      maxLength={2000}
+                      disabled={sendingMessage}
+                    />
+                    <div className="input-divider"></div>
+                    <button
+                      type="submit"
+                      className={`file-send-button ${(!inputValue.trim() && selectedFiles.length === 0) || sendingMessage ? 'disabled' : 'active'}`}
+                      disabled={(!inputValue.trim() && selectedFiles.length === 0) || sendingMessage}
+                      title="Отправить"
+                    >
+                      <img src="/icons/send.png" alt="Отправить" />
+                    </button>
+                  </div>
+                </div>
               </form>
             </div>
           </div>
@@ -579,11 +712,17 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
                 <div className="dm-info">
                   <div className="dm-username">{dm.user.displayName || dm.user.username}</div>
                   <div className="dm-last-message">
-                    {dm.lastMessage?.content ? (
+                    {dm.lastMessage ? (
                       dm.lastMessage.sender._id === user?.id ? (
-                        <><span className="dm-you-prefix">ВЫ:</span> {dm.lastMessage.content}</>
+                        <><span className="dm-you-prefix">ВЫ:</span> {
+                          dm.lastMessage.attachments && dm.lastMessage.attachments.length > 0
+                            ? 'Отправил(а) изображение'
+                            : dm.lastMessage.content || 'Нет сообщений'
+                        }</>
                       ) : (
-                        dm.lastMessage.content
+                        dm.lastMessage.attachments && dm.lastMessage.attachments.length > 0
+                          ? 'Отправил(а) изображение'
+                          : dm.lastMessage.content || 'Нет сообщений'
                       )
                     ) : (
                       'Нет сообщений'
@@ -676,7 +815,23 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
                               </span>
                             </div>
                           )}
-                          <div className="dm-message-text">{message.content}</div>
+                          {message.content && (
+                            <div className="dm-message-text">{message.content}</div>
+                          )}
+                          {message.attachments && message.attachments.length > 0 && (
+                            <div className="message-attachments">
+                              {message.attachments.map((attachment, index) => (
+                                <div key={index} className="message-attachment">
+                                  <img
+                                    src={`${BACKEND_URL}${attachment.path}`}
+                                    alt={attachment.originalName}
+                                    className="message-attachment-image"
+                                    onClick={() => window.open(`${BACKEND_URL}${attachment.path}`, '_blank')}
+                                  />
+                                </div>
+                              ))}
+                            </div>
+                          )}
                         </div>
                       </div>
                     ))
@@ -688,19 +843,73 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
 
               {/* Поле ввода */}
               <div className="message-input-container">
+                {/* Превью выбранных файлов */}
+                {selectedFiles.length > 0 && (
+                  <div className="file-preview-container">
+                    {selectedFiles.map((file, index) => (
+                      <div key={index} className="file-preview">
+                        <img
+                          src={URL.createObjectURL(file)}
+                          alt={file.name}
+                          className="file-preview-image"
+                        />
+                        <div className="file-preview-info">
+                          <span className="file-preview-name">{file.name}</span>
+                          <span className="file-preview-size">{(file.size / 1024 / 1024).toFixed(2)} MB</span>
+                        </div>
+                        <button
+                          type="button"
+                          className="file-preview-remove"
+                          onClick={() => removeFile(index)}
+                          title="Удалить файл"
+                        >
+                          <img src="/icons/trash.png" alt="Удалить" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
                 <form onSubmit={handleSendMessage}>
                   <input
-                    type="text"
-                    placeholder={`Написать @${selectedDM.user.displayName || selectedDM.user.username}`}
-                    value={inputValue}
-                    onChange={(e) => setInputValue(e.target.value)}
-                    onKeyPress={handleKeyPress}
-                    maxLength={2000}
-                    disabled={sendingMessage}
+                    id="dm-file-input"
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={handleFileSelect}
+                    style={{ display: 'none' }}
                   />
-                  <button type="submit" disabled={!inputValue.trim() || sendingMessage}>
-                    {sendingMessage ? 'Отправка...' : 'Отправить'}
-                  </button>
+                  <div className="message-input-wrapper">
+                    <div className="message-input-field">
+                      <button
+                        type="button"
+                        className="file-attach-button"
+                        onClick={openFileDialog}
+                        title="Прикрепить файл"
+                      >
+                        <img src="/icons/plus.png" alt="+" />
+                      </button>
+                      <div className="input-divider"></div>
+                      <input
+                        type="text"
+                        placeholder={`Написать @${selectedDM.user.displayName || selectedDM.user.username}`}
+                        value={inputValue}
+                        onChange={(e) => setInputValue(e.target.value)}
+                        onKeyPress={handleKeyPress}
+                        maxLength={2000}
+                        disabled={sendingMessage}
+                      />
+                      <div className="input-divider"></div>
+                      <button
+                        type="submit"
+                        className={`file-send-button ${(!inputValue.trim() && selectedFiles.length === 0) || sendingMessage ? 'disabled' : 'active'}`}
+                        disabled={(!inputValue.trim() && selectedFiles.length === 0) || sendingMessage}
+                        title="Отправить"
+                      >
+                        <img src="/icons/send.png" alt="Отправить" />
+                      </button>
+                    </div>
+                  </div>
                 </form>
               </div>
             </div>
@@ -713,6 +922,24 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
             </div>
           )}
         </div>
+      )}
+
+      {/* Модальное окно ошибки размера файла */}
+      {showFileSizeError && (
+        <>
+          <div className="file-error-overlay" onClick={() => setShowFileSizeError(false)} />
+          <div className="file-error-modal">
+            <button className="file-error-close" onClick={() => setShowFileSizeError(false)}>
+              ×
+            </button>
+            <div className="file-error-icon">⚡</div>
+            <h2 className="file-error-title">Ой-ой! Файл оказался слишком пухлым</h2>
+            <p className="file-error-text">
+              Максимальный размер для загрузки — 5 МБ.<br />
+              Сейчас мы не умеем загружать такие тяжелые файлы, но когда-нибудь мы победим эту проблему
+            </p>
+          </div>
+        </>
       )}
     </div>
   );

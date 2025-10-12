@@ -34,13 +34,45 @@ const messageSchema = new mongoose.Schema({
   },
   content: {
     type: String,
-    required: true,
-    maxlength: 2000
+    default: '',
+    maxlength: 2000,
+    validate: {
+      validator: function(value) {
+        // content обязателен только если нет вложений
+        if (!value || value.trim() === '') {
+          return this.attachments && this.attachments.length > 0;
+        }
+        return true;
+      },
+      message: 'Содержимое сообщения обязательно, если нет вложений'
+    }
   },
   isSystem: {
     type: Boolean,
     default: false
   },
+  attachments: [{
+    filename: {
+      type: String,
+      required: true
+    },
+    originalName: {
+      type: String,
+      required: true
+    },
+    size: {
+      type: Number,
+      required: true
+    },
+    mimetype: {
+      type: String,
+      required: true
+    },
+    path: {
+      type: String,
+      required: true
+    }
+  }],
   createdAt: {
     type: Date,
     default: Date.now

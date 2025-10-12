@@ -638,3 +638,251 @@
   background-color: #f04747;
 }
 
+/* Превью файлов */
+.file-preview-container {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 8px;
+  padding: 8px 8px 16px 8px;
+  background-color: #111214;
+  border-radius: 8px 8px 0 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.file-preview-container::-webkit-scrollbar {
+  height: 6px;
+}
+
+.file-preview-container::-webkit-scrollbar-track {
+  background: transparent;
+  margin: 0 4px;
+}
+
+.file-preview-container::-webkit-scrollbar-thumb {
+  background-color: #3a3d44;
+  border-radius: 10px;
+  transition: background-color 0.2s ease;
+}
+
+.file-preview-container::-webkit-scrollbar-thumb:hover {
+  background-color: #4f545c;
+}
+
+.file-preview-container {
+  scrollbar-width: thin;
+  scrollbar-color: #3a3d44 #111214;
+}
+
+.file-preview {
+  position: relative;
+  display: flex;
+  align-items: center;
+  background-color: #1e1f22;
+  border-radius: 8px;
+  padding: 8px;
+  gap: 8px;
+  min-width: 250px;
+  max-width: 250px;
+  width: 250px;
+  border: 1px solid #2f3136;
+  flex-shrink: 0;
+}
+
+.file-preview-image {
+  width: 40px;
+  height: 40px;
+  object-fit: cover;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.file-preview-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+
+.file-preview-name {
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 150px;
+}
+
+.file-preview-size {
+  color: #8e9297;
+  font-size: 10px;
+}
+
+.file-preview-remove {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 24px;
+  height: 24px;
+  background: none !important;
+  background-color: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.2s;
+  flex-shrink: 0;
+  z-index: 2;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+.file-preview-remove:hover {
+  opacity: 0.7;
+  background: none !important;
+  background-color: transparent !important;
+}
+
+.file-preview-remove:active,
+.file-preview-remove:focus {
+  background: none !important;
+  background-color: transparent !important;
+  outline: none !important;
+}
+
+.file-preview-remove img {
+  width: 16px;
+  height: 16px;
+  filter: invert(30%) sepia(94%) saturate(3500%) hue-rotate(345deg) brightness(95%) contrast(90%);
+  transition: filter 0.2s;
+}
+
+.file-preview-remove:hover img {
+  filter: invert(25%) sepia(94%) saturate(3500%) hue-rotate(345deg) brightness(85%) contrast(90%);
+}
+
+/* Модальное окно ошибки размера файла */
+.file-error-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.85);
+  z-index: 10000;
+  animation: fadeIn 0.2s ease;
+}
+
+.file-error-modal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: linear-gradient(135deg, #4a3b5c 0%, #2d2640 100%);
+  border-radius: 16px;
+  padding: 48px 40px 40px 40px;
+  max-width: 440px;
+  width: 90%;
+  z-index: 10001;
+  text-align: center;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  animation: modalSlideIn 0.3s ease-out;
+}
+
+@keyframes modalSlideIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -45%);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%);
+  }
+}
+
+.file-error-close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 32px;
+  height: 32px;
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 32px;
+  cursor: pointer;
+  transition: color 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  padding: 0;
+}
+
+.file-error-close:hover {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.file-error-icon {
+  font-size: 80px;
+  margin-bottom: 24px;
+  animation: iconBounce 0.6s ease-out;
+}
+
+@keyframes iconBounce {
+  0% {
+    transform: scale(0) rotate(0deg);
+  }
+  50% {
+    transform: scale(1.2) rotate(10deg);
+  }
+  100% {
+    transform: scale(1) rotate(0deg);
+  }
+}
+
+.file-error-title {
+  color: #ffffff;
+  font-size: 24px;
+  font-weight: 700;
+  margin: 0 0 16px 0;
+  line-height: 1.3;
+}
+
+.file-error-text {
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 15px;
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* Вложения в сообщениях */
+.message-attachments {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.message-attachment {
+  display: flex;
+  flex-direction: column;
+}
+
+.message-attachment-image {
+  max-width: 350px;
+  max-height: 350px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: opacity 0.2s;
+  object-fit: cover;
+}
+
+.message-attachment-image:hover {
+  opacity: 0.9;
+}
+

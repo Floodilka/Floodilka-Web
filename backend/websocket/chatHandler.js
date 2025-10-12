@@ -40,9 +40,13 @@ class ChatHandler {
   }
 
   handleMessageSend(socket) {
-    socket.on(SOCKET_EVENTS.MESSAGE_SEND, async ({ channelId, content, username, avatar, badge, badgeTooltip, displayName, userId }) => {
+    socket.on(SOCKET_EVENTS.MESSAGE_SEND, async ({ channelId, content, username, avatar, badge, badgeTooltip, displayName, userId, attachments }) => {
       try {
-        if (!content || content.trim() === '') {
+        // Проверяем, что есть хотя бы текст или файлы
+        const hasContent = content && content.trim() !== '';
+        const hasAttachments = attachments && attachments.length > 0;
+
+        if (!hasContent && !hasAttachments) {
           return;
         }
 
@@ -54,7 +58,8 @@ class ChatHandler {
           avatar,
           badge,
           badgeTooltip,
-          content
+          content: content || '',
+          attachments
         });
 
         // Отправить всем в канале

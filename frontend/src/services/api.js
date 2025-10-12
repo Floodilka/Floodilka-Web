@@ -188,6 +188,24 @@ class ApiService {
 
     return await response.json();
   }
+
+  async uploadMessageFiles(formData) {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${this.baseURL}/api/messages/upload`, {
+      method: 'POST',
+      headers: {
+        ...(token && { 'Authorization': `Bearer ${token}` })
+      },
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ error: 'Upload failed' }));
+      throw new Error(error.error || 'File upload failed');
+    }
+
+    return await response.json();
+  }
 }
 
 export default new ApiService();

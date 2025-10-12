@@ -21,6 +21,9 @@ function Chat({ channel, messages, username, user, currentServer, onSendMessage,
   const [userPermissions, setUserPermissions] = useState(null);
   const [deletingMessageId, setDeletingMessageId] = useState(null);
   const [showMessages, setShowMessages] = useState(messages.length > 0); // Для предотвращения дергания
+  const [selectedFiles, setSelectedFiles] = useState([]);
+  const [uploadingFiles, setUploadingFiles] = useState(false);
+  const [showFileSizeError, setShowFileSizeError] = useState(false);
 
   const handleUserClick = async (message, event) => {
     const rect = event.currentTarget.getBoundingClientRect();
@@ -477,10 +480,49 @@ function Chat({ channel, messages, username, user, currentServer, onSendMessage,
   const handleSubmit = (e) => {
     e.preventDefault();
     const trimmedValue = inputValue.trim();
-    if (trimmedValue) {
-      onSendMessage(trimmedValue);
+    if (trimmedValue || selectedFiles.length > 0) {
+      onSendMessage(trimmedValue, selectedFiles);
       setInputValue('');
+      setSelectedFiles([]);
+
+      // Автоматически прокручиваем вниз после отправки сообщения
+      setTimeout(() => {
+        scrollToBottom();
+      }, 100);
     }
+  };
+
+  const handleFileSelect = (e) => {
+    const files = Array.from(e.target.files);
+    const maxSize = 5 * 1024 * 1024; // 5MB
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+
+    // Проверяем, есть ли файл больше 5 МБ
+    const hasOversizedFile = files.some(file => file.size > maxSize);
+    if (hasOversizedFile) {
+      setShowFileSizeError(true);
+      e.target.value = ''; // Очищаем input
+      return;
+    }
+
+    const validFiles = files.filter(file => {
+      if (!allowedTypes.includes(file.type)) {
+        alert(`Файл "${file.name}" не поддерживается. Разрешены только изображения (JPEG, PNG, GIF, WebP)`);
+        return false;
+      }
+      return true;
+    });
+
+    setSelectedFiles(prev => [...prev, ...validFiles]);
+    e.target.value = ''; // Очищаем input для возможности выбора того же файла
+  };
+
+  const removeFile = (index) => {
+    setSelectedFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const openFileDialog = () => {
+    document.getElementById('file-input').click();
   };
 
   const formatTime = (timestamp) => {
@@ -685,7 +727,33 @@ function Chat({ channel, messages, username, user, currentServer, onSendMessage,
                     </div>
                   </div>
                 ) : (
-                  <div className="message-text">{message.content}</div>
+                  <div className="message-content-wrapper">
+                    {message.content && (
+                      <div className="message-text">{message.content}</div>
+                    )}
+                    {message.attachments && message.attachments.length > 0 && (
+                      <div className="message-attachments">
+                        {message.attachments.map((attachment, index) => (
+                          <div key={index} className="message-attachment">
+                            {attachment.mimetype.startsWith('image/') ? (
+                              <img
+                                src={`${BACKEND_URL}${attachment.path}`}
+                                alt={attachment.originalName}
+                                className="message-attachment-image"
+                                onClick={() => window.open(`${BACKEND_URL}${attachment.path}`, '_blank')}
+                              />
+                            ) : (
+                              <div className="message-attachment-file">
+                                <span className="attachment-icon">📎</span>
+                                <span className="attachment-name">{attachment.originalName}</span>
+                                <span className="attachment-size">{(attachment.size / 1024 / 1024).toFixed(2)} MB</span>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 )}
               </div>
 
@@ -711,17 +779,71 @@ function Chat({ channel, messages, username, user, currentServer, onSendMessage,
       </div>
 
       <div className="message-input-container">
+        {/* Превью выбранных файлов */}
+        {selectedFiles.length > 0 && (
+          <div className="file-preview-container">
+            {selectedFiles.map((file, index) => (
+              <div key={index} className="file-preview">
+                <img
+                  src={URL.createObjectURL(file)}
+                  alt={file.name}
+                  className="file-preview-image"
+                />
+                <div className="file-preview-info">
+                  <span className="file-preview-name">{file.name}</span>
+                  <span className="file-preview-size">{(file.size / 1024 / 1024).toFixed(2)} MB</span>
+                </div>
+                <button
+                  type="button"
+                  className="file-preview-remove"
+                  onClick={() => removeFile(index)}
+                  title="Удалить файл"
+                >
+                  <img src="/icons/trash.png" alt="Удалить" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
         <form onSubmit={handleSubmit}>
-          <input
-            type="text"
-            placeholder={`Написать в #${channel.name}`}
-            value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
-            maxLength={2000}
-          />
-          <button type="submit" disabled={!inputValue.trim()}>
-            Отправить
-          </button>
+          <div className="message-input-wrapper">
+            <input
+              id="file-input"
+              type="file"
+              accept="image/*"
+              multiple
+              onChange={handleFileSelect}
+              style={{ display: 'none' }}
+            />
+            <div className="message-input-field">
+              <button
+                type="button"
+                className="file-attach-button"
+                onClick={openFileDialog}
+                title="Прикрепить файл"
+              >
+                <img src="/icons/plus.png" alt="+" />
+              </button>
+              <div className="input-divider"></div>
+              <input
+                type="text"
+                placeholder={`Написать в #${channel.name}`}
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+                maxLength={2000}
+              />
+              <div className="input-divider"></div>
+              <button
+                type="submit"
+                className={`file-send-button ${(!inputValue.trim() && selectedFiles.length === 0) ? 'disabled' : 'active'}`}
+                disabled={!inputValue.trim() && selectedFiles.length === 0}
+                title="Отправить"
+              >
+                <img src="/icons/send.png" alt="Отправить" />
+              </button>
+            </div>
+          </div>
         </form>
       </div>
 
@@ -826,6 +948,24 @@ function Chat({ channel, messages, username, user, currentServer, onSendMessage,
                 Удалить сообщение
               </button>
             )}
+          </div>
+        </>
+      )}
+
+      {/* Модальное окно ошибки размера файла */}
+      {showFileSizeError && (
+        <>
+          <div className="file-error-overlay" onClick={() => setShowFileSizeError(false)} />
+          <div className="file-error-modal">
+            <button className="file-error-close" onClick={() => setShowFileSizeError(false)}>
+              ×
+            </button>
+            <div className="file-error-icon">⚡</div>
+            <h2 className="file-error-title">Ой-ой! Файл оказался слишком пухлым</h2>
+            <p className="file-error-text">
+              Максимальный размер для загрузки — 5 МБ.<br />
+              Сейчас мы не умеем загружать такие тяжелые файлы, но когда-нибудь мы победим эту проблему
+            </p>
           </div>
         </>
       )}

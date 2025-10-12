@@ -252,7 +252,8 @@
 
 .user-profile-message-input .message-input-field {
   flex: 1;
-  background: none;
+  background: none !important;
+  background-color: transparent !important;
   border: none;
   outline: none;
   color: #ffffff;
@@ -266,6 +267,13 @@
 
 .user-profile-message-input .message-input-field:focus {
   outline: none;
+  background: none !important;
+  background-color: transparent !important;
+}
+
+.user-profile-message-input .message-input-container:focus-within .message-input-field {
+  background: none !important;
+  background-color: transparent !important;
 }
 
 .user-profile-message-input .message-send-btn {

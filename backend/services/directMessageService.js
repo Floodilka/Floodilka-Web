@@ -4,8 +4,9 @@ const { ValidationError, NotFoundError } = require('../utils/errors');
 const { validateMessageContent } = require('../validators/messageValidator');
 
 class DirectMessageService {
-  async sendMessage(senderId, receiverId, content) {
-    const validatedContent = validateMessageContent(content);
+  async sendMessage(senderId, receiverId, content, attachments = []) {
+    const hasAttachments = attachments && attachments.length > 0;
+    const validatedContent = validateMessageContent(content, hasAttachments);
 
     if (receiverId === senderId) {
       throw new ValidationError('Нельзя отправить сообщение самому себе');
@@ -14,7 +15,8 @@ class DirectMessageService {
     const directMessage = new DirectMessage({
       sender: senderId,
       receiver: receiverId,
-      content: validatedContent
+      content: validatedContent,
+      attachments: attachments || []
     });
 
     await directMessage.save();
@@ -129,6 +131,7 @@ class DirectMessageService {
             _id: '$lastMessage._id',
             content: '$lastMessage.content',
             timestamp: '$lastMessage.timestamp',
+            attachments: '$lastMessage.attachments',
             sender: {
               _id: '$lastMessage.senderData._id',
               username: '$lastMessage.senderData.username',

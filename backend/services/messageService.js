@@ -29,9 +29,10 @@ class MessageService {
   }
 
   async createMessage(messageData) {
-    const { channelId, userId, username, displayName, avatar, badge, badgeTooltip, content } = messageData;
+    const { channelId, userId, username, displayName, avatar, badge, badgeTooltip, content, attachments } = messageData;
 
-    const validatedContent = validateMessageContent(content);
+    const hasAttachments = attachments && attachments.length > 0;
+    const validatedContent = validateMessageContent(content, hasAttachments);
 
     // Если есть userId, загружаем актуальные данные пользователя
     let actualUserData = {
@@ -64,7 +65,8 @@ class MessageService {
       badge: actualUserData.badge,
       badgeTooltip: actualUserData.badgeTooltip,
       content: validatedContent,
-      isSystem: false
+      isSystem: false,
+      attachments: attachments || []
     });
 
     await message.save();
