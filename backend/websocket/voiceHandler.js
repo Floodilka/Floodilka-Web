@@ -9,9 +9,15 @@ const screenSharingUsers = new Map(); // channelId -> Map(socketId -> { username
 class VoiceHandler {
   constructor(io) {
     this.io = io;
+    this.cachedVoiceState = {
+      voiceChannelsData: {},
+      screenSharingData: {}
+    };
+    this.lastBroadcastDigest = '';
+    this.lastLogAt = 0;
   }
 
-  broadcastVoiceChannelUsers() {
+  buildVoiceSnapshot() {
     const voiceChannelsData = {};
 
     voiceUsers.forEach((users, channelId) => {
@@ -38,10 +44,28 @@ class VoiceHandler {
       }));
     });
 
-    this.io.emit(SOCKET_EVENTS.VOICE_CHANNELS_UPDATE, voiceChannelsData);
-    // Отправить отдельное событие с информацией о screen sharing
-    this.io.emit(SOCKET_EVENTS.SCREEN_SHARING_UPDATE, screenSharingData);
-    logger.debug('📡 Обновление списка пользователей в голосовых каналах и screen sharing');
+    return { voiceChannelsData, screenSharingData };
+  }
+
+  broadcastVoiceChannelUsers() {
+    const snapshot = this.buildVoiceSnapshot();
+    const digest = JSON.stringify(snapshot);
+
+    if (digest === this.lastBroadcastDigest) {
+      return;
+    }
+
+    this.cachedVoiceState = snapshot;
+    this.lastBroadcastDigest = digest;
+
+    this.io.emit(SOCKET_EVENTS.VOICE_CHANNELS_UPDATE, snapshot.voiceChannelsData);
+    this.io.emit(SOCKET_EVENTS.SCREEN_SHARING_UPDATE, snapshot.screenSharingData);
+
+    const now = Date.now();
+    if (!this.lastLogAt || now - this.lastLogAt > 1000) {
+      logger.debug('📡 Обновление списка пользователей в голосовых каналах и screen sharing');
+      this.lastLogAt = now;
+    }
   }
 
   handleVoiceJoin(socket) {
@@ -300,33 +324,20 @@ class VoiceHandler {
 
   handleGetAllUsers(socket) {
     socket.on(SOCKET_EVENTS.VOICE_GET_ALL_USERS, () => {
-      const voiceChannelsData = {};
-      voiceUsers.forEach((users, channelId) => {
-        voiceChannelsData[channelId] = Array.from(users.entries()).map(([id, data]) => ({
-          id,
-          username: data.username,
-          avatar: data.avatar,
-          badge: data.badge,
-          badgeTooltip: data.badgeTooltip,
-          displayName: data.displayName,
-          userId: data.userId,
-          isMuted: data.isMuted,
-          isDeafened: data.isDeafened
-        }));
-      });
-      socket.emit(SOCKET_EVENTS.VOICE_CHANNELS_UPDATE, voiceChannelsData);
-
-      // Также отправить информацию о screen sharing
-      const screenSharingData = {};
-      screenSharingUsers.forEach((channelSharing, channelId) => {
-        screenSharingData[channelId] = Array.from(channelSharing.entries()).map(([socketId, data]) => ({
-          socketId,
-          username: data.username,
-          userId: data.userId
-        }));
-      });
-      socket.emit(SOCKET_EVENTS.SCREEN_SHARING_UPDATE, screenSharingData);
+      const snapshot = this.cachedVoiceState || this.buildVoiceSnapshot();
+      socket.emit(SOCKET_EVENTS.VOICE_CHANNELS_UPDATE, snapshot.voiceChannelsData);
+      socket.emit(SOCKET_EVENTS.SCREEN_SHARING_UPDATE, snapshot.screenSharingData);
       logger.debug(`📡 Отправлено текущее состояние voice и screen sharing пользователю ${socket.id}`);
+    });
+  }
+
+  handlePing(socket) {
+    socket.on(SOCKET_EVENTS.VOICE_PING, ({ channelId, timestamp }) => {
+      socket.emit(SOCKET_EVENTS.VOICE_PONG, {
+        channelId,
+        timestamp,
+        serverTime: Date.now()
+      });
     });
   }
 
@@ -376,9 +387,9 @@ class VoiceHandler {
     this.handleWebRTC(socket);
     this.handleScreenShare(socket);
     this.handleGetAllUsers(socket);
+    this.handlePing(socket);
     this.handleDisconnect(socket);
   }
 }
 
 module.exports = VoiceHandler;
-

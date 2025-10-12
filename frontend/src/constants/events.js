@@ -42,6 +42,8 @@ export const SOCKET_EVENTS = {
   VOICE_DEAFEN_TOGGLE: 'voice:deafen-toggle',
   VOICE_GET_ALL_USERS: 'voice:get-all-users',
   VOICE_CHANNELS_UPDATE: 'voice:channels-update',
+  VOICE_PING: 'voice:ping',
+  VOICE_PONG: 'voice:pong',
 
   // WebRTC events
   VOICE_OFFER: 'voice:offer',
@@ -62,4 +64,3 @@ export const SOCKET_EVENTS = {
   DIRECT_MESSAGE_EDITED: 'direct-message:edited',
   DIRECT_MESSAGE_DELETED: 'direct-message:deleted'
 };
-
