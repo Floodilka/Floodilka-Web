@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './DirectMessages.css';
 import UserProfile from './UserProfile';
@@ -21,18 +21,19 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
   const [inputValue, setInputValue] = useState('');
   const [sendingMessage, setSendingMessage] = useState(false);
   const messagesEndRef = useRef(null);
+  const lastProcessedUserIdRef = useRef(null);
 
   // Функция для проверки онлайн статуса пользователя
-  const isUserOnline = (userId) => {
+  const isUserOnline = useCallback((userId) => {
     return globalOnlineUsers.some(onlineUser => onlineUser.userId === userId);
-  };
+  }, [globalOnlineUsers]);
 
   // Функция для прокрутки к последнему сообщению
-  const scrollToBottom = () => {
+  const scrollToBottom = useCallback(() => {
     if (messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: 'auto' });
     }
-  };
+  }, []);
 
   // Функция для отправки сообщения
   const handleSendMessage = async (e) => {
@@ -160,23 +161,110 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
     return grouped;
   };
 
+  // Мемоизируем функцию загрузки разговоров
+  const loadDirectMessages = useCallback(async () => {
+    setLoading(true);
+    setError('');
+
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) return;
+
+      console.log('📥 Загружаем список разговоров...');
+      const response = await fetch(`${BACKEND_URL}/api/direct-messages/conversations`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Ошибка загрузки личных сообщений');
+      }
+
+      const data = await response.json();
+      console.log('📥 Получены разговоры:', data);
+
+      // Фильтруем и валидируем данные
+      const validConversations = Array.isArray(data)
+        ? data.filter(conv => {
+            const isValid = conv && conv.user && conv.user._id && conv.user.username;
+            if (!isValid) {
+              console.warn('⚠️ Невалидный разговор отфильтрован:', conv);
+            }
+            return isValid;
+          })
+        : [];
+
+      if (validConversations.length !== data.length) {
+        console.warn(`⚠️ Отфильтровано ${data.length - validConversations.length} невалидных разговоров`);
+      }
+
+      setDirectMessages(validConversations);
+    } catch (err) {
+      console.error('Ошибка загрузки личных сообщений:', err);
+      setError('Не удалось загрузить личные сообщения');
+      setDirectMessages([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // Мемоизируем функцию загрузки сообщений
+  const loadMessagesWithUser = useCallback(async (userId) => {
+    setMessagesLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) return;
+
+      console.log('📥 Загружаем сообщения с пользователем:', userId);
+      const response = await fetch(`${BACKEND_URL}/api/direct-messages/conversation/${userId}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Ошибка загрузки сообщений');
+      }
+
+      const data = await response.json();
+      console.log('📥 Получены сообщения:', data);
+      setSelectedMessages(data);
+    } catch (err) {
+      console.error('Ошибка загрузки сообщений:', err);
+      setSelectedMessages([]);
+    } finally {
+      setMessagesLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     if (user) {
       loadDirectMessages();
     }
-  }, [user]);
+  }, [user, loadDirectMessages]);
 
   // Автоматический выбор разговора (десктоп: по userId из URL; мобильный: приходит объект разговора)
   useEffect(() => {
-    if (!autoSelectUser) return;
+    if (!autoSelectUser) {
+      lastProcessedUserIdRef.current = null;
+      return;
+    }
 
     // Попытка №1: стандартный путь — у нас есть userId в авто-выборе и загружен список разговоров
     if (directMessages.length > 0 && (autoSelectUser.userId || autoSelectUser.user?._id)) {
       const targetUserId = autoSelectUser.userId || autoSelectUser.user?._id;
+
+      // Предотвращаем повторную обработку того же пользователя
+      if (lastProcessedUserIdRef.current === targetUserId) {
+        return;
+      }
+
       const conversation = directMessages.find(dm => dm?._id === targetUserId || dm?.user?._id === targetUserId);
 
       if (conversation) {
         console.log('🎯 Автоматически выбираем разговор с:', conversation.user?.username);
+        lastProcessedUserIdRef.current = targetUserId;
         setSelectedDM(conversation);
         setInputValue('');
         loadMessagesWithUser(conversation._id);
@@ -219,6 +307,12 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
 
     // Попытка №2: мобильный путь — нам пришёл целый объект разговора c `_id`
     if (autoSelectUser._id) {
+      // Предотвращаем повторную обработку того же пользователя
+      if (lastProcessedUserIdRef.current === autoSelectUser._id) {
+        return;
+      }
+
+      lastProcessedUserIdRef.current = autoSelectUser._id;
       setSelectedDM(prev => prev?._id === autoSelectUser._id ? prev : autoSelectUser);
       setInputValue('');
       loadMessagesWithUser(autoSelectUser._id);
@@ -263,14 +357,14 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
     if (onAutoSelectComplete) {
       onAutoSelectComplete();
     }
-  }, [autoSelectUser, directMessages, onAutoSelectComplete]);
+  }, [autoSelectUser, directMessages, onAutoSelectComplete, loadMessagesWithUser]);
 
   // Автоматическая прокрутка к последнему сообщению при изменении сообщений
   useEffect(() => {
     if (selectedMessages.length > 0) {
       scrollToBottom();
     }
-  }, [selectedMessages]);
+  }, [selectedMessages, scrollToBottom]);
 
   // WebSocket обработчики для личных сообщений
   useEffect(() => {
@@ -344,82 +438,7 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
     }
   }, [directMessages, onUnreadDMsUpdate]);
 
-  const loadDirectMessages = async () => {
-    setLoading(true);
-    setError('');
-
-    try {
-      const token = localStorage.getItem('token');
-      if (!token) return;
-
-      console.log('📥 Загружаем список разговоров...');
-      const response = await fetch(`${BACKEND_URL}/api/direct-messages/conversations`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error('Ошибка загрузки личных сообщений');
-      }
-
-      const data = await response.json();
-      console.log('📥 Получены разговоры:', data);
-
-      // Фильтруем и валидируем данные
-      const validConversations = Array.isArray(data)
-        ? data.filter(conv => {
-            const isValid = conv && conv.user && conv.user._id && conv.user.username;
-            if (!isValid) {
-              console.warn('⚠️ Невалидный разговор отфильтрован:', conv);
-            }
-            return isValid;
-          })
-        : [];
-
-      if (validConversations.length !== data.length) {
-        console.warn(`⚠️ Отфильтровано ${data.length - validConversations.length} невалидных разговоров`);
-      }
-
-      setDirectMessages(validConversations);
-    } catch (err) {
-      console.error('Ошибка загрузки личных сообщений:', err);
-      setError('Не удалось загрузить личные сообщения');
-      setDirectMessages([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const loadMessagesWithUser = async (userId) => {
-    setMessagesLoading(true);
-    try {
-      const token = localStorage.getItem('token');
-      if (!token) return;
-
-      console.log('📥 Загружаем сообщения с пользователем:', userId);
-      const response = await fetch(`${BACKEND_URL}/api/direct-messages/conversation/${userId}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error('Ошибка загрузки сообщений');
-      }
-
-      const data = await response.json();
-      console.log('📥 Получены сообщения:', data);
-      setSelectedMessages(data);
-    } catch (err) {
-      console.error('Ошибка загрузки сообщений:', err);
-      setSelectedMessages([]);
-    } finally {
-      setMessagesLoading(false);
-    }
-  };
-
-  const handleSelectDM = async (dm) => {
+  const handleSelectDM = useCallback(async (dm) => {
     // Если есть обработчик для мобильного режима, используем его
     if (onDMUserSelect) {
       onDMUserSelect(dm);
@@ -428,10 +447,12 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
 
     // Навигация через URL вместо изменения состояния
     navigate(`/channels/@me/${dm._id}`);
-  };
+  }, [onDMUserSelect, navigate]);
 
-  const filteredDMs = directMessages.filter(dm =>
-    dm?.user?.username?.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredDMs = useMemo(() =>
+    directMessages.filter(dm =>
+      dm?.user?.username?.toLowerCase().includes(searchQuery.toLowerCase())
+    ), [directMessages, searchQuery]
   );
 
   // Если нужно показать только чат (для мобильной версии)

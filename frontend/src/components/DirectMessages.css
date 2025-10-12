@@ -5,6 +5,8 @@
   background: #1e1f22;
   opacity: 0;
   animation: dmContainerFadeIn 0.3s ease-out forwards;
+  /* Оптимизация производительности */
+  contain: layout style;
 }
 
 @keyframes dmContainerFadeIn {

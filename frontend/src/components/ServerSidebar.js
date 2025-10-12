@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, memo, useCallback } from 'react';
 import './ServerSidebar.css';
 import CreateServerModal from './CreateServerModal';
 
@@ -6,7 +6,7 @@ const BACKEND_URL = window.location.hostname === 'localhost'
   ? 'http://localhost:3001'
   : `${window.location.protocol}//${window.location.hostname}`;
 
-function ServerSidebar({ servers, currentServer, onSelectServer, onCreateServer, user, onSelectDirectMessages, showDirectMessages, hasUnreadDMs, activeVoiceChannel }) {
+const ServerSidebar = memo(function ServerSidebar({ servers, currentServer, onSelectServer, onCreateServer, user, onSelectDirectMessages, showDirectMessages, hasUnreadDMs, activeVoiceChannel }) {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showActionMenu, setShowActionMenu] = useState(false);
   const [showJoinModal, setShowJoinModal] = useState(false);
@@ -21,7 +21,7 @@ function ServerSidebar({ servers, currentServer, onSelectServer, onCreateServer,
   const addButtonRef = useRef(null);
   const serverRefs = useRef({});
 
-  const handleMenuToggle = () => {
+  const handleMenuToggle = useCallback(() => {
     if (!showActionMenu && addButtonRef.current) {
       const rect = addButtonRef.current.getBoundingClientRect();
       setMenuPosition({
@@ -30,46 +30,49 @@ function ServerSidebar({ servers, currentServer, onSelectServer, onCreateServer,
       });
     }
     setShowActionMenu(!showActionMenu);
-  };
+  }, [showActionMenu]);
 
-    const handleServerHover = (server, event) => {
+  const handleServerHover = useCallback((server, event) => {
     const rect = event.currentTarget.getBoundingClientRect();
     setTooltipPosition({
       top: rect.top + rect.height / 2,
       left: rect.right + 8
     });
     setHoveredServer(server);
-  };
+  }, []);
 
-  const handleServerLeave = () => {
+  const handleServerLeave = useCallback(() => {
     setHoveredServer(null);
-  };
+  }, []);
 
   // Обновление позиции индикатора при смене сервера или DM
   useEffect(() => {
-    if (showDirectMessages && serverRefs.current['dm-icon']) {
-      // Показываем индикатор для DM
-      const element = serverRefs.current['dm-icon'];
-      const rect = element.getBoundingClientRect();
-      const sidebar = element.closest('.server-list');
-      if (sidebar) {
-        const sidebarRect = sidebar.getBoundingClientRect();
-        const relativeTop = rect.top - sidebarRect.top + rect.height / 2;
-        setIndicatorPosition(relativeTop);
-        setShowIndicator(true);
+    // Используем requestAnimationFrame для плавной анимации
+    requestAnimationFrame(() => {
+      if (showDirectMessages && serverRefs.current['dm-icon']) {
+        // Показываем индикатор для DM
+        const element = serverRefs.current['dm-icon'];
+        const rect = element.getBoundingClientRect();
+        const sidebar = element.closest('.server-list');
+        if (sidebar) {
+          const sidebarRect = sidebar.getBoundingClientRect();
+          const relativeTop = rect.top - sidebarRect.top + rect.height / 2;
+          setIndicatorPosition(relativeTop);
+          setShowIndicator(true);
+        }
+      } else if (currentServer && serverRefs.current[currentServer._id]) {
+        // Показываем индикатор для сервера
+        const element = serverRefs.current[currentServer._id];
+        const rect = element.getBoundingClientRect();
+        const sidebar = element.closest('.server-list');
+        if (sidebar) {
+          const sidebarRect = sidebar.getBoundingClientRect();
+          const relativeTop = rect.top - sidebarRect.top + rect.height / 2;
+          setIndicatorPosition(relativeTop);
+          setShowIndicator(true);
+        }
       }
-    } else if (currentServer && serverRefs.current[currentServer._id]) {
-      // Показываем индикатор для сервера
-      const element = serverRefs.current[currentServer._id];
-      const rect = element.getBoundingClientRect();
-      const sidebar = element.closest('.server-list');
-      if (sidebar) {
-        const sidebarRect = sidebar.getBoundingClientRect();
-        const relativeTop = rect.top - sidebarRect.top + rect.height / 2;
-        setIndicatorPosition(relativeTop);
-        setShowIndicator(true);
-      }
-    }
+    });
   }, [currentServer, servers, showDirectMessages]);
 
   const handleCreateServer = (serverData) => {
@@ -304,7 +307,7 @@ function ServerSidebar({ servers, currentServer, onSelectServer, onCreateServer,
 
     </div>
   );
-}
+});
 
 export default ServerSidebar;
 

@@ -219,9 +219,12 @@ const ServerRoute = () => {
       }
 
       if (currentServer?._id !== serverId) {
-        // Очищаем состояние канала при смене сервера
-        clearChannelState();
+        // Сначала выбираем новый сервер, потом очищаем состояние канала
         selectServer(server);
+        // Очищаем состояние канала после небольшой задержки для плавности
+        requestAnimationFrame(() => {
+          clearChannelState();
+        });
       }
     }
   }, [serverId, servers, currentServer, selectServer, clearChannelState]);

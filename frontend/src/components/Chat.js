@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import './Chat.css';
 
 const BACKEND_URL = window.location.hostname === 'localhost'
@@ -18,6 +18,7 @@ function Chat({ channel, messages, username, user, currentServer, onSendMessage,
   const [sendingMessage, setSendingMessage] = useState(false);
   const [userPermissions, setUserPermissions] = useState(null);
   const [deletingMessageId, setDeletingMessageId] = useState(null);
+  const [showMessages, setShowMessages] = useState(messages.length > 0); // Для предотвращения дергания
 
   const handleUserClick = async (message, event) => {
     const rect = event.currentTarget.getBoundingClientRect();
@@ -249,31 +250,68 @@ function Chat({ channel, messages, username, user, currentServer, onSendMessage,
 
   // Скролл вниз при смене канала
   const prevChannelRef = useRef(null);
+  const isInitialLoad = useRef(true); // true по умолчанию для первой загрузки при обновлении страницы
+  const hasScrolledOnce = useRef(false); // Отслеживаем, был ли хотя бы один скролл
+
   useEffect(() => {
     if (channel?.id !== prevChannelRef.current) {
       prevChannelRef.current = channel?.id;
-      // При смене канала всегда скроллим вниз
-      setTimeout(scrollToBottom, 100);
+      isInitialLoad.current = true; // Отмечаем что это начальная загрузка
+      hasScrolledOnce.current = false; // Сбрасываем флаг скролла
+      setShowMessages(false); // Скрываем сообщения при смене канала
     }
   }, [channel?.id]);
 
   // Умный автоскролл - скроллит только если пользователь был внизу
+  // Используем useLayoutEffect для синхронного скролла после рендеринга DOM
   const prevMessagesLengthRef = useRef(0);
-  useEffect(() => {
-    if (!messagesContainerRef.current) return;
+  useLayoutEffect(() => {
+    if (!messagesContainerRef.current || !messagesEndRef.current) return;
 
     const container = messagesContainerRef.current;
     const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 100;
 
-    // Скроллим вниз только если:
-    // 1. Пользователь был близко к низу (читал новые сообщения)
-    // 2. И количество сообщений увеличилось (новое сообщение, а не удаление)
-    if (isNearBottom && messages.length >= prevMessagesLengthRef.current) {
-      scrollToBottom();
+    // Скроллим вниз если:
+    // 1. Это начальная загрузка сообщений для нового канала И есть хотя бы одно сообщение
+    // 2. ИЛИ пользователь был близко к низу И количество сообщений увеличилось
+    const shouldScroll = (isInitialLoad.current && messages.length > 0) || (isNearBottom && messages.length >= prevMessagesLengthRef.current);
+
+    if (shouldScroll) {
+      // Двойной вызов для гарантии: синхронно + в следующем кадре
+      messagesEndRef.current.scrollIntoView({ behavior: 'auto' });
+      requestAnimationFrame(() => {
+        if (messagesEndRef.current) {
+          messagesEndRef.current.scrollIntoView({ behavior: 'auto' });
+        }
+      });
+
+      if (isInitialLoad.current) {
+        isInitialLoad.current = false; // Сбрасываем флаг после первого скролла
+      }
     }
 
     prevMessagesLengthRef.current = messages.length;
   }, [messages]);
+
+  // Дополнительный эффект для скролла при первом рендере с сообщениями
+  useEffect(() => {
+    // Если есть сообщения и мы еще ни разу не скроллили
+    if (messages.length > 0 && !hasScrolledOnce.current && messagesEndRef.current) {
+      // Скроллим немедленно без задержки
+      messagesEndRef.current.scrollIntoView({ behavior: 'auto' });
+      hasScrolledOnce.current = true; // Помечаем что проскроллили
+
+      // Показываем сообщения после скролла
+      setShowMessages(true);
+
+      // Дополнительный скролл через микрозадачу для надежности
+      Promise.resolve().then(() => {
+        if (messagesEndRef.current) {
+          messagesEndRef.current.scrollIntoView({ behavior: 'auto' });
+        }
+      });
+    }
+  }, [messages.length]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -368,7 +406,11 @@ function Chat({ channel, messages, username, user, currentServer, onSendMessage,
         <h3>{channel.name}</h3>
       </div>
 
-      <div className="messages-container" ref={messagesContainerRef}>
+      <div
+        className="messages-container"
+        ref={messagesContainerRef}
+        style={{ opacity: showMessages ? 1 : 0, transition: 'opacity 0.15s ease' }}
+      >
         <div className="messages-welcome">
           <div className="welcome-icon">#</div>
           <h2>Добро пожаловать в #{channel.name}!</h2>

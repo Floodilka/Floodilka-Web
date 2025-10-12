@@ -4,6 +4,18 @@
   box-sizing: border-box;
 }
 
+/* Глобальная оптимизация производительности */
+*,
+*::before,
+*::after {
+  /* Предотвращаем подергивания при анимациях */
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  /* Улучшаем производительность трансформаций */
+  -webkit-perspective: 1000;
+  perspective: 1000;
+}
+
 html, body {
   height: 100%;
   overflow: hidden;
@@ -19,6 +31,9 @@ body {
   -moz-osx-font-smoothing: grayscale;
   background-color: #36393f;
   color: #dcddde;
+  /* Оптимизация рендеринга */
+  -webkit-tap-highlight-color: transparent;
+  text-rendering: optimizeLegibility;
 }
 
 #root {
@@ -29,4 +44,30 @@ body {
 code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
+}
+
+/* Кастомный скроллбар для всего приложения */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #2b2d31;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #1a1b1e;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #18191c;
+}
+
+/* Убираем подергивания при трансформациях */
+img,
+video {
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
 }

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, memo, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './UserList.css';
 
@@ -6,7 +6,7 @@ const BACKEND_URL = window.location.hostname === 'localhost'
   ? 'http://localhost:3001'
   : `${window.location.protocol}//${window.location.hostname}`;
 
-function UserList({ onlineUsers, allMembers, currentUser, currentServer, onMessageSent }) {
+const UserList = memo(function UserList({ onlineUsers, allMembers, currentUser, currentServer, onMessageSent }) {
   const navigate = useNavigate();
   const [selectedUser, setSelectedUser] = useState(null);
   const [profilePosition, setProfilePosition] = useState({ top: 0, left: 0 });
@@ -15,17 +15,23 @@ function UserList({ onlineUsers, allMembers, currentUser, currentServer, onMessa
   const [showOwnerTooltip, setShowOwnerTooltip] = useState(false);
   const [tooltipPosition, setTooltipPosition] = useState({ top: 0, left: 0 });
 
-  // Создаем Map из онлайн пользователей по userId для быстрой проверки
-  const onlineUsersMap = new Map();
-  onlineUsers.forEach(u => {
-    if (u.userId) {
-      onlineUsersMap.set(u.userId, u);
-    }
-  });
+  // Мемоизируем создание Map из онлайн пользователей для быстрой проверки
+  const onlineUsersMap = useMemo(() => {
+    const map = new Map();
+    onlineUsers.forEach(u => {
+      if (u.userId) {
+        map.set(u.userId, u);
+      }
+    });
+    return map;
+  }, [onlineUsers]);
 
-  // Разделяем участников на онлайн и оффлайн
-  const onlineMembers = allMembers.filter(member => onlineUsersMap.has(member.id));
-  const offlineMembers = allMembers.filter(member => !onlineUsersMap.has(member.id));
+  // Мемоизируем разделение участников на онлайн и оффлайн
+  const { onlineMembers, offlineMembers } = useMemo(() => {
+    const online = allMembers.filter(member => onlineUsersMap.has(member.id));
+    const offline = allMembers.filter(member => !onlineUsersMap.has(member.id));
+    return { onlineMembers: online, offlineMembers: offline };
+  }, [allMembers, onlineUsersMap]);
 
   const handleUserClick = async (user, event) => {
     const rect = event.currentTarget.getBoundingClientRect();
@@ -306,7 +312,7 @@ function UserList({ onlineUsers, allMembers, currentUser, currentServer, onMessa
       )}
     </div>
   );
-}
+});
 
 export default UserList;
 

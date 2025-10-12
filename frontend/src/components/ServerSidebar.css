@@ -10,6 +10,10 @@
   overflow-x: visible;
   user-select: none;
   border-right: 1px solid #313338;
+  /* Оптимизация производительности */
+  contain: layout style;
+  /* Оптимизация скроллинга */
+  -webkit-overflow-scrolling: touch;
 }
 
 /* Мобильная адаптация */
@@ -56,9 +60,10 @@
   background: white;
   border-radius: 0 4px 4px 0;
   transform: translateY(-50%);
-  transition: top 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: top 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
   pointer-events: none;
   z-index: 1;
+  will-change: top;
 }
 
 .server-icon {
@@ -70,10 +75,11 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: transform 0.15s ease, border-radius 0.2s ease;
   position: relative;
   overflow: visible;
   flex-shrink: 0;
+  will-change: transform;
 }
 
 .server-icon:hover {

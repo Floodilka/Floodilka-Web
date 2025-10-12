@@ -7,6 +7,9 @@
   border-right: 1px solid #313338;
   user-select: none;
   overflow: hidden;
+  /* Оптимизация производительности */
+  will-change: contents;
+  contain: layout style;
 }
 
 /* Мобильная адаптация */
@@ -216,7 +219,9 @@
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-    border-top: 1px solid #313338;
+  border-top: 1px solid #313338;
+  /* Оптимизация скроллинга */
+  -webkit-overflow-scrolling: touch;
 }
 
 .channels-section {

@@ -73,20 +73,26 @@ export const ServerProvider = ({ children }) => {
 
   // Загрузка каналов и участников текущего сервера
   useEffect(() => {
-    if (!currentServer || !user) return;
+    if (!currentServer || !user) {
+      setChannels([]);
+      setAllServerMembers([]);
+      return;
+    }
 
     const loadServerData = async () => {
       try {
         setLoading(true);
 
-        // Загрузить каналы
-        const channelsData = await apiService.getServerChannels(currentServer._id);
-        const channelsArray = Array.isArray(channelsData) ? channelsData : [];
-        setChannels(channelsArray);
+        // Загружаем данные параллельно
+        const [channelsData, membersData] = await Promise.all([
+          apiService.getServerChannels(currentServer._id),
+          apiService.getServerMembers(currentServer._id)
+        ]);
 
-        // Загрузить всех участников сервера
-        const membersData = await apiService.getServerMembers(currentServer._id);
+        const channelsArray = Array.isArray(channelsData) ? channelsData : [];
         const membersArray = Array.isArray(membersData) ? membersData : [];
+
+        setChannels(channelsArray);
         setAllServerMembers(membersArray);
       } catch (err) {
         console.error('Ошибка загрузки данных сервера:', err);
@@ -105,10 +111,9 @@ export const ServerProvider = ({ children }) => {
       return;
     }
 
+    // Устанавливаем новый сервер БЕЗ очистки каналов
+    // Каналы обновятся автоматически в useEffect при смене currentServer
     setCurrentServer(server);
-    // Очищаем каналы при смене сервера
-    setChannels([]);
-    setAllServerMembers([]);
   }, [currentServer]);
 
   const createServer = useCallback(async (serverData) => {
