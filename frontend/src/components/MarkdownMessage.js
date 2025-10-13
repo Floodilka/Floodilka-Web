@@ -19,6 +19,16 @@ const MarkdownMessage = ({
 
   const handleClick = useCallback(
     (event) => {
+      const spoilerElement = event.target.closest('[data-spoiler]');
+
+      if (spoilerElement) {
+        const currentState = spoilerElement.getAttribute('data-spoiler');
+        const nextState = currentState === 'shown' ? 'hidden' : 'shown';
+        spoilerElement.setAttribute('data-spoiler', nextState);
+        event.preventDefault();
+        return;
+      }
+
       if (!onMentionClick) {
         return;
       }

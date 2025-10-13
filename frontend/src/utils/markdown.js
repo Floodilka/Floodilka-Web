@@ -120,6 +120,18 @@ const normalizeQuoteLines = (source) => {
 };
 
 const defaultTextOrder = SimpleMarkdown.defaultRules.text?.order ?? 0;
+const emOrder = SimpleMarkdown.defaultRules.em?.order ?? 0;
+const strikethroughOrder = SimpleMarkdown.defaultRules.del?.order ?? emOrder + 1;
+
+const spoilerRule = {
+  order: Math.min(emOrder, strikethroughOrder) - 0.1,
+  match: SimpleMarkdown.inlineRegex(/^\|\|([\s\S]+?)\|\|(?!\|)/),
+  parse: (capture, parse, state) => ({
+    type: 'spoiler',
+    content: parse(capture[1], state)
+  }),
+  html: (node, output, state) => `<span class="md-spoiler" data-spoiler="hidden">${output(node.content, state)}</span>`
+};
 
 const mentionRule = {
   order: defaultTextOrder - 0.5,
@@ -168,6 +180,7 @@ const mentionRule = {
 const createRules = () => {
   const rules = {
     ...SimpleMarkdown.defaultRules,
+    spoiler: spoilerRule,
     mention: mentionRule,
     inlineCode: {
       ...SimpleMarkdown.defaultRules.inlineCode,
@@ -277,7 +290,8 @@ export const markdownToSanitizedHtml = (source, options = {}) => {
       'target',
       'title',
       'data-mention',
-      'data-mention-id'
+      'data-mention-id',
+      'data-spoiler'
     ]
   });
 };

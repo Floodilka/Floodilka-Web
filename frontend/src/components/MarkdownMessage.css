@@ -76,6 +76,44 @@
   text-decoration: underline;
 }
 
+.markdown-message .md-spoiler {
+  position: relative;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s ease, color 0.2s ease;
+  padding: 0 2px;
+}
+
+.markdown-message .md-spoiler[data-spoiler="hidden"] {
+  background-color: rgba(78, 80, 88, 0.8);
+  color: transparent;
+}
+
+.markdown-message .md-spoiler[data-spoiler="hidden"] * {
+  color: transparent;
+}
+
+.markdown-message .md-spoiler[data-spoiler="hidden"]::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: rgba(78, 80, 88, 0.7);
+}
+
+.markdown-message .md-spoiler[data-spoiler="shown"] {
+  background-color: rgba(78, 80, 88, 0.3);
+  color: inherit;
+}
+
+.markdown-message .md-spoiler[data-spoiler="shown"] * {
+  color: inherit;
+}
+
+.markdown-message .md-spoiler[data-spoiler="shown"]::after {
+  display: none;
+}
+
 .markdown-message pre::-webkit-scrollbar {
   height: 6px;
 }
