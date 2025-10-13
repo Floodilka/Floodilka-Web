@@ -392,8 +392,8 @@
 }
 
 .dm-chat-avatar {
-  width: 36px;
-  height: 36px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
   background: #5865f2;
   display: flex;
@@ -401,7 +401,7 @@
   justify-content: center;
   color: white;
   font-weight: 600;
-  font-size: 16px;
+  font-size: 12px;
   position: relative;
 }
 
@@ -419,7 +419,7 @@
 .dm-chat-username {
   color: #ffffff;
   font-weight: 600;
-  font-size: 16px;
+  font-size: 14px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -427,7 +427,7 @@
 
 .dm-chat-status {
   color: #8e9297;
-  font-size: 14px;
+  font-size: 12px;
 }
 
 
@@ -440,22 +440,70 @@
   max-height: calc(100vh - 132px);
 }
 
-.dm-messages-empty {
-  text-align: center;
+.dm-messages-welcome {
+  padding: 24px 16px 16px 16px;
+  text-align: left;
   color: #8e9297;
-  max-width: 400px;
-  margin: 0 auto;
-}
-
-.dm-messages-empty h3 {
-  color: #ffffff;
-  font-size: 20px;
+  max-width: 600px;
   margin: 0 0 8px 0;
 }
 
-.dm-messages-empty p {
+.dm-welcome-avatar {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  margin: 0 0 16px 0;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #40444b;
+}
+
+.dm-welcome-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.dm-welcome-avatar span {
+  color: #dcddde;
+  font-size: 32px;
+  font-weight: 600;
+}
+
+.dm-welcome-info {
+  margin-bottom: 16px;
+}
+
+.dm-welcome-info h2 {
+  color: #ffffff;
+  font-size: 24px;
+  margin: 0 0 4px 0;
+  font-weight: 600;
+}
+
+.dm-welcome-info p {
+  color: #8e9297;
   font-size: 16px;
-  margin: 0 0 24px 0;
+  margin: 0;
+}
+
+.dm-welcome-description {
+  margin-bottom: 24px;
+}
+
+.dm-welcome-description p {
+  color: #8e9297;
+  font-size: 16px;
+  margin: 0;
+}
+
+.dm-welcome-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-start;
+  flex-wrap: wrap;
 }
 
 .dm-actions {
@@ -487,6 +535,16 @@
 
 .dm-action-btn.danger:hover {
   background: #d83c3e;
+}
+
+.dm-action-btn.disabled {
+  background: #4f545c;
+  color: #72767d;
+  cursor: not-allowed;
+}
+
+.dm-action-btn.disabled:hover {
+  background: #4f545c;
 }
 
 /* Поле ввода (как в чате сервера) */
@@ -825,6 +883,11 @@
   color: #ffffff;
   font-weight: 600;
   font-size: 15px;
+  transition: text-decoration 0.1s;
+}
+
+.dm-message-username:hover:not([style*="cursor: default"]) {
+  text-decoration: underline;
 }
 
 .dm-message-time {
@@ -1237,5 +1300,213 @@
 
 .dm-edit-cancel:hover {
   background: #3a3d44;
+  color: #ffffff;
+}
+
+/* Мобильные стили для приветственного блока */
+@media (max-width: 768px) {
+  .dm-messages-welcome {
+    padding: 16px 8px;
+  }
+
+  .dm-welcome-avatar {
+    width: 60px;
+    height: 60px;
+    margin-bottom: 12px;
+  }
+
+  .dm-welcome-avatar span {
+    font-size: 24px;
+  }
+
+  .dm-welcome-info h2 {
+    font-size: 20px;
+  }
+
+  .dm-welcome-info p {
+    font-size: 14px;
+  }
+
+  .dm-welcome-description p {
+    font-size: 14px;
+  }
+
+  .dm-welcome-actions {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .dm-action-btn {
+    width: 100%;
+    max-width: 200px;
+  }
+}
+
+/* Оверлей для карточки профиля */
+.user-profile-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: transparent;
+  z-index: 9998;
+}
+
+/* Карточка профиля пользователя в чате */
+.user-profile-card-chat {
+  position: fixed;
+  width: 340px;
+  background: #111214;
+  border-radius: 8px;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
+  z-index: 9999;
+  animation: profileSlideInChat 0.15s ease-out;
+  overflow: visible;
+}
+
+@keyframes profileSlideInChat {
+  from {
+    opacity: 0;
+    transform: translateX(-8px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+.user-profile-banner {
+  height: 60px;
+  background: linear-gradient(135deg, #5865f2 0%, #4752c4 100%);
+  border-radius: 8px 8px 0 0;
+  overflow: hidden;
+}
+
+.user-profile-content {
+  padding: 16px;
+  padding-top: 48px;
+  position: relative;
+}
+
+.user-profile-avatar-wrapper {
+  position: absolute;
+  top: -32px;
+  left: 16px;
+}
+
+.user-profile-avatar-large {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  border: 6px solid #111214;
+  background: linear-gradient(135deg, #5865f2 0%, #4752c4 100%);
+  object-fit: cover;
+}
+
+.user-profile-avatar-fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 600;
+  font-size: 32px;
+}
+
+/* Поле для отправки личного сообщения в профиле пользователя в чате */
+.user-profile-card-chat .user-profile-message-input {
+  padding: 16px;
+  background: transparent;
+  border-top: none;
+}
+
+.user-profile-card-chat .user-profile-message-input .message-input-container {
+  display: flex;
+  align-items: center;
+  background: #2b2d31;
+  border-radius: 4px;
+  padding: 0px 8px;
+  border: 1px solid #40444b;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  height: 32px;
+}
+
+.user-profile-card-chat .user-profile-message-input .message-input-container:focus-within {
+  border-color: #5865f2;
+  box-shadow: 0 0 0 2px rgba(88, 101, 242, 0.2);
+  background: #36393f;
+}
+
+.user-profile-card-chat .user-profile-message-input .message-input-field {
+  flex: 1;
+  background: none !important;
+  border: none;
+  outline: none;
+  color: #ffffff;
+  font-size: 13px;
+  font-family: inherit;
+  line-height: 1.0;
+  padding: 1px 0;
+  background-color: transparent !important;
+}
+
+.user-profile-card-chat .user-profile-message-input .message-input-field::placeholder {
+  color: #8e9297;
+  font-weight: 400;
+}
+
+.user-profile-card-chat .user-profile-message-input .message-input-field:focus {
+  outline: none;
+  background: none !important;
+  background-color: transparent !important;
+}
+
+.user-profile-card-chat .user-profile-message-input .message-input-container:focus-within .message-input-field {
+  background: none !important;
+  background-color: transparent !important;
+}
+
+.user-profile-display-name {
+  color: #ffffff;
+  font-size: 20px;
+  font-weight: 600;
+  margin-bottom: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.user-profile-username-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.user-profile-username {
+  color: #b5bac1;
+  font-size: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 220px;
+}
+
+.user-profile-badge {
+  font-size: 8px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 3px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-top: 2px;
+}
+
+/* Все теги одного синего цвета */
+.user-profile-badge {
+  background-color: #5865f2;
   color: #ffffff;
 }

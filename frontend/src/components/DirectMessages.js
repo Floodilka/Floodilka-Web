@@ -3,8 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import './DirectMessages.css';
 import UserProfile from './UserProfile';
 import FriendsPanel from './FriendsPanel';
+import FriendActionButton from './FriendActionButton';
 import { useGlobalUsers } from '../context/GlobalUsersContext';
 import { useFriends } from '../context/FriendsContext';
+import { useFriendStatus } from '../hooks/useFriendStatus';
 import { SOCKET_EVENTS } from '../constants/events';
 import EmojiPicker from './EmojiPicker';
 import MessageReactions from './MessageReactions';
@@ -16,7 +18,7 @@ const BACKEND_URL = window.location.hostname === 'localhost'
 function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser, onAutoSelectComplete, onUnreadDMsUpdate, isMuted, isDeafened, isInVoice, isSpeaking, onToggleMute, onToggleDeafen, onDisconnect, onDMUserSelect, showOnlyList, showOnlyChat }) {
   const navigate = useNavigate();
   const { globalOnlineUsers } = useGlobalUsers();
-  const { incomingRequests } = useFriends();
+  const { incomingRequests, sendFriendRequest, respondToRequest, removeFriend } = useFriends();
   const [directMessages, setDirectMessages] = useState([]);
   const [selectedDM, setSelectedDM] = useState(null);
   const [selectedMessages, setSelectedMessages] = useState([]);
@@ -37,15 +39,228 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
   const [editValue, setEditValue] = useState('');
   const [replyingTo, setReplyingTo] = useState(null);
   const [highlightedMessageId, setHighlightedMessageId] = useState(null);
+  const [addingFriend, setAddingFriend] = useState(false);
   const messagesEndRef = useRef(null);
   const lastProcessedUserIdRef = useRef(null);
   const messagesContainerRef = useRef(null);
   const inputRef = useRef(null);
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [profilePosition, setProfilePosition] = useState({ top: 0, left: 0 });
+  const [messageText, setMessageText] = useState('');
+  const [sendingDirectMessage, setSendingDirectMessage] = useState(false);
 
   // Функция для проверки онлайн статуса пользователя
   const isUserOnline = useCallback((userId) => {
     return globalOnlineUsers.some(onlineUser => onlineUser.userId === userId);
   }, [globalOnlineUsers]);
+
+  // Обработчик клика на пользователя для показа карточки профиля
+  const handleUserClick = async (sender, event) => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    const cardWidth = 300; // Примерная ширина карточки
+    const cardHeight = 200; // Примерная высота карточки
+    const padding = 10; // Отступ от края экрана
+
+    let top = rect.top;
+    let left = rect.right + 8;
+
+    // Проверяем, не уходит ли карточка за правый край экрана
+    if (left + cardWidth > window.innerWidth - padding) {
+      left = rect.left - cardWidth - 8; // Показываем слева от элемента
+    }
+
+    // Проверяем, не уходит ли карточка за нижний край экрана
+    if (top + cardHeight > window.innerHeight - padding) {
+      // Если места внизу мало, показываем над элементом
+      // Выравниваем нижний край карточки с верхним краем элемента
+      top = rect.top - cardHeight - 8;
+
+      // Проверяем, не уходит ли карточка за верхний край экрана после сдвига вверх
+      if (top < padding) {
+        // Если карточка все еще не помещается сверху, центрируем её по вертикали
+        top = Math.max(padding, (window.innerHeight - cardHeight) / 2);
+      }
+    }
+
+    // Проверяем, не уходит ли карточка за верхний край экрана (для обычного случая)
+    if (top < padding) {
+      top = padding;
+    }
+
+    // Проверяем, не уходит ли карточка за левый край экрана
+    if (left < padding) {
+      left = padding;
+    }
+
+    setProfilePosition({
+      top: Math.max(padding, top),
+      left: Math.max(padding, left)
+    });
+
+    // Если есть userId, загрузить актуальные данные пользователя
+    if (sender._id) {
+      try {
+        const response = await fetch(`${BACKEND_URL}/api/auth/user/${sender._id}`);
+        if (response.ok) {
+          const userData = await response.json();
+          // Нормализуем данные пользователя
+          setSelectedUser({
+            ...userData,
+            userId: userData._id || userData.id || userData.userId
+          });
+          return;
+        }
+      } catch (err) {
+        console.error('Ошибка загрузки данных пользователя:', err);
+      }
+    }
+
+    // Fallback: использовать данные из сообщения
+    setSelectedUser({
+      username: sender.username,
+      displayName: sender.displayName,
+      avatar: sender.avatar,
+      badge: sender.badge,
+      badgeTooltip: sender.badgeTooltip,
+      userId: sender._id,
+      _id: sender._id
+    });
+  };
+
+  const handleCloseProfile = () => {
+    setSelectedUser(null);
+    setMessageText('');
+  };
+
+  // Обработчик отправки личного сообщения из карточки профиля
+  const handleSendDirectMessageFromProfile = async () => {
+    if (!messageText.trim() || !selectedUser || sendingDirectMessage) return;
+
+    // Определяем ID получателя
+    const receiverId = selectedUser.userId || selectedUser._id || selectedUser.id;
+
+    console.log('📤 Отправка сообщения:', {
+      receiverId,
+      currentUserId: user?.id,
+      selectedUser
+    });
+
+    // Не отправляем сообщение самому себе
+    if (!receiverId || receiverId === user?.id) {
+      console.warn('⚠️ Попытка отправить сообщение самому себе');
+      return;
+    }
+
+    setSendingDirectMessage(true);
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) throw new Error('Токен не найден');
+
+      const response = await fetch(`${BACKEND_URL}/api/direct-messages/send`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          receiverId: receiverId,
+          content: messageText.trim()
+        })
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        console.error('❌ Ошибка отправки сообщения:', response.status, error);
+        throw new Error(error.error || 'Ошибка отправки сообщения');
+      }
+
+      const newMessage = await response.json();
+      console.log('✅ Сообщение отправлено успешно:', newMessage);
+
+      // Очищаем поле ввода и закрываем карточку
+      setMessageText('');
+      handleCloseProfile();
+
+      // Проверяем, открыт ли уже диалог с этим пользователем
+      const isCurrentlySelected = selectedDM && (selectedDM._id === receiverId || selectedDM.user?._id === receiverId);
+
+      if (isCurrentlySelected) {
+        // Если диалог уже открыт, добавляем сообщение в список
+        setSelectedMessages(prev => [...prev, newMessage]);
+        setTimeout(() => scrollToBottom(), 100);
+      } else {
+        // Если диалог не открыт, находим или создаем conversation и открываем его
+        const conversation = directMessages.find(dm =>
+          dm._id === receiverId || dm.user?._id === receiverId
+        );
+
+        if (conversation) {
+          // Открываем существующий диалог
+          setSelectedDM(conversation);
+          setShowFriendsPanel(false);
+          loadMessagesWithUser(receiverId);
+        } else {
+          // Создаем новый conversation объект
+          const newConversation = {
+            _id: receiverId,
+            user: {
+              _id: receiverId,
+              username: selectedUser.username,
+              displayName: selectedUser.displayName,
+              avatar: selectedUser.avatar
+            },
+            lastMessage: {
+              _id: newMessage._id,
+              content: newMessage.content,
+              timestamp: newMessage.timestamp,
+              sender: {
+                _id: user.id,
+                username: user.username,
+                displayName: user.displayName,
+                avatar: user.avatar
+              }
+            },
+            unreadCount: 0
+          };
+
+          // Добавляем в список разговоров
+          setDirectMessages(prev => [newConversation, ...prev]);
+
+          // Открываем новый диалог
+          setSelectedDM(newConversation);
+          setShowFriendsPanel(false);
+          setSelectedMessages([newMessage]);
+
+          // Присоединяемся к комнате DM
+          if (socket && user) {
+            socket.emit('dm:join', {
+              userId: user.id,
+              otherUserId: receiverId,
+              username: user.username,
+              avatar: user.avatar,
+              displayName: user.displayName
+            });
+          }
+
+          setTimeout(() => scrollToBottom(), 100);
+        }
+      }
+
+      // Обновляем список разговоров в любом случае
+      loadDirectMessages();
+    } catch (error) {
+      console.error('❌ Ошибка отправки сообщения:', error);
+    } finally {
+      setSendingDirectMessage(false);
+    }
+  };
+
+  const handleKeyPressProfile = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSendDirectMessageFromProfile();
+    }
+  };
 
   // Функция для прокрутки к последнему сообщению
   const scrollToBottom = useCallback(() => {
@@ -404,6 +619,53 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
     if (!messageId) return;
     scrollToMessageById(messageId);
   };
+
+  // Получаем статус дружбы для текущего пользователя в чате
+  const currentChatUser = useMemo(() => {
+    if (selectedDM?.user) return selectedDM.user;
+    if (autoSelectUser?.user) return autoSelectUser.user;
+    if (autoSelectUser && !autoSelectUser.user) return autoSelectUser;
+    return null;
+  }, [selectedDM, autoSelectUser]);
+
+  const currentChatUserId = useMemo(() => {
+    return currentChatUser?._id || currentChatUser?.id || null;
+  }, [currentChatUser]);
+
+  const { isFriend, hasIncomingRequest, hasOutgoingRequest, incomingRequestId } = useFriendStatus(currentChatUserId);
+
+  // Функция для добавления в друзья
+  const handleAddFriend = useCallback(async (targetUser) => {
+    if (!targetUser || addingFriend) return;
+
+    setAddingFriend(true);
+    try {
+      if (isFriend) {
+        await removeFriend(currentChatUserId);
+      } else if (hasIncomingRequest && incomingRequestId) {
+        await respondToRequest(incomingRequestId, 'accept');
+      } else if (!hasOutgoingRequest) {
+        await sendFriendRequest(targetUser.username);
+      }
+    } catch (err) {
+      console.error('Ошибка действия с другом:', err);
+    } finally {
+      setAddingFriend(false);
+    }
+  }, [sendFriendRequest, removeFriend, respondToRequest, isFriend, hasIncomingRequest, hasOutgoingRequest, incomingRequestId, currentChatUserId, addingFriend]);
+
+  // Функция для получения текста кнопки
+  const getFriendButtonText = useCallback(() => {
+    if (isFriend) return 'Удалить из друзей';
+    if (hasIncomingRequest) return 'Принять заявку в друзья';
+    if (hasOutgoingRequest) return 'Заявка в друзья отправлена';
+    return 'Добавить в друзья';
+  }, [isFriend, hasIncomingRequest, hasOutgoingRequest]);
+
+  // Функция для определения, активна ли кнопка
+  const isFriendButtonActive = useCallback(() => {
+    return !hasOutgoingRequest && !addingFriend;
+  }, [hasOutgoingRequest, addingFriend]);
 
   const canEditMessage = (message) => {
     if (message.sender._id !== user?.id) return false;
@@ -1007,21 +1269,38 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
       <div className="direct-messages-container">
         <div className="dm-chat">
           <div className="dm-chat-active">
-            {/* Область сообщений */}
-            <div className="dm-messages" ref={messagesContainerRef}>
-              {messagesLoading ? (
-                <div className="dm-loading">Загрузка сообщений...</div>
-              ) : selectedMessages.length === 0 ? (
-                <div className="dm-messages-empty">
-                  <h3>Это начало истории ваших личных сообщений с {autoSelectUser.user?.displayName || autoSelectUser.user?.username || autoSelectUser.username}</h3>
-                  <p>Нет общих серверов</p>
-                  <div className="dm-actions">
-                    <button className="dm-action-btn">Добавить в друзья</button>
-                    <button className="dm-action-btn">Заблокировать</button>
-                    <button className="dm-action-btn danger">Пожаловаться на спам</button>
-                  </div>
-                </div>
-              ) : (
+              {/* Область сообщений */}
+              <div className="dm-messages" ref={messagesContainerRef}>
+                {messagesLoading ? (
+                  <div className="dm-loading">Загрузка сообщений...</div>
+                ) : (
+                  <>
+                    <div className="dm-messages-welcome">
+                      <div className="dm-welcome-avatar">
+                        {autoSelectUser.user?.avatar ? (
+                          <img src={`${BACKEND_URL}${autoSelectUser.user.avatar}`} alt={autoSelectUser.user.username} />
+                        ) : (
+                          <span>{autoSelectUser.user?.username?.charAt(0).toUpperCase()}</span>
+                        )}
+                      </div>
+                      <div className="dm-welcome-info">
+                        <h2>{autoSelectUser.user?.displayName || autoSelectUser.user?.username || autoSelectUser.username}</h2>
+                        <p>{autoSelectUser.user?.username || autoSelectUser.username}</p>
+                      </div>
+                      <div className="dm-welcome-description">
+                        <p>Это начало истории ваших личных сообщений с {autoSelectUser.user?.displayName || autoSelectUser.user?.username || autoSelectUser.username}.</p>
+                      </div>
+                      <div className="dm-welcome-actions">
+                        <button
+                          className={`dm-action-btn ${isFriend ? 'danger' : ''} ${!isFriendButtonActive() ? 'disabled' : ''}`}
+                          onClick={() => handleAddFriend(currentChatUser)}
+                          disabled={!isFriendButtonActive()}
+                        >
+                          {addingFriend ? 'Загрузка...' : getFriendButtonText()}
+                        </button>
+                      </div>
+                    </div>
+                    {selectedMessages.length > 0 && (
                 groupMessages(selectedMessages).map((group, groupIndex) => {
                   const prevGroup = groupIndex > 0 ? groupMessages(selectedMessages)[groupIndex - 1] : null;
                   const showDateDivider = !prevGroup || prevGroup.date !== group.date;
@@ -1042,7 +1321,11 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
                           className={`dm-message ${message.sender._id === user?.id ? 'dm-message-own' : ''} ${messageIndex > 0 ? 'dm-message-grouped' : ''} ${messageIndex === 0 && group.messages.length > 1 ? 'dm-message-group-first' : ''} ${highlightedMessageId === message._id ? 'dm-message-highlighted' : ''}`}
                         >
                       {messageIndex === 0 && (
-                        <div className="dm-message-avatar">
+                        <div
+                          className="dm-message-avatar"
+                          onClick={(e) => handleUserClick(message.sender, e)}
+                          style={{ cursor: 'pointer' }}
+                        >
                           {message.sender.avatar ? (
                             <img src={`${BACKEND_URL}${message.sender.avatar}`} alt={message.sender.username} />
                           ) : (
@@ -1054,7 +1337,13 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
                       <div className="dm-message-content">
                         {messageIndex === 0 && (
                           <div className="dm-message-header">
-                            <span className="dm-message-username">{message.sender.displayName || message.sender.username}</span>
+                            <span
+                              className="dm-message-username"
+                              onClick={(e) => handleUserClick(message.sender, e)}
+                              style={{ cursor: 'pointer' }}
+                            >
+                              {message.sender.displayName || message.sender.username}
+                            </span>
                             <span className="dm-message-time">
                               {new Date(message.timestamp).toLocaleTimeString('ru-RU', {
                                 hour: '2-digit',
@@ -1147,7 +1436,9 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
                     </React.Fragment>
                   );
                 })
-              )}
+                    )}
+                  </>
+                )}
               {/* Невидимый элемент для прокрутки к последнему сообщению */}
               <div ref={messagesEndRef} />
             </div>
@@ -1381,17 +1672,34 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
               <div className="dm-messages" ref={messagesContainerRef}>
                 {messagesLoading ? (
                   <div className="dm-loading">Загрузка сообщений...</div>
-                ) : selectedMessages.length === 0 ? (
-                  <div className="dm-messages-empty">
-                    <h3>Это начало истории ваших личных сообщений с {selectedDM.user.displayName || selectedDM.user.username}</h3>
-                    <p>Нет общих серверов</p>
-                    <div className="dm-actions">
-                      <button className="dm-action-btn">Добавить в друзья</button>
-                      <button className="dm-action-btn">Заблокировать</button>
-                      <button className="dm-action-btn danger">Пожаловаться на спам</button>
-                    </div>
-                  </div>
                 ) : (
+                  <>
+                    <div className="dm-messages-welcome">
+                      <div className="dm-welcome-avatar">
+                        {selectedDM.user.avatar ? (
+                          <img src={`${BACKEND_URL}${selectedDM.user.avatar}`} alt={selectedDM.user.username} />
+                        ) : (
+                          <span>{selectedDM.user.username?.charAt(0).toUpperCase()}</span>
+                        )}
+                      </div>
+                      <div className="dm-welcome-info">
+                        <h2>{selectedDM.user.displayName || selectedDM.user.username}</h2>
+                        <p>{selectedDM.user.username}</p>
+                      </div>
+                      <div className="dm-welcome-description">
+                        <p>Это начало истории ваших личных сообщений с {selectedDM.user.displayName || selectedDM.user.username}.</p>
+                      </div>
+                      <div className="dm-welcome-actions">
+                        <button
+                          className={`dm-action-btn ${isFriend ? 'danger' : ''} ${!isFriendButtonActive() ? 'disabled' : ''}`}
+                          onClick={() => handleAddFriend(currentChatUser)}
+                          disabled={!isFriendButtonActive()}
+                        >
+                          {addingFriend ? 'Загрузка...' : getFriendButtonText()}
+                        </button>
+                      </div>
+                    </div>
+                    {selectedMessages.length > 0 && (
                   groupMessages(selectedMessages).map((group, groupIndex) => {
                     const prevGroup = groupIndex > 0 ? groupMessages(selectedMessages)[groupIndex - 1] : null;
                     const showDateDivider = !prevGroup || prevGroup.date !== group.date;
@@ -1412,7 +1720,11 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
                             className={`dm-message ${message.sender._id === user?.id ? 'dm-message-own' : ''} ${messageIndex > 0 ? 'dm-message-grouped' : ''} ${messageIndex === 0 && group.messages.length > 1 ? 'dm-message-group-first' : ''} ${messageIndex === group.messages.length - 1 ? 'dm-message-group-last' : ''} ${editingMessage?._id === message._id ? 'dm-message-edit-mode' : ''} ${highlightedMessageId === message._id ? 'dm-message-highlighted' : ''}`}
                           >
                         {messageIndex === 0 && (
-                          <div className="dm-message-avatar">
+                          <div
+                            className="dm-message-avatar"
+                            onClick={(e) => handleUserClick(message.sender, e)}
+                            style={{ cursor: 'pointer' }}
+                          >
                             {message.sender.avatar ? (
                               <img src={`${BACKEND_URL}${message.sender.avatar}`} alt={message.sender.username} />
                             ) : (
@@ -1424,7 +1736,13 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
                         <div className="dm-message-content">
                           {messageIndex === 0 && (
                             <div className="dm-message-header">
-                              <span className="dm-message-username">{message.sender.displayName || message.sender.username}</span>
+                              <span
+                                className="dm-message-username"
+                                onClick={(e) => handleUserClick(message.sender, e)}
+                                style={{ cursor: 'pointer' }}
+                              >
+                                {message.sender.displayName || message.sender.username}
+                              </span>
                               <span className="dm-message-time">
                                 {new Date(message.timestamp).toLocaleTimeString('ru-RU', {
                                   hour: '2-digit',
@@ -1555,6 +1873,8 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
                       </React.Fragment>
                     );
                   })
+                    )}
+                  </>
                 )}
                 {/* Невидимый элемент для прокрутки к последнему сообщению */}
                 <div ref={messagesEndRef} />
@@ -1715,6 +2035,92 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
                 Удалить сообщение
               </button>
             )}
+          </div>
+        </>
+      )}
+
+      {/* Карточка профиля пользователя */}
+      {selectedUser && (
+        <>
+          <div className="user-profile-overlay" onClick={handleCloseProfile} />
+          <div
+            className="user-profile-card-chat"
+            style={{
+              top: `${profilePosition.top}px`,
+              left: `${profilePosition.left}px`
+            }}
+          >
+            <div className="user-profile-banner" />
+            <div className="user-profile-content">
+              <div className="user-profile-avatar-wrapper">
+                {selectedUser.avatar ? (
+                  <img
+                    src={`${BACKEND_URL}${selectedUser.avatar}`}
+                    alt="Avatar"
+                    className="user-profile-avatar-large"
+                  />
+                ) : (
+                  <div className="user-profile-avatar-large user-profile-avatar-fallback">
+                    {(selectedUser.displayName || selectedUser.username)[0].toUpperCase()}
+                  </div>
+                )}
+              </div>
+              {selectedUser.displayName ? (
+                <>
+                  <div className="user-profile-display-name">
+                    {selectedUser.displayName}
+                  </div>
+                  <div className="user-profile-username-row">
+                    <div className="user-profile-username">
+                      {selectedUser.username}
+                    </div>
+                    {selectedUser.badge && selectedUser.badge !== 'User' && (
+                      <span className="user-profile-badge">
+                        {selectedUser.badge}
+                      </span>
+                    )}
+                  </div>
+                </>
+              ) : (
+                <div className="user-profile-username-row">
+                  <div className="user-profile-display-name">
+                    {selectedUser.username}
+                  </div>
+                  {selectedUser.badge && selectedUser.badge !== 'User' && (
+                    <span className={`user-profile-badge badge-${selectedUser.badge.toLowerCase()}`}>
+                      {selectedUser.badge}
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* FriendActionButton для управления дружбой */}
+            <FriendActionButton
+              targetUser={selectedUser}
+              currentUserId={user?.id}
+            />
+
+            {/* Поле для отправки личного сообщения - только если не свой профиль */}
+            {selectedUser && (() => {
+              const targetUserId = selectedUser.userId || selectedUser._id || selectedUser.id;
+              const isOwnProfile = targetUserId === user?.id;
+              return !isOwnProfile && (
+                <div className="user-profile-message-input">
+                  <div className="message-input-container">
+                    <input
+                      type="text"
+                      placeholder={`Сообщение для @${selectedUser.username}`}
+                      value={messageText}
+                      onChange={(e) => setMessageText(e.target.value)}
+                      onKeyPress={handleKeyPressProfile}
+                      disabled={sendingDirectMessage}
+                      className="message-input-field"
+                    />
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         </>
       )}
