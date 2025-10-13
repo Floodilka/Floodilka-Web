@@ -523,15 +523,15 @@
   background-color: transparent;
 }
 
-.message-input-container button {
+.message-input-container form button {
   border-radius: 8px;
 }
 
-.message-input-container button:hover:not(:disabled) {
+.message-input-container form button:hover:not(:disabled) {
   background-color: #4752c4;
 }
 
-.message-input-container button:disabled {
+.message-input-container form button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }

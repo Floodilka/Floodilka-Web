@@ -744,7 +744,7 @@
   opacity: 0.9;
 }
 
-.message-input-container button {
+.message-input-container form button {
   padding: 0 24px;
   background-color: #5865f2;
   border: none;
@@ -758,11 +758,11 @@
   box-sizing: border-box;
 }
 
-.message-input-container button:hover:not(:disabled) {
+.message-input-container form button:hover:not(:disabled) {
   background-color: #4752c4;
 }
 
-.message-input-container button:disabled {
+.message-input-container form button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
