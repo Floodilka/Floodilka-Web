@@ -128,6 +128,32 @@
   font-size: 16px;
 }
 
+/* Разделители дат */
+.date-divider {
+  display: flex;
+  align-items: center;
+  margin: 16px 0;
+  padding: 0 16px;
+}
+
+.date-divider-line {
+  flex: 1;
+  height: 1px;
+  background-color: transparent;
+  border-top: 0.5px solid #3a3d44;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.date-divider-text {
+  color: #72767d;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 0 16px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
 .message {
   display: flex;
   padding: 2px 16px;

@@ -1346,6 +1346,7 @@ function Chat({ channel, messages, username, user, currentServer, onSendMessage,
       const messageTime = new Date(message.timestamp);
       const messageMinute = messageTime.getMinutes();
       const messageHour = messageTime.getHours();
+      const messageDate = messageTime.toDateString();
 
       // Проверяем, нужно ли начать новую группу
       const shouldStartNewGroup = !currentGroup ||
@@ -1360,6 +1361,7 @@ function Chat({ channel, messages, username, user, currentServer, onSendMessage,
           userId: message.userId,
           hour: messageHour,
           minute: messageMinute,
+          date: messageDate,
           messages: [message],
           timestamp: message.timestamp,
           isOwn: message.username === username
@@ -1372,6 +1374,21 @@ function Chat({ channel, messages, username, user, currentServer, onSendMessage,
     });
 
     return grouped;
+  };
+
+  // Функция для форматирования даты в русском формате
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    const months = [
+      'января', 'февраля', 'марта', 'апреля', 'мая', 'июня',
+      'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'
+    ];
+
+    const day = date.getDate();
+    const month = months[date.getMonth()];
+    const year = date.getFullYear();
+
+    return `${day} ${month} ${year} г.`;
   };
 
   if (!channel) {
@@ -1446,13 +1463,25 @@ function Chat({ channel, messages, username, user, currentServer, onSendMessage,
             </div>
 
             <div style={{ opacity: showMessages ? 1 : 0, transition: 'opacity 0.15s ease' }}>
-            {groupMessages(messages).map((group, groupIndex) =>
-          group.messages.map((message, messageIndex) => (
-            <div
-              key={message.id}
-              data-message-id={message.id}
-              className={`message ${message.isSystem ? 'system-message' : ''} ${message.username === username ? 'own-message' : ''} ${isUserMentioned(message) ? 'message-mentioned' : ''} ${editingMessage?.id === message.id ? 'message-edit-mode' : ''} ${contextMenu?.message.id === message.id ? 'show-actions' : ''} ${messageIndex > 0 ? 'message-grouped' : ''} ${messageIndex === 0 && group.messages.length > 1 ? 'message-group-first' : ''} ${messageIndex === group.messages.length - 1 ? 'message-group-last' : ''} ${deletingMessageId === message.id ? 'message-deleting' : ''} ${highlightedMessageId === message.id ? 'message-highlighted' : ''}`}
-            >
+            {groupMessages(messages).map((group, groupIndex) => {
+              const prevGroup = groupIndex > 0 ? groupMessages(messages)[groupIndex - 1] : null;
+              const showDateDivider = !prevGroup || prevGroup.date !== group.date;
+
+              return (
+                <React.Fragment key={`group-${groupIndex}`}>
+                  {showDateDivider && (
+                    <div className="date-divider">
+                      <div className="date-divider-line"></div>
+                      <span className="date-divider-text">{formatDate(group.date)}</span>
+                      <div className="date-divider-line"></div>
+                    </div>
+                  )}
+                  {group.messages.map((message, messageIndex) => (
+                    <div
+                      key={message.id}
+                      data-message-id={message.id}
+                      className={`message ${message.isSystem ? 'system-message' : ''} ${message.username === username ? 'own-message' : ''} ${isUserMentioned(message) ? 'message-mentioned' : ''} ${editingMessage?.id === message.id ? 'message-edit-mode' : ''} ${contextMenu?.message.id === message.id ? 'show-actions' : ''} ${messageIndex > 0 ? 'message-grouped' : ''} ${messageIndex === 0 && group.messages.length > 1 ? 'message-group-first' : ''} ${messageIndex === group.messages.length - 1 ? 'message-group-last' : ''} ${deletingMessageId === message.id ? 'message-deleting' : ''} ${highlightedMessageId === message.id ? 'message-highlighted' : ''}`}
+                    >
               {messageIndex === 0 ? (
                 <div
                   className="message-avatar"
@@ -1646,9 +1675,11 @@ function Chat({ channel, messages, username, user, currentServer, onSendMessage,
                   )}
                 </div>
               )}
-            </div>
-          ))
-        ).flat()}
+              </div>
+            ))}
+                </React.Fragment>
+              );
+            })}
             </div>
           </>
         )}

@@ -458,6 +458,7 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
       const messageTime = new Date(message.timestamp);
       const messageMinute = messageTime.getMinutes();
       const messageHour = messageTime.getHours();
+      const messageDate = messageTime.toDateString();
 
       // Проверяем, нужно ли начать новую группу
       const shouldStartNewGroup = !currentGroup ||
@@ -472,6 +473,7 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
           sender: message.sender,
           hour: messageHour,
           minute: messageMinute,
+          date: messageDate,
           messages: [message],
           timestamp: message.timestamp,
           isOwn: message.sender._id === user?.id
@@ -484,6 +486,21 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
     });
 
     return grouped;
+  };
+
+  // Функция для форматирования даты в русском формате
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    const months = [
+      'января', 'февраля', 'марта', 'апреля', 'мая', 'июня',
+      'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'
+    ];
+
+    const day = date.getDate();
+    const month = months[date.getMonth()];
+    const year = date.getFullYear();
+
+    return `${day} ${month} ${year} г.`;
   };
 
   // Обработка кликов вне контекстного меню
@@ -740,12 +757,42 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
     }
   }, [autoSelectUser, directMessages, onAutoSelectComplete, loadMessagesWithUser]);
 
-  // Автоматическая прокрутка к последнему сообщению при изменении сообщений
+  // Умная автоматическая прокрутка - аналогично Chat.js
+  const prevMessagesLengthRef = useRef(0);
+  const isInitialLoadRef = useRef(true); // true по умолчанию для первой загрузки
+  const prevDMIdRef = useRef(null);
+
   useEffect(() => {
-    if (selectedMessages.length > 0) {
-      scrollToBottom();
+    // Сбрасываем флаг начальной загрузки при смене разговора
+    if (selectedDM?._id !== prevDMIdRef.current) {
+      isInitialLoadRef.current = true;
+      prevDMIdRef.current = selectedDM?._id;
     }
-  }, [selectedMessages, scrollToBottom]);
+  }, [selectedDM?._id]);
+
+  useEffect(() => {
+    if (!messagesContainerRef.current) return;
+
+    const container = messagesContainerRef.current;
+    const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 100;
+
+    // Скроллим вниз если:
+    // 1. Это начальная загрузка И есть хотя бы одно сообщение
+    // 2. ИЛИ пользователь был близко к низу И количество сообщений увеличилось
+    const shouldScroll =
+      (isInitialLoadRef.current && selectedMessages.length > 0) ||
+      (isNearBottom && selectedMessages.length > prevMessagesLengthRef.current);
+
+    if (shouldScroll) {
+      scrollToBottom();
+      // После первого скролла сбрасываем флаг начальной загрузки
+      if (isInitialLoadRef.current) {
+        isInitialLoadRef.current = false;
+      }
+    }
+
+    prevMessagesLengthRef.current = selectedMessages.length;
+  }, [selectedMessages.length, scrollToBottom]);
 
   // WebSocket обработчики для личных сообщений
   useEffect(() => {
@@ -975,13 +1022,25 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
                   </div>
                 </div>
               ) : (
-                groupMessages(selectedMessages).map((group, groupIndex) =>
-                  group.messages.map((message, messageIndex) => (
-                    <div
-                      key={message._id}
-                      data-message-id={message._id}
-                      className={`dm-message ${message.sender._id === user?.id ? 'dm-message-own' : ''} ${messageIndex > 0 ? 'dm-message-grouped' : ''} ${messageIndex === 0 && group.messages.length > 1 ? 'dm-message-group-first' : ''} ${highlightedMessageId === message._id ? 'dm-message-highlighted' : ''}`}
-                    >
+                groupMessages(selectedMessages).map((group, groupIndex) => {
+                  const prevGroup = groupIndex > 0 ? groupMessages(selectedMessages)[groupIndex - 1] : null;
+                  const showDateDivider = !prevGroup || prevGroup.date !== group.date;
+
+                  return (
+                    <React.Fragment key={`group-${groupIndex}`}>
+                      {showDateDivider && (
+                        <div className="dm-date-divider">
+                          <div className="dm-date-divider-line"></div>
+                          <span className="dm-date-divider-text">{formatDate(group.date)}</span>
+                          <div className="dm-date-divider-line"></div>
+                        </div>
+                      )}
+                      {group.messages.map((message, messageIndex) => (
+                        <div
+                          key={message._id}
+                          data-message-id={message._id}
+                          className={`dm-message ${message.sender._id === user?.id ? 'dm-message-own' : ''} ${messageIndex > 0 ? 'dm-message-grouped' : ''} ${messageIndex === 0 && group.messages.length > 1 ? 'dm-message-group-first' : ''} ${highlightedMessageId === message._id ? 'dm-message-highlighted' : ''}`}
+                        >
                       {messageIndex === 0 && (
                         <div className="dm-message-avatar">
                           {message.sender.avatar ? (
@@ -1084,8 +1143,10 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
                         )}
                       </div>
                     </div>
-                  ))
-                ).flat()
+                  ))}
+                    </React.Fragment>
+                  );
+                })
               )}
               {/* Невидимый элемент для прокрутки к последнему сообщению */}
               <div ref={messagesEndRef} />
@@ -1331,13 +1392,25 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
                     </div>
                   </div>
                 ) : (
-                  groupMessages(selectedMessages).map((group, groupIndex) =>
-                    group.messages.map((message, messageIndex) => (
-                      <div
-                        key={message._id}
-                        data-message-id={message._id}
-                        className={`dm-message ${message.sender._id === user?.id ? 'dm-message-own' : ''} ${messageIndex > 0 ? 'dm-message-grouped' : ''} ${messageIndex === 0 && group.messages.length > 1 ? 'dm-message-group-first' : ''} ${messageIndex === group.messages.length - 1 ? 'dm-message-group-last' : ''} ${editingMessage?._id === message._id ? 'dm-message-edit-mode' : ''} ${highlightedMessageId === message._id ? 'dm-message-highlighted' : ''}`}
-                      >
+                  groupMessages(selectedMessages).map((group, groupIndex) => {
+                    const prevGroup = groupIndex > 0 ? groupMessages(selectedMessages)[groupIndex - 1] : null;
+                    const showDateDivider = !prevGroup || prevGroup.date !== group.date;
+
+                    return (
+                      <React.Fragment key={`group-${groupIndex}`}>
+                        {showDateDivider && (
+                          <div className="dm-date-divider">
+                            <div className="dm-date-divider-line"></div>
+                            <span className="dm-date-divider-text">{formatDate(group.date)}</span>
+                            <div className="dm-date-divider-line"></div>
+                          </div>
+                        )}
+                        {group.messages.map((message, messageIndex) => (
+                          <div
+                            key={message._id}
+                            data-message-id={message._id}
+                            className={`dm-message ${message.sender._id === user?.id ? 'dm-message-own' : ''} ${messageIndex > 0 ? 'dm-message-grouped' : ''} ${messageIndex === 0 && group.messages.length > 1 ? 'dm-message-group-first' : ''} ${messageIndex === group.messages.length - 1 ? 'dm-message-group-last' : ''} ${editingMessage?._id === message._id ? 'dm-message-edit-mode' : ''} ${highlightedMessageId === message._id ? 'dm-message-highlighted' : ''}`}
+                          >
                         {messageIndex === 0 && (
                           <div className="dm-message-avatar">
                             {message.sender.avatar ? (
@@ -1478,8 +1551,10 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
                           )}
                         </div>
                       </div>
-                    ))
-                  ).flat()
+                    ))}
+                      </React.Fragment>
+                    );
+                  })
                 )}
                 {/* Невидимый элемент для прокрутки к последнему сообщению */}
                 <div ref={messagesEndRef} />

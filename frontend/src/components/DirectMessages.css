@@ -641,6 +641,32 @@
   scrollbar-color: #3a3d44 #1e1f22;
 }
 
+/* Разделители дат */
+.dm-date-divider {
+  display: flex;
+  align-items: center;
+  margin: 16px 0;
+  padding: 0 16px;
+}
+
+.dm-date-divider-line {
+  flex: 1;
+  height: 1px;
+  background-color: transparent;
+  border-top: 0.5px solid #3a3d44;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.dm-date-divider-text {
+  color: #72767d;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 0 16px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
 /* Стили для сообщений */
 .dm-message {
   display: flex;
