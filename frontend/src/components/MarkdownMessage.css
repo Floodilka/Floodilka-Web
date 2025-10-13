@@ -114,6 +114,46 @@
   display: none;
 }
 
+.mention-tooltip {
+  position: fixed;
+  z-index: 9999;
+  pointer-events: none;
+  background: rgba(17, 18, 20, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 8px 12px;
+  color: #fff;
+  font-size: 12px;
+  line-height: 1.4;
+  max-width: 220px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+  opacity: 0;
+  transform: translate(-50%, -6px);
+  transition: opacity 0.12s ease, transform 0.12s ease;
+}
+
+.mention-tooltip[data-visible="true"] {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+.mention-tooltip-title {
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+
+.mention-tooltip-subtitle {
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.mention-tooltip-role {
+  margin-top: 4px;
+  padding-top: 4px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.55);
+}
+
 .markdown-message pre::-webkit-scrollbar {
   height: 6px;
 }

@@ -142,6 +142,7 @@ const mentionRule = {
     const mention = mentionMap[normalized] || null;
     const isEveryone = normalized === 'everyone';
     const isSelf = normalized && normalized === state.currentUsername;
+    const isKnown = !!mention || isEveryone || isSelf;
 
     return {
       type: 'mention',
@@ -149,10 +150,15 @@ const mentionRule = {
       normalized,
       mention,
       isEveryone,
-      isSelf
+      isSelf,
+      isKnown
     };
   },
   html: (node) => {
+    if (!node.isKnown) {
+      return escapeHtml(node.raw);
+    }
+
     const classes = ['message-mention'];
     if (!node.isEveryone) {
       classes.push('mention-clickable');

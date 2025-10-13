@@ -1,4 +1,4 @@
-import React, { useMemo, useCallback } from 'react';
+import React, { useMemo, useCallback, useRef } from 'react';
 import './MarkdownMessage.css';
 import markdownToSanitizedHtml from '../utils/markdown';
 
@@ -6,7 +6,9 @@ const MarkdownMessage = ({
   content,
   mentions,
   currentUsername,
-  onMentionClick
+  onMentionClick,
+  onMentionHover,
+  onMentionLeave
 }) => {
   const sanitizedHtml = useMemo(
     () =>
@@ -16,6 +18,17 @@ const MarkdownMessage = ({
       }),
     [content, mentions, currentUsername]
   );
+
+  const hoveredMentionRef = useRef(null);
+
+  const getMentionData = useCallback((element, event) => ({
+    username: element.getAttribute('data-mention'),
+    id: element.getAttribute('data-mention-id') || undefined,
+    element,
+    rect: element.getBoundingClientRect(),
+    clientX: event?.clientX,
+    clientY: event?.clientY
+  }), []);
 
   const handleClick = useCallback(
     (event) => {
@@ -29,26 +42,41 @@ const MarkdownMessage = ({
         return;
       }
 
-      if (!onMentionClick) {
-        return;
-      }
-
       const mentionElement = event.target.closest('[data-mention]');
 
-      if (!mentionElement) {
-        return;
+      if (mentionElement && onMentionClick) {
+        const mention = getMentionData(mentionElement, event);
+        onMentionClick(mention, event);
       }
-
-      const mention = {
-        username: mentionElement.getAttribute('data-mention'),
-        id: mentionElement.getAttribute('data-mention-id') || undefined,
-        element: mentionElement
-      };
-
-      onMentionClick(mention, event);
     },
-    [onMentionClick]
+    [getMentionData, onMentionClick]
   );
+
+  const handleMouseMove = useCallback((event) => {
+    const mentionElement = event.target.closest('[data-mention]');
+
+    if (!mentionElement) {
+      if (hoveredMentionRef.current) {
+        hoveredMentionRef.current = null;
+        onMentionLeave?.(event);
+      }
+      return;
+    }
+
+    hoveredMentionRef.current = mentionElement;
+
+    if (onMentionHover) {
+      const mention = getMentionData(mentionElement, event);
+      onMentionHover(mention, event);
+    }
+  }, [getMentionData, onMentionHover, onMentionLeave]);
+
+  const clearMentionHover = useCallback((event) => {
+    if (hoveredMentionRef.current) {
+      hoveredMentionRef.current = null;
+      onMentionLeave?.(event);
+    }
+  }, [onMentionLeave]);
 
   if (!sanitizedHtml) {
     return null;
@@ -58,6 +86,9 @@ const MarkdownMessage = ({
     <div
       className="markdown-message"
       onClick={handleClick}
+      onMouseMove={handleMouseMove}
+      onMouseLeave={clearMentionHover}
+      onBlur={clearMentionHover}
       dangerouslySetInnerHTML={{ __html: sanitizedHtml }}
     />
   );

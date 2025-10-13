@@ -50,6 +50,7 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
   const [profilePosition, setProfilePosition] = useState({ top: 0, left: 0 });
   const [messageText, setMessageText] = useState('');
   const [sendingDirectMessage, setSendingDirectMessage] = useState(false);
+  const [mentionTooltip, setMentionTooltip] = useState(null);
 
   const mentionableUsers = useMemo(() => {
     const map = new Map();
@@ -88,6 +89,8 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
 
     return map;
   }, [selectedDM, user]);
+
+  const hideMentionTooltip = useCallback(() => setMentionTooltip(null), []);
 
   // Функция для проверки онлайн статуса пользователя
   const isUserOnline = useCallback((userId) => {
@@ -179,6 +182,8 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
       return;
     }
 
+    hideMentionTooltip();
+
     const normalized = mentionUsername.toLowerCase();
 
     if (normalized === 'everyone') {
@@ -198,7 +203,79 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
     }
 
     handleUserClick(mentionedUser, { currentTarget: mentionElement });
-  }, [handleUserClick, mentionableUsers]);
+  }, [handleUserClick, hideMentionTooltip, mentionableUsers]);
+
+  const handleMentionHover = useCallback((mentionMeta, sourceMessage) => {
+    if (!mentionMeta?.username) {
+      return;
+    }
+
+    const normalized = mentionMeta.username.toLowerCase();
+
+    if (normalized === 'everyone') {
+      hideMentionTooltip();
+      return;
+    }
+    const mentionEntry = mentionableUsers.get(normalized) ||
+      (Array.isArray(sourceMessage?.mentions)
+        ? sourceMessage.mentions.find(item => item.username?.toLowerCase() === normalized)
+        : null);
+
+    const displayName = mentionEntry?.displayName
+      || mentionEntry?.nickname
+      || mentionMeta.username;
+
+    const subtitleUsername = mentionEntry?.username || mentionMeta.username;
+    const subtitle = `@${subtitleUsername}`;
+
+    let roleName;
+    if (mentionEntry?.primaryRole?.name) {
+      roleName = mentionEntry.primaryRole.name;
+    } else if (Array.isArray(mentionEntry?.roles) && mentionEntry.roles.length > 0) {
+      const primaryRole = mentionEntry.roles.find(role => role.isPrimary || role.primary);
+      roleName = primaryRole?.name || mentionEntry.roles[0]?.name;
+    } else if (mentionEntry?.roleName) {
+      roleName = mentionEntry.roleName;
+    }
+
+    const { rect, clientX, clientY } = mentionMeta;
+    const tooltipWidth = 220;
+    const padding = 12;
+    const viewportWidth = typeof window !== 'undefined' ? window.innerWidth : 0;
+    const viewportHeight = typeof window !== 'undefined' ? window.innerHeight : 0;
+
+    let left = rect ? rect.left + rect.width / 2 : clientX ?? 0;
+    if (viewportWidth) {
+      left = Math.max(
+        padding + tooltipWidth / 2,
+        Math.min(left, viewportWidth - padding - tooltipWidth / 2)
+      );
+    }
+
+    if (!Number.isFinite(left)) {
+      left = padding + tooltipWidth / 2;
+    }
+
+    let top = rect ? rect.bottom + 8 : (clientY ?? 0) + 12;
+    if (viewportHeight) {
+      if (top > viewportHeight - padding) {
+        top = rect ? rect.top - 8 : (clientY ?? 0) - 12;
+      }
+      top = Math.max(top, padding);
+    }
+
+    if (!Number.isFinite(top)) {
+      top = padding;
+    }
+
+    setMentionTooltip({
+      displayName,
+      subtitle,
+      role: roleName,
+      position: { top, left },
+      username: mentionMeta.username
+    });
+  }, [hideMentionTooltip, mentionableUsers]);
 
   // Обработчик отправки личного сообщения из карточки профиля
   const handleSendDirectMessageFromProfile = async () => {
@@ -471,13 +548,16 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
       // Прокручиваем к последнему сообщению
       setTimeout(() => scrollToBottom(), 100);
 
-    } catch (err) {
-      console.error('❌ Ошибка отправки сообщения:', err);
-      setError('Ошибка отправки сообщения');
-    } finally {
-      setSendingMessage(false);
+  } catch (err) {
+    console.error('❌ Ошибка отправки сообщения:', err);
+    setError('Ошибка отправки сообщения');
+  } finally {
+    setSendingMessage(false);
+    if (inputRef.current) {
+      inputRef.current.focus({ preventScroll: true });
     }
-  };
+  }
+};
 
   // Обработка нажатия клавиш
   const handleKeyPress = (e) => {
@@ -860,6 +940,10 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
     setReplyingTo(null);
     setHighlightedMessageId(null);
   }, [selectedDM?._id]);
+
+  useEffect(() => {
+    hideMentionTooltip();
+  }, [hideMentionTooltip, selectedDM?._id]);
 
   useEffect(() => {
     if (replyingTo && !selectedMessages.find(msg => msg._id === replyingTo.id)) {
@@ -1445,6 +1529,8 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
                                 mentions={message.mentions}
                                 currentUsername={user?.username}
                                 onMentionClick={handleMentionClick}
+                                onMentionHover={(data) => handleMentionHover(data, message)}
+                                onMentionLeave={hideMentionTooltip}
                               />
                             </div>
                           )}
@@ -1883,12 +1969,14 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
                               )}
                               {message.content && (
                                 <div className="dm-message-text">
-                                  <MarkdownMessage
-                                    content={message.content}
-                                    mentions={message.mentions}
-                                    currentUsername={user?.username}
-                                    onMentionClick={handleMentionClick}
-                                  />
+                                <MarkdownMessage
+                                  content={message.content}
+                                  mentions={message.mentions}
+                                  currentUsername={user?.username}
+                                  onMentionClick={handleMentionClick}
+                                  onMentionHover={(data) => handleMentionHover(data, message)}
+                                  onMentionLeave={hideMentionTooltip}
+                                />
                                 </div>
                               )}
                               {message.attachments && message.attachments.length > 0 && (
@@ -2043,7 +2131,6 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
                         onChange={(e) => setInputValue(e.target.value)}
                         onKeyPress={handleKeyPress}
                         maxLength={2000}
-                        disabled={sendingMessage}
                       />
                       <div className="input-divider"></div>
                       <button
@@ -2063,6 +2150,23 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
             <div className="dm-chat-empty">
               <FriendsPanel onSelectFriend={handleFriendOpen} />
             </div>
+          )}
+        </div>
+      )}
+
+      {mentionTooltip && (
+        <div
+          className="mention-tooltip"
+          data-visible="true"
+          style={{
+            top: `${mentionTooltip.position.top}px`,
+            left: `${mentionTooltip.position.left}px`
+          }}
+        >
+          <div className="mention-tooltip-title">{mentionTooltip.displayName}</div>
+          <div className="mention-tooltip-subtitle">{mentionTooltip.subtitle}</div>
+          {mentionTooltip.role && (
+            <div className="mention-tooltip-role">{mentionTooltip.role}</div>
           )}
         </div>
       )}

@@ -36,6 +36,7 @@ function Chat({ channel, messages, username, user, currentServer, onSendMessage,
   const [selectedMessageForReaction, setSelectedMessageForReaction] = useState(null);
   const [replyingTo, setReplyingTo] = useState(null);
   const [highlightedMessageId, setHighlightedMessageId] = useState(null);
+  const [mentionTooltip, setMentionTooltip] = useState(null);
 
   // Состояния для автокомплита упоминаний
   const [showMentionAutocomplete, setShowMentionAutocomplete] = useState(false);
@@ -45,6 +46,7 @@ function Chat({ channel, messages, username, user, currentServer, onSendMessage,
   const [serverMembers, setServerMembers] = useState([]);
   const inputRef = useRef(null);
   const messageInputFieldRef = useRef(null);
+  const hideMentionTooltip = useCallback(() => setMentionTooltip(null), []);
 
   const handleUserClick = async (message, event) => {
     const rect = event.currentTarget.getBoundingClientRect();
@@ -110,6 +112,92 @@ function Chat({ channel, messages, username, user, currentServer, onSendMessage,
       badgeTooltip: message.badgeTooltip
     });
   };
+
+  const handleMentionHover = useCallback((mentionMeta, sourceMessage) => {
+    if (!mentionMeta?.username) {
+      return;
+    }
+
+    const normalized = mentionMeta.username.toLowerCase();
+    if (normalized === 'everyone') {
+      hideMentionTooltip();
+      return;
+    }
+
+    const serverMember = serverMembers.find(member =>
+      member.username?.toLowerCase?.() === normalized ||
+      member.user?.username?.toLowerCase?.() === normalized
+    );
+
+    const messageMention = Array.isArray(sourceMessage?.mentions)
+      ? sourceMessage.mentions.find(mention => mention.username?.toLowerCase() === normalized)
+      : null;
+
+    const displayName = serverMember?.displayName
+      || serverMember?.nickname
+      || messageMention?.displayName
+      || messageMention?.nickname
+      || mentionMeta.username;
+
+    const subtitleUsername = serverMember?.username
+      || messageMention?.username
+      || mentionMeta.username;
+
+    const subtitle = `@${subtitleUsername}`;
+
+    let roleName;
+    if (serverMember?.primaryRole?.name) {
+      roleName = serverMember.primaryRole.name;
+    } else if (Array.isArray(serverMember?.roles) && serverMember.roles.length > 0) {
+      const primaryRole = serverMember.roles.find(role => role.isPrimary || role.primary);
+      roleName = primaryRole?.name || serverMember.roles[0]?.name;
+    } else if (serverMember?.roleName) {
+      roleName = serverMember.roleName;
+    } else if (messageMention?.roleName) {
+      roleName = messageMention.roleName;
+    } else if (Array.isArray(messageMention?.roles) && messageMention.roles.length > 0) {
+      const primaryMentionRole = messageMention.roles.find(role => role.isPrimary || role.primary);
+      roleName = primaryMentionRole?.name || messageMention.roles[0]?.name;
+    }
+
+    const { rect, clientX, clientY } = mentionMeta;
+    const tooltipWidth = 220;
+    const padding = 12;
+    const viewportWidth = typeof window !== 'undefined' ? window.innerWidth : 0;
+    const viewportHeight = typeof window !== 'undefined' ? window.innerHeight : 0;
+
+    let left = rect ? rect.left + rect.width / 2 : clientX ?? 0;
+    if (viewportWidth) {
+      left = Math.max(
+        padding + tooltipWidth / 2,
+        Math.min(left, viewportWidth - padding - tooltipWidth / 2)
+      );
+    }
+
+    if (!Number.isFinite(left)) {
+      left = padding + tooltipWidth / 2;
+    }
+
+    let top = rect ? rect.bottom + 8 : (clientY ?? 0) + 12;
+    if (viewportHeight) {
+      if (top > viewportHeight - padding) {
+        top = rect ? rect.top - 8 : (clientY ?? 0) - 12;
+      }
+      top = Math.max(top, padding);
+    }
+
+    if (!Number.isFinite(top)) {
+      top = padding;
+    }
+
+    setMentionTooltip({
+      displayName,
+      subtitle,
+      role: roleName,
+      position: { top, left },
+      username: mentionMeta.username
+    });
+  }, [hideMentionTooltip, serverMembers]);
 
   const handleCloseProfile = () => {
     setSelectedUser(null);
@@ -197,6 +285,10 @@ function Chat({ channel, messages, username, user, currentServer, onSendMessage,
     setReplyingTo(null);
     setHighlightedMessageId(null);
   }, [channel?.id]);
+
+  useEffect(() => {
+    hideMentionTooltip();
+  }, [channel?.id, hideMentionTooltip]);
 
   useEffect(() => {
     if (replyingTo && !messages.find(msg => msg.id === replyingTo.id)) {
@@ -1065,18 +1157,28 @@ function Chat({ channel, messages, username, user, currentServer, onSendMessage,
       const textAfterAt = textBeforeCursor.substring(lastAtIndex + 1);
       // Проверяем, что после @ нет пробела
       if (!textAfterAt.includes(' ')) {
-        // Показываем автокомплит
-        // Получаем размеры родительского контейнера поля ввода
-        const fieldRect = messageInputFieldRef.current?.getBoundingClientRect();
-        if (fieldRect) {
-          setMentionPosition({
-            top: fieldRect.top - 8, // Показываем прямо над полем ввода с небольшим отступом
-            left: fieldRect.left,
-            width: fieldRect.width
-          });
-          setMentionFilter(textAfterAt);
-          setShowMentionAutocomplete(true);
-          setMentionSelectedIndex(0);
+        const normalizedFilter = textAfterAt.toLowerCase();
+        const filteredUsers = serverMembers.filter(user =>
+          user.username.toLowerCase().startsWith(normalizedFilter)
+        );
+
+        const matchesEveryone = 'everyone'.startsWith(normalizedFilter);
+        const hasSuggestions = matchesEveryone || filteredUsers.length > 0;
+
+        if (hasSuggestions) {
+          const fieldRect = messageInputFieldRef.current?.getBoundingClientRect();
+          if (fieldRect) {
+            setMentionPosition({
+              top: fieldRect.top - 8,
+              left: fieldRect.left,
+              width: fieldRect.width
+            });
+            setMentionFilter(textAfterAt);
+            setShowMentionAutocomplete(true);
+            setMentionSelectedIndex(0);
+          }
+        } else {
+          setShowMentionAutocomplete(false);
         }
       } else {
         setShowMentionAutocomplete(false);
@@ -1134,11 +1236,14 @@ function Chat({ channel, messages, username, user, currentServer, onSendMessage,
         e.preventDefault();
         setMentionSelectedIndex(prev => prev > 0 ? prev - 1 : 0);
       } else if (e.key === 'Enter') {
-        e.preventDefault();
-        if (suggestions[mentionSelectedIndex]) {
-          handleMentionSelect(suggestions[mentionSelectedIndex]);
+        if (suggestions.length > 0) {
+          e.preventDefault();
+          if (suggestions[mentionSelectedIndex]) {
+            handleMentionSelect(suggestions[mentionSelectedIndex]);
+          }
+          return;
         }
-        return;
+        setShowMentionAutocomplete(false);
       } else if (e.key === 'Escape') {
         setShowMentionAutocomplete(false);
       }
@@ -1164,6 +1269,10 @@ function Chat({ channel, messages, username, user, currentServer, onSendMessage,
       setInputValue('');
       setSelectedFiles([]);
       setReplyingTo(null);
+
+      if (inputRef.current) {
+        inputRef.current.focus({ preventScroll: true });
+      }
 
       // Автоматически прокручиваем вниз после отправки сообщения
       setTimeout(() => {
@@ -1223,6 +1332,8 @@ function Chat({ channel, messages, username, user, currentServer, onSendMessage,
     if (!mentionUsername) {
       return;
     }
+
+    hideMentionTooltip();
 
     // Не показываем профиль для @everyone
     if (mentionUsername.toLowerCase() === 'everyone') return;
@@ -1573,6 +1684,8 @@ function Chat({ channel, messages, username, user, currentServer, onSendMessage,
                           mentions={message.mentions}
                           currentUsername={username}
                           onMentionClick={handleMentionClick}
+                          onMentionHover={(data) => handleMentionHover(data, message)}
+                          onMentionLeave={hideMentionTooltip}
                         />
                       </div>
                     )}
@@ -1765,6 +1878,23 @@ function Chat({ channel, messages, username, user, currentServer, onSendMessage,
           </div>
         </form>
       </div>
+
+      {mentionTooltip && (
+        <div
+          className="mention-tooltip"
+          data-visible="true"
+          style={{
+            top: `${mentionTooltip.position.top}px`,
+            left: `${mentionTooltip.position.left}px`
+          }}
+        >
+          <div className="mention-tooltip-title">{mentionTooltip.displayName}</div>
+          <div className="mention-tooltip-subtitle">{mentionTooltip.subtitle}</div>
+          {mentionTooltip.role && (
+            <div className="mention-tooltip-role">{mentionTooltip.role}</div>
+          )}
+        </div>
+      )}
 
       {selectedUser && (
         <>
