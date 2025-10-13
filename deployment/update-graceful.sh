@@ -51,9 +51,23 @@ NGINX_HTTP_HASH_BEFORE=$(md5sum deployment/nginx-http.conf 2>/dev/null | cut -d'
 # Git операции
 echo ""
 echo -e "${GREEN}📥 Подтягивание обновлений...${NC}"
-git stash
-git pull --rebase
-git stash pop || true
+
+# Проверка на локальные изменения
+if ! git diff-index --quiet HEAD --; then
+    echo -e "${YELLOW}⚠️  Обнаружены локальные изменения. Они будут удалены.${NC}"
+    git status --short
+    read -p "Продолжить? Локальные изменения будут потеряны! (y/N): " -n 1 -r
+    echo ""
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        echo -e "${RED}❌ Обновление отменено${NC}"
+        exit 1
+    fi
+fi
+
+# Безопасное обновление без конфликтов
+git fetch origin
+git reset --hard origin/main
+git clean -fd
 
 # Проверка изменений в nginx
 NGINX_HTTPS_HASH_AFTER=$(md5sum deployment/nginx-https.conf 2>/dev/null | cut -d' ' -f1)
