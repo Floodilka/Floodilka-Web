@@ -6,6 +6,7 @@ import { SOCKET_EVENTS } from '../constants/events';
 import EmojiPicker from './EmojiPicker';
 import MessageReactions from './MessageReactions';
 import MentionAutocomplete from './MentionAutocomplete';
+import MarkdownMessage from './MarkdownMessage';
 import api from '../services/api';
 
 const BACKEND_URL = window.location.hostname === 'localhost'
@@ -1213,9 +1214,18 @@ function Chat({ channel, messages, username, user, currentServer, onSendMessage,
   };
 
   // Обработка клика на упоминание пользователя
-  const handleMentionClick = async (mentionUsername, event) => {
+  const handleMentionClick = async (mentionData, event) => {
+    const mentionUsername =
+      typeof mentionData === 'string'
+        ? mentionData
+        : mentionData?.username;
+
+    if (!mentionUsername) {
+      return;
+    }
+
     // Не показываем профиль для @everyone
-    if (mentionUsername === 'everyone') return;
+    if (mentionUsername.toLowerCase() === 'everyone') return;
 
     // Ищем пользователя среди участников сервера
     const mentionedUser = serverMembers.find(member =>
@@ -1225,7 +1235,16 @@ function Chat({ channel, messages, username, user, currentServer, onSendMessage,
     if (!mentionedUser) return;
 
     // Умное позиционирование профильной карточки
-    const rect = event.currentTarget.getBoundingClientRect();
+    const triggerElement =
+      (mentionData && mentionData.element) ||
+      event?.target?.closest('[data-mention]') ||
+      event?.currentTarget;
+
+    if (!triggerElement) {
+      return;
+    }
+
+    const rect = triggerElement.getBoundingClientRect();
     const cardWidth = 300; // Примерная ширина карточки
     const cardHeight = 200; // Примерная высота карточки
     const padding = 10; // Отступ от края экрана
@@ -1273,36 +1292,6 @@ function Chat({ channel, messages, username, user, currentServer, onSendMessage,
       badge: mentionedUser.badge,
       badgeTooltip: mentionedUser.badgeTooltip,
       userId: mentionedUser.id
-    });
-  };
-
-  // Функция для подсветки упоминаний в тексте
-  const highlightMentions = (text) => {
-    if (!text) return null;
-
-    // Регулярное выражение для поиска упоминаний
-    const mentionRegex = /(@\w+)/g;
-    const parts = text.split(mentionRegex);
-
-    return parts.map((part, index) => {
-      if (part.startsWith('@')) {
-        const mentionUsername = part.substring(1);
-        const isCurrentUser = mentionUsername === username;
-        const isEveryone = mentionUsername === 'everyone';
-
-        return (
-          <span
-            key={index}
-            className={`message-mention ${isCurrentUser ? 'mention-current-user' : ''} ${isEveryone ? 'mention-everyone' : ''} ${!isEveryone ? 'mention-clickable' : ''}`}
-            title={isEveryone ? 'Все участники' : `@${mentionUsername}`}
-            onClick={(e) => handleMentionClick(mentionUsername, e)}
-            style={{ cursor: isEveryone ? 'default' : 'pointer' }}
-          >
-            {part}
-          </span>
-        );
-      }
-      return part;
     });
   };
 
@@ -1578,7 +1567,14 @@ function Chat({ channel, messages, username, user, currentServer, onSendMessage,
                       </button>
                     )}
                     {message.content && (
-                      <div className="message-text">{highlightMentions(message.content)}</div>
+                      <div className="message-text">
+                        <MarkdownMessage
+                          content={message.content}
+                          mentions={message.mentions}
+                          currentUsername={username}
+                          onMentionClick={handleMentionClick}
+                        />
+                      </div>
                     )}
                     {message.attachments && message.attachments.length > 0 && (
                       <div className="message-attachments">

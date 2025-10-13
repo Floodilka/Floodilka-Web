@@ -10,6 +10,7 @@ import { useFriendStatus } from '../hooks/useFriendStatus';
 import { SOCKET_EVENTS } from '../constants/events';
 import EmojiPicker from './EmojiPicker';
 import MessageReactions from './MessageReactions';
+import MarkdownMessage from './MarkdownMessage';
 import api from '../services/api';
 
 const BACKEND_URL = window.location.hostname === 'localhost'
@@ -50,13 +51,51 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
   const [messageText, setMessageText] = useState('');
   const [sendingDirectMessage, setSendingDirectMessage] = useState(false);
 
+  const mentionableUsers = useMemo(() => {
+    const map = new Map();
+
+    const addUser = (candidate) => {
+      if (!candidate) return;
+      const username = (candidate.username || '').toLowerCase();
+      if (!username) return;
+
+      map.set(username, {
+        ...candidate,
+        userId: candidate.userId || candidate._id || candidate.id,
+        _id: candidate._id || candidate.userId || candidate.id
+      });
+    };
+
+    if (selectedDM?.user) {
+      addUser(selectedDM.user);
+    }
+
+    if (Array.isArray(selectedDM?.participants)) {
+      selectedDM.participants.forEach(addUser);
+    }
+
+    if (Array.isArray(selectedDM?.members)) {
+      selectedDM.members.forEach(addUser);
+    }
+
+    if (user) {
+      addUser({
+        ...user,
+        _id: user.id,
+        userId: user.id
+      });
+    }
+
+    return map;
+  }, [selectedDM, user]);
+
   // Функция для проверки онлайн статуса пользователя
   const isUserOnline = useCallback((userId) => {
     return globalOnlineUsers.some(onlineUser => onlineUser.userId === userId);
   }, [globalOnlineUsers]);
 
   // Обработчик клика на пользователя для показа карточки профиля
-  const handleUserClick = async (sender, event) => {
+  const handleUserClick = useCallback(async (sender, event) => {
     const rect = event.currentTarget.getBoundingClientRect();
     const cardWidth = 300; // Примерная ширина карточки
     const cardHeight = 200; // Примерная высота карточки
@@ -124,12 +163,42 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
       userId: sender._id,
       _id: sender._id
     });
-  };
+  }, []);
 
   const handleCloseProfile = () => {
     setSelectedUser(null);
     setMessageText('');
   };
+
+  const handleMentionClick = useCallback((mentionData, event) => {
+    const mentionUsername = typeof mentionData === 'string'
+      ? mentionData
+      : mentionData?.username;
+
+    if (!mentionUsername) {
+      return;
+    }
+
+    const normalized = mentionUsername.toLowerCase();
+
+    if (normalized === 'everyone') {
+      return;
+    }
+
+    const mentionElement = mentionData?.element || event?.target?.closest('[data-mention]');
+
+    if (!mentionElement) {
+      return;
+    }
+
+    const mentionedUser = mentionableUsers.get(normalized);
+
+    if (!mentionedUser) {
+      return;
+    }
+
+    handleUserClick(mentionedUser, { currentTarget: mentionElement });
+  }, [handleUserClick, mentionableUsers]);
 
   // Обработчик отправки личного сообщения из карточки профиля
   const handleSendDirectMessageFromProfile = async () => {
@@ -1370,7 +1439,14 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
                             </button>
                           )}
                           {message.content && (
-                            <div className="dm-message-text">{message.content}</div>
+                            <div className="dm-message-text">
+                              <MarkdownMessage
+                                content={message.content}
+                                mentions={message.mentions}
+                                currentUsername={user?.username}
+                                onMentionClick={handleMentionClick}
+                              />
+                            </div>
                           )}
                           {message.attachments && message.attachments.length > 0 && (
                             <div className="message-attachments">
@@ -1806,7 +1882,14 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
                                 </button>
                               )}
                               {message.content && (
-                                <div className="dm-message-text">{message.content}</div>
+                                <div className="dm-message-text">
+                                  <MarkdownMessage
+                                    content={message.content}
+                                    mentions={message.mentions}
+                                    currentUsername={user?.username}
+                                    onMentionClick={handleMentionClick}
+                                  />
+                                </div>
                               )}
                               {message.attachments && message.attachments.length > 0 && (
                                 <div className="message-attachments">
