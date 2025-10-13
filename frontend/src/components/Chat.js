@@ -444,10 +444,147 @@ function Chat({ channel, messages, username, user, currentServer, onSendMessage,
     }
   };
 
-  const scrollToBottom = () => {
+  const AUTO_SCROLL_EPSILON = 32;
+  const MAX_AUTO_SCROLL_ATTEMPTS = 12;
+  const autoScrollStateRef = useRef({ channelId: null, attempts: 0 });
+
+  const scrollTimeoutsRef = useRef([]);
+
+  const scrollContainerToBottom = useCallback((trigger = 'default') => {
+    const container = messagesContainerRef.current;
+    if (!container) return;
+
+    // Отменяем предыдущие таймауты
+    scrollTimeoutsRef.current.forEach(id => clearTimeout(id));
+    scrollTimeoutsRef.current = [];
+
+    const applyScroll = (source) => {
+      const maxScrollTop = container.scrollHeight - container.clientHeight;
+      const nextScrollTop = maxScrollTop > 0 ? maxScrollTop : 0;
+      container.scrollTop = nextScrollTop;
+
+      if (messagesEndRef.current) {
+        messagesEndRef.current.scrollIntoView({ behavior: 'auto', block: 'end' });
+      }
+
+      console.log('[SCROLL] 📐 scrollContainerToBottom:', {
+        trigger,
+        source,
+        scrollTop: container.scrollTop,
+        scrollHeight: container.scrollHeight,
+        clientHeight: container.clientHeight,
+        hasOverflow: container.scrollHeight > container.clientHeight
+      });
+    };
+
+    applyScroll('immediate');
+    requestAnimationFrame(() => applyScroll('raf'));
+
+    const t1 = setTimeout(() => applyScroll('timeout'), 0);
+    const t2 = setTimeout(() => applyScroll('timeout-10'), 10);
+    const t3 = setTimeout(() => applyScroll('timeout-50'), 50);
+    const t4 = setTimeout(() => applyScroll('timeout-100'), 100);
+
+    scrollTimeoutsRef.current.push(t1, t2, t3, t4);
+  }, []);
+
+  const markChannelScrolled = useCallback((channelId, reason) => {
+    if (!channelId) return;
+    scrolledChannelsRef.current.add(channelId);
+    isInitialLoad.current = false;
+    autoScrollStateRef.current = { channelId: null, attempts: 0 };
+    console.log('[SCROLL] 🟢 Автоскролл завершен', { channelId, reason });
+  }, []);
+
+  const finalizeAutoScroll = useCallback((reason) => {
+    const container = messagesContainerRef.current;
+    const channelId = channel?.id;
+    if (!container || !channelId) return;
+
+    const totalMessages = messages.length;
+
+    if (totalMessages === 0) {
+      console.log('[SCROLL] 🔁 Автоскролл: ждем сообщений перед проверкой', {
+        channelId,
+        reason
+      });
+      return;
+    }
+
+    const distance = container.scrollHeight - container.scrollTop - container.clientHeight;
+    const hasOverflow = container.scrollHeight > container.clientHeight;
+
+    // ВАЖНО: Если много сообщений, но нет переполнения - DOM еще не обновился
+    if (totalMessages > 10 && !hasOverflow) {
+      const prevState = autoScrollStateRef.current;
+      const prevAttempts = prevState.channelId === channelId ? prevState.attempts : 0;
+      const nextAttempts = prevAttempts + 1;
+
+      if (nextAttempts >= MAX_AUTO_SCROLL_ATTEMPTS) {
+        console.log('[SCROLL] ⚠️ Автоскролл: достигнут лимит попыток (нет overflow)', {
+          channelId,
+          reason,
+          totalMessages,
+          scrollHeight: container.scrollHeight,
+          clientHeight: container.clientHeight,
+          attempts: nextAttempts
+        });
+        markChannelScrolled(channelId, reason);
+        return;
+      }
+
+      console.log('[SCROLL] 🔄 Автоскролл: ждем рендер сообщений', {
+        channelId,
+        reason,
+        totalMessages,
+        hasOverflow,
+        attempts: nextAttempts
+      });
+
+      autoScrollStateRef.current = { channelId, attempts: nextAttempts };
+      setTimeout(() => {
+        scrollContainerToBottom(`${reason}-retry-${nextAttempts}`);
+        finalizeAutoScroll(reason);
+      }, 50);
+      return;
+    }
+
+    if (!hasOverflow || distance <= AUTO_SCROLL_EPSILON) {
+      markChannelScrolled(channelId, reason);
+      return;
+    }
+
+    const prevState = autoScrollStateRef.current;
+    const prevAttempts = prevState.channelId === channelId ? prevState.attempts : 0;
+    const nextAttempts = prevAttempts + 1;
+
+    if (nextAttempts >= MAX_AUTO_SCROLL_ATTEMPTS) {
+      console.log('[SCROLL] ⚠️ Автоскролл: достигнут лимит попыток', {
+        channelId,
+        reason,
+        distance,
+        attempts: nextAttempts
+      });
+      autoScrollStateRef.current = { channelId: null, attempts: 0 };
+      return;
+    }
+
+    autoScrollStateRef.current = { channelId, attempts: nextAttempts };
+    requestAnimationFrame(() => {
+      scrollContainerToBottom(`${reason}-retry-${nextAttempts}`);
+      finalizeAutoScroll(reason);
+    });
+  }, [channel?.id, markChannelScrolled, scrollContainerToBottom, messages.length]);
+
+  const autoScrollToBottom = useCallback((reason) => {
+    scrollContainerToBottom(reason);
+    finalizeAutoScroll(reason);
+  }, [finalizeAutoScroll, scrollContainerToBottom]);
+
+  const scrollToBottom = useCallback(() => {
     console.log('[SCROLL] 📍 scrollToBottom вызван');
-    messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
-  };
+    autoScrollToBottom('manual');
+  }, [autoScrollToBottom]);
 
   // Автоматическое скрытие скелетона
   useEffect(() => {
@@ -480,6 +617,7 @@ function Chat({ channel, messages, username, user, currentServer, onSendMessage,
     if (!messagesContainerRef.current || !channel?.id) return;
 
     const { scrollTop } = messagesContainerRef.current;
+    const currentChannelId = channel.id;
 
     // Дебаунс - сохраняем не чаще раза в 300мс
     if (handleScroll.timeoutId) {
@@ -487,8 +625,8 @@ function Chat({ channel, messages, username, user, currentServer, onSendMessage,
     }
 
     handleScroll.timeoutId = setTimeout(() => {
-      console.log('[SCROLL] 💾 Сохраняем позицию скролла для канала:', channel.id, 'позиция:', scrollTop);
-      saveScrollPosition(scrollTop);
+      console.log('[SCROLL] 💾 Сохраняем позицию скролла для канала:', currentChannelId, 'позиция:', scrollTop);
+      saveScrollPosition(scrollTop, currentChannelId);
     }, 300);
   }, [channel?.id, saveScrollPosition]);
 
@@ -498,6 +636,14 @@ function Chat({ channel, messages, username, user, currentServer, onSendMessage,
   const scrolledChannelsRef = useRef(new Set()); // Список каналов, для которых уже делали скролл
   const shouldRestoreScroll = useRef(false); // Флаг для восстановления скролла
   const resizeObserverRef = useRef(null); // ResizeObserver для отслеживания изменения высоты
+
+  // Очистка таймаутов при размонтировании
+  useEffect(() => {
+    return () => {
+      scrollTimeoutsRef.current.forEach(id => clearTimeout(id));
+      scrollTimeoutsRef.current = [];
+    };
+  }, []);
 
   useEffect(() => {
     // Игнорируем смену на undefined/null (промежуточное состояние при clearChannelState)
@@ -511,6 +657,12 @@ function Chat({ channel, messages, username, user, currentServer, onSendMessage,
     });
 
     if (newChannelId !== oldChannelId) {
+      autoScrollStateRef.current = { channelId: null, attempts: 0 };
+
+      // Отменяем все таймауты скролла при смене канала
+      scrollTimeoutsRef.current.forEach(id => clearTimeout(id));
+      scrollTimeoutsRef.current = [];
+
       // СНАЧАЛА сохраняем позицию СТАРОГО канала перед переключением
       if (oldChannelId && messagesContainerRef.current) {
         const currentScrollPos = messagesContainerRef.current.scrollTop;
@@ -544,14 +696,12 @@ function Chat({ channel, messages, username, user, currentServer, onSendMessage,
           isInitialLoad.current = false; // НЕ скроллим вниз
           // Убираем из scrolledChannels чтобы разрешить восстановление
           scrolledChannelsRef.current.delete(newChannelId);
-        } else if (!hasScrolledForThisChannel) {
-          console.log('[SCROLL] ⬇️ Нет сохраненной позиции и канал новый - будем скроллить вниз');
+        } else {
+          console.log('[SCROLL] ⬇️ Нет сохраненной позиции - сбрасываем состояние и скроллим вниз');
           shouldRestoreScroll.current = false;
           isInitialLoad.current = true; // Скроллим вниз
-        } else {
-          console.log('[SCROLL] ⏸️ Канал уже был проскроллен ранее - ничего не делаем');
-          shouldRestoreScroll.current = false;
-          isInitialLoad.current = false;
+          // На всякий случай убираем id из списка проскролленных каналов
+          scrolledChannelsRef.current.delete(newChannelId);
         }
 
         console.log('[SCROLL] 🎯 Установлены флаги:', {
@@ -595,7 +745,8 @@ function Chat({ channel, messages, username, user, currentServer, onSendMessage,
         console.log('[SCROLL] ✅ Восстанавливаем позицию:', savedPosition);
         messagesContainerRef.current.scrollTop = savedPosition;
         shouldRestoreScroll.current = false;
-        scrolledChannelsRef.current.add(channel.id);
+        prevMessagesLengthRef.current = messages.length; // ВАЖНО: обновляем prevMessagesLength!
+        markChannelScrolled(channel.id, 'restore-saved-position');
       } else if (shouldRestoreScroll.current) {
         // Флаг установлен но позиция не найдена
         console.log('[SCROLL] ⚠️ Флаг shouldRestoreScroll был true, но позиция не найдена - переключаем на isInitialLoad');
@@ -603,7 +754,7 @@ function Chat({ channel, messages, username, user, currentServer, onSendMessage,
         isInitialLoad.current = true;
       }
     }
-  }, [preloadedMessages, messages.length, channel?.id, getSavedScrollPosition]);
+  }, [preloadedMessages, messages.length, channel?.id, getSavedScrollPosition, markChannelScrolled]);
 
   // Умный автоскролл - скроллит только если пользователь был внизу
   // Используем useLayoutEffect для синхронного скролла после рендеринга DOM
@@ -617,6 +768,17 @@ function Chat({ channel, messages, username, user, currentServer, onSendMessage,
     const container = messagesContainerRef.current;
     const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 100;
     const hasScrolledForThisChannel = scrolledChannelsRef.current.has(channel?.id);
+
+    // ВАЖНО: Проверяем и сбрасываем shouldRestoreScroll ДО проверки автоскролла
+    // Это нужно для случая, когда переключаемся на новый канал без сохраненной позиции
+    if (shouldRestoreScroll.current && channel?.id) {
+      const savedPosition = getSavedScrollPosition(channel.id);
+      if (savedPosition === null) {
+        console.log('[SCROLL] 🔄 Сброс shouldRestoreScroll - нет сохраненной позиции для канала');
+        shouldRestoreScroll.current = false;
+        isInitialLoad.current = true;
+      }
+    }
 
     console.log('[SCROLL] 🤖 useLayoutEffect автоскролл:', {
       channelId: channel?.id,
@@ -657,32 +819,13 @@ function Chat({ channel, messages, username, user, currentServer, onSendMessage,
 
     if (shouldScroll) {
       console.log('[SCROLL] ✅ СКРОЛЛИМ ВНИЗ');
-
-      // Скролл вниз
-      messagesEndRef.current.scrollIntoView({ behavior: 'auto' });
-
-      // Второй скролл в следующем кадре для надежности
-      requestAnimationFrame(() => {
-        if (messagesEndRef.current) {
-          messagesEndRef.current.scrollIntoView({ behavior: 'auto' });
-          console.log('[SCROLL] ✅ Второй скролл в requestAnimationFrame выполнен');
-        }
-      });
-
-      // Сбрасываем флаг только если есть сообщения (не пустой массив)
-      if (isInitialLoad.current && messages.length > 0) {
-        console.log('[SCROLL] 🏁 Сбрасываем isInitialLoad и добавляем канал в scrolledChannels');
-        isInitialLoad.current = false;
-        if (channel?.id) {
-          scrolledChannelsRef.current.add(channel.id); // Отмечаем что скроллили
-        }
-      }
+      autoScrollToBottom('layoutEffect');
     } else {
       console.log('[SCROLL] ⏭️ НЕ скроллим по условию');
     }
 
     prevMessagesLengthRef.current = messages.length;
-  }, [messages, channel?.id]);
+  }, [messages, channel?.id, autoScrollToBottom, getSavedScrollPosition]);
 
   // ResizeObserver для автоматического скролла при росте высоты (загрузка изображений)
   useEffect(() => {
@@ -714,10 +857,8 @@ function Chat({ channel, messages, username, user, currentServer, onSendMessage,
           console.log('[SCROLL] 📏 ResizeObserver: высота увеличилась с', lastHeight, 'до', newHeight, `(resize #${resizeCount})`);
 
           // Скроллим вниз при увеличении высоты
-          if (messagesEndRef.current) {
-            messagesEndRef.current.scrollIntoView({ behavior: 'auto' });
-            console.log('[SCROLL] ✅ ResizeObserver: автоскролл выполнен');
-          }
+          autoScrollToBottom('resizeObserver');
+          console.log('[SCROLL] ✅ ResizeObserver: автоскролл выполнен');
 
           lastHeight = newHeight;
 
@@ -746,7 +887,7 @@ function Chat({ channel, messages, username, user, currentServer, onSendMessage,
       resizeObserverRef.current = null;
       clearTimeout(timeout);
     };
-  }, [channel?.id, getSavedScrollPosition]);
+  }, [channel?.id, getSavedScrollPosition, autoScrollToBottom]);
 
   // Привязываем обработчик скролла
   useEffect(() => {
@@ -795,7 +936,7 @@ function Chat({ channel, messages, username, user, currentServer, onSendMessage,
           console.log('[SCROLL] ✅ Восстанавливаем сохраненную позицию:', savedPosition);
           messagesContainerRef.current.scrollTop = savedPosition;
           shouldRestoreScroll.current = false;
-          scrolledChannelsRef.current.add(channel.id);
+          markChannelScrolled(channel.id, 'initial-effect-restore');
           setShowMessages(true);
           return;
         }
@@ -803,27 +944,22 @@ function Chat({ channel, messages, username, user, currentServer, onSendMessage,
 
       // Скроллим вниз для нового канала
       console.log('[SCROLL] ⬇️ Скроллим вниз для нового канала');
-      messagesEndRef.current.scrollIntoView({ behavior: 'auto' });
-      if (channel?.id) {
-        scrolledChannelsRef.current.add(channel.id);
-      }
+      autoScrollToBottom('initial-load-effect');
 
       // Показываем сообщения после скролла
       setShowMessages(true);
 
       // Дополнительный скролл через микрозадачу для надежности
       Promise.resolve().then(() => {
-        if (messagesEndRef.current) {
-          console.log('[SCROLL] ✅ Дополнительный скролл через Promise выполнен');
-          messagesEndRef.current.scrollIntoView({ behavior: 'auto' });
-        }
+        autoScrollToBottom('initial-load-effect-microtask');
+        console.log('[SCROLL] ✅ Дополнительный скролл через Promise выполнен');
       });
     } else if (messages.length === 0 && channel?.id) {
       // Если сообщений нет, показываем приветственное сообщение сразу
       console.log('[SCROLL] 📄 Нет сообщений - показываем приветственное сообщение');
       setShowMessages(true);
     }
-  }, [messages.length, channel?.id, preloadedMessages, getSavedScrollPosition]);
+  }, [messages.length, channel?.id, preloadedMessages, getSavedScrollPosition, autoScrollToBottom, markChannelScrolled]);
 
   // Обработка изменения в поле ввода для автокомплита упоминаний
   const handleInputChange = (e) => {

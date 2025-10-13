@@ -57,7 +57,8 @@ export const ChatProvider = ({ children }) => {
       scrollPosition: cached?.scrollPosition
     });
 
-    if (cached && cached.messages) {
+    // Используем кеш если он есть (даже если сообщений 0)
+    if (cached && Array.isArray(cached.messages)) {
       console.log('[SCROLL] ✅ Используем кешированные сообщения:', cached.messages.length);
       setMessages(cached.messages);
       setPreloadedMessages(true);
@@ -98,8 +99,8 @@ export const ChatProvider = ({ children }) => {
       messagesCount: messages.length
     });
 
-    // Сохраняем текущие сообщения в кеш перед очисткой
-    if (currentTextChannel?.id && messages.length > 0) {
+    // Сохраняем текущие сообщения в кеш перед очисткой (даже если канал пустой)
+    if (currentTextChannel?.id) {
       setMessagesCache(cache => {
         const oldCache = cache[currentTextChannel.id] || {};
         console.log('[SCROLL] 💾 Сохраняем состояние канала перед очисткой:', {
@@ -110,7 +111,7 @@ export const ChatProvider = ({ children }) => {
         const newCache = {
           ...cache,
           [currentTextChannel.id]: {
-            messages: messages,
+            messages: messages, // Сохраняем даже пустой массив
             scrollPosition: oldCache.scrollPosition, // СОХРАНЯЕМ scrollPosition из старого кеша!
             timestamp: Date.now()
           }
@@ -125,6 +126,15 @@ export const ChatProvider = ({ children }) => {
     setPreloadedMessages(false);
     setIsLoadingMessages(false);
   }, [currentTextChannel, messages, cleanupCache]);
+
+  const clearServerCache = useCallback(() => {
+    console.log('[SCROLL] 🧹 ChatContext.clearServerCache: очищаем весь кеш при смене сервера');
+    setMessagesCache({});
+    setCurrentTextChannel(null);
+    setMessages([]);
+    setPreloadedMessages(false);
+    setIsLoadingMessages(false);
+  }, []);
 
   const addMessage = useCallback((message) => {
     setMessages(prev => {
@@ -342,6 +352,7 @@ export const ChatProvider = ({ children }) => {
     sendMessage,
     clearAutoSelectUser,
     clearChannelState,
+    clearServerCache,
     setMessages,
     addMessage,
     editMessage,
