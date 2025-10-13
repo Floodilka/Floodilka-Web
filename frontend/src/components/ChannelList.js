@@ -4,6 +4,7 @@ import FriendActionButton from './FriendActionButton';
 import UserProfile from './UserProfile';
 import ChannelSettingsModal from './ChannelSettingsModal';
 import { useVoice } from '../context/VoiceContext';
+import api from '../services/api';
 
 const BACKEND_URL = window.location.hostname === 'localhost'
   ? 'http://localhost:3001'
@@ -48,9 +49,8 @@ function ChannelList({ channels, currentTextChannel, currentVoiceChannel, voiceC
     // Если есть userId, загрузить актуальные данные пользователя
     if (voiceUser.userId) {
       try {
-        const response = await fetch(`${BACKEND_URL}/api/auth/user/${voiceUser.userId}`);
-        if (response.ok) {
-          const userData = await response.json();
+        const userData = await api.getUserById(voiceUser.userId);
+        if (userData) {
           setSelectedUser(userData);
           return;
         }
@@ -182,26 +182,7 @@ function ChannelList({ channels, currentTextChannel, currentVoiceChannel, voiceC
 
     setSendingMessage(true);
     try {
-      const token = localStorage.getItem('token');
-      if (!token) throw new Error('Токен не найден');
-
-      const response = await fetch(`${BACKEND_URL}/api/direct-messages/send`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          receiverId: selectedUser.userId || selectedUser.id,
-          content: messageText.trim()
-        })
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        console.error('Ошибка отправки сообщения:', response.status, error);
-        throw new Error(error.error || 'Ошибка отправки сообщения');
-      }
+      await api.sendDirectMessage(selectedUser.userId || selectedUser.id, messageText.trim());
 
       setMessageText('');
 

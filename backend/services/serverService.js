@@ -6,42 +6,79 @@ const Invite = require('../models/Invite');
 const User = require('../models/User');
 const { NotFoundError, ForbiddenError, ValidationError } = require('../utils/errors');
 const crypto = require('crypto');
+const cache = require('../utils/cache');
+
+const MEMBER_LIST_CACHE_TTL = 15_000;
+
+const memberListCacheKey = (serverId) => `server:${serverId}:members:list`;
+const serverMembersCacheKey = (serverId) => `server:${serverId}:members`;
+
+const invalidateServerMemberCaches = (serverId) => {
+  cache.del(memberListCacheKey(serverId));
+  cache.del(serverMembersCacheKey(serverId));
+};
 
 class ServerService {
   async getUserServers(userId) {
+    const normalizedUserId = userId.toString();
+
     const servers = await Server.find({
       $or: [
         { ownerId: userId },
         { members: userId }
       ]
-    }).sort({ createdAt: 1 });
+    })
+      .select('name icon ownerId members createdAt')
+      .sort({ createdAt: 1 })
+      .lean();
 
-    // Добавляем информацию о правах пользователя для каждого сервера
-    const serversWithPermissions = await Promise.all(servers.map(async (server) => {
-      const isOwner = server.ownerId.toString() === userId;
+    if (servers.length === 0) {
+      return [];
+    }
 
-      let canManageChannels = isOwner;
+    const serverIds = servers.map(server => server._id);
 
-      if (!isOwner) {
-        const userRoles = await ServerRole.find({
-          userId: userId,
-          serverId: server._id
-        }).populate('roleId');
+    const roles = await ServerRole.find({
+      userId: normalizedUserId,
+      serverId: { $in: serverIds }
+    })
+      .populate('roleId', 'permissions')
+      .lean();
 
-        canManageChannels = userRoles.some(userRole =>
-          userRole.roleId.permissions.manageChannels ||
-          userRole.roleId.permissions.manageServer
+    const permissionsByServer = new Map();
+
+    roles.forEach(role => {
+      if (!role.roleId) return;
+
+      const canManage = Boolean(
+        role.roleId.permissions?.manageChannels ||
+        role.roleId.permissions?.manageServer
+      );
+
+      if (!permissionsByServer.has(role.serverId.toString())) {
+        permissionsByServer.set(role.serverId.toString(), canManage);
+      } else {
+        permissionsByServer.set(
+          role.serverId.toString(),
+          permissionsByServer.get(role.serverId.toString()) || canManage
         );
       }
+    });
+
+    return servers.map(server => {
+      const serverId = server._id.toString();
+      const isOwner = server.ownerId?.toString() === normalizedUserId;
+      const canManageChannels = isOwner || permissionsByServer.get(serverId) || false;
 
       return {
-        ...server.toObject(),
+        ...server,
+        id: serverId,
+        ownerId: server.ownerId?.toString(),
+        members: (server.members || []).map(memberId => memberId.toString()),
         isOwner,
         canManageChannels
       };
-    }));
-
-    return serversWithPermissions;
+    });
   }
 
   async createServer(userId, serverData) {
@@ -60,6 +97,7 @@ class ServerService {
     });
 
     await server.save();
+    invalidateServerMemberCaches(server._id.toString());
 
     // Создаем роль Administrator
     const adminRole = new Role({
@@ -122,7 +160,11 @@ class ServerService {
   async verifyServerAccess(serverId, userId) {
     const server = await this.getServerById(serverId);
 
-    if (!server.members.includes(userId) && server.ownerId.toString() !== userId) {
+    const members = server.members || [];
+    const isMember = members.some(memberId => memberId.toString() === userId.toString());
+    const isOwner = server.ownerId.toString() === userId.toString();
+
+    if (!isMember && !isOwner) {
       throw new ForbiddenError('Нет доступа к этому серверу');
     }
 
@@ -133,20 +175,44 @@ class ServerService {
     const server = await this.verifyServerAccess(serverId, userId);
 
     // Получить всех участников (включая владельца)
-    const memberIds = [...new Set([server.ownerId, ...server.members])];
+    const memberIdSet = new Set();
+    if (server.ownerId) {
+      memberIdSet.add(server.ownerId.toString());
+    }
+    (server.members || []).forEach(member => {
+      if (member) {
+        memberIdSet.add(member.toString());
+      }
+    });
+    const memberIds = Array.from(memberIdSet);
+
+    const cacheKey = memberListCacheKey(serverId);
+    const cachedMembers = cache.get(cacheKey);
+    if (cachedMembers) {
+      return cachedMembers;
+    }
+
     const members = await User.find({ _id: { $in: memberIds } })
       .select('-password -email')
-      .sort({ username: 1 });
+      .sort({ username: 1 })
+      .lean();
 
-    return members.map(member => ({
-      id: member._id,
-      username: member.username,
-      displayName: member.displayName,
-      avatar: member.avatar,
-      badge: member.badge,
-      badgeTooltip: member.badgeTooltip,
-      status: member.status
-    }));
+    const normalizedMembers = members.map(member => {
+      const memberId = member._id.toString();
+      return {
+        id: memberId,
+        username: member.username,
+        displayName: member.displayName,
+        avatar: member.avatar,
+        badge: member.badge,
+        badgeTooltip: member.badgeTooltip,
+        status: member.status
+      };
+    });
+
+    cache.set(cacheKey, normalizedMembers, MEMBER_LIST_CACHE_TTL);
+
+    return normalizedMembers;
   }
 
   async createInvite(serverId, userId, inviteData) {
@@ -206,13 +272,17 @@ class ServerService {
     }
 
     // Проверить, не является ли пользователь уже членом
-    if (server.members.includes(userId)) {
+    const alreadyMember = server.ownerId?.toString() === userId.toString() ||
+      (server.members || []).some(memberId => memberId.toString() === userId.toString());
+
+    if (alreadyMember) {
       return { message: 'Вы уже являетесь членом этого сервера', server };
     }
 
     // Добавить пользователя к серверу
-    server.members.push(userId);
-    await server.save();
+    await Server.updateOne({ _id: server._id }, { $addToSet: { members: userId } });
+    invalidateServerMemberCaches(server._id.toString());
+    server.members = [...new Set([...(server.members || []).map(id => id.toString()), userId.toString()])];
 
     // Увеличить счетчик использований
     invite.uses += 1;
@@ -223,4 +293,3 @@ class ServerService {
 }
 
 module.exports = new ServerService();
-

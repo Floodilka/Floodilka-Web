@@ -37,7 +37,13 @@ const upload = multer({
 
 exports.getChannelMessages = asyncHandler(async (req, res) => {
   const { channelId } = req.params;
-  const messages = await messageService.getChannelMessages(channelId);
+  const { before, after, limit } = req.query;
+
+  const messages = await messageService.getChannelMessages(channelId, {
+    before,
+    after,
+    limit
+  });
   res.json(messages);
 });
 
@@ -92,4 +98,3 @@ exports.uploadMessageFiles = asyncHandler(async (req, res) => {
     files: uploadedFiles
   });
 });
-

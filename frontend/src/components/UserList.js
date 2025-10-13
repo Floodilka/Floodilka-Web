@@ -2,6 +2,7 @@ import React, { useState, memo, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './UserList.css';
 import FriendActionButton from './FriendActionButton';
+import api from '../services/api';
 
 const BACKEND_URL = window.location.hostname === 'localhost'
   ? 'http://localhost:3001'
@@ -44,9 +45,8 @@ const UserList = memo(function UserList({ onlineUsers, allMembers, currentUser, 
     // Если есть userId, загрузить актуальные данные пользователя
     if (user.userId) {
       try {
-        const response = await fetch(`${BACKEND_URL}/api/auth/user/${user.userId}`);
-        if (response.ok) {
-          const userData = await response.json();
+        const userData = await api.getUserById(user.userId);
+        if (userData) {
           setSelectedUser(userData);
           return;
         }
@@ -72,30 +72,7 @@ const UserList = memo(function UserList({ onlineUsers, allMembers, currentUser, 
 
     setSendingMessage(true);
     try {
-      const token = localStorage.getItem('token');
-      if (!token) throw new Error('Токен не найден');
-
-      const requestBody = {
-        receiverId: selectedUser.userId || selectedUser.id,
-        content: messageText.trim()
-      };
-
-      const response = await fetch(`${BACKEND_URL}/api/direct-messages/send`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(requestBody)
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        console.error('Ошибка отправки сообщения:', response.status, error);
-        throw new Error(error.error || 'Ошибка отправки сообщения');
-      }
-
-      await response.json();
+      await api.sendDirectMessage(selectedUser.userId || selectedUser.id, messageText.trim());
       setMessageText('');
       handleCloseProfile();
 

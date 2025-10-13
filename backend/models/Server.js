@@ -26,5 +26,8 @@ const serverSchema = new mongoose.Schema({
   }
 });
 
-module.exports = mongoose.model('Server', serverSchema);
+serverSchema.index({ ownerId: 1 });
+serverSchema.index({ members: 1 });
+serverSchema.index({ createdAt: -1 });
 
+module.exports = mongoose.model('Server', serverSchema);

@@ -2,6 +2,11 @@ const express = require('express');
 const http = require('http');
 const socketIo = require('socket.io');
 const cors = require('cors');
+const compression = require('compression');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
+const Redis = require('ioredis');
+const { createAdapter } = require('@socket.io/redis-adapter');
 
 // Конфигурация
 const config = require('./config/env');
@@ -26,16 +31,79 @@ const WebSocketManager = require('./websocket');
 const app = express();
 const server = http.createServer(app);
 const io = socketIo(server, {
-  cors: config.corsOptions
+  cors: config.corsOptions,
+  transports: ['websocket', 'polling'],
+  maxHttpBufferSize: 1e6,
+  pingInterval: 20000,
+  pingTimeout: 30000,
+  connectTimeout: 45000
 });
 
+// Настройка Socket.IO адаптера (Redis при наличии)
+if (config.redisUrl) {
+  const redisOptions = {
+    lazyConnect: true,
+    maxRetriesPerRequest: null
+  };
+
+  if (config.redisTls) {
+    redisOptions.tls = {
+      rejectUnauthorized: false
+    };
+  }
+
+  const pubClient = new Redis(config.redisUrl, redisOptions);
+  const subClient = pubClient.duplicate();
+
+  const awaitReady = (client) => new Promise((resolve, reject) => {
+    client.once('ready', resolve);
+    client.once('error', reject);
+  });
+
+  pubClient.on('error', (error) => logger.error('Redis pubClient error:', error));
+  subClient.on('error', (error) => logger.error('Redis subClient error:', error));
+
+  Promise.all([awaitReady(pubClient), awaitReady(subClient)])
+    .then(() => {
+      io.adapter(createAdapter(pubClient, subClient));
+      logger.info('🔌 Socket.IO Redis adapter активирован');
+    })
+    .catch((error) => {
+      logger.error('⚠️  Не удалось активировать Redis adapter для Socket.IO:', error);
+    });
+} else {
+  logger.warn('Redis не настроен — используется встроенный адаптер Socket.IO');
+}
+
 // Middleware
+app.set('trust proxy', 1);
+app.disable('x-powered-by');
+
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: 'cross-origin' }
+}));
+app.use(compression());
 app.use(cors({
   origin: config.frontendUrl,
   credentials: true
 }));
 app.use(express.json({ limit: '2mb' }));
 app.use(express.urlencoded({ limit: '2mb', extended: true }));
+
+const apiLimiter = rateLimit({
+  windowMs: config.rateLimitWindowMs,
+  max: config.rateLimitMax,
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (req, res) => {
+    res.status(429).json({
+      success: false,
+      error: 'Слишком много запросов. Попробуйте позже.'
+    });
+  }
+});
+
+app.use('/api/', apiLimiter);
 
 // Статические файлы (для аватаров)
 app.use('/uploads', express.static('uploads'));
@@ -99,6 +167,10 @@ server.listen(config.port, () => {
   logger.info(`🌐 CORS настроен для: ${config.frontendUrl}`);
   logger.info(`✅ Новая архитектура загружена`);
 });
+
+// Улучшенные таймауты keep-alive для большого количества соединений
+server.keepAliveTimeout = 65000;
+server.headersTimeout = 66000;
 
 // Флаг для предотвращения множественных вызовов
 let isShuttingDown = false;

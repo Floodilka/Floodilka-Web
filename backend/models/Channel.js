@@ -66,5 +66,7 @@ channelSchema.set('toJSON', {
   }
 });
 
-module.exports = mongoose.model('Channel', channelSchema);
+channelSchema.index({ serverId: 1, createdAt: 1 });
+channelSchema.index({ name: 1, serverId: 1 }, { unique: false });
 
+module.exports = mongoose.model('Channel', channelSchema);

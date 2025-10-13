@@ -6,6 +6,7 @@ import { SOCKET_EVENTS } from '../constants/events';
 import EmojiPicker from './EmojiPicker';
 import MessageReactions from './MessageReactions';
 import MentionAutocomplete from './MentionAutocomplete';
+import api from '../services/api';
 
 const BACKEND_URL = window.location.hostname === 'localhost'
   ? 'http://localhost:3001'
@@ -89,9 +90,8 @@ function Chat({ channel, messages, username, user, currentServer, onSendMessage,
     // Если есть userId, загрузить актуальные данные пользователя
     if (message.userId) {
       try {
-        const response = await fetch(`${BACKEND_URL}/api/auth/user/${message.userId}`);
-        if (response.ok) {
-          const userData = await response.json();
+        const userData = await api.getUserById(message.userId);
+        if (userData) {
           setSelectedUser(userData);
           return;
         }
@@ -175,19 +175,8 @@ function Chat({ channel, messages, username, user, currentServer, onSendMessage,
       }
 
       try {
-        const response = await fetch(
-          `${BACKEND_URL}/api/servers/${currentServer._id}/members`,
-          {
-            headers: {
-              'Authorization': `Bearer ${localStorage.getItem('token')}`
-            }
-          }
-        );
-
-        if (response.ok) {
-          const members = await response.json();
-          setServerMembers(members);
-        }
+        const members = await api.getServerMembers(currentServer._id);
+        setServerMembers(members);
       } catch (err) {
         console.error('Ошибка загрузки участников:', err);
         setServerMembers([]);

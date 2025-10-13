@@ -3,6 +3,7 @@ import { BACKEND_URL } from '../constants';
 class ApiService {
   constructor() {
     this.baseURL = BACKEND_URL;
+    this.cache = new Map();
   }
 
   getAuthHeaders() {
@@ -14,12 +15,24 @@ class ApiService {
   }
 
   async request(endpoint, options = {}) {
+    const { cache: cacheOptions, ...fetchOptions } = options;
     const url = `${this.baseURL}${endpoint}`;
+    const method = (fetchOptions.method || 'GET').toUpperCase();
+    const cacheKey = cacheOptions?.key || endpoint;
+    const ttl = cacheOptions?.ttl ?? 10_000;
+
+    if (method === 'GET' && cacheOptions) {
+      const cached = this.cache.get(cacheKey);
+      if (cached && cached.expiresAt > Date.now()) {
+        return cached.value;
+      }
+    }
+
     const config = {
-      ...options,
+      ...fetchOptions,
       headers: {
         ...this.getAuthHeaders(),
-        ...options.headers,
+        ...fetchOptions.headers,
       },
     };
 
@@ -31,11 +44,31 @@ class ApiService {
         throw new Error(error.error || `HTTP error! status: ${response.status}`);
       }
 
-      return await response.json();
+      const data = await response.json();
+
+      if (method === 'GET' && cacheOptions) {
+        this.cache.set(cacheKey, {
+          value: data,
+          expiresAt: Date.now() + ttl
+        });
+      }
+
+      return data;
     } catch (error) {
       console.error('API request failed:', error);
       throw error;
     }
+  }
+
+  invalidateCache(prefix) {
+    if (!prefix) {
+      this.cache.clear();
+      return;
+    }
+
+    Array.from(this.cache.keys())
+      .filter(key => key.startsWith(prefix))
+      .forEach(key => this.cache.delete(key));
   }
 
   // Серверы
@@ -44,10 +77,12 @@ class ApiService {
   }
 
   async createServer(data) {
-    return this.request('/api/servers', {
+    const result = await this.request('/api/servers', {
       method: 'POST',
       body: JSON.stringify(data),
     });
+    this.invalidateCache('server-members:');
+    return result;
   }
 
   async getServerChannels(serverId) {
@@ -55,27 +90,38 @@ class ApiService {
   }
 
   async getServerMembers(serverId) {
-    return this.request(`/api/servers/${serverId}/members`);
+    return this.request(`/api/servers/${serverId}/members`, {
+      cache: {
+        key: `server-members:${serverId}`,
+        ttl: 20_000
+      }
+    });
   }
 
   async createChannel(serverId, data) {
-    return this.request(`/api/servers/${serverId}/channels`, {
+    const result = await this.request(`/api/servers/${serverId}/channels`, {
       method: 'POST',
       body: JSON.stringify(data),
     });
+    this.invalidateCache(`server-members:${serverId}`);
+    return result;
   }
 
   async updateChannel(serverId, channelId, data) {
-    return this.request(`/api/servers/${serverId}/channels/${channelId}`, {
+    const result = await this.request(`/api/servers/${serverId}/channels/${channelId}`, {
       method: 'PUT',
       body: JSON.stringify(data),
     });
+    this.invalidateCache(`server-members:${serverId}`);
+    return result;
   }
 
   async deleteChannel(serverId, channelId) {
-    return this.request(`/api/servers/${serverId}/channels/${channelId}`, {
+    const result = await this.request(`/api/servers/${serverId}/channels/${channelId}`, {
       method: 'DELETE',
     });
+    this.invalidateCache(`server-members:${serverId}`);
+    return result;
   }
 
   // Инвайты
@@ -91,9 +137,11 @@ class ApiService {
   }
 
   async joinServerByInvite(code) {
-    return this.request(`/api/servers/join/${code}`, {
+    const result = await this.request(`/api/servers/join/${code}`, {
       method: 'POST',
     });
+    this.invalidateCache('server-members:');
+    return result;
   }
 
   // Сообщения
@@ -171,6 +219,15 @@ class ApiService {
     });
   }
 
+  async getUserById(userId) {
+    return this.request(`/api/auth/user/${userId}`, {
+      cache: {
+        key: `user:${userId}`,
+        ttl: 30_000
+      }
+    });
+  }
+
   async uploadAvatar(userId, formData) {
     const token = localStorage.getItem('token');
     const response = await fetch(`${this.baseURL}/api/auth/users/${userId}/avatar`, {
@@ -233,4 +290,5 @@ class ApiService {
   }
 }
 
-export default new ApiService();
+const apiService = new ApiService();
+export default apiService;

@@ -119,8 +119,26 @@ PORT=3001
 FRONTEND_URL=http://localhost:3000
 NODE_ENV=development
 MONGODB_URI=mongodb://localhost:27017/floodilka
+MONGO_MAX_POOL_SIZE=20
+MONGO_MIN_POOL_SIZE=5
+MONGO_CONNECT_TIMEOUT_MS=10000
 JWT_SECRET=your-super-secret-jwt-key
+RATE_LIMIT_WINDOW_MS=60000
+RATE_LIMIT_MAX=600
+# Redis-параметры опциональны, но рекомендуются при горизонтальном масштабировании
+REDIS_URL=redis://localhost:6379
+REDIS_TLS=false
+REDIS_KEY_PREFIX=floodilka
 ```
+
+## 🧱 Масштабирование и производительность
+
+- 🧩 **Redis adapter для Socket.IO** — установите `REDIS_URL`, чтобы распределить websocket-нагрузку между несколькими PM2-инстансами и синхронизировать presence.
+- 🗃️ **Оптимизированные MongoDB индексы и пул** — новые индексы для сообщений/серверов и параметры `MONGO_MAX_POOL_SIZE`/`MONGO_MIN_POOL_SIZE` уменьшают задержки при больших чатах.
+- 🚦 **API rate limiting** — переменные `RATE_LIMIT_WINDOW_MS` и `RATE_LIMIT_MAX` защищают API от нагрузочных всплесков.
+- 🧠 **Кэширование** — backend кеширует список участников и серверные метаданные, frontend кеширует GET-запросы с автоинвалидацией.
+- 📦 **Быстрые деплои** — скрипты обновления используют `npm install --prefer-offline --no-audit --no-fund`, снижая сетевой шум и ускоряя rollout.
+- 📡 **Оптимизированный Socket.IO клиент** — WebSocket по умолчанию, короче таймауты переподключения и расширенный лог.
 
 ## 🎨 Фичи
 

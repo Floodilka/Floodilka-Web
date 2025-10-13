@@ -1,17 +1,32 @@
 const mongoose = require('mongoose');
 const logger = require('../utils/logger');
+const config = require('./env');
+
+mongoose.set('strictQuery', true);
 
 const connectDB = async () => {
   try {
-    const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/floodilka';
+    const MONGODB_URI = config.mongodbUri;
 
     await mongoose.connect(MONGODB_URI, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
+      maxPoolSize: config.mongoMaxPoolSize,
+      minPoolSize: config.mongoMinPoolSize,
+      serverSelectionTimeoutMS: config.mongoConnectTimeoutMs,
+      socketTimeoutMS: 60000
     });
 
-    logger.info('📦 MongoDB подключена успешно');
-    logger.info(`📍 URI: ${MONGODB_URI.replace(/\/\/([^:]+):([^@]+)@/, '//$1:****@')}`);
+    mongoose.connection.on('connected', () => {
+      logger.info('📦 MongoDB подключена успешно');
+      logger.info(`📍 URI: ${MONGODB_URI.replace(/\/\/([^:]+):([^@]+)@/, '//$1:****@')}`);
+    });
+
+    mongoose.connection.on('error', (err) => {
+      logger.error('❌ Ошибка MongoDB соединения:', err);
+    });
+
+    mongoose.connection.on('disconnected', () => {
+      logger.warn('⚠️  MongoDB соединение потеряно, попытка переподключения...');
+    });
   } catch (error) {
     logger.error('❌ Ошибка подключения к MongoDB:', error);
     process.exit(1);
@@ -19,4 +34,3 @@ const connectDB = async () => {
 };
 
 module.exports = { connectDB };
-

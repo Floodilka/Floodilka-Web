@@ -188,6 +188,12 @@ sudo -u floodilka pm2 monit
 sudo -u floodilka pm2 logs --lines 100
 ```
 
+## Redis / Socket.IO адаптер
+
+- Используете `REDIS_URL`? Перед деплоем убедитесь, что Redis доступен: `redis-cli -u "$REDIS_URL" ping` должен вернуть `PONG`.
+- После обновления проверьте логи backend — строка `Socket.IO Redis adapter активирован` подтверждает, что все инстансы синхронизируются через Redis.
+- При ошибке подключения приложение продолжит работу с локальным адаптером, но presence будет ограничен текущим процессом.
+
 ## Полезные алиасы
 
 Добавьте в `~/.bashrc` для удобства:
@@ -210,4 +216,3 @@ floodilka-update    # обновить
 floodilka-logs      # посмотреть логи
 floodilka-status    # статус
 ```
-

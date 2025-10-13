@@ -16,7 +16,7 @@ cd $FRONTEND_DIR
 
 # Установка зависимостей
 echo "📦 Установка зависимостей..."
-sudo -u $USER npm install
+sudo -u $USER npm install --no-audit --no-fund --prefer-offline
 
 # Сборка production версии
 echo "🔨 Сборка production версии..."
@@ -31,4 +31,3 @@ chown -R www-data:www-data $NGINX_DIR
 
 echo "✅ Frontend успешно развернут!"
 echo "📁 Файлы находятся в: $NGINX_DIR"
-

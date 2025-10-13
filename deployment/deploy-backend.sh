@@ -14,7 +14,7 @@ cd $APP_DIR
 
 # Установка зависимостей
 echo "📦 Установка зависимостей..."
-sudo -u $USER npm install --production
+sudo -u $USER npm install --production --no-audit --no-fund --prefer-offline
 
 # Перезапуск или запуск приложения через PM2
 echo "🔄 Перезапуск приложения..."
@@ -40,4 +40,3 @@ pm2 startup systemd -u $USER --hp /home/$USER
 echo "✅ Backend успешно развернут!"
 echo "📊 Проверка статуса: pm2 status"
 echo "📜 Логи: pm2 logs floodilka-backend"
-

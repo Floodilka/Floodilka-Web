@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 const User = require('../models/User');
 const FriendRequest = require('../models/FriendRequest');
 const { ValidationError, NotFoundError, ForbiddenError } = require('../utils/errors');
+const { escapeRegex } = require('../utils/string');
 
 const USER_SELECT_FIELDS = 'username displayName avatar badge badgeTooltip status';
 
@@ -59,7 +60,7 @@ class FriendService {
     }
 
     const targetUser = await User.findOne({
-      username: { $regex: new RegExp(`^${this.escapeRegex(normalizedUsername)}$`, 'i') }
+      username: { $regex: new RegExp(`^${escapeRegex(normalizedUsername)}$`, 'i') }
     }).select(USER_SELECT_FIELDS);
 
     if (!targetUser) {
@@ -274,9 +275,6 @@ class FriendService {
     ]);
   }
 
-  escapeRegex(text) {
-    return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  }
 }
 
 module.exports = new FriendService();

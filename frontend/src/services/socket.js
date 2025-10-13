@@ -6,6 +6,16 @@ class SocketService {
   constructor() {
     this.socket = null;
     this.listeners = new Map();
+    this.connectionOptions = {
+      transports: ['websocket'],
+      reconnection: true,
+      reconnectionAttempts: 5,
+      reconnectionDelay: 500,
+      reconnectionDelayMax: 5000,
+      timeout: 20000,
+      forceNew: false,
+      withCredentials: true
+    };
   }
 
   connect() {
@@ -13,7 +23,7 @@ class SocketService {
       return this.socket;
     }
 
-    this.socket = io(BACKEND_URL);
+    this.socket = io(BACKEND_URL, this.connectionOptions);
 
     this.socket.on('connect', () => {
       console.log('✅ Socket connected:', this.socket.id);
@@ -21,6 +31,16 @@ class SocketService {
 
     this.socket.on('disconnect', () => {
       console.log('❌ Socket disconnected');
+    });
+
+    if (this.socket.io?.engine) {
+      this.socket.io.engine.on('upgrade', (transport) => {
+        console.log('📦 Socket transport upgraded:', transport.name);
+      });
+    }
+
+    this.socket.on('connect_error', (error) => {
+      console.warn('⚠️  Socket connection error:', error.message);
     });
 
     return this.socket;
@@ -131,5 +151,5 @@ class SocketService {
   }
 }
 
-export default new SocketService();
-
+const socketServiceInstance = new SocketService();
+export default socketServiceInstance;

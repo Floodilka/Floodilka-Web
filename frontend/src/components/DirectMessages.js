@@ -10,6 +10,7 @@ import { useFriendStatus } from '../hooks/useFriendStatus';
 import { SOCKET_EVENTS } from '../constants/events';
 import EmojiPicker from './EmojiPicker';
 import MessageReactions from './MessageReactions';
+import api from '../services/api';
 
 const BACKEND_URL = window.location.hostname === 'localhost'
   ? 'http://localhost:3001'
@@ -100,10 +101,8 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
     // Если есть userId, загрузить актуальные данные пользователя
     if (sender._id) {
       try {
-        const response = await fetch(`${BACKEND_URL}/api/auth/user/${sender._id}`);
-        if (response.ok) {
-          const userData = await response.json();
-          // Нормализуем данные пользователя
+        const userData = await api.getUserById(sender._id);
+        if (userData) {
           setSelectedUser({
             ...userData,
             userId: userData._id || userData.id || userData.userId
