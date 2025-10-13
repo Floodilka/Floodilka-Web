@@ -807,7 +807,7 @@
   box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
   z-index: 9999;
   animation: profileSlideInChat 0.15s ease-out;
-  overflow: hidden;
+  overflow: visible;
 }
 
 @keyframes profileSlideInChat {
@@ -824,6 +824,8 @@
 .user-profile-banner {
   height: 60px;
   background: linear-gradient(135deg, #5865f2 0%, #4752c4 100%);
+  border-radius: 8px 8px 0 0;
+  overflow: hidden;
 }
 
 .user-profile-content {

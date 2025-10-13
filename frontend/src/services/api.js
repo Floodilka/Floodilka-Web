@@ -206,7 +206,31 @@ class ApiService {
 
     return await response.json();
   }
+
+  // Друзья
+  async getFriends() {
+    return this.request('/api/friends');
+  }
+
+  async sendFriendRequest(username) {
+    return this.request('/api/friends/request', {
+      method: 'POST',
+      body: JSON.stringify({ username })
+    });
+  }
+
+  async respondToFriendRequest(requestId, action) {
+    return this.request('/api/friends/respond', {
+      method: 'POST',
+      body: JSON.stringify({ requestId, action })
+    });
+  }
+
+  async removeFriend(friendId) {
+    return this.request(`/api/friends/${friendId}`, {
+      method: 'DELETE'
+    });
+  }
 }
 
 export default new ApiService();
-

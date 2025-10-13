@@ -1,0 +1,92 @@
+.user-profile-friend-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: none;
+  background: #111214;
+  color: #ffffff;
+  font-size: 16px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  padding: 0;
+}
+
+.friend-icon {
+  width: 14px;
+  height: 14px;
+  object-fit: contain;
+  /* Иконка всегда белая */
+  filter: brightness(0) invert(1);
+  transition: transform 0.2s ease;
+}
+
+.user-profile-friend-btn:hover:not(:disabled) {
+  background: #1a1c1e;
+}
+
+.user-profile-friend-btn:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+.user-profile-friend-btn.loading .friend-icon {
+  animation: pulse 1s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(0.9);
+  }
+}
+
+/* Тултип для кнопки друзей */
+.friend-action-wrapper {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 10;
+}
+
+.friend-tooltip {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  right: 0;
+  background: #111214;
+  color: #ffffff;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(4px);
+  transition: opacity 0.2s ease 0.3s, transform 0.2s ease 0.3s;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+.friend-action-wrapper:hover .friend-tooltip {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.friend-tooltip::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  right: 10px;
+  width: 0;
+  height: 0;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-top: 6px solid #111214;
+}

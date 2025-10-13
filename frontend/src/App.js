@@ -9,6 +9,7 @@ import { useGlobalUsers } from './context/GlobalUsersContext';
 import { useServer } from './context/ServerContext';
 import { useChat } from './context/ChatContext';
 import { useVoice } from './context/VoiceContext';
+import { useFriends } from './context/FriendsContext';
 
 // Hooks
 import { useSocket } from './hooks/useSocket';
@@ -33,6 +34,7 @@ const DirectMessagesRoute = () => {
   const { user, logout, updateUser } = useAuth();
   const { servers, createServer } = useServer();
   const { hasUnreadDMs, setHasUnreadDMs } = useChat();
+  const { incomingRequests } = useFriends();
   const {
     activeVoiceChannel,
     globalMuted,
@@ -121,6 +123,8 @@ const DirectMessagesRoute = () => {
   }
 
   // Десктоп версия
+  const hasNotifications = hasUnreadDMs || incomingRequests.length > 0;
+
   return (
     <div className="app">
       <ServerSidebar
@@ -131,7 +135,7 @@ const DirectMessagesRoute = () => {
         user={user}
         onSelectDirectMessages={handleSelectDirectMessages}
         showDirectMessages={true}
-        hasUnreadDMs={hasUnreadDMs}
+        hasUnreadDMs={hasNotifications}
         activeVoiceChannel={activeVoiceChannel}
       />
       <DirectMessages
@@ -194,6 +198,7 @@ const ServerRoute = () => {
     clearChannelState,
     sendMessage: handleMessageSent
   } = useChat();
+  const { incomingRequests } = useFriends();
   const {
     currentVoiceChannel,
     activeVoiceChannel,
@@ -366,6 +371,8 @@ const ServerRoute = () => {
   }
 
   // Десктоп версия
+  const hasNotifications = hasUnreadDMs || incomingRequests.length > 0;
+
   return (
     <div className="app">
       <ServerSidebar
@@ -376,7 +383,7 @@ const ServerRoute = () => {
         user={user}
         onSelectDirectMessages={handleSelectDirectMessages}
         showDirectMessages={false}
-        hasUnreadDMs={hasUnreadDMs}
+        hasUnreadDMs={hasNotifications}
         activeVoiceChannel={activeVoiceChannel}
       />
 

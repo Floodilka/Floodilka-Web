@@ -2,7 +2,9 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom';
 import './DirectMessages.css';
 import UserProfile from './UserProfile';
+import FriendsPanel from './FriendsPanel';
 import { useGlobalUsers } from '../context/GlobalUsersContext';
+import { useFriends } from '../context/FriendsContext';
 import { SOCKET_EVENTS } from '../constants/events';
 import EmojiPicker from './EmojiPicker';
 import MessageReactions from './MessageReactions';
@@ -14,11 +16,13 @@ const BACKEND_URL = window.location.hostname === 'localhost'
 function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser, onAutoSelectComplete, onUnreadDMsUpdate, isMuted, isDeafened, isInVoice, isSpeaking, onToggleMute, onToggleDeafen, onDisconnect, onDMUserSelect, showOnlyList, showOnlyChat }) {
   const navigate = useNavigate();
   const { globalOnlineUsers } = useGlobalUsers();
+  const { incomingRequests } = useFriends();
   const [directMessages, setDirectMessages] = useState([]);
   const [selectedDM, setSelectedDM] = useState(null);
   const [selectedMessages, setSelectedMessages] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showFriendsPanel, setShowFriendsPanel] = useState(true);
   const [messagesLoading, setMessagesLoading] = useState(false);
   const [error, setError] = useState('');
   const [inputValue, setInputValue] = useState('');
@@ -539,6 +543,7 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
         console.log('🎯 Автоматически выбираем разговор с:', conversation.user?.username);
         lastProcessedUserIdRef.current = targetUserId;
         setSelectedDM(conversation);
+        setShowFriendsPanel(false);
         setInputValue('');
         loadMessagesWithUser(conversation._id);
 
@@ -587,6 +592,7 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
 
       lastProcessedUserIdRef.current = autoSelectUser._id;
       setSelectedDM(prev => prev?._id === autoSelectUser._id ? prev : autoSelectUser);
+      setShowFriendsPanel(false);
       setInputValue('');
       loadMessagesWithUser(autoSelectUser._id);
 
@@ -809,6 +815,9 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
   }, [socket]);
 
   const handleSelectDM = useCallback(async (dm) => {
+    setShowFriendsPanel(false);
+    setSelectedDM(dm);
+
     // Если есть обработчик для мобильного режима, используем его
     if (onDMUserSelect) {
       onDMUserSelect(dm);
@@ -818,6 +827,20 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
     // Навигация через URL вместо изменения состояния
     navigate(`/channels/@me/${dm._id}`);
   }, [onDMUserSelect, navigate]);
+
+  const handleFriendOpen = useCallback((friend) => {
+    if (!friend || !friend._id) return;
+
+    const conversation = {
+      _id: friend._id,
+      user: friend,
+      lastMessage: null,
+      unreadCount: 0
+    };
+
+    setShowFriendsPanel(false);
+    handleSelectDM(conversation);
+  }, [handleSelectDM]);
 
   const filteredDMs = useMemo(() =>
     directMessages.filter(dm =>
@@ -986,17 +1009,28 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
       {/* Левая панель - список личных сообщений */}
       <div className="dm-sidebar">
         <div className="dm-header">
-          <h2>Личные сообщения</h2>
-        </div>
-
-        <div className="dm-search">
           <input
             type="text"
-            placeholder="Найти или начать беседу"
+            placeholder="Кого поищем?"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
+
+        <div className={`dm-friends-item ${showFriendsPanel ? 'selected' : ''}`} onClick={() => {
+          setShowFriendsPanel(true);
+          setSelectedDM(null);
+          navigate('/channels/@me');
+        }}>
+          <div className="dm-friends-icon">
+            <img src="/icons/friends.png" alt="Друзья" />
+          </div>
+          <span className="dm-friends-text">Друзья</span>
+          {incomingRequests.length > 0 && (
+            <div className="dm-friends-notification-dot" title={`Заявок в друзья: ${incomingRequests.length}`}></div>
+          )}
+        </div>
+        <div className="dm-friends-divider"></div>
 
         <div className="dm-list">
           {loading ? (
@@ -1069,7 +1103,11 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
       {/* Правая панель - чат - показываем только если не только список */}
       {!showOnlyList && (
         <div className="dm-chat">
-          {selectedDM && selectedDM.user ? (
+          {showFriendsPanel ? (
+            <div className="dm-chat-empty">
+              <FriendsPanel onSelectFriend={handleFriendOpen} />
+            </div>
+          ) : selectedDM && selectedDM.user ? (
             <div className="dm-chat-active">
               {/* Заголовок чата */}
               <div className="dm-chat-header">
@@ -1289,10 +1327,7 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
             </div>
           ) : (
             <div className="dm-chat-empty">
-              <div className="dm-chat-empty-content">
-                <h2>Добро пожаловать в личные сообщения!</h2>
-                <p>Выберите разговор из списка слева или начните новое сообщение.</p>
-              </div>
+              <FriendsPanel onSelectFriend={handleFriendOpen} />
             </div>
           )}
         </div>

@@ -1,6 +1,7 @@
 import React, { useState, memo, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './UserList.css';
+import FriendActionButton from './FriendActionButton';
 
 const BACKEND_URL = window.location.hostname === 'localhost'
   ? 'http://localhost:3001'
@@ -275,6 +276,11 @@ const UserList = memo(function UserList({ onlineUsers, allMembers, currentUser, 
               )}
             </div>
 
+            <FriendActionButton
+              targetUser={selectedUser}
+              currentUserId={currentUser?.id}
+            />
+
             {/* Поле для отправки личного сообщения - только если не свой профиль */}
             {selectedUser && currentUser && (selectedUser.userId !== currentUser.id && selectedUser.username !== currentUser.username) && (
               <div className="user-profile-message-input">
@@ -315,4 +321,3 @@ const UserList = memo(function UserList({ onlineUsers, allMembers, currentUser, 
 });
 
 export default UserList;
-

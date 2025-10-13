@@ -17,6 +17,7 @@ const serverRoutes = require('./routes/servers');
 const roleRoutes = require('./routes/roles');
 const directMessageRoutes = require('./routes/directMessages');
 const messageRoutes = require('./routes/messages');
+const friendRoutes = require('./routes/friends');
 
 // WebSocket
 const WebSocketManager = require('./websocket');
@@ -65,6 +66,7 @@ app.use('/api/servers', serverRoutes);
 app.use('/api/roles', roleRoutes);
 app.use('/api/direct-messages', directMessageRoutes);
 app.use('/api/messages', messageRoutes);
+app.use('/api/friends', friendRoutes);
 
 // Health check endpoint
 app.get('/health', (req, res) => {
@@ -174,4 +176,3 @@ process.on('uncaughtException', (err) => {
 });
 
 module.exports = { app, server, io };
-

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import './ChannelList.css';
+import FriendActionButton from './FriendActionButton';
 import UserProfile from './UserProfile';
 import ChannelSettingsModal from './ChannelSettingsModal';
 import { useVoice } from '../context/VoiceContext';
@@ -786,6 +787,11 @@ function ChannelList({ channels, currentTextChannel, currentVoiceChannel, voiceC
                 </div>
               )}
             </div>
+
+            <FriendActionButton
+              targetUser={selectedUser}
+              currentUserId={user?.id}
+            />
 
             {/* Поле для отправки личного сообщения - только если не свой профиль */}
             {selectedUser && (selectedUser.userId !== user.id && selectedUser.username !== user.username) && (

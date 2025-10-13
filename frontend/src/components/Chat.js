@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useLayoutEffect, useRef, useCallback } from 'react';
 import './Chat.css';
+import FriendActionButton from './FriendActionButton';
 import { useChat } from '../context/ChatContext';
 import { SOCKET_EVENTS } from '../constants/events';
 import EmojiPicker from './EmojiPicker';
@@ -60,9 +61,15 @@ function Chat({ channel, messages, username, user, currentServer, onSendMessage,
       // Если места внизу мало, показываем над элементом
       // Выравниваем нижний край карточки с верхним краем элемента
       top = rect.top - cardHeight - 8;
+
+      // Проверяем, не уходит ли карточка за верхний край экрана после сдвига вверх
+      if (top < padding) {
+        // Если карточка все еще не помещается сверху, центрируем её по вертикали
+        top = Math.max(padding, (window.innerHeight - cardHeight) / 2);
+      }
     }
 
-    // Проверяем, не уходит ли карточка за верхний край экрана
+    // Проверяем, не уходит ли карточка за верхний край экрана (для обычного случая)
     if (top < padding) {
       top = padding;
     }
@@ -1006,9 +1013,15 @@ function Chat({ channel, messages, username, user, currentServer, onSendMessage,
       // Если места внизу мало, показываем над элементом
       // Выравниваем нижний край карточки с верхним краем элемента
       top = rect.top - cardHeight - 8;
+
+      // Проверяем, не уходит ли карточка за верхний край экрана после сдвига вверх
+      if (top < padding) {
+        // Если карточка все еще не помещается сверху, центрируем её по вертикали
+        top = Math.max(padding, (window.innerHeight - cardHeight) / 2);
+      }
     }
 
-    // Проверяем, не уходит ли карточка за верхний край экрана
+    // Проверяем, не уходит ли карточка за верхний край экрана (для обычного случая)
     if (top < padding) {
       top = padding;
     }
@@ -1480,6 +1493,11 @@ function Chat({ channel, messages, username, user, currentServer, onSendMessage,
               )}
             </div>
 
+            <FriendActionButton
+              targetUser={selectedUser}
+              currentUserId={user?.id}
+            />
+
             {/* Поле для отправки личного сообщения - только если не свой профиль */}
             {selectedUser && (selectedUser.userId !== username && selectedUser.username !== username) && (
               <div className="user-profile-message-input">
@@ -1584,4 +1602,3 @@ function Chat({ channel, messages, username, user, currentServer, onSendMessage,
 }
 
 export default Chat;
-

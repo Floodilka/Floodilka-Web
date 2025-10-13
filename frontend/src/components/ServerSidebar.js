@@ -138,7 +138,7 @@ const ServerSidebar = memo(function ServerSidebar({ servers, currentServer, onSe
           title="Личные сообщения"
         >
           <img src="/icons/chat.png" alt="Личные сообщения" className="dm-icon-image" />
-          {hasUnreadDMs && <div className="dm-notification-dot" title="У вас есть непрочитанные сообщения"></div>}
+          {hasUnreadDMs && <div className="dm-notification-dot" title="У вас есть непрочитанные сообщения или заявки в друзья"></div>}
         </div>
 
         {servers && Array.isArray(servers) && servers.map(server => {

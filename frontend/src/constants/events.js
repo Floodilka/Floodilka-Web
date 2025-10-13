@@ -62,5 +62,11 @@ export const SOCKET_EVENTS = {
   // Direct message events
   DIRECT_MESSAGE_NEW: 'direct-message:new',
   DIRECT_MESSAGE_EDITED: 'direct-message:edited',
-  DIRECT_MESSAGE_DELETED: 'direct-message:deleted'
+  DIRECT_MESSAGE_DELETED: 'direct-message:deleted',
+
+  // Friend events
+  FRIEND_REQUEST_CREATED: 'friend:request-created',
+  FRIEND_REQUEST_UPDATED: 'friend:request-updated',
+  FRIEND_ADDED: 'friend:added',
+  FRIEND_REMOVED: 'friend:removed'
 };

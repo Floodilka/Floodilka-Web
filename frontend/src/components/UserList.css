@@ -221,7 +221,7 @@
   z-index: 9999;
   transform: translateX(-100%);
   animation: profileSlideIn 0.15s ease-out;
-  overflow: hidden;
+  overflow: visible;
 }
 
 @keyframes profileSlideIn {
@@ -238,6 +238,8 @@
 .user-profile-banner {
   height: 60px;
   background: linear-gradient(135deg, #5865f2 0%, #4752c4 100%);
+  border-radius: 8px 8px 0 0;
+  overflow: hidden;
 }
 
 .user-profile-content {

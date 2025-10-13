@@ -5,6 +5,7 @@ import { ChatProvider } from './ChatContext';
 import { VoiceProvider } from './VoiceContext';
 import { SocketProvider } from './SocketContext';
 import { GlobalUsersProvider } from './GlobalUsersContext';
+import { FriendsProvider } from './FriendsContext';
 import LoadingScreen from '../components/LoadingScreen';
 
 const AppLoadingContext = createContext();
@@ -86,9 +87,11 @@ export const AppProvider = ({ children }) => {
           <GlobalUsersProvider>
             <ServerProvider>
               <SocketProvider>
-                <AppLoadingManager>
-                  {children}
-                </AppLoadingManager>
+                <FriendsProvider>
+                  <AppLoadingManager>
+                    {children}
+                  </AppLoadingManager>
+                </FriendsProvider>
               </SocketProvider>
             </ServerProvider>
           </GlobalUsersProvider>
@@ -97,4 +100,3 @@ export const AppProvider = ({ children }) => {
     </AuthProvider>
   );
 };
-

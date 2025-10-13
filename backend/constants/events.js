@@ -60,7 +60,11 @@ const SOCKET_EVENTS = {
   SCREEN_SHARING_UPDATE: 'screen-sharing:update',
 
   // Direct message events
-  DIRECT_MESSAGE_NEW: 'direct-message:new'
+  DIRECT_MESSAGE_NEW: 'direct-message:new',
+  FRIEND_REQUEST_CREATED: 'friend:request-created',
+  FRIEND_REQUEST_UPDATED: 'friend:request-updated',
+  FRIEND_ADDED: 'friend:added',
+  FRIEND_REMOVED: 'friend:removed'
 };
 
 module.exports = { SOCKET_EVENTS };
