@@ -1,5 +1,52 @@
 const mongoose = require('mongoose');
 
+const replyMetadataSchema = new mongoose.Schema({
+  messageId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Message'
+  },
+  channelId: {
+    type: String,
+    default: null
+  },
+  username: {
+    type: String,
+    default: null
+  },
+  displayName: {
+    type: String,
+    default: null
+  },
+  content: {
+    type: String,
+    default: ''
+  },
+  hasAttachments: {
+    type: Boolean,
+    default: false
+  },
+  attachmentPreview: {
+    path: {
+      type: String,
+      default: null
+    },
+    mimetype: {
+      type: String,
+      default: null
+    },
+    originalName: {
+      type: String,
+      default: null
+    }
+  },
+  isSystem: {
+    type: Boolean,
+    default: false
+  }
+}, {
+  _id: false
+});
+
 const messageSchema = new mongoose.Schema({
   channelId: {
     type: String,
@@ -50,6 +97,10 @@ const messageSchema = new mongoose.Schema({
   isSystem: {
     type: Boolean,
     default: false
+  },
+  replyTo: {
+    type: replyMetadataSchema,
+    default: null
   },
   attachments: [{
     filename: {
@@ -128,6 +179,9 @@ messageSchema.set('toJSON', {
   transform: function(doc, ret) {
     ret.id = ret._id.toString();
     ret.timestamp = ret.createdAt.toISOString();
+    if (ret.replyTo && ret.replyTo.messageId) {
+      ret.replyTo.messageId = ret.replyTo.messageId.toString();
+    }
     return ret;
   }
 });

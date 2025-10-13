@@ -4,7 +4,7 @@ const { ValidationError, NotFoundError } = require('../utils/errors');
 const { validateMessageContent } = require('../validators/messageValidator');
 
 class DirectMessageService {
-  async sendMessage(senderId, receiverId, content, attachments = []) {
+  async sendMessage(senderId, receiverId, content, attachments = [], replyToMessageId = null) {
     const hasAttachments = attachments && attachments.length > 0;
     const validatedContent = validateMessageContent(content, hasAttachments);
 
@@ -12,11 +12,44 @@ class DirectMessageService {
       throw new ValidationError('Нельзя отправить сообщение самому себе');
     }
 
+    let replyTo = null;
+    if (replyToMessageId) {
+      const parentMessage = await DirectMessage.findById(replyToMessageId).populate('sender', 'username displayName');
+      if (parentMessage) {
+        const senderIdStr = senderId.toString();
+        const receiverIdStr = receiverId.toString();
+        const parentSenderId = parentMessage.sender?._id?.toString() || parentMessage.sender.toString();
+        const parentReceiverId = parentMessage.receiver?._id?.toString() || parentMessage.receiver.toString();
+
+        const sameConversation =
+          (parentSenderId === senderIdStr && parentReceiverId === receiverIdStr) ||
+          (parentSenderId === receiverIdStr && parentReceiverId === senderIdStr);
+
+        if (sameConversation) {
+          replyTo = {
+            messageId: parentMessage._id,
+            username: parentMessage.sender.username,
+            displayName: parentMessage.sender.displayName,
+            content: parentMessage.content || '',
+            hasAttachments: Array.isArray(parentMessage.attachments) && parentMessage.attachments.length > 0,
+            attachmentPreview: parentMessage.attachments && parentMessage.attachments.length > 0
+              ? {
+                  path: parentMessage.attachments[0].path,
+                  mimetype: parentMessage.attachments[0].mimetype,
+                  originalName: parentMessage.attachments[0].originalName
+                }
+              : null
+          };
+        }
+      }
+    }
+
     const directMessage = new DirectMessage({
       sender: senderId,
       receiver: receiverId,
       content: validatedContent,
-      attachments: attachments || []
+      attachments: attachments || [],
+      replyTo
     });
 
     await directMessage.save();
@@ -27,7 +60,7 @@ class DirectMessageService {
       { path: 'receiver', select: 'username displayName avatar badge badgeTooltip' }
     ]);
 
-    return directMessage;
+    return directMessage.toJSON();
   }
 
   async getConversation(currentUserId, targetUserId, page = 1, limit = 50) {
@@ -36,7 +69,7 @@ class DirectMessageService {
     const currentUserObjectId = new mongoose.Types.ObjectId(currentUserId);
     const targetUserObjectId = new mongoose.Types.ObjectId(targetUserId);
 
-    const messages = await DirectMessage.find({
+    const messagesDocs = await DirectMessage.find({
       $or: [
         { sender: currentUserObjectId, receiver: targetUserObjectId },
         { sender: targetUserObjectId, receiver: currentUserObjectId }
@@ -55,7 +88,7 @@ class DirectMessageService {
       { read: true }
     );
 
-    return messages.reverse();
+    return messagesDocs.reverse().map(msg => msg.toJSON());
   }
 
   async getConversations(userId) {
@@ -201,4 +234,3 @@ class DirectMessageService {
 }
 
 module.exports = new DirectMessageService();
-

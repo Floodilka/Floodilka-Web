@@ -31,8 +31,10 @@ export const useChannel = () => {
     // НЕ сбрасываем lastJoinedChannelRef когда канал null - сохраняем последний ID!
   }, [currentTextChannel, user]);
 
-  const sendMessage = async (content, files = []) => {
+  const sendMessage = async (content, files = [], replyTo = null) => {
     if (!currentTextChannel || !user) return;
+
+    const replyToMessageId = replyTo?.messageId || replyTo?.id || null;
 
     // Если есть файлы, сначала загружаем их
     if (files && files.length > 0) {
@@ -45,7 +47,7 @@ export const useChannel = () => {
         const uploadResult = await apiService.uploadMessageFiles(formData);
 
         // Отправляем сообщение с файлами через сокет
-        socketService.sendMessage({
+        const payload = {
           channelId: currentTextChannel.id,
           content,
           username: user.username,
@@ -55,14 +57,20 @@ export const useChannel = () => {
           badgeTooltip: user.badgeTooltip,
           userId: user.id,
           attachments: uploadResult.files
-        });
+        };
+
+        if (replyToMessageId) {
+          payload.replyToMessageId = replyToMessageId;
+        }
+
+        socketService.sendMessage(payload);
       } catch (error) {
         console.error('Ошибка загрузки файлов:', error);
         alert('Ошибка загрузки файлов: ' + error.message);
       }
     } else {
       // Обычная отправка текстового сообщения
-      socketService.sendMessage({
+      const payload = {
         channelId: currentTextChannel.id,
         content,
         username: user.username,
@@ -71,10 +79,15 @@ export const useChannel = () => {
         badge: user.badge,
         badgeTooltip: user.badgeTooltip,
         userId: user.id
-      });
+      };
+
+      if (replyToMessageId) {
+        payload.replyToMessageId = replyToMessageId;
+      }
+
+      socketService.sendMessage(payload);
     }
   };
 
   return { sendMessage };
 };
-

@@ -1,5 +1,44 @@
 const mongoose = require('mongoose');
 
+const replyMetadataSchema = new mongoose.Schema({
+  messageId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'DirectMessage'
+  },
+  username: {
+    type: String,
+    default: null
+  },
+  displayName: {
+    type: String,
+    default: null
+  },
+  content: {
+    type: String,
+    default: ''
+  },
+  hasAttachments: {
+    type: Boolean,
+    default: false
+  },
+  attachmentPreview: {
+    path: {
+      type: String,
+      default: null
+    },
+    mimetype: {
+      type: String,
+      default: null
+    },
+    originalName: {
+      type: String,
+      default: null
+    }
+  }
+}, {
+  _id: false
+});
+
 const directMessageSchema = new mongoose.Schema({
   sender: {
     type: mongoose.Schema.Types.ObjectId,
@@ -25,6 +64,10 @@ const directMessageSchema = new mongoose.Schema({
       },
       message: 'Содержимое сообщения обязательно, если нет вложений'
     }
+  },
+  replyTo: {
+    type: replyMetadataSchema,
+    default: null
   },
   attachments: [{
     filename: {
@@ -96,5 +139,16 @@ directMessageSchema.index({ sender: 1, receiver: 1, timestamp: -1 });
 
 // Индекс для поиска непрочитанных сообщений
 directMessageSchema.index({ receiver: 1, read: 1 });
+
+directMessageSchema.set('toJSON', {
+  virtuals: true,
+  transform: function(doc, ret) {
+    ret.id = ret._id.toString();
+    if (ret.replyTo && ret.replyTo.messageId) {
+      ret.replyTo.messageId = ret.replyTo.messageId.toString();
+    }
+    return ret;
+  }
+});
 
 module.exports = mongoose.model('DirectMessage', directMessageSchema);

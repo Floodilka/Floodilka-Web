@@ -32,6 +32,8 @@ function Chat({ channel, messages, username, user, currentServer, onSendMessage,
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [emojiPickerPosition, setEmojiPickerPosition] = useState(null);
   const [selectedMessageForReaction, setSelectedMessageForReaction] = useState(null);
+  const [replyingTo, setReplyingTo] = useState(null);
+  const [highlightedMessageId, setHighlightedMessageId] = useState(null);
 
   // Состояния для автокомплита упоминаний
   const [showMentionAutocomplete, setShowMentionAutocomplete] = useState(false);
@@ -195,6 +197,33 @@ function Chat({ channel, messages, username, user, currentServer, onSendMessage,
     loadServerMembers();
   }, [currentServer]);
 
+  useEffect(() => {
+    if (replyingTo && inputRef.current) {
+      inputRef.current.focus({ preventScroll: true });
+    }
+  }, [replyingTo]);
+
+  useEffect(() => {
+    setReplyingTo(null);
+    setHighlightedMessageId(null);
+  }, [channel?.id]);
+
+  useEffect(() => {
+    if (replyingTo && !messages.find(msg => msg.id === replyingTo.id)) {
+      setReplyingTo(null);
+    }
+  }, [messages, replyingTo]);
+
+  useEffect(() => {
+    if (!highlightedMessageId) return;
+
+    const timeout = setTimeout(() => {
+      setHighlightedMessageId(null);
+    }, 1800);
+
+    return () => clearTimeout(timeout);
+  }, [highlightedMessageId]);
+
   const handleSendDirectMessage = async () => {
     if (!messageText.trim() || !selectedUser || sendingMessage) return;
 
@@ -287,6 +316,67 @@ function Chat({ channel, messages, username, user, currentServer, onSendMessage,
 
   const handleCloseContextMenu = () => {
     setContextMenu(null);
+  };
+
+  const truncateText = (text, limit = 120) => {
+    if (!text) return '';
+    return text.length > limit ? `${text.slice(0, limit).trim()}…` : text;
+  };
+
+  const getReplySnippetFromMessage = (message) => {
+    if (!message) return '';
+    if (message.content) {
+      return truncateText(message.content);
+    }
+    if (Array.isArray(message.attachments) && message.attachments.length > 0) {
+      const attachment = message.attachments[0];
+      if (attachment?.mimetype?.startsWith('image/')) {
+        return '📷 Изображение';
+      }
+      return `📎 ${attachment?.originalName || 'Вложение'}`;
+    }
+    return 'Без текста';
+  };
+
+  const getReplySnippetFromMeta = (replyMeta) => {
+    if (!replyMeta) return '';
+    if (replyMeta.isSystem) {
+      return 'Системное сообщение';
+    }
+    if (replyMeta.content) {
+      return truncateText(replyMeta.content);
+    }
+    if (replyMeta.hasAttachments) {
+      if (replyMeta.attachmentPreview?.mimetype?.startsWith('image/')) {
+        return '📷 Изображение';
+      }
+      return `📎 ${replyMeta.attachmentPreview?.originalName || 'Вложение'}`;
+    }
+    return 'Без текста';
+  };
+
+  const buildReplySnapshot = (message) => ({
+    id: message.id,
+    username: message.username,
+    displayName: message.displayName,
+    content: message.content,
+    attachments: message.attachments || []
+  });
+
+  const handleReplySelect = (message) => {
+    if (!message || message.isSystem) return;
+    setReplyingTo(buildReplySnapshot(message));
+    setContextMenu(null);
+    requestAnimationFrame(() => {
+      inputRef.current?.focus({ preventScroll: true });
+    });
+  };
+
+  const cancelReply = () => setReplyingTo(null);
+
+  const handleReplyNavigation = (messageId) => {
+    if (!messageId) return;
+    scrollToMessageById(messageId);
   };
 
   const canEditMessage = (message) => {
@@ -486,6 +576,16 @@ function Chat({ channel, messages, username, user, currentServer, onSendMessage,
     const t4 = setTimeout(() => applyScroll('timeout-100'), 100);
 
     scrollTimeoutsRef.current.push(t1, t2, t3, t4);
+  }, []);
+
+  const scrollToMessageById = useCallback((messageId) => {
+    if (!messageId || !messagesContainerRef.current) return;
+
+    const target = messagesContainerRef.current.querySelector(`[data-message-id="${messageId}"]`);
+    if (target) {
+      target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      setHighlightedMessageId(messageId);
+    }
   }, []);
 
   const markChannelScrolled = useCallback((channelId, reason) => {
@@ -1065,10 +1165,15 @@ function Chat({ channel, messages, username, user, currentServer, onSendMessage,
 
     const trimmedValue = inputValue.trim();
     if (trimmedValue || selectedFiles.length > 0) {
+      const replyTarget = replyingTo
+        ? messages.find(msg => msg.id === replyingTo.id) || replyingTo
+        : null;
+
       console.log('[SCROLL] 📤 Отправка сообщения - будет скролл через 100мс');
-      onSendMessage(trimmedValue, selectedFiles);
+      onSendMessage(trimmedValue, selectedFiles, replyTarget);
       setInputValue('');
       setSelectedFiles([]);
+      setReplyingTo(null);
 
       // Автоматически прокручиваем вниз после отправки сообщения
       setTimeout(() => {
@@ -1299,6 +1404,10 @@ function Chat({ channel, messages, username, user, currentServer, onSendMessage,
     return <div className="chat" />;
   }
 
+  const resolvedReplyTarget = replyingTo
+    ? messages.find(msg => msg.id === replyingTo.id) || replyingTo
+    : null;
+
   return (
     <div className="chat">
       <div className="chat-header">
@@ -1341,7 +1450,8 @@ function Chat({ channel, messages, username, user, currentServer, onSendMessage,
           group.messages.map((message, messageIndex) => (
             <div
               key={message.id}
-              className={`message ${message.isSystem ? 'system-message' : ''} ${message.username === username ? 'own-message' : ''} ${isUserMentioned(message) ? 'message-mentioned' : ''} ${editingMessage?.id === message.id ? 'message-edit-mode' : ''} ${contextMenu?.message.id === message.id ? 'show-actions' : ''} ${messageIndex > 0 ? 'message-grouped' : ''} ${messageIndex === 0 && group.messages.length > 1 ? 'message-group-first' : ''} ${messageIndex === group.messages.length - 1 ? 'message-group-last' : ''} ${deletingMessageId === message.id ? 'message-deleting' : ''}`}
+              data-message-id={message.id}
+              className={`message ${message.isSystem ? 'system-message' : ''} ${message.username === username ? 'own-message' : ''} ${isUserMentioned(message) ? 'message-mentioned' : ''} ${editingMessage?.id === message.id ? 'message-edit-mode' : ''} ${contextMenu?.message.id === message.id ? 'show-actions' : ''} ${messageIndex > 0 ? 'message-grouped' : ''} ${messageIndex === 0 && group.messages.length > 1 ? 'message-group-first' : ''} ${messageIndex === group.messages.length - 1 ? 'message-group-last' : ''} ${deletingMessageId === message.id ? 'message-deleting' : ''} ${highlightedMessageId === message.id ? 'message-highlighted' : ''}`}
             >
               {messageIndex === 0 ? (
                 <div
@@ -1432,6 +1542,23 @@ function Chat({ channel, messages, username, user, currentServer, onSendMessage,
                   </div>
                 ) : (
                   <div className="message-content-wrapper">
+                    {message.replyTo && (
+                      <button
+                        type="button"
+                        className="message-reply-preview"
+                        onClick={() => handleReplyNavigation(message.replyTo?.messageId)}
+                      >
+                        <span className="message-reply-accent" aria-hidden="true"></span>
+                        <div className="message-reply-content">
+                          <div className="message-reply-title">
+                            {message.replyTo.displayName || message.replyTo.username || 'Неизвестный пользователь'}
+                          </div>
+                          <div className="message-reply-text">
+                            {getReplySnippetFromMeta(message.replyTo)}
+                          </div>
+                        </div>
+                      </button>
+                    )}
                     {message.content && (
                       <div className="message-text">{highlightMentions(message.content)}</div>
                     )}
@@ -1487,11 +1614,36 @@ function Chat({ channel, messages, username, user, currentServer, onSendMessage,
                 <div className="message-actions">
                   <button
                     className="message-actions-button"
-                    onClick={(e) => handleMoreActions(message, e)}
-                    title="Больше действий"
+                    onClick={() => handleReplySelect(message)}
+                    title="Ответить"
                   >
-                    ⋯
+                    <img src="/icons/reply.png" alt="Ответить" className="message-actions-icon reply-icon" />
                   </button>
+                  <button
+                    className="message-actions-button"
+                    onClick={(e) => handleAddReaction(message.id, e)}
+                    title="Добавить реакцию"
+                  >
+                    <img src="/icons/emoji.png" alt="Добавить реакцию" className="message-actions-icon" />
+                  </button>
+                  {canEditMessage(message) && (
+                    <button
+                      className="message-actions-button"
+                      onClick={() => handleEditMessage(message)}
+                      title="Редактировать"
+                    >
+                      <img src="/icons/edit.png" alt="Редактировать" className="message-actions-icon" />
+                    </button>
+                  )}
+                  {canDeleteMessage(message) && (
+                    <button
+                      className="message-actions-button"
+                      onClick={(e) => handleMoreActions(message, e)}
+                      title="Больше действий"
+                    >
+                      ⋯
+                    </button>
+                  )}
                 </div>
               )}
             </div>
@@ -1528,6 +1680,30 @@ function Chat({ channel, messages, username, user, currentServer, onSendMessage,
                 </button>
               </div>
             ))}
+          </div>
+        )}
+
+        {resolvedReplyTarget && (
+          <div className="message-reply-banner">
+            <div
+              className="message-reply-banner-info"
+              onClick={() => handleReplyNavigation(resolvedReplyTarget.id)}
+            >
+              <div className="message-reply-banner-title">
+                Ответ на сообщение <span className="message-reply-banner-author">@{resolvedReplyTarget.displayName || resolvedReplyTarget.username}</span>
+              </div>
+              <div className="message-reply-banner-text">
+                {getReplySnippetFromMessage(resolvedReplyTarget)}
+              </div>
+            </div>
+            <button
+              type="button"
+              className="message-reply-banner-close"
+              onClick={cancelReply}
+              title="Отменить ответ"
+            >
+              ×
+            </button>
           </div>
         )}
 
@@ -1664,29 +1840,13 @@ function Chat({ channel, messages, username, user, currentServer, onSendMessage,
               left: `${contextMenu.position.left}px`
             }}
           >
-            <button
-              className="message-context-menu-item"
-              onClick={(e) => {
-                handleAddReaction(contextMenu.message.id, e);
-                setContextMenu(null);
-              }}
-            >
-              😊 Добавить реакцию
-            </button>
-            {canEditMessage(contextMenu.message) && (
-              <button
-                className="message-context-menu-item"
-                onClick={() => handleEditMessage(contextMenu.message)}
-              >
-                ✏️ Редактировать
-              </button>
-            )}
             {canDeleteMessage(contextMenu.message) && (
               <button
                 className="message-context-menu-item danger"
                 onClick={() => handleDeleteMessage(contextMenu.message)}
               >
-                🗑️ Удалить сообщение
+                <img src="/icons/trash.png" alt="Удалить" className="context-menu-icon" />
+                Удалить сообщение
               </button>
             )}
           </div>

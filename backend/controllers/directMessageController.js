@@ -3,11 +3,11 @@ const asyncHandler = require('../utils/asyncHandler');
 const logger = require('../utils/logger');
 
 exports.sendMessage = asyncHandler(async (req, res) => {
-  const { receiverId, content, attachments } = req.body;
+  const { receiverId, content, attachments, replyToMessageId } = req.body;
 
   logger.debug('📨 Получен запрос на отправку DM:', { sender: req.user.id, receiver: receiverId, hasAttachments: attachments && attachments.length > 0 });
 
-  const message = await directMessageService.sendMessage(req.user.id, receiverId, content, attachments);
+  const message = await directMessageService.sendMessage(req.user.id, receiverId, content, attachments, replyToMessageId);
 
   // Отправляем сообщение через WebSocket
   const io = req.app.get('io');
@@ -68,4 +68,3 @@ exports.deleteMessage = asyncHandler(async (req, res) => {
 
   res.json(result);
 });
-

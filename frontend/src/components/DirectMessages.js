@@ -35,8 +35,12 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
   const [contextMenu, setContextMenu] = useState(null);
   const [editingMessage, setEditingMessage] = useState(null);
   const [editValue, setEditValue] = useState('');
+  const [replyingTo, setReplyingTo] = useState(null);
+  const [highlightedMessageId, setHighlightedMessageId] = useState(null);
   const messagesEndRef = useRef(null);
   const lastProcessedUserIdRef = useRef(null);
+  const messagesContainerRef = useRef(null);
+  const inputRef = useRef(null);
 
   // Функция для проверки онлайн статуса пользователя
   const isUserOnline = useCallback((userId) => {
@@ -133,7 +137,8 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
         body: JSON.stringify({
           receiverId: currentDM._id,
           content: inputValue.trim(),
-          attachments: attachments
+          attachments: attachments,
+          replyToMessageId: replyingTo ? replyingTo.id : undefined
         })
       });
 
@@ -178,6 +183,7 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
       // Очищаем поле ввода и файлы
       setInputValue('');
       setSelectedFiles([]);
+      setReplyingTo(null);
 
       // Прокручиваем к последнему сообщению
       setTimeout(() => scrollToBottom(), 100);
@@ -281,6 +287,16 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
     }
   };
 
+  const scrollToMessageById = useCallback((messageId) => {
+    if (!messageId || !messagesContainerRef.current) return;
+
+    const target = messagesContainerRef.current.querySelector(`[data-message-id="${messageId}"]`);
+    if (target) {
+      target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      setHighlightedMessageId(messageId);
+    }
+  }, []);
+
   // Обработчики контекстного меню
   const handleMoreActions = (message, event) => {
     event.stopPropagation();
@@ -325,6 +341,68 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
 
   const handleCloseContextMenu = () => {
     setContextMenu(null);
+  };
+
+  const truncateText = (text, limit = 120) => {
+    if (!text) return '';
+    return text.length > limit ? `${text.slice(0, limit).trim()}…` : text;
+  };
+
+  const getReplySnippetFromMessage = (message) => {
+    if (!message) return '';
+    if (message.content) {
+      return truncateText(message.content);
+    }
+    if (Array.isArray(message.attachments) && message.attachments.length > 0) {
+      const attachment = message.attachments[0];
+      if (attachment?.mimetype?.startsWith('image/')) {
+        return '📷 Изображение';
+      }
+      return `📎 ${attachment?.originalName || 'Вложение'}`;
+    }
+    return 'Без текста';
+  };
+
+  const getReplySnippetFromMeta = (replyMeta) => {
+    if (!replyMeta) return '';
+    if (replyMeta.content) {
+      return truncateText(replyMeta.content);
+    }
+    if (replyMeta.hasAttachments) {
+      if (replyMeta.attachmentPreview?.mimetype?.startsWith('image/')) {
+        return '📷 Изображение';
+      }
+      return `📎 ${replyMeta.attachmentPreview?.originalName || 'Вложение'}`;
+    }
+    return 'Без текста';
+  };
+
+  const buildReplySnapshot = (message) => ({
+    id: message._id,
+    sender: {
+      username: message.sender.username,
+      displayName: message.sender.displayName
+    },
+    username: message.sender.username,
+    displayName: message.sender.displayName,
+    content: message.content,
+    attachments: message.attachments || []
+  });
+
+  const handleReplySelect = (message) => {
+    if (!message) return;
+    setReplyingTo(buildReplySnapshot(message));
+    setContextMenu(null);
+    requestAnimationFrame(() => {
+      inputRef.current?.focus({ preventScroll: true });
+    });
+  };
+
+  const cancelReply = () => setReplyingTo(null);
+
+  const handleReplyNavigation = (messageId) => {
+    if (!messageId) return;
+    scrollToMessageById(messageId);
   };
 
   const canEditMessage = (message) => {
@@ -424,6 +502,30 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
       document.removeEventListener('click', handleClickOutside);
     };
   }, [contextMenu]);
+
+  useEffect(() => {
+    if (replyingTo && inputRef.current) {
+      inputRef.current.focus({ preventScroll: true });
+    }
+  }, [replyingTo]);
+
+  useEffect(() => {
+    setReplyingTo(null);
+    setHighlightedMessageId(null);
+  }, [selectedDM?._id]);
+
+  useEffect(() => {
+    if (replyingTo && !selectedMessages.find(msg => msg._id === replyingTo.id)) {
+      setReplyingTo(null);
+    }
+  }, [selectedMessages, replyingTo]);
+
+  useEffect(() => {
+    if (!highlightedMessageId) return;
+
+    const timeout = setTimeout(() => setHighlightedMessageId(null), 1800);
+    return () => clearTimeout(timeout);
+  }, [highlightedMessageId]);
 
   // Мемоизируем функцию загрузки разговоров
   const loadDirectMessages = useCallback(async () => {
@@ -848,6 +950,10 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
     ), [directMessages, searchQuery]
   );
 
+  const resolvedReplyTarget = replyingTo
+    ? selectedMessages.find(msg => msg._id === replyingTo.id) || replyingTo
+    : null;
+
   // Если нужно показать только чат (для мобильной версии)
   if (showOnlyChat && autoSelectUser) {
     return (
@@ -855,7 +961,7 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
         <div className="dm-chat">
           <div className="dm-chat-active">
             {/* Область сообщений */}
-            <div className="dm-messages">
+            <div className="dm-messages" ref={messagesContainerRef}>
               {messagesLoading ? (
                 <div className="dm-loading">Загрузка сообщений...</div>
               ) : selectedMessages.length === 0 ? (
@@ -871,7 +977,11 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
               ) : (
                 groupMessages(selectedMessages).map((group, groupIndex) =>
                   group.messages.map((message, messageIndex) => (
-                    <div key={message._id} className={`dm-message ${message.sender._id === user?.id ? 'dm-message-own' : ''} ${messageIndex > 0 ? 'dm-message-grouped' : ''} ${messageIndex === 0 && group.messages.length > 1 ? 'dm-message-group-first' : ''}`}>
+                    <div
+                      key={message._id}
+                      data-message-id={message._id}
+                      className={`dm-message ${message.sender._id === user?.id ? 'dm-message-own' : ''} ${messageIndex > 0 ? 'dm-message-grouped' : ''} ${messageIndex === 0 && group.messages.length > 1 ? 'dm-message-group-first' : ''} ${highlightedMessageId === message._id ? 'dm-message-highlighted' : ''}`}
+                    >
                       {messageIndex === 0 && (
                         <div className="dm-message-avatar">
                           {message.sender.avatar ? (
@@ -894,23 +1004,42 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
                             </span>
                           </div>
                         )}
-                        {message.content && (
-                          <div className="dm-message-text">{message.content}</div>
-                        )}
-                        {message.attachments && message.attachments.length > 0 && (
-                          <div className="message-attachments">
-                            {message.attachments.map((attachment, index) => (
-                              <div key={index} className="message-attachment">
-                                <img
-                                  src={`${BACKEND_URL}${attachment.path}`}
-                                  alt={attachment.originalName}
-                                  className="message-attachment-image"
-                                  onClick={() => window.open(`${BACKEND_URL}${attachment.path}`, '_blank')}
-                                />
+                        <div className="dm-message-content-wrapper">
+                          {message.replyTo && (
+                            <button
+                              type="button"
+                              className="dm-message-reply-preview"
+                              onClick={() => handleReplyNavigation(message.replyTo?.messageId)}
+                            >
+                              <span className="dm-message-reply-accent" aria-hidden="true"></span>
+                              <div className="dm-message-reply-content">
+                                <div className="dm-message-reply-title">
+                                  {message.replyTo.displayName || message.replyTo.username || 'Неизвестный пользователь'}
+                                </div>
+                                <div className="dm-message-reply-text">
+                                  {getReplySnippetFromMeta(message.replyTo)}
+                                </div>
                               </div>
-                            ))}
-                          </div>
-                        )}
+                            </button>
+                          )}
+                          {message.content && (
+                            <div className="dm-message-text">{message.content}</div>
+                          )}
+                          {message.attachments && message.attachments.length > 0 && (
+                            <div className="message-attachments">
+                              {message.attachments.map((attachment, index) => (
+                                <div key={index} className="message-attachment">
+                                  <img
+                                    src={`${BACKEND_URL}${attachment.path}`}
+                                    alt={attachment.originalName}
+                                    className="message-attachment-image"
+                                    onClick={() => window.open(`${BACKEND_URL}${attachment.path}`, '_blank')}
+                                  />
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
 
                         {/* Реакции на сообщение */}
                         <MessageReactions
@@ -918,6 +1047,41 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
                           onReactionClick={(emoji, userReacted) => handleReactionClick(message._id, emoji, userReacted)}
                           currentUserId={user?.id}
                         />
+                      </div>
+
+                      <div className="dm-message-actions">
+                        <button
+                          className="dm-message-actions-button"
+                          onClick={() => handleReplySelect(message)}
+                          title="Ответить"
+                        >
+                          <img src="/icons/reply.png" alt="Ответить" className="dm-message-actions-icon reply-icon" />
+                        </button>
+                        <button
+                          className="dm-message-actions-button"
+                          onClick={(e) => handleAddReaction(message._id, e)}
+                          title="Добавить реакцию"
+                        >
+                          <img src="/icons/emoji.png" alt="Добавить реакцию" className="dm-message-actions-icon" />
+                        </button>
+                        {canEditMessage(message) && (
+                          <button
+                            className="dm-message-actions-button"
+                            onClick={() => handleEditMessage(message)}
+                            title="Редактировать"
+                          >
+                            <img src="/icons/edit.png" alt="Редактировать" className="dm-message-actions-icon" />
+                          </button>
+                        )}
+                        {canDeleteMessage(message) && (
+                          <button
+                            className="dm-message-actions-button"
+                            onClick={(e) => handleMoreActions(message, e)}
+                            title="Больше действий"
+                          >
+                            ⋯
+                          </button>
+                        )}
                       </div>
                     </div>
                   ))
@@ -930,11 +1094,11 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
             {/* Поле ввода */}
             <div className="message-input-container">
               {/* Превью выбранных файлов */}
-              {selectedFiles.length > 0 && (
-                <div className="file-preview-container">
-                  {selectedFiles.map((file, index) => (
-                    <div key={index} className="file-preview">
-                      <img
+            {selectedFiles.length > 0 && (
+              <div className="file-preview-container">
+                {selectedFiles.map((file, index) => (
+                  <div key={index} className="file-preview">
+                    <img
                         src={URL.createObjectURL(file)}
                         alt={file.name}
                         className="file-preview-image"
@@ -953,13 +1117,37 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
                       </button>
                     </div>
                   ))}
-                </div>
-              )}
+              </div>
+            )}
 
-              <form onSubmit={handleSendMessage}>
-                <input
-                  id="dm-file-input"
-                  type="file"
+            {resolvedReplyTarget && (
+              <div className="dm-reply-banner">
+                <div
+                  className="dm-reply-banner-info"
+                  onClick={() => handleReplyNavigation(resolvedReplyTarget.id || resolvedReplyTarget._id)}
+                >
+                  <div className="dm-reply-banner-title">
+                    Ответ на сообщение <span className="dm-reply-banner-author">@{resolvedReplyTarget.sender?.displayName || resolvedReplyTarget.sender?.username || resolvedReplyTarget.username}</span>
+                  </div>
+                  <div className="dm-reply-banner-text">
+                    {getReplySnippetFromMessage(resolvedReplyTarget)}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  className="dm-reply-banner-close"
+                  onClick={cancelReply}
+                  title="Отменить ответ"
+                >
+                  ×
+                </button>
+              </div>
+            )}
+
+            <form onSubmit={handleSendMessage}>
+              <input
+                id="dm-file-input"
+                type="file"
                   accept="image/*"
                   multiple
                   onChange={handleFileSelect}
@@ -977,6 +1165,7 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
                     </button>
                     <div className="input-divider"></div>
                     <input
+                      ref={inputRef}
                       type="text"
                       placeholder={`Написать @${autoSelectUser.user?.displayName || autoSelectUser.user?.username || autoSelectUser.username}`}
                       value={inputValue}
@@ -1128,7 +1317,7 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
               </div>
 
               {/* Область сообщений */}
-              <div className="dm-messages">
+              <div className="dm-messages" ref={messagesContainerRef}>
                 {messagesLoading ? (
                   <div className="dm-loading">Загрузка сообщений...</div>
                 ) : selectedMessages.length === 0 ? (
@@ -1144,7 +1333,11 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
                 ) : (
                   groupMessages(selectedMessages).map((group, groupIndex) =>
                     group.messages.map((message, messageIndex) => (
-                      <div key={message._id} className={`dm-message ${message.sender._id === user?.id ? 'dm-message-own' : ''} ${messageIndex > 0 ? 'dm-message-grouped' : ''} ${messageIndex === 0 && group.messages.length > 1 ? 'dm-message-group-first' : ''} ${messageIndex === group.messages.length - 1 ? 'dm-message-group-last' : ''} ${editingMessage?._id === message._id ? 'dm-message-edit-mode' : ''}`}>
+                      <div
+                        key={message._id}
+                        data-message-id={message._id}
+                        className={`dm-message ${message.sender._id === user?.id ? 'dm-message-own' : ''} ${messageIndex > 0 ? 'dm-message-grouped' : ''} ${messageIndex === 0 && group.messages.length > 1 ? 'dm-message-group-first' : ''} ${messageIndex === group.messages.length - 1 ? 'dm-message-group-last' : ''} ${editingMessage?._id === message._id ? 'dm-message-edit-mode' : ''} ${highlightedMessageId === message._id ? 'dm-message-highlighted' : ''}`}
+                      >
                         {messageIndex === 0 && (
                           <div className="dm-message-avatar">
                             {message.sender.avatar ? (
@@ -1204,37 +1397,41 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
                               </div>
                             </div>
                           ) : (
-                            <>
+                            <div className="dm-message-content-wrapper">
+                              {message.replyTo && (
+                                <button
+                                  type="button"
+                                  className="dm-message-reply-preview"
+                                  onClick={() => handleReplyNavigation(message.replyTo?.messageId)}
+                                >
+                                  <span className="dm-message-reply-accent" aria-hidden="true"></span>
+                                  <div className="dm-message-reply-content">
+                                    <div className="dm-message-reply-title">
+                                      {message.replyTo.displayName || message.replyTo.username || 'Неизвестный пользователь'}
+                                    </div>
+                                    <div className="dm-message-reply-text">
+                                      {getReplySnippetFromMeta(message.replyTo)}
+                                    </div>
+                                  </div>
+                                </button>
+                              )}
                               {message.content && (
                                 <div className="dm-message-text">{message.content}</div>
                               )}
-
-                              {/* Меню действий - показываем только для своих сообщений */}
-                              {message.sender._id === user?.id && (
-                                <div className="dm-message-actions">
-                                  <button
-                                    className="dm-message-actions-button"
-                                    onClick={(e) => handleMoreActions(message, e)}
-                                    title="Больше действий"
-                                  >
-                                    ⋯
-                                  </button>
+                              {message.attachments && message.attachments.length > 0 && (
+                                <div className="message-attachments">
+                                  {message.attachments.map((attachment, index) => (
+                                    <div key={index} className="message-attachment">
+                                      <img
+                                        src={`${BACKEND_URL}${attachment.path}`}
+                                        alt={attachment.originalName}
+                                        className="message-attachment-image"
+                                        onClick={() => window.open(`${BACKEND_URL}${attachment.path}`, '_blank')}
+                                      />
+                                    </div>
+                                  ))}
                                 </div>
                               )}
-                            </>
-                          )}
-                          {message.attachments && message.attachments.length > 0 && (
-                            <div className="message-attachments">
-                              {message.attachments.map((attachment, index) => (
-                                <div key={index} className="message-attachment">
-                                  <img
-                                    src={`${BACKEND_URL}${attachment.path}`}
-                                    alt={attachment.originalName}
-                                    className="message-attachment-image"
-                                    onClick={() => window.open(`${BACKEND_URL}${attachment.path}`, '_blank')}
-                                  />
-                                </div>
-                              ))}
                             </div>
                           )}
 
@@ -1244,6 +1441,41 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
                             onReactionClick={(emoji, userReacted) => handleReactionClick(message._id, emoji, userReacted)}
                             currentUserId={user?.id}
                           />
+                        </div>
+
+                        <div className="dm-message-actions">
+                          <button
+                            className="dm-message-actions-button"
+                            onClick={() => handleReplySelect(message)}
+                            title="Ответить"
+                          >
+                            <img src="/icons/reply.png" alt="Ответить" className="dm-message-actions-icon reply-icon" />
+                          </button>
+                          <button
+                            className="dm-message-actions-button"
+                            onClick={(e) => handleAddReaction(message._id, e)}
+                            title="Добавить реакцию"
+                          >
+                            <img src="/icons/emoji.png" alt="Добавить реакцию" className="dm-message-actions-icon" />
+                          </button>
+                          {canEditMessage(message) && (
+                            <button
+                              className="dm-message-actions-button"
+                              onClick={() => handleEditMessage(message)}
+                              title="Редактировать"
+                            >
+                              <img src="/icons/edit.png" alt="Редактировать" className="dm-message-actions-icon" />
+                            </button>
+                          )}
+                          {canDeleteMessage(message) && (
+                            <button
+                              className="dm-message-actions-button"
+                              onClick={(e) => handleMoreActions(message, e)}
+                              title="Больше действий"
+                            >
+                              ⋯
+                            </button>
+                          )}
                         </div>
                       </div>
                     ))
@@ -1282,6 +1514,30 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
                   </div>
                 )}
 
+                {resolvedReplyTarget && (
+                  <div className="dm-reply-banner">
+                    <div
+                      className="dm-reply-banner-info"
+                      onClick={() => handleReplyNavigation(resolvedReplyTarget.id || resolvedReplyTarget._id)}
+                    >
+                      <div className="dm-reply-banner-title">
+                        Ответ на сообщение <span className="dm-reply-banner-author">@{resolvedReplyTarget.sender?.displayName || resolvedReplyTarget.sender?.username || resolvedReplyTarget.username}</span>
+                      </div>
+                      <div className="dm-reply-banner-text">
+                        {getReplySnippetFromMessage(resolvedReplyTarget)}
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      className="dm-reply-banner-close"
+                      onClick={cancelReply}
+                      title="Отменить ответ"
+                    >
+                      ×
+                    </button>
+                  </div>
+                )}
+
                 <form onSubmit={handleSendMessage}>
                   <input
                     id="dm-file-input"
@@ -1303,6 +1559,7 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
                       </button>
                       <div className="input-divider"></div>
                       <input
+                        ref={inputRef}
                         type="text"
                         placeholder={`Написать @${selectedDM.user.displayName || selectedDM.user.username}`}
                         value={inputValue}
@@ -1374,29 +1631,13 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
               left: `${contextMenu.position.left}px`
             }}
           >
-            <button
-              className="message-context-menu-item"
-              onClick={(e) => {
-                handleAddReaction(contextMenu.message._id, e);
-                setContextMenu(null);
-              }}
-            >
-              😊 Добавить реакцию
-            </button>
-            {canEditMessage(contextMenu.message) && (
-              <button
-                className="message-context-menu-item"
-                onClick={() => handleEditMessage(contextMenu.message)}
-              >
-                ✏️ Редактировать
-              </button>
-            )}
             {canDeleteMessage(contextMenu.message) && (
               <button
                 className="message-context-menu-item danger"
                 onClick={() => handleDeleteMessage(contextMenu.message)}
               >
-                🗑️ Удалить сообщение
+                <img src="/icons/trash.png" alt="Удалить" className="context-menu-icon" />
+                Удалить сообщение
               </button>
             )}
           </div>

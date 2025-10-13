@@ -91,7 +91,7 @@ class ChatHandler {
   }
 
   handleMessageSend(socket) {
-    socket.on(SOCKET_EVENTS.MESSAGE_SEND, async ({ channelId, content, username, avatar, badge, badgeTooltip, displayName, userId, attachments }) => {
+    socket.on(SOCKET_EVENTS.MESSAGE_SEND, async ({ channelId, content, username, avatar, badge, badgeTooltip, displayName, userId, attachments, replyToMessageId }) => {
       try {
         // Проверяем, что есть хотя бы текст или файлы
         const hasContent = content && content.trim() !== '';
@@ -110,7 +110,8 @@ class ChatHandler {
           badge,
           badgeTooltip,
           content: content || '',
-          attachments
+          attachments,
+          replyToMessageId
         });
 
         // Отправить всем в канале
@@ -388,4 +389,3 @@ class ChatHandler {
 }
 
 module.exports = ChatHandler;
-

@@ -87,7 +87,18 @@ class MessageService {
   }
 
   async createMessage(messageData) {
-    const { channelId, userId, username, displayName, avatar, badge, badgeTooltip, content, attachments } = messageData;
+    const {
+      channelId,
+      userId,
+      username,
+      displayName,
+      avatar,
+      badge,
+      badgeTooltip,
+      content,
+      attachments,
+      replyToMessageId
+    } = messageData;
 
     const hasAttachments = attachments && attachments.length > 0;
     const validatedContent = validateMessageContent(content, hasAttachments);
@@ -117,6 +128,30 @@ class MessageService {
     // Парсим упоминания
     const mentions = await this.parseMentions(validatedContent, channelId);
 
+    // Формируем метаданные ответа, если есть replyToMessageId
+    let replyTo = null;
+    if (replyToMessageId) {
+      const parentMessage = await Message.findById(replyToMessageId);
+      if (parentMessage && parentMessage.channelId === channelId) {
+        replyTo = {
+          messageId: parentMessage._id,
+          channelId: parentMessage.channelId,
+          username: parentMessage.username,
+          displayName: parentMessage.displayName,
+          content: parentMessage.content || '',
+          hasAttachments: Array.isArray(parentMessage.attachments) && parentMessage.attachments.length > 0,
+          attachmentPreview: parentMessage.attachments && parentMessage.attachments.length > 0
+            ? {
+                path: parentMessage.attachments[0].path,
+                mimetype: parentMessage.attachments[0].mimetype,
+                originalName: parentMessage.attachments[0].originalName
+              }
+            : null,
+          isSystem: !!parentMessage.isSystem
+        };
+      }
+    }
+
     const message = new Message({
       channelId,
       userId: userId || null,
@@ -127,6 +162,7 @@ class MessageService {
       badgeTooltip: actualUserData.badgeTooltip,
       content: validatedContent,
       isSystem: false,
+      replyTo,
       attachments: attachments || [],
       mentions: mentions
     });
@@ -221,4 +257,3 @@ class MessageService {
 }
 
 module.exports = new MessageService();
-
