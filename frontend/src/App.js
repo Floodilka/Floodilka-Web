@@ -1,9 +1,9 @@
-import React, { useEffect, useMemo, useCallback } from 'react';
+import React, { useEffect, useMemo, useCallback, useRef } from 'react';
 import { Routes, Route, useNavigate, useParams, Navigate } from 'react-router-dom';
 import './App.css';
 
 // Contexts
-import { AppProvider } from './context/AppContext';
+import { AppProvider, useSettings } from './context/AppContext';
 import { useAuth } from './context/AuthContext';
 import { useGlobalUsers } from './context/GlobalUsersContext';
 import { useServer } from './context/ServerContext';
@@ -35,6 +35,7 @@ const DirectMessagesRoute = () => {
   const { servers, createServer } = useServer();
   const { hasUnreadDMs, setHasUnreadDMs } = useChat();
   const { incomingRequests } = useFriends();
+  const { isSettingsOpen } = useSettings();
   const {
     activeVoiceChannel,
     globalMuted,
@@ -104,6 +105,7 @@ const DirectMessagesRoute = () => {
           onAvatarUpdate={updateUser}
           onSelectChannel={() => {}}
           onCreateChannel={() => {}}
+          onRefreshMembers={async () => []}
           onUpdateChannel={() => {}}
           onDeleteChannel={() => {}}
           onlineUsers={[]}
@@ -127,17 +129,19 @@ const DirectMessagesRoute = () => {
 
   return (
     <div className="app">
-      <ServerSidebar
-        servers={servers}
-        currentServer={null}
-        onSelectServer={handleServerSelect}
-        onCreateServer={createServer}
-        user={user}
-        onSelectDirectMessages={handleSelectDirectMessages}
-        showDirectMessages={true}
-        hasUnreadDMs={hasNotifications}
-        activeVoiceChannel={activeVoiceChannel}
-      />
+      {!isSettingsOpen && (
+        <ServerSidebar
+          servers={servers}
+          currentServer={null}
+          onSelectServer={handleServerSelect}
+          onCreateServer={createServer}
+          user={user}
+          onSelectDirectMessages={handleSelectDirectMessages}
+          showDirectMessages={true}
+          hasUnreadDMs={hasNotifications}
+          activeVoiceChannel={activeVoiceChannel}
+        />
+      )}
       <DirectMessages
         user={user}
         socket={socket}
@@ -186,7 +190,8 @@ const ServerRoute = () => {
     createServer,
     createChannel,
     updateChannel,
-    deleteChannel
+    deleteChannel,
+    refreshServerMembers
   } = useServer();
   const {
     currentTextChannel,
@@ -199,6 +204,7 @@ const ServerRoute = () => {
     sendMessage: handleMessageSent
   } = useChat();
   const { incomingRequests } = useFriends();
+  const { isSettingsOpen } = useSettings();
   const {
     currentVoiceChannel,
     activeVoiceChannel,
@@ -221,29 +227,62 @@ const ServerRoute = () => {
   const { sendMessage } = useChannel();
   const { globalOnlineUsers } = useGlobalUsers();
 
+  // Используем ref для clearChannelState чтобы избежать лишних вызовов useEffect
+  const clearChannelStateRef = useRef(clearChannelState);
+  clearChannelStateRef.current = clearChannelState;
+
+  // 🔍 ЛОГ: Отслеживаем изменения isSettingsOpen в ServerRoute
+  useEffect(() => {
+    console.log('[🔍 SETTINGS DEBUG] isSettingsOpen изменился в ServerRoute:', {
+      isSettingsOpen,
+      channelId: currentTextChannel?.id,
+      messagesCount: messages.length,
+      serverId,
+      channelIdParam: channelId,
+      timestamp: new Date().toISOString()
+    });
+  }, [isSettingsOpen, currentTextChannel?.id, messages.length, serverId, channelId]);
+
   // Синхронизируем URL с выбранным сервером
   useEffect(() => {
+    console.log('[🔍 SERVER SYNC DEBUG] useEffect сервера сработал:', {
+      serverId,
+      serversCount: servers.length,
+      currentServerId: currentServer?._id,
+      willClearChannel: currentServer?._id !== serverId
+    });
+
     if (serverId && servers.length > 0) {
       const server = servers.find(s => s._id === serverId);
       if (!server) {
         // Сервер недоступен или не существует — редиректим в ЛС
+        console.log('[🔍 SERVER SYNC DEBUG] Сервер не найден, редирект в ЛС');
         navigate('/channels/@me', { replace: true });
         return;
       }
 
       if (currentServer?._id !== serverId) {
+        console.log('[🔍 SERVER SYNC DEBUG] Меняем сервер, будет вызван clearChannelState');
         // Сначала выбираем новый сервер
         selectServer(server);
         // Очищаем только текущее состояние канала (не весь кеш!)
         requestAnimationFrame(() => {
-          clearChannelState();
+          console.log('[🔍 SERVER SYNC DEBUG] ВЫЗЫВАЕМ clearChannelState()');
+          clearChannelStateRef.current();
         });
       }
     }
-  }, [serverId, servers, currentServer, selectServer, clearChannelState]);
+  }, [serverId, servers, currentServer, selectServer]);
 
   // Синхронизируем URL с выбранным каналом и корректно обрабатываем отсутствие текстовых каналов
   useEffect(() => {
+    console.log('[🔍 CHANNEL SYNC DEBUG] useEffect канала сработал:', {
+      currentServer: currentServer?._id,
+      channelsCount: channels.length,
+      channelId,
+      currentTextChannelId: currentTextChannel?.id
+    });
+
     if (!currentServer) return;
 
     // Если каналов нет вообще: чистим состояние и уходим на страницу сервера без channelId
@@ -252,7 +291,8 @@ const ServerRoute = () => {
         navigate(`/channels/${serverId}`, { replace: true });
       }
       if (currentTextChannel) {
-        clearChannelState();
+        console.log('[🔍 CHANNEL SYNC DEBUG] Нет каналов, ВЫЗЫВАЕМ clearChannelState()');
+        clearChannelStateRef.current();
       }
       return;
     }
@@ -265,7 +305,8 @@ const ServerRoute = () => {
       if (!channel) {
         // Сбрасываем состояние выбранного текстового канала
         if (currentTextChannel) {
-          clearChannelState();
+          console.log('[🔍 CHANNEL SYNC DEBUG] Канал не найден, ВЫЗЫВАЕМ clearChannelState()');
+          clearChannelStateRef.current();
         }
         // Редиректим на первый текстовый канал, если он есть, иначе на страницу сервера
         const firstTextChannel = channels.find(c => c.type === 'text');
@@ -279,6 +320,7 @@ const ServerRoute = () => {
 
       // Если канал найден, выбираем его
       if (currentTextChannel?.id !== channelId) {
+        console.log('[🔍 CHANNEL SYNC DEBUG] Канал изменился, выбираем новый:', channelId);
         if (channel.type === 'voice') {
           if (activeVoiceChannel?.id !== channel.id) {
             joinVoiceChannel(channel);
@@ -299,10 +341,11 @@ const ServerRoute = () => {
     } else {
       // Нет текстовых каналов — чистим возможное старое состояние выбранного канала
       if (currentTextChannel) {
-        clearChannelState();
+        console.log('[🔍 CHANNEL SYNC DEBUG] Нет текстовых каналов, ВЫЗЫВАЕМ clearChannelState()');
+        clearChannelStateRef.current();
       }
     }
-  }, [channelId, channels, currentTextChannel, selectTextChannel, joinVoiceChannel, activeVoiceChannel, navigate, serverId, currentServer, clearChannelState]);
+  }, [channelId, channels, currentTextChannel, selectTextChannel, joinVoiceChannel, activeVoiceChannel, navigate, serverId, currentServer]);
 
   const handleServerSelect = (server) => {
     localStorage.setItem('lastServerId', server._id);
@@ -354,6 +397,7 @@ const ServerRoute = () => {
           onAvatarUpdate={updateUser}
           onSelectChannel={handleChannelSelect}
           onCreateChannel={createChannel}
+          onRefreshMembers={refreshServerMembers}
           onUpdateChannel={updateChannel}
           onDeleteChannel={deleteChannel}
           onlineUsers={globalOnlineUsers}
@@ -375,17 +419,19 @@ const ServerRoute = () => {
 
   return (
     <div className="app">
-      <ServerSidebar
-        servers={servers}
-        currentServer={currentServer}
-        onSelectServer={handleServerSelect}
-        onCreateServer={createServer}
-        user={user}
-        onSelectDirectMessages={handleSelectDirectMessages}
-        showDirectMessages={false}
-        hasUnreadDMs={hasNotifications}
-        activeVoiceChannel={activeVoiceChannel}
-      />
+      {!isSettingsOpen && (
+        <ServerSidebar
+          servers={servers}
+          currentServer={currentServer}
+          onSelectServer={handleServerSelect}
+          onCreateServer={createServer}
+          user={user}
+          onSelectDirectMessages={handleSelectDirectMessages}
+          showDirectMessages={false}
+          hasUnreadDMs={hasNotifications}
+          activeVoiceChannel={activeVoiceChannel}
+        />
+      )}
 
       <ChannelList
         channels={channels}
@@ -401,6 +447,7 @@ const ServerRoute = () => {
         screenSharingUsers={screenSharingUsers}
         serverName={currentServer?.name}
         currentServer={currentServer}
+        serverMembers={allServerMembers}
         onToggleMute={toggleMute}
         onToggleDeafen={toggleDeafen}
         onToggleScreenShare={toggleScreenShare}
@@ -412,6 +459,7 @@ const ServerRoute = () => {
         onUpdateChannel={updateChannel}
         onDeleteChannel={deleteChannel}
         onMessageSent={handleMessageSent}
+        onRefreshMembers={refreshServerMembers}
       />
 
       <Chat
@@ -437,6 +485,7 @@ const ServerRoute = () => {
         currentUser={user}
         currentServer={currentServer}
         onMessageSent={handleMessageSent}
+        onRefreshMembers={refreshServerMembers}
       />
     </div>
   );

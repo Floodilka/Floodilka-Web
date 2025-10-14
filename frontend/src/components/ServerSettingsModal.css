@@ -1,0 +1,358 @@
+/* Стили для настроек сервера наследуются от .settings-container */
+
+/* Overlay для настроек сервера */
+.server-settings-container + .settings-overlay,
+.settings-overlay:has(+ .server-settings-container),
+.settings-overlay {
+  z-index: 100001 !important;
+}
+
+/* Модальное окно настроек сервера */
+.server-settings-container {
+  z-index: 100002 !important;
+}
+
+/* Увеличиваем z-index для кнопки закрытия в настройках сервера */
+.server-settings-container .settings-close-btn {
+  z-index: 100003 !important;
+}
+
+.server-settings-container .settings-content {
+  flex: 1;
+  height: 100%;
+  display: flex;
+  overflow: hidden;
+}
+
+.server-settings-container .settings-sidebar {
+  height: 100%;
+  max-height: 100%;
+}
+
+/* Исправляем выпирающие дивайдеры в боковой панели */
+.server-settings-container .settings-nav-item {
+  margin: 0 8px;
+  border-radius: 4px;
+  width: calc(100% - 16px);
+}
+
+.server-settings-container .settings-nav-item.active {
+  background-color: #5865f2 !important;
+}
+
+.server-settings-container .settings-nav-item:hover {
+  background-color: rgba(255, 255, 255, 0.05) !important;
+}
+
+.server-settings-main {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0;
+  background: #1e1f22;
+}
+
+.server-settings-error {
+  margin: 12px 32px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: rgba(242, 63, 66, 0.18);
+  color: #f9a3a5;
+  border: 1px solid rgba(242, 63, 66, 0.28);
+  font-size: 13px;
+}
+
+.server-members-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 0;
+}
+
+/* Заголовок страницы настроек */
+.settings-page-header {
+  padding: 32px 32px 24px 32px;
+  border-bottom: 1px solid #3f4147;
+  background: #1e1f22;
+}
+
+.settings-page-title {
+  color: #ffffff;
+  font-size: 32px;
+  font-weight: 700;
+  margin: 0 0 8px 0;
+  font-family: 'Whitney', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+}
+
+.settings-page-subtitle {
+  color: #ffffff;
+  font-size: 16px;
+  font-weight: 400;
+  margin: 0;
+  font-family: 'Whitney', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+}
+
+/* Сортировка участников */
+.server-members-sort {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 32px;
+}
+
+.server-members-sort-label {
+  color: #b5bac1;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.server-members-sort-buttons {
+  display: flex;
+  gap: 6px;
+}
+
+.server-sort-btn {
+  padding: 6px 14px;
+  background: #2b2d31;
+  border: 1px solid #3f4147;
+  border-radius: 6px;
+  color: #b5bac1;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.server-sort-btn:hover {
+  background: #373b41;
+  border-color: #4a4e57;
+  color: #f2f3f5;
+}
+
+.server-sort-btn.active {
+  background: #5865f2;
+  border-color: #5865f2;
+  color: #ffffff;
+}
+
+.server-members-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 24px 32px;
+}
+
+.server-members-empty {
+  padding: 32px;
+  text-align: center;
+  background: #2b2d31;
+  border: 1px solid #303236;
+  border-radius: 12px;
+}
+
+.server-members-empty h3 {
+  color: #f2f3f5;
+  margin-bottom: 8px;
+  font-size: 18px;
+}
+
+.server-members-empty p {
+  color: #b5bac1;
+  margin: 0;
+  font-size: 14px;
+}
+
+.server-member-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 14px;
+  background: #2b2d31;
+  border: 1px solid #303236;
+  border-radius: 10px;
+  position: relative;
+  z-index: 1;
+}
+
+.server-member-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.server-member-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.server-member-avatar.placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #3a3c42;
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 18px;
+}
+
+.server-member-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.server-member-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 15px;
+}
+
+.server-member-username {
+  color: #b5bac1;
+  font-size: 13px;
+}
+
+.server-member-chip {
+  font-size: 10px;
+  text-transform: uppercase;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+.server-member-chip.owner {
+  background: rgba(88, 101, 242, 0.2);
+  color: #8ea2ff;
+}
+
+.server-member-chip.self {
+  background: rgba(59, 165, 93, 0.2);
+  color: #74d99f;
+}
+
+.server-member-chip.banned {
+  background: rgba(237, 66, 69, 0.2);
+  color: #f9a3a5;
+}
+
+.server-member-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.server-member-status-label {
+  color: #8e9297;
+  font-size: 12px;
+}
+
+.server-member-action-btn {
+  background: #202225;
+  border: 1px solid #3a3d44;
+  color: #ffffff;
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s ease, border 0.2s ease;
+}
+
+.server-member-action-btn:hover:not(:disabled) {
+  background: #373b41;
+  border-color: #4a4e57;
+}
+
+.server-member-action-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Стили для забаненных пользователей */
+.banned-member-row {
+  transition: background-color 0.2s ease;
+}
+
+.banned-member-row:hover {
+  background-color: rgba(237, 66, 69, 0.1) !important;
+}
+
+
+/* Стили для модального окна информации о бане */
+.banned-user-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: #2b2d31;
+  border: 1px solid #3a3d44;
+  border-radius: 8px;
+}
+
+.banned-user-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.banned-user-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.banned-user-avatar .avatar-placeholder {
+  width: 100%;
+  height: 100%;
+  background: #5865f2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.banned-user-details {
+  flex: 1;
+}
+
+.banned-user-name {
+  color: #f2f3f5;
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.banned-user-username {
+  color: #b5bac1;
+  font-size: 14px;
+}
+
+.ban-reason-display,
+.ban-date-display {
+  padding: 12px;
+  background: #2b2d31;
+  border: 1px solid #3a3d44;
+  border-radius: 8px;
+  color: #f2f3f5;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+/* Контекстное меню для действий над участниками */
+.message-context-menu {
+  z-index: 100010 !important;
+}

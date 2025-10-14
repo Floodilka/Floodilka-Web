@@ -20,9 +20,9 @@ export const useSocketContext = () => {
 export const SocketProvider = ({ children }) => {
   const [socket, setSocket] = useState(null);
   const { addMessage, editMessage, deleteMessage, updateMessageReactions, setMessages, setHasUnreadDMs } = useChat();
-  const { setVoiceChannelUsers, setScreenSharingUsers } = useVoice();
+  const { setVoiceChannelUsers, setScreenSharingUsers, leaveVoiceChannel, currentVoiceChannel } = useVoice();
   const { user } = useAuth();
-  const { setChannels } = useServer();
+  const { setChannels, removeServer, currentServer, servers } = useServer();
   const { setGlobalOnlineUsers } = useGlobalUsers();
 
   useEffect(() => {
@@ -104,6 +104,26 @@ export const SocketProvider = ({ children }) => {
       }
     });
 
+    // Server member banned event
+    socketService.on(SOCKET_EVENTS.SERVER_MEMBER_BANNED, ({ serverId, userId }) => {
+      // Проверяем, забанен ли текущий пользователь
+      if (userId === user?.id) {
+        console.log('🚫 Вы были забанены с сервера:', serverId);
+
+        // Отключаемся от голосового канала, если находимся в нем на этом сервере
+        if (currentVoiceChannel && currentVoiceChannel.serverId === serverId) {
+          console.log('🔇 Отключаемся от голосового канала');
+          leaveVoiceChannel();
+        }
+
+        // Удаляем сервер из списка
+        removeServer(serverId);
+
+        // Переходим на страницу личных сообщений
+        window.location.href = '/channels/@me';
+      }
+    });
+
     // Error handling
     socketService.on(SOCKET_EVENTS.ERROR, ({ message }) => {
       alert(`Ошибка: ${message}`);
@@ -123,6 +143,8 @@ export const SocketProvider = ({ children }) => {
       socketService.removeAllListeners(SOCKET_EVENTS.SERVER_USERS_UPDATE);
       socketService.removeAllListeners(SOCKET_EVENTS.GLOBAL_USERS_UPDATE);
       socketService.removeAllListeners(SOCKET_EVENTS.VOICE_CHANNELS_UPDATE);
+      socketService.removeAllListeners(SOCKET_EVENTS.SCREEN_SHARING_UPDATE);
+      socketService.removeAllListeners(SOCKET_EVENTS.SERVER_MEMBER_BANNED);
       socketService.removeAllListeners(SOCKET_EVENTS.ERROR);
       socketService.removeAllListeners(SOCKET_EVENTS.DIRECT_MESSAGE_NEW);
 

@@ -1,6 +1,8 @@
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useRef, useCallback, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import './DirectMessages.css';
+import './FriendActionButton.css';
 import UserProfile from './UserProfile';
 import FriendsPanel from './FriendsPanel';
 import FriendActionButton from './FriendActionButton';
@@ -52,6 +54,27 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
   const [messageText, setMessageText] = useState('');
   const [sendingDirectMessage, setSendingDirectMessage] = useState(false);
   const [mentionTooltip, setMentionTooltip] = useState(null);
+  const [blockStatus, setBlockStatus] = useState(null);
+  const [blockActionLoading, setBlockActionLoading] = useState(false);
+  const [showBlockDialog, setShowBlockDialog] = useState(false);
+  const [blockReason, setBlockReason] = useState('');
+  const [blockActionError, setBlockActionError] = useState('');
+  const [errorModal, setErrorModal] = useState(null);
+
+  // Функция для проверки блокировки пользователя
+  const isUserBlocked = (targetUser, currentUser) => {
+    if (!targetUser || !currentUser || !currentUser.blockedUsers) {
+      return false;
+    }
+
+    const targetUserId = targetUser.userId || targetUser.id || targetUser._id;
+    if (!targetUserId) return false;
+
+    return currentUser.blockedUsers.some(blockedUser => {
+      const blockedUserId = blockedUser.userId?._id || blockedUser.userId;
+      return blockedUserId && blockedUserId.toString() === targetUserId.toString();
+    });
+  };
 
   const mentionableUsers = useMemo(() => {
     const map = new Map();
@@ -444,11 +467,152 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
     }
   };
 
-  // Функция для прокрутки к последнему сообщению
-  const scrollToBottom = useCallback(() => {
-    if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: 'auto' });
+  // Продвинутая система автоматического скролла (как в Chat.js)
+  const AUTO_SCROLL_EPSILON = 32;
+  const MAX_AUTO_SCROLL_ATTEMPTS = 12;
+  const autoScrollStateRef = useRef({ dmId: null, attempts: 0 });
+  const scrollTimeoutsRef = useRef([]);
+
+  const scrollContainerToBottom = useCallback((trigger = 'default') => {
+    const container = messagesContainerRef.current;
+    if (!container) return;
+
+    // Отменяем предыдущие таймауты
+    scrollTimeoutsRef.current.forEach(id => clearTimeout(id));
+    scrollTimeoutsRef.current = [];
+
+    const applyScroll = (source) => {
+      const maxScrollTop = container.scrollHeight - container.clientHeight;
+      const nextScrollTop = maxScrollTop > 0 ? maxScrollTop : 0;
+      container.scrollTop = nextScrollTop;
+
+      if (messagesEndRef.current) {
+        messagesEndRef.current.scrollIntoView({ behavior: 'auto', block: 'end' });
+      }
+
+      console.log('[DM SCROLL] 📐 scrollContainerToBottom:', {
+        trigger,
+        source,
+        scrollTop: container.scrollTop,
+        scrollHeight: container.scrollHeight,
+        clientHeight: container.clientHeight,
+        hasOverflow: container.scrollHeight > container.clientHeight
+      });
+    };
+
+    applyScroll('immediate');
+    requestAnimationFrame(() => applyScroll('raf'));
+
+    const t1 = setTimeout(() => applyScroll('timeout'), 0);
+    const t2 = setTimeout(() => applyScroll('timeout-10'), 10);
+    const t3 = setTimeout(() => applyScroll('timeout-50'), 50);
+    const t4 = setTimeout(() => applyScroll('timeout-100'), 100);
+
+    scrollTimeoutsRef.current.push(t1, t2, t3, t4);
+  }, []);
+
+  const markDMScrolled = useCallback((dmId, reason) => {
+    if (!dmId) return;
+    autoScrollStateRef.current = { dmId: null, attempts: 0 };
+    console.log('[DM SCROLL] 🟢 Автоскролл завершен', { dmId, reason });
+  }, []);
+
+  const finalizeAutoScroll = useCallback((reason) => {
+    const container = messagesContainerRef.current;
+    const dmId = selectedDM?._id;
+    if (!container || !dmId) return;
+
+    const totalMessages = selectedMessages.length;
+
+    if (totalMessages === 0) {
+      console.log('[DM SCROLL] 🔁 Автоскролл: ждем сообщений перед проверкой', {
+        dmId,
+        reason
+      });
+      return;
     }
+
+    const distance = container.scrollHeight - container.scrollTop - container.clientHeight;
+    const hasOverflow = container.scrollHeight > container.clientHeight;
+
+    // ВАЖНО: Если много сообщений, но нет переполнения - DOM еще не обновился
+    if (totalMessages > 10 && !hasOverflow) {
+      const prevState = autoScrollStateRef.current;
+      const prevAttempts = prevState.dmId === dmId ? prevState.attempts : 0;
+      const nextAttempts = prevAttempts + 1;
+
+      if (nextAttempts >= MAX_AUTO_SCROLL_ATTEMPTS) {
+        console.log('[DM SCROLL] ⚠️ Автоскролл: достигнут лимит попыток (нет overflow)', {
+          dmId,
+          reason,
+          totalMessages,
+          scrollHeight: container.scrollHeight,
+          clientHeight: container.clientHeight,
+          attempts: nextAttempts
+        });
+        markDMScrolled(dmId, reason);
+        return;
+      }
+
+      console.log('[DM SCROLL] 🔄 Автоскролл: ждем рендер сообщений', {
+        dmId,
+        reason,
+        totalMessages,
+        hasOverflow,
+        attempts: nextAttempts
+      });
+
+      autoScrollStateRef.current = { dmId, attempts: nextAttempts };
+      setTimeout(() => {
+        scrollContainerToBottom(`${reason}-retry-${nextAttempts}`);
+        finalizeAutoScroll(reason);
+      }, 50);
+      return;
+    }
+
+    if (!hasOverflow || distance <= AUTO_SCROLL_EPSILON) {
+      markDMScrolled(dmId, reason);
+      return;
+    }
+
+    const prevState = autoScrollStateRef.current;
+    const prevAttempts = prevState.dmId === dmId ? prevState.attempts : 0;
+    const nextAttempts = prevAttempts + 1;
+
+    if (nextAttempts >= MAX_AUTO_SCROLL_ATTEMPTS) {
+      console.log('[DM SCROLL] ⚠️ Автоскролл: достигнут лимит попыток', {
+        dmId,
+        reason,
+        distance,
+        attempts: nextAttempts
+      });
+      autoScrollStateRef.current = { dmId: null, attempts: 0 };
+      return;
+    }
+
+    autoScrollStateRef.current = { dmId, attempts: nextAttempts };
+    requestAnimationFrame(() => {
+      scrollContainerToBottom(`${reason}-retry-${nextAttempts}`);
+      finalizeAutoScroll(reason);
+    });
+  }, [selectedDM?._id, markDMScrolled, scrollContainerToBottom, selectedMessages.length]);
+
+  const autoScrollToBottom = useCallback((reason) => {
+    scrollContainerToBottom(reason);
+    finalizeAutoScroll(reason);
+  }, [finalizeAutoScroll, scrollContainerToBottom]);
+
+  const scrollToBottom = useCallback(() => {
+    console.log('[DM SCROLL] 📍 scrollToBottom вызван');
+    autoScrollToBottom('manual');
+  }, [autoScrollToBottom]);
+
+  // Очистка таймаутов при размонтировании
+  useEffect(() => {
+    return () => {
+      scrollTimeoutsRef.current.forEach(id => clearTimeout(id));
+      scrollTimeoutsRef.current = [];
+    };
   }, []);
 
   // Функции для работы с файлами
@@ -482,6 +646,9 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
   };
 
   const openFileDialog = () => {
+    if (blockStatus?.isBlockedByMe || blockStatus?.hasBlockedMe) {
+      return;
+    }
     document.getElementById('dm-file-input').click();
   };
 
@@ -491,6 +658,10 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
 
     const currentDM = selectedDM || autoSelectUser;
     if ((!inputValue.trim() && selectedFiles.length === 0) || !currentDM || sendingMessage) {
+      return;
+    }
+
+    if (blockStatus?.isBlockedByMe || blockStatus?.hasBlockedMe) {
       return;
     }
 
@@ -834,6 +1005,11 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
       }
     } catch (err) {
       console.error('Ошибка действия с другом:', err);
+
+      // Показываем модальное окно с ошибкой
+      if (err.message) {
+        setErrorModal(err.message);
+      }
     } finally {
       setAddingFriend(false);
     }
@@ -995,6 +1171,45 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
     return () => clearTimeout(timeout);
   }, [highlightedMessageId]);
 
+  const updateConversationBlockStatus = useCallback((targetId, status) => {
+    if (!targetId) return;
+
+    setDirectMessages(prev => prev.map(dm => {
+      if (!dm) {
+        return dm;
+      }
+
+      const dmUserId = dm._id || dm.user?._id;
+      if (dmUserId && dmUserId.toString() === targetId.toString()) {
+        return {
+          ...dm,
+          blockStatus: status || null
+        };
+      }
+
+      return dm;
+    }));
+  }, []);
+
+  const refreshBlockStatus = useCallback(async (targetUserId) => {
+    if (!targetUserId) {
+      setBlockStatus(null);
+      return;
+    }
+
+    setBlockActionError('');
+
+    try {
+      const status = await api.getBlockStatus(targetUserId);
+      setBlockStatus(status);
+      updateConversationBlockStatus(targetUserId, status);
+    } catch (err) {
+      console.error('Ошибка загрузки статуса блокировки:', err);
+      setBlockStatus(null);
+      updateConversationBlockStatus(targetUserId, null);
+    }
+  }, [updateConversationBlockStatus]);
+
   // Мемоизируем функцию загрузки разговоров
   const loadDirectMessages = useCallback(async () => {
     setLoading(true);
@@ -1046,6 +1261,9 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
   // Мемоизируем функцию загрузки сообщений
   const loadMessagesWithUser = useCallback(async (userId) => {
     setMessagesLoading(true);
+    setBlockStatus(null);
+    setShowBlockDialog(false);
+    setBlockReason('');
     try {
       const token = localStorage.getItem('token');
       if (!token) return;
@@ -1077,13 +1295,65 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
       const data = await response.json();
       console.log('📥 Получены сообщения:', data);
       setSelectedMessages(data);
+      await refreshBlockStatus(userId);
     } catch (err) {
       console.error('Ошибка загрузки сообщений:', err);
       setSelectedMessages([]);
+      setBlockStatus(null);
     } finally {
       setMessagesLoading(false);
     }
-  }, [socket, user]);
+  }, [socket, user, refreshBlockStatus]);
+
+  const handleOpenBlockDialog = useCallback(() => {
+    setBlockActionError('');
+    setBlockReason('');
+    setShowBlockDialog(true);
+  }, []);
+
+  const handleCloseBlockDialog = useCallback(() => {
+    setShowBlockDialog(false);
+    setBlockActionError('');
+  }, []);
+
+  const handleBlockConfirm = useCallback(async () => {
+    const targetId = selectedDM?.user?._id || selectedDM?._id || autoSelectUser?.user?._id || autoSelectUser?._id;
+    if (!targetId || blockActionLoading) return;
+
+    setBlockActionLoading(true);
+    setBlockActionError('');
+
+    try {
+      const reason = blockReason.trim();
+      await api.blockUser(targetId, reason || undefined);
+      await refreshBlockStatus(targetId);
+      setShowBlockDialog(false);
+      setBlockReason('');
+    } catch (err) {
+      console.error('Ошибка блокировки пользователя:', err);
+      setBlockActionError(err?.message || 'Не удалось заблокировать пользователя');
+    } finally {
+      setBlockActionLoading(false);
+    }
+  }, [selectedDM, autoSelectUser, blockReason, blockActionLoading, refreshBlockStatus]);
+
+  const handleUnblock = useCallback(async () => {
+    const targetId = selectedDM?.user?._id || selectedDM?._id || autoSelectUser?.user?._id || autoSelectUser?._id;
+    if (!targetId || blockActionLoading) return;
+
+    setBlockActionLoading(true);
+    setBlockActionError('');
+
+    try {
+      await api.unblockUser(targetId);
+      await refreshBlockStatus(targetId);
+    } catch (err) {
+      console.error('Ошибка разблокировки пользователя:', err);
+      setBlockActionError(err?.message || 'Не удалось разблокировать пользователя');
+    } finally {
+      setBlockActionLoading(false);
+    }
+  }, [selectedDM, autoSelectUser, blockActionLoading, refreshBlockStatus]);
 
   useEffect(() => {
     if (user) {
@@ -1113,6 +1383,9 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
         console.log('🎯 Автоматически выбираем разговор с:', conversation.user?.username);
         lastProcessedUserIdRef.current = targetUserId;
         setSelectedDM(conversation);
+        setBlockStatus(conversation.blockStatus || null);
+        setShowBlockDialog(false);
+        setBlockReason('');
         setShowFriendsPanel(false);
         setInputValue('');
         loadMessagesWithUser(conversation._id);
@@ -1162,6 +1435,9 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
 
       lastProcessedUserIdRef.current = autoSelectUser._id;
       setSelectedDM(prev => prev?._id === autoSelectUser._id ? prev : autoSelectUser);
+      setBlockStatus(autoSelectUser.blockStatus || null);
+      setShowBlockDialog(false);
+      setBlockReason('');
       setShowFriendsPanel(false);
       setInputValue('');
       loadMessagesWithUser(autoSelectUser._id);
@@ -1208,42 +1484,97 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
     }
   }, [autoSelectUser, directMessages, onAutoSelectComplete, loadMessagesWithUser]);
 
-  // Умная автоматическая прокрутка - аналогично Chat.js
+  // Умная автоматическая прокрутка - используем useLayoutEffect как в Chat.js
   const prevMessagesLengthRef = useRef(0);
   const isInitialLoadRef = useRef(true); // true по умолчанию для первой загрузки
   const prevDMIdRef = useRef(null);
+  const scrolledDMsRef = useRef(new Set()); // Список DM, для которых уже делали скролл
 
   useEffect(() => {
     // Сбрасываем флаг начальной загрузки при смене разговора
-    if (selectedDM?._id !== prevDMIdRef.current) {
-      isInitialLoadRef.current = true;
-      prevDMIdRef.current = selectedDM?._id;
+    const newDMId = selectedDM?._id;
+    const oldDMId = prevDMIdRef.current;
+
+    if (newDMId !== oldDMId) {
+      console.log('[DM SCROLL] 🔄 Смена разговора:', { oldDMId, newDMId });
+
+      // Отменяем все таймауты скролла при смене разговора
+      scrollTimeoutsRef.current.forEach(id => clearTimeout(id));
+      scrollTimeoutsRef.current = [];
+
+      autoScrollStateRef.current = { dmId: null, attempts: 0 };
+
+      if (newDMId) {
+        prevDMIdRef.current = newDMId;
+        isInitialLoadRef.current = true;
+        // Убираем из списка проскролленных, чтобы разрешить скролл
+        scrolledDMsRef.current.delete(newDMId);
+
+        console.log('[DM SCROLL] 🎯 Установлены флаги для нового разговора');
+      } else {
+        prevDMIdRef.current = null;
+      }
     }
   }, [selectedDM?._id]);
 
-  useEffect(() => {
-    if (!messagesContainerRef.current) return;
+  useLayoutEffect(() => {
+    if (!messagesContainerRef.current || !messagesEndRef.current) {
+      console.log('[DM SCROLL] ⚠️ useLayoutEffect автоскролл: нет контейнера или endRef');
+      return;
+    }
 
     const container = messagesContainerRef.current;
     const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 100;
+    const hasScrolledForThisDM = scrolledDMsRef.current.has(selectedDM?._id);
+
+    console.log('[DM SCROLL] 🤖 useLayoutEffect автоскролл:', {
+      dmId: selectedDM?._id,
+      messagesLength: selectedMessages.length,
+      prevMessagesLength: prevMessagesLengthRef.current,
+      isNearBottom,
+      hasScrolledForThisDM,
+      isInitialLoad: isInitialLoadRef.current,
+      scrollHeight: container.scrollHeight,
+      scrollTop: container.scrollTop,
+      clientHeight: container.clientHeight,
+      distanceFromBottom: container.scrollHeight - container.scrollTop - container.clientHeight
+    });
+
+    // НЕ скроллим если уже скроллили для этого DM
+    if (hasScrolledForThisDM && !isInitialLoadRef.current) {
+      console.log('[DM SCROLL] ⛔ НЕ скроллим: DM уже был проскроллен');
+      prevMessagesLengthRef.current = selectedMessages.length;
+      return;
+    }
 
     // Скроллим вниз если:
-    // 1. Это начальная загрузка И есть хотя бы одно сообщение
+    // 1. Это начальная загрузка сообщений для нового DM И есть хотя бы одно сообщение
     // 2. ИЛИ пользователь был близко к низу И количество сообщений увеличилось
-    const shouldScroll =
-      (isInitialLoadRef.current && selectedMessages.length > 0) ||
-      (isNearBottom && selectedMessages.length > prevMessagesLengthRef.current);
+    const shouldScroll = (isInitialLoadRef.current && selectedMessages.length > 0) || (isNearBottom && selectedMessages.length >= prevMessagesLengthRef.current);
+
+    console.log('[DM SCROLL] 🔎 Проверка shouldScroll:', {
+      shouldScroll,
+      condition1: isInitialLoadRef.current && selectedMessages.length > 0,
+      condition2: isNearBottom && selectedMessages.length >= prevMessagesLengthRef.current
+    });
 
     if (shouldScroll) {
-      scrollToBottom();
+      console.log('[DM SCROLL] ✅ СКРОЛЛИМ ВНИЗ');
+      autoScrollToBottom('layoutEffect');
+
       // После первого скролла сбрасываем флаг начальной загрузки
       if (isInitialLoadRef.current) {
         isInitialLoadRef.current = false;
+        if (selectedDM?._id) {
+          scrolledDMsRef.current.add(selectedDM._id);
+        }
       }
+    } else {
+      console.log('[DM SCROLL] ⏭️ НЕ скроллим по условию');
     }
 
     prevMessagesLengthRef.current = selectedMessages.length;
-  }, [selectedMessages.length, scrollToBottom]);
+  }, [selectedMessages.length, selectedDM?._id, autoScrollToBottom]);
 
   // WebSocket обработчики для личных сообщений
   useEffect(() => {
@@ -1417,6 +1748,9 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
   const handleSelectDM = useCallback(async (dm) => {
     setShowFriendsPanel(false);
     setSelectedDM(dm);
+    setBlockStatus(dm?.blockStatus || null);
+    setShowBlockDialog(false);
+    setBlockReason('');
 
     // Если есть обработчик для мобильного режима, используем его
     if (onDMUserSelect) {
@@ -1448,6 +1782,81 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
     ), [directMessages, searchQuery]
   );
 
+  const activeChatUser = selectedDM?.user || autoSelectUser?.user || null;
+
+  const targetUserDisplayName = useMemo(() => {
+    if (activeChatUser) {
+      return activeChatUser.displayName || activeChatUser.username || '';
+    }
+    if (autoSelectUser?.username) {
+      return autoSelectUser.username;
+    }
+    return '';
+  }, [activeChatUser, autoSelectUser]);
+
+  const isConversationBlocked = Boolean(blockStatus?.isBlockedByMe || blockStatus?.hasBlockedMe);
+  const messagePlaceholder = isConversationBlocked
+    ? 'Вы не можете отправлять сообщения этому пользователю'
+    : targetUserDisplayName
+      ? `Написать @${targetUserDisplayName}`
+      : 'Написать сообщение';
+  const isSendDisabled = (!inputValue.trim() && selectedFiles.length === 0) || sendingMessage || isConversationBlocked;
+
+  const blockDialog = showBlockDialog ? (
+    <div className="dm-block-dialog">
+      <div className="dm-block-dialog-header">
+        Заблокировать {selectedDM?.user?.displayName || selectedDM?.user?.username || autoSelectUser?.user?.displayName || autoSelectUser?.user?.username || targetUserDisplayName}?
+      </div>
+      <p className="dm-block-dialog-text">
+        Заблокированный пользователь не сможет отправлять вам личные сообщения. Вы можете добавить причину (необязательно).
+      </p>
+      <textarea
+        className="dm-block-reason"
+        placeholder="Причина (необязательно)"
+        value={blockReason}
+        maxLength={200}
+        onChange={(e) => setBlockReason(e.target.value)}
+      />
+      {blockActionError && <div className="dm-block-error">{blockActionError}</div>}
+      <div className="dm-block-dialog-actions">
+        <button
+          type="button"
+          className="dm-block-cancel"
+          onClick={handleCloseBlockDialog}
+          disabled={blockActionLoading}
+        >
+          Отмена
+        </button>
+        <button
+          type="button"
+          className="dm-block-confirm"
+          onClick={handleBlockConfirm}
+          disabled={blockActionLoading}
+        >
+          {blockActionLoading ? 'Заблокировать...' : 'Заблокировать'}
+        </button>
+      </div>
+    </div>
+  ) : null;
+
+  const blockBanners = (
+    <>
+      {blockStatus?.isBlockedByMe && (
+        <div className="dm-block-banner warning">
+          Вы заблокировали этого пользователя. Чтобы возобновить переписку, разблокируйте его.
+        </div>
+      )}
+      {blockStatus?.hasBlockedMe && (
+        <div className="dm-block-banner danger">
+          Пользователь заблокировал вас. Вы можете читать историю, но сообщения отправляться не будут.
+        </div>
+      )}
+      {blockActionError && !showBlockDialog && (
+        <div className="dm-block-error">{blockActionError}</div>
+      )}
+    </>
+  );
+
   const resolvedReplyTarget = replyingTo
     ? selectedMessages.find(msg => msg._id === replyingTo.id) || replyingTo
     : null;
@@ -1458,6 +1867,25 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
       <div className="direct-messages-container">
         <div className="dm-chat">
           <div className="dm-chat-active">
+            <div className="dm-mobile-header">
+              <div className="dm-mobile-user">
+                <div className="dm-chat-avatar">
+                  {activeChatUser?.avatar ? (
+                    <img src={`${BACKEND_URL}${activeChatUser.avatar}`} alt={activeChatUser.username} />
+                  ) : (
+                    <span>{(activeChatUser?.username || '?').charAt(0).toUpperCase()}</span>
+                  )}
+                  <div className={`dm-status-indicator ${isUserOnline(activeChatUser?._id) ? 'online' : 'offline'}`}></div>
+                </div>
+                <div className="dm-chat-info">
+                  <div className="dm-chat-username">{targetUserDisplayName || activeChatUser?.username}</div>
+                  <div className="dm-chat-status">{isUserOnline(activeChatUser?._id) ? 'В сети' : 'Не в сети'}</div>
+                </div>
+              </div>
+            </div>
+            {blockDialog}
+            {blockBanners}
+
               {/* Область сообщений */}
               <div className="dm-messages" ref={messagesContainerRef}>
                 {messagesLoading ? (
@@ -1487,6 +1915,25 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
                         >
                           {addingFriend ? 'Загрузка...' : getFriendButtonText()}
                         </button>
+                        {blockStatus?.isBlockedByMe ? (
+                          <button
+                            type="button"
+                            className="dm-chat-action-btn unblock"
+                            onClick={handleUnblock}
+                            disabled={blockActionLoading}
+                          >
+                            {blockActionLoading ? '...' : 'Разблокировать'}
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            className="dm-chat-action-btn block"
+                            onClick={handleOpenBlockDialog}
+                            disabled={blockActionLoading}
+                          >
+                            Заблокировать
+                          </button>
+                        )}
                       </div>
                     </div>
                     {selectedMessages.length > 0 && (
@@ -1712,6 +2159,7 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
                       type="button"
                       className="file-attach-button"
                       onClick={openFileDialog}
+                      disabled={isConversationBlocked}
                       title="Прикрепить файл"
                     >
                       <img src="/icons/plus.png" alt="+" />
@@ -1720,18 +2168,18 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
                     <input
                       ref={inputRef}
                       type="text"
-                      placeholder={`Написать @${autoSelectUser.user?.displayName || autoSelectUser.user?.username || autoSelectUser.username}`}
+                      placeholder={messagePlaceholder}
                       value={inputValue}
                       onChange={(e) => setInputValue(e.target.value)}
                       onKeyPress={handleKeyPress}
                       maxLength={2000}
-                      disabled={sendingMessage}
+                      disabled={sendingMessage || isConversationBlocked}
                     />
                     <div className="input-divider"></div>
                     <button
                       type="submit"
-                      className={`file-send-button ${(!inputValue.trim() && selectedFiles.length === 0) || sendingMessage ? 'disabled' : 'active'}`}
-                      disabled={(!inputValue.trim() && selectedFiles.length === 0) || sendingMessage}
+                      className={`file-send-button ${isSendDisabled ? 'disabled' : 'active'}`}
+                      disabled={isSendDisabled}
                       title="Отправить"
                     >
                       <img src="/icons/send.png" alt="Отправить" />
@@ -1869,6 +2317,9 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
                 </div>
               </div>
 
+              {blockDialog}
+              {blockBanners}
+
               {/* Область сообщений */}
               <div className="dm-messages" ref={messagesContainerRef}>
                 {messagesLoading ? (
@@ -1898,6 +2349,25 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
                         >
                           {addingFriend ? 'Загрузка...' : getFriendButtonText()}
                         </button>
+                        {blockStatus?.isBlockedByMe ? (
+                          <button
+                            type="button"
+                            className="dm-chat-action-btn unblock"
+                            onClick={handleUnblock}
+                            disabled={blockActionLoading}
+                          >
+                            {blockActionLoading ? '...' : 'Разблокировать'}
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            className="dm-chat-action-btn block"
+                            onClick={handleOpenBlockDialog}
+                            disabled={blockActionLoading}
+                          >
+                            Заблокировать
+                          </button>
+                        )}
                       </div>
                     </div>
                     {selectedMessages.length > 0 && (
@@ -2157,33 +2627,35 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
                   />
                   <div className="message-input-wrapper">
                     <div className="message-input-field">
-                      <button
-                        type="button"
-                        className="file-attach-button"
-                        onClick={openFileDialog}
-                        title="Прикрепить файл"
-                      >
-                        <img src="/icons/plus.png" alt="+" />
-                      </button>
-                      <div className="input-divider"></div>
-                      <input
-                        ref={inputRef}
-                        type="text"
-                        placeholder={`Написать @${selectedDM.user.displayName || selectedDM.user.username}`}
-                        value={inputValue}
-                        onChange={(e) => setInputValue(e.target.value)}
-                        onKeyPress={handleKeyPress}
-                        maxLength={2000}
-                      />
-                      <div className="input-divider"></div>
-                      <button
-                        type="submit"
-                        className={`file-send-button ${(!inputValue.trim() && selectedFiles.length === 0) || sendingMessage ? 'disabled' : 'active'}`}
-                        disabled={(!inputValue.trim() && selectedFiles.length === 0) || sendingMessage}
-                        title="Отправить"
-                      >
-                        <img src="/icons/send.png" alt="Отправить" />
-                      </button>
+                    <button
+                      type="button"
+                      className="file-attach-button"
+                      onClick={openFileDialog}
+                      disabled={isConversationBlocked}
+                      title="Прикрепить файл"
+                    >
+                      <img src="/icons/plus.png" alt="+" />
+                    </button>
+                    <div className="input-divider"></div>
+                    <input
+                      ref={inputRef}
+                      type="text"
+                      placeholder={messagePlaceholder}
+                      value={inputValue}
+                      onChange={(e) => setInputValue(e.target.value)}
+                      onKeyPress={handleKeyPress}
+                      maxLength={2000}
+                      disabled={sendingMessage || isConversationBlocked}
+                    />
+                    <div className="input-divider"></div>
+                    <button
+                      type="submit"
+                      className={`file-send-button ${isSendDisabled ? 'disabled' : 'active'}`}
+                      disabled={isSendDisabled}
+                      title="Отправить"
+                    >
+                      <img src="/icons/send.png" alt="Отправить" />
+                    </button>
                     </div>
                   </div>
                 </form>
@@ -2334,16 +2806,21 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
             {selectedUser && (() => {
               const targetUserId = selectedUser.userId || selectedUser._id || selectedUser.id;
               const isOwnProfile = targetUserId === user?.id;
+              const isBlocked = isUserBlocked(selectedUser, user);
               return !isOwnProfile && (
                 <div className="user-profile-message-input">
                   <div className="message-input-container">
                     <input
                       type="text"
-                      placeholder={`Сообщение для @${selectedUser.username}`}
+                      placeholder={
+                        isBlocked
+                          ? `Вы не можете написать @${selectedUser.username}`
+                          : `Сообщение для @${selectedUser.username}`
+                      }
                       value={messageText}
                       onChange={(e) => setMessageText(e.target.value)}
                       onKeyPress={handleKeyPressProfile}
-                      disabled={sendingDirectMessage}
+                      disabled={sendingDirectMessage || isBlocked}
                       className="message-input-field"
                     />
                   </div>
@@ -2352,6 +2829,30 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
             })()}
           </div>
         </>
+      )}
+
+      {/* Модальное окно ошибки добавления в друзья */}
+      {errorModal && createPortal(
+        <div className="join-server-overlay friend-error-overlay" onClick={() => setErrorModal(null)}>
+          <div className="join-server-modal friend-error-modal" onClick={(e) => e.stopPropagation()}>
+            <button className="join-server-close" onClick={() => setErrorModal(null)}>×</button>
+
+            <h2>Невозможно выполнить действие</h2>
+            <p className="modal-subtitle">
+              {errorModal}
+            </p>
+
+            <div className="modal-footer">
+              <button
+                className="btn-primary"
+                onClick={() => setErrorModal(null)}
+              >
+                Понятно
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
       )}
     </div>
   );

@@ -30,6 +30,7 @@ function MobileLayout({
   onAvatarUpdate,
   onSelectChannel,
   onCreateChannel,
+  onRefreshMembers,
   onlineUsers,
   allServerMembers,
   socket,
@@ -189,6 +190,7 @@ function MobileLayout({
               isInVoice={isInVoice}
               serverName={currentServer?.name}
               currentServer={currentServer}
+              serverMembers={allServerMembers}
               onToggleMute={onToggleMute}
               onToggleDeafen={onToggleDeafen}
               onDisconnect={onDisconnect}
@@ -196,6 +198,7 @@ function MobileLayout({
               onAvatarUpdate={onAvatarUpdate}
               onSelectChannel={handleChannelSelect}
               onCreateChannel={onCreateChannel}
+              onRefreshMembers={onRefreshMembers}
             />
           </div>
         </>

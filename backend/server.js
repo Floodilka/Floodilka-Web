@@ -23,6 +23,7 @@ const roleRoutes = require('./routes/roles');
 const directMessageRoutes = require('./routes/directMessages');
 const messageRoutes = require('./routes/messages');
 const friendRoutes = require('./routes/friends');
+const userRoutes = require('./routes/users');
 
 // WebSocket
 const WebSocketManager = require('./websocket');
@@ -135,6 +136,7 @@ app.use('/api/roles', roleRoutes);
 app.use('/api/direct-messages', directMessageRoutes);
 app.use('/api/messages', messageRoutes);
 app.use('/api/friends', friendRoutes);
+app.use('/api/users', userRoutes);
 
 // Health check endpoint
 app.get('/health', (req, res) => {

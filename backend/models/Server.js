@@ -20,6 +20,27 @@ const serverSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User'
   }],
+  bans: [{
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      required: true
+    },
+    bannedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      required: true
+    },
+    reason: {
+      type: String,
+      trim: true,
+      maxlength: 200
+    },
+    bannedAt: {
+      type: Date,
+      default: Date.now
+    }
+  }],
   createdAt: {
     type: Date,
     default: Date.now
@@ -29,5 +50,6 @@ const serverSchema = new mongoose.Schema({
 serverSchema.index({ ownerId: 1 });
 serverSchema.index({ members: 1 });
 serverSchema.index({ createdAt: -1 });
+serverSchema.index({ 'bans.userId': 1 });
 
 module.exports = mongoose.model('Server', serverSchema);

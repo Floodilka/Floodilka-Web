@@ -73,6 +73,144 @@
   transform: rotate(180deg);
 }
 
+.server-menu-wrapper {
+  position: relative;
+}
+
+.server-menu-dropdown {
+  position: absolute;
+  right: 0;
+  top: 36px;
+  background: #1e1f22;
+  border: 1px solid #313338;
+  border-radius: 8px;
+  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.45);
+  padding: 6px 0;
+  z-index: 15;
+  min-width: 180px;
+  animation: serverMenuFadeIn 0.15s ease-out;
+}
+
+@keyframes serverMenuFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.server-menu-item {
+  width: 100%;
+  padding: 8px 16px;
+  background: transparent;
+  border: none;
+  color: #f2f3f5;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.server-menu-item:hover {
+  background: rgba(88, 101, 242, 0.15);
+}
+
+/* Стили для модального окна приглашения */
+.invite-loading-state {
+  margin-top: 10px;
+  padding: 12px;
+  background: rgba(88, 101, 242, 0.1);
+  border: 1px solid rgba(88, 101, 242, 0.3);
+  border-radius: 8px;
+  color: #b5bac1;
+  font-size: 14px;
+  text-align: center;
+}
+
+.invite-link-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.invite-link-input {
+  flex: 1;
+  background: #111214;
+  border: 1px solid #4e5058 !important;
+  color: #f2f3f5;
+  padding: 10px 12px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-family: monospace;
+}
+
+.invite-link-input:focus {
+  outline: none;
+  border-color: #5865f2 !important;
+}
+
+.copy-invite-btn {
+  background: #5865f2;
+  border: none;
+  color: white;
+  padding: 10px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 48px;
+}
+
+.copy-invite-btn:hover {
+  background: #4752c4;
+}
+
+.copy-invite-btn.copied {
+  background: #3ba55d;
+}
+
+.copy-icon {
+  width: 18px;
+  height: 18px;
+  filter: brightness(0) invert(1);
+}
+
+.check-icon {
+  font-size: 18px;
+  font-weight: bold;
+}
+
+.invite-modal-footer {
+  justify-content: center !important;
+}
+
+.btn-secondary-gray {
+  padding: 12px 48px !important;
+  border-radius: 6px;
+  border: none;
+  background-color: #4e5058 !important;
+  color: #ffffff !important;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  min-width: 160px !important;
+  flex: none !important;
+  width: auto !important;
+}
+
+.btn-secondary-gray:hover {
+  background-color: #5d6169 !important;
+  text-decoration: none !important;
+}
+
 /* Оверлей для закрытия меню */
 .server-menu-overlay {
   position: fixed;
@@ -645,8 +783,21 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: transparent;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(2px);
   z-index: 9998;
+  animation: profileFadeIn 0.2s ease-out;
+}
+
+@keyframes profileFadeIn {
+  from {
+    opacity: 0;
+    backdrop-filter: blur(0px);
+  }
+  to {
+    opacity: 1;
+    backdrop-filter: blur(2px);
+  }
 }
 
 /* Карточка профиля пользователя в голосовом канале */
@@ -828,6 +979,23 @@
   background-color: transparent !important;
 }
 
+/* Заблокированное поле ввода в профиле пользователя */
+.user-profile-message-input .message-input-container:has(.message-input-field:disabled) {
+  background: #1e1f22 !important;
+  border-color: #40444b !important;
+}
+
+.user-profile-message-input .message-input-field:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: #1e1f22 !important;
+  color: #8e9297 !important;
+}
+
+.user-profile-message-input .message-input-field:disabled::placeholder {
+  color: #6c6f75 !important;
+}
+
 /* Специальные стили для полей в карточке профиля в голосовом канале */
 .user-profile-card-voice .user-profile-message-input {
   padding: 16px;
@@ -880,6 +1048,23 @@
 .user-profile-card-voice .user-profile-message-input .message-input-container:focus-within .message-input-field {
   background: none !important;
   background-color: transparent !important;
+}
+
+/* Заблокированное поле ввода в голосовом канале */
+.user-profile-card-voice .user-profile-message-input .message-input-container:has(.message-input-field:disabled) {
+  background: #1e1f22 !important;
+  border-color: #40444b !important;
+}
+
+.user-profile-card-voice .user-profile-message-input .message-input-field:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: #1e1f22 !important;
+  color: #8e9297 !important;
+}
+
+.user-profile-card-voice .user-profile-message-input .message-input-field:disabled::placeholder {
+  color: #6c6f75 !important;
 }
 
 /* Контекстное меню для стримящих пользователей */

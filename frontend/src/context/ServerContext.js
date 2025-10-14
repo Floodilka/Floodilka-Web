@@ -18,7 +18,7 @@ export const useServer = () => {
 export const ServerProvider = ({ children }) => {
   const { user, showAuthModal } = useAuth();
   const { tryRestoreVoiceConnection, finishVoiceReconnect, pendingReconnect } = useVoice();
-  const { preloadChannelMessages } = useChat();
+  const { preloadChannelMessages, currentTextChannel } = useChat();
   const [servers, setServers] = useState([]);
   const [currentServer, setCurrentServer] = useState(null);
   const [channels, setChannels] = useState([]);
@@ -76,8 +76,12 @@ export const ServerProvider = ({ children }) => {
               }
             }
 
-            if (targetChannel) {
+            // Предзагружаем сообщения ТОЛЬКО если канал еще не выбран
+            if (targetChannel && !currentTextChannel) {
+              console.log('[ServerContext] Предзагружаем сообщения для канала:', targetChannel.id);
               await preloadChannelMessages(targetChannel.id, targetServer._id);
+            } else {
+              console.log('[ServerContext] Пропускаем предзагрузку - канал уже выбран:', currentTextChannel?.id);
             }
           } catch (err) {
             console.error('Ошибка предзагрузки данных сервера:', err);
@@ -268,6 +272,37 @@ export const ServerProvider = ({ children }) => {
     }
   }, [currentServer]);
 
+  const refreshServerMembers = useCallback(async (serverId = currentServer?._id) => {
+    if (!serverId) {
+      return [];
+    }
+
+    try {
+      const membersData = await apiService.getServerMembers(serverId);
+      const membersArray = Array.isArray(membersData) ? membersData : [];
+      setAllServerMembers(membersArray);
+      return membersArray;
+    } catch (err) {
+      console.error('Ошибка обновления участников сервера:', err);
+      return [];
+    }
+  }, [currentServer]);
+
+  const removeServer = useCallback((serverId) => {
+    setServers(prev => prev.filter(s => s._id !== serverId));
+
+    // Если удаляется текущий сервер, сбрасываем его
+    if (currentServer?._id === serverId) {
+      setCurrentServer(null);
+      setChannels([]);
+      setAllServerMembers([]);
+
+      // Очищаем сохраненный ID сервера
+      localStorage.removeItem('lastServerId');
+      localStorage.removeItem('lastChannelId');
+    }
+  }, [currentServer]);
+
   const value = {
     servers,
     currentServer,
@@ -279,9 +314,10 @@ export const ServerProvider = ({ children }) => {
     createChannel,
     updateChannel,
     deleteChannel,
-    setChannels
+    setChannels,
+    refreshServerMembers,
+    removeServer
   };
 
   return <ServerContext.Provider value={value}>{children}</ServerContext.Provider>;
 };
-

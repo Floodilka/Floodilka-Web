@@ -10,6 +10,7 @@ export const SOCKET_EVENTS = {
   SERVER_LEAVE: 'server:leave',
   SERVER_USERS_UPDATE: 'server:users-update',
   GLOBAL_USERS_UPDATE: 'global:users-update',
+  SERVER_MEMBER_BANNED: 'server:member-banned',
 
   // Channel events
   CHANNEL_JOIN: 'channel:join',

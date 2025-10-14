@@ -1,6 +1,7 @@
 const serverService = require('../services/serverService');
 const channelService = require('../services/channelService');
 const asyncHandler = require('../utils/asyncHandler');
+const { SOCKET_EVENTS } = require('../constants/events');
 
 exports.getUserServers = asyncHandler(async (req, res) => {
   const servers = await serverService.getUserServers(req.user.id);
@@ -15,7 +16,7 @@ exports.createServer = asyncHandler(async (req, res) => {
 exports.getServerChannels = asyncHandler(async (req, res) => {
   const { serverId } = req.params;
   await serverService.verifyServerAccess(serverId, req.user.id);
-  
+
   const channels = await channelService.getServerChannels(serverId);
   res.json(channels);
 });
@@ -62,3 +63,33 @@ exports.deleteChannel = asyncHandler(async (req, res) => {
   res.json(result);
 });
 
+exports.getBannedMembers = asyncHandler(async (req, res) => {
+  const { serverId } = req.params;
+  const bans = await serverService.getBannedMembers(serverId, req.user.id);
+  res.json(bans);
+});
+
+exports.banMember = asyncHandler(async (req, res) => {
+  const { serverId } = req.params;
+  const { userId, reason } = req.body;
+  const result = await serverService.banMember(serverId, req.user.id, userId, reason);
+
+  // Отправляем WebSocket событие забаненному пользователю
+  const io = req.app.get('io');
+  if (io) {
+    // Отправляем событие в комнату сервера, забаненный пользователь получит его на клиенте
+    io.to(`server:${serverId}`).emit(SOCKET_EVENTS.SERVER_MEMBER_BANNED, {
+      serverId,
+      userId,
+      reason: reason || null
+    });
+  }
+
+  res.status(201).json(result);
+});
+
+exports.unbanMember = asyncHandler(async (req, res) => {
+  const { serverId, userId } = req.params;
+  const result = await serverService.unbanMember(serverId, req.user.id, userId);
+  res.json(result);
+});

@@ -1,21 +1,26 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import './ChannelList.css';
 import FriendActionButton from './FriendActionButton';
 import UserProfile from './UserProfile';
 import ChannelSettingsModal from './ChannelSettingsModal';
+import ServerSettingsModal from './ServerSettingsModal';
 import { useVoice } from '../context/VoiceContext';
+import { useSettings } from '../context/AppContext';
 import api from '../services/api';
 
 const BACKEND_URL = window.location.hostname === 'localhost'
   ? 'http://localhost:3001'
   : `${window.location.protocol}//${window.location.hostname}`;
 
-function ChannelList({ channels, currentTextChannel, currentVoiceChannel, voiceChannelUsers, speakingUsers, user, isMuted, isDeafened, isInVoice, isScreenSharing, screenSharingUsers, serverName, currentServer, onToggleMute, onToggleDeafen, onToggleScreenShare, onDisconnect, onLogout, onAvatarUpdate, onSelectChannel, onCreateChannel, onUpdateChannel, onDeleteChannel, onMessageSent }) {
+function ChannelList({ channels, currentTextChannel, currentVoiceChannel, voiceChannelUsers, speakingUsers, user, isMuted, isDeafened, isInVoice, isScreenSharing, screenSharingUsers, serverName, currentServer, serverMembers, onToggleMute, onToggleDeafen, onToggleScreenShare, onDisconnect, onLogout, onAvatarUpdate, onSelectChannel, onCreateChannel, onUpdateChannel, onDeleteChannel, onMessageSent, onRefreshMembers }) {
   const { connectToStream } = useVoice();
+  const { isSettingsOpen, openSettings, closeSettings } = useSettings();
   const [showTextForm, setShowTextForm] = useState(false);
   const [showVoiceForm, setShowVoiceForm] = useState(false);
   const [newChannelName, setNewChannelName] = useState('');
-  const [showServerMenu, setShowServerMenu] = useState(false);
+  const [serverMenuOpen, setServerMenuOpen] = useState(false);
+  const [showInviteModal, setShowInviteModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   const [profilePosition, setProfilePosition] = useState({ top: 0, left: 0 });
   const [messageText, setMessageText] = useState('');
@@ -32,6 +37,7 @@ function ChannelList({ channels, currentTextChannel, currentVoiceChannel, voiceC
     }
   });
   const volumeMenuRef = useRef(null);
+  const serverMenuRef = useRef(null);
 
   // Состояния для управления каналами
   const [showChannelSettings, setShowChannelSettings] = useState(false);
@@ -205,17 +211,58 @@ function ChannelList({ channels, currentTextChannel, currentVoiceChannel, voiceC
   };
 
 
-  const [menuClosing, setMenuClosing] = useState(false);
   const [inviteLink, setInviteLink] = useState('');
   const [inviteLoading, setInviteLoading] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [serverMembersList, setServerMembersList] = useState(serverMembers || []);
+  const [banLoadingId, setBanLoadingId] = useState(null);
+  const [banError, setBanError] = useState('');
 
   // Сбрасываем инвайт при смене сервера
   useEffect(() => {
+    setServerMembersList(Array.isArray(serverMembers) ? serverMembers : []);
+  }, [serverMembers]);
+
+  useEffect(() => {
     setInviteLink('');
-    setShowServerMenu(false);
-    setMenuClosing(false);
+    setServerMenuOpen(false);
+    setShowInviteModal(false);
+    setBanError('');
+    setBanLoadingId(null);
   }, [currentServer?._id]);
+
+  useEffect(() => {
+    if (!serverMenuOpen) {
+      return;
+    }
+
+    const handleOutsideClick = (event) => {
+      if (serverMenuRef.current && !serverMenuRef.current.contains(event.target)) {
+        setServerMenuOpen(false);
+      }
+    };
+
+    const handleEscape = (event) => {
+      if (event.key === 'Escape') {
+        setServerMenuOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleOutsideClick);
+    document.addEventListener('keydown', handleEscape);
+
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideClick);
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [serverMenuOpen]);
+
+  useEffect(() => {
+    if (!isSettingsOpen) {
+      setBanError('');
+      setBanLoadingId(null);
+    }
+  }, [isSettingsOpen]);
 
   useEffect(() => {
     if (!voiceVolumeMenu) return;
@@ -259,9 +306,11 @@ function ChannelList({ channels, currentTextChannel, currentVoiceChannel, voiceC
   // Меню должно оставаться открытым, даже если пользователь не в том же канале
 
   const loadOrCreateInvite = async () => {
-    if (!currentServer) return;
+    if (!currentServer) return '';
 
     setInviteLoading(true);
+    setCopied(false);
+    let generatedCode = '';
     try {
       const token = localStorage.getItem('token');
 
@@ -293,8 +342,9 @@ function ChannelList({ channels, currentTextChannel, currentVoiceChannel, voiceC
           // Используем существующий инвайт
           console.log('✅ Используем существующий инвайт:', validInvite.code);
           setInviteLink(validInvite.code);
+          generatedCode = validInvite.code;
           setInviteLoading(false);
-          return;
+          return validInvite.code;
         }
       }
 
@@ -313,47 +363,95 @@ function ChannelList({ channels, currentTextChannel, currentVoiceChannel, voiceC
       if (createResponse.ok) {
         console.log('✅ Создан новый инвайт:', data.code);
         setInviteLink(data.code);
+        generatedCode = data.code;
       }
     } catch (err) {
       console.error('❌ Ошибка загрузки инвайта:', err);
     } finally {
       setInviteLoading(false);
     }
+    return generatedCode;
   };
 
   const handleCopyInvite = () => {
-    if (inviteLink) {
-      navigator.clipboard.writeText(inviteLink);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    }
+    if (!inviteLink) return;
+
+    const fullLink = `${window.location.origin}/invite/${inviteLink}`;
+    navigator.clipboard.writeText(fullLink)
+      .then(() => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      })
+      .catch(err => {
+        console.error('Не удалось скопировать ссылку:', err);
+      });
   };
 
   const toggleServerMenu = () => {
-    if (showServerMenu) {
-      // Закрытие с анимацией - убираем класс open сразу
-      setMenuClosing(true);
-      // Но меню остается в DOM до конца анимации
-      setTimeout(() => {
-        setShowServerMenu(false);
-        setMenuClosing(false);
-      }, 200); // Длительность анимации
+    if (serverMenuOpen) {
+      setServerMenuOpen(false);
     } else {
-      // Открытие - загружаем или создаём инвайт
-      if (!inviteLink) {
-        loadOrCreateInvite();
-      }
-      setShowServerMenu(true);
-      setMenuClosing(false);
+      setShowInviteModal(false);
+      setServerMenuOpen(true);
     }
   };
 
-  const closeServerMenu = () => {
-    setMenuClosing(true);
-    setTimeout(() => {
-      setShowServerMenu(false);
-      setMenuClosing(false);
-    }, 200);
+  const handleInviteMenu = async () => {
+    await loadOrCreateInvite();
+    setServerMenuOpen(false);
+    setShowInviteModal(true);
+  };
+
+  const closeInviteModal = () => {
+    setShowInviteModal(false);
+    setCopied(false);
+  };
+
+  const handleServerSettingsOpen = () => {
+    setServerMenuOpen(false);
+    setShowInviteModal(false);
+    openSettings();
+  };
+
+  const handleServerSettingsClose = () => {
+    console.log('[🔍 SETTINGS DEBUG] Закрываем настройки сервера');
+    closeSettings();
+    setBanError('');
+    setBanLoadingId(null);
+  };
+
+  const handleBanMember = async (member) => {
+    if (!currentServer || !member?.id) {
+      return;
+    }
+
+    setBanLoadingId(member.id);
+    setBanError('');
+
+    try {
+      await api.banServerMember(currentServer._id, {
+        userId: member.id
+      });
+
+      if (typeof onRefreshMembers === 'function') {
+        const updatedMembers = await onRefreshMembers(currentServer._id);
+        if (Array.isArray(updatedMembers)) {
+          setServerMembersList(updatedMembers);
+        } else {
+          setServerMembersList(prev => prev.filter(item => item.id !== member.id));
+        }
+      } else {
+        setServerMembersList(prev => prev.filter(item => item.id !== member.id));
+      }
+
+      setBanLoadingId(null);
+    } catch (err) {
+      console.error('Ошибка бана пользователя:', err);
+      const message = err?.message || 'Не удалось забанить пользователя';
+      setBanError(message);
+      setBanLoadingId(null);
+      throw err;
+    }
   };
 
   const handleCreateText = (e) => {
@@ -396,61 +494,41 @@ function ChannelList({ channels, currentTextChannel, currentVoiceChannel, voiceC
       <div className="channel-list-header">
         <h2>{serverName || 'Выберите сервер'}</h2>
         {currentServer && (
-          <button
-            className={`server-menu-btn ${showServerMenu && !menuClosing ? 'open' : ''}`}
-            onClick={toggleServerMenu}
-            title="Меню сервера"
-          >
-            <img
-              src="/icons/arrow_down.png"
-              alt="Меню"
-              className="arrow-icon"
-            />
-          </button>
+          <div className="server-menu-wrapper" ref={serverMenuRef}>
+            <button
+              className={`server-menu-btn ${serverMenuOpen ? 'open' : ''}`}
+              onClick={toggleServerMenu}
+              title="Меню сервера"
+            >
+              <img
+                src="/icons/arrow_down.png"
+                alt="Меню"
+                className="arrow-icon"
+              />
+            </button>
+            {serverMenuOpen && (
+              <div className="server-menu-dropdown">
+                <button
+                  type="button"
+                  className="server-menu-item"
+                  onClick={handleInviteMenu}
+                >
+                  Пригласить на сервер
+                </button>
+                {(currentServer?.canManageServer === true || currentServer?.canManageMembers === true || currentServer?.canBanMembers === true) && (
+                  <button
+                    type="button"
+                    className="server-menu-item"
+                    onClick={handleServerSettingsOpen}
+                  >
+                    Настройки сервера
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
         )}
       </div>
-
-      {showServerMenu && (
-        <>
-          <div
-            className="server-menu-overlay"
-            onClick={closeServerMenu}
-          />
-          <div className={`server-dropdown-menu ${menuClosing ? 'closing' : ''}`}>
-            <div className="invite-section">
-              <div className="invite-label">Пригласить людей</div>
-              {inviteLoading ? (
-                <div className="invite-loading">Создание ссылки...</div>
-              ) : inviteLink ? (
-                <div className="invite-code-box">
-                  <input
-                    type="text"
-                    value={inviteLink}
-                    readOnly
-                    className="invite-input"
-                    onClick={(e) => e.target.select()}
-                  />
-                  <button
-                    className={`copy-invite-btn ${copied ? 'copied' : ''}`}
-                    onClick={handleCopyInvite}
-                    title={copied ? "Скопировано!" : "Копировать"}
-                  >
-                    {copied ? (
-                      <span className="check-icon">✓</span>
-                    ) : (
-                      <img
-                        src="/icons/copy.png"
-                        alt="Копировать"
-                        className="copy-icon"
-                      />
-                    )}
-                  </button>
-                </div>
-              ) : null}
-            </div>
-          </div>
-        </>
-      )}
 
       <div className="channels-container">
         <div className="channels-section">
@@ -842,14 +920,94 @@ function ChannelList({ channels, currentTextChannel, currentVoiceChannel, voiceC
             </div>
             <div className="voice-volume-hint">Настройка слышимости только для вас</div>
           </div>
-          <button
-            type="button"
-            className="voice-volume-reset"
-            onClick={() => handleResetVoiceVolume(voiceVolumeMenu.accountId)}
-          >
-            Сбросить до 100%
-          </button>
-        </div>
+      <button
+        type="button"
+        className="voice-volume-reset"
+        onClick={() => handleResetVoiceVolume(voiceVolumeMenu.accountId)}
+      >
+        Сбросить до 100%
+      </button>
+    </div>
+  )}
+
+      {isSettingsOpen && currentServer && (
+        <ServerSettingsModal
+          server={currentServer}
+          members={serverMembersList}
+          currentUserId={user?.id}
+          canBanMembers={Boolean(currentServer?.canBanMembers)}
+          onBanMember={handleBanMember}
+          banLoadingId={banLoadingId}
+          banError={banError}
+          onClose={handleServerSettingsClose}
+        />
+      )}
+
+      {showInviteModal && createPortal(
+        <div className="join-server-overlay" onClick={closeInviteModal}>
+          <div className="join-server-modal" onClick={(e) => e.stopPropagation()}>
+            <button className="join-server-close" onClick={closeInviteModal}>×</button>
+
+            <h2>Пригласить на сервер</h2>
+            <p className="modal-subtitle">
+              Поделитесь ссылкой-приглашением, чтобы другие пользователи могли присоединиться к серверу
+            </p>
+
+            <div className="form-group">
+              <label>Ссылка-приглашение</label>
+              {inviteLoading ? (
+                <div className="invite-loading-state">Создание ссылки...</div>
+              ) : inviteLink ? (
+                <>
+                  <div className="invite-link-container">
+                    <input
+                      type="text"
+                      value={`${window.location.origin}/invite/${inviteLink}`}
+                      readOnly
+                      className="invite-link-input"
+                      onClick={(e) => e.target.select()}
+                    />
+                    <button
+                      className={`copy-invite-btn ${copied ? 'copied' : ''}`}
+                      onClick={handleCopyInvite}
+                      title={copied ? 'Скопировано!' : 'Копировать'}
+                      type="button"
+                    >
+                      {copied ? (
+                        <span className="check-icon">✓</span>
+                      ) : (
+                        <img
+                          src="/icons/copy.png"
+                          alt="Копировать"
+                          className="copy-icon"
+                        />
+                      )}
+                    </button>
+                  </div>
+                  {copied && <div className="success-message">Ссылка скопирована в буфер обмена!</div>}
+                </>
+              ) : (
+                <button
+                  type="button"
+                  className="btn-primary"
+                  onClick={loadOrCreateInvite}
+                >
+                  Создать ссылку-приглашение
+                </button>
+              )}
+            </div>
+
+            <div className="modal-footer invite-modal-footer">
+              <button
+                className="btn-secondary-gray"
+                onClick={closeInviteModal}
+              >
+                Закрыть
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
       )}
     </div>
   );

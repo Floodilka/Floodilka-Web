@@ -153,7 +153,8 @@ router.post('/login', async (req, res) => {
         email: user.email,
         avatar: user.avatar,
         badge: user.badge,
-        badgeTooltip: user.badgeTooltip
+        badgeTooltip: user.badgeTooltip,
+        blockedUsers: user.blockedUsers || []
       }
     });
   } catch (error) {
@@ -186,7 +187,8 @@ router.get('/me', async (req, res) => {
       avatar: user.avatar,
       badge: user.badge,
       badgeTooltip: user.badgeTooltip,
-      status: user.status
+      status: user.status,
+      blockedUsers: user.blockedUsers || []
     });
   } catch (error) {
     console.error('Ошибка получения пользователя:', error);
@@ -253,6 +255,7 @@ router.post('/avatar', upload.single('avatar'), async (req, res) => {
 
     res.json({
       avatar: user.avatar,
+      blockedUsers: user.blockedUsers || [],
       message: 'Аватар успешно загружен'
     });
   } catch (error) {

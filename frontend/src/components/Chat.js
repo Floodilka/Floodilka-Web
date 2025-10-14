@@ -21,6 +21,18 @@ function Chat({ channel, messages, username, user, currentServer, channels = [],
   const [inputValue, setInputValue] = useState('');
   const messagesEndRef = useRef(null);
   const messagesContainerRef = useRef(null);
+
+  // 🔍 ЛОГ: Отслеживаем входящие props
+  useEffect(() => {
+    console.log('[🔍 CHAT DEBUG] Chat props изменились:', {
+      channelId: channel?.id,
+      channelName: channel?.name,
+      messagesCount: messages.length,
+      preloadedMessages,
+      isLoadingMessages,
+      timestamp: new Date().toISOString()
+    });
+  }, [channel?.id, messages.length, preloadedMessages, isLoadingMessages]);
   const [selectedUser, setSelectedUser] = useState(null);
   const [profilePosition, setProfilePosition] = useState({ top: 0, left: 0 });
   const [contextMenu, setContextMenu] = useState(null);
@@ -30,7 +42,7 @@ function Chat({ channel, messages, username, user, currentServer, channels = [],
   const [sendingMessage, setSendingMessage] = useState(false);
   const [userPermissions, setUserPermissions] = useState(null);
   const [deletingMessageId, setDeletingMessageId] = useState(null);
-  const [showMessages, setShowMessages] = useState(messages.length > 0); // Для предотвращения дергания
+  const [showMessages, setShowMessages] = useState(true); // Изменено: всегда true по умолчанию
   const [selectedFiles, setSelectedFiles] = useState([]);
   const [uploadingFiles, setUploadingFiles] = useState(false);
   const [showFileSizeError, setShowFileSizeError] = useState(false);
@@ -50,6 +62,21 @@ function Chat({ channel, messages, username, user, currentServer, channels = [],
   const [channelPosition, setChannelPosition] = useState({ top: 0, left: 0, width: 0 });
   const [channelSelectedIndex, setChannelSelectedIndex] = useState(0);
   const inputRef = useRef(null);
+
+  // Функция для проверки блокировки пользователя
+  const isUserBlocked = (targetUser, currentUser) => {
+    if (!targetUser || !currentUser || !currentUser.blockedUsers) {
+      return false;
+    }
+
+    const targetUserId = targetUser.userId || targetUser.id || targetUser._id;
+    if (!targetUserId) return false;
+
+    return currentUser.blockedUsers.some(blockedUser => {
+      const blockedUserId = blockedUser.userId?._id || blockedUser.userId;
+      return blockedUserId && blockedUserId.toString() === targetUserId.toString();
+    });
+  };
   const messageInputFieldRef = useRef(null);
   const hideMentionTooltip = useCallback(() => setMentionTooltip(null), []);
   const [showUnknownChannelModal, setShowUnknownChannelModal] = useState(false);
@@ -2250,11 +2277,15 @@ const handleChannelSelect = (channel) => {
                 <div className="message-input-container">
                   <input
                     type="text"
-                    placeholder={`Сообщение для @${selectedUser.username}`}
+                    placeholder={
+                      isUserBlocked(selectedUser, user)
+                        ? `Вы не можете написать @${selectedUser.username}`
+                        : `Сообщение для @${selectedUser.username}`
+                    }
                     value={messageText}
                     onChange={(e) => setMessageText(e.target.value)}
                     onKeyPress={handleKeyPress}
-                    disabled={sendingMessage}
+                    disabled={sendingMessage || isUserBlocked(selectedUser, user)}
                     className="message-input-field"
                   />
                 </div>

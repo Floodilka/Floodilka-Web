@@ -26,6 +26,22 @@ export const AuthProvider = ({ children }) => {
         const userData = JSON.parse(savedUser);
         setUser(userData);
         setShowAuthModal(false);
+
+        // Загружаем актуальные данные пользователя с сервера
+        apiService.getCurrentUser()
+          .then(currentUser => {
+            const updatedUser = {
+              ...userData,
+              ...currentUser,
+              blockedUsers: currentUser.blockedUsers || []
+            };
+            setUser(updatedUser);
+            localStorage.setItem('user', JSON.stringify(updatedUser));
+          })
+          .catch(err => {
+            console.error('Ошибка загрузки данных пользователя:', err);
+            // Если не удалось загрузить данные, используем сохраненные
+          });
       } catch (err) {
         localStorage.removeItem('token');
         localStorage.removeItem('user');
@@ -80,8 +96,16 @@ export const AuthProvider = ({ children }) => {
   };
 
   const updateUser = (updatedUser) => {
-    setUser(updatedUser);
-    localStorage.setItem('user', JSON.stringify(updatedUser));
+    setUser(prevUser => ({
+      ...prevUser,
+      ...updatedUser,
+      blockedUsers: updatedUser.blockedUsers || prevUser?.blockedUsers || []
+    }));
+    localStorage.setItem('user', JSON.stringify({
+      ...user,
+      ...updatedUser,
+      blockedUsers: updatedUser.blockedUsers || user?.blockedUsers || []
+    }));
   };
 
   const value = {

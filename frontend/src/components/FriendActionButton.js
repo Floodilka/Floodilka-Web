@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import './FriendActionButton.css';
 import { useFriends } from '../context/FriendsContext';
 import { useFriendStatus } from '../hooks/useFriendStatus';
@@ -15,6 +16,7 @@ const FriendActionButton = ({ targetUser, currentUserId, className = '' }) => {
   const targetUserId = useMemo(() => targetUser?._id || targetUser?.userId || targetUser?.id || null, [targetUser]);
   const { isFriend, hasIncomingRequest, hasOutgoingRequest, incomingRequestId } = useFriendStatus(targetUserId);
   const [loading, setLoading] = useState(false);
+  const [errorModal, setErrorModal] = useState(null);
 
   if (!targetUserId || !targetUser?.username) {
     return null;
@@ -56,6 +58,11 @@ const FriendActionButton = ({ targetUser, currentUserId, className = '' }) => {
       }
     } catch (err) {
       console.error('Ошибка действия с другом:', err);
+
+      // Показываем модальное окно с ошибкой
+      if (err.message) {
+        setErrorModal(err.message);
+      }
     } finally {
       setLoading(false);
     }
@@ -64,17 +71,42 @@ const FriendActionButton = ({ targetUser, currentUserId, className = '' }) => {
   const icon = FRIEND_ICONS[state];
 
   return (
-    <div className={`friend-action-wrapper ${className}`}>
-      <div className="friend-tooltip">{tooltipText}</div>
-      <button
-        type="button"
-        className={`user-profile-friend-btn user-profile-friend-${state} ${loading ? 'loading' : ''}`}
-        onClick={handleClick}
-        disabled={loading || state === 'outgoing'}
-      >
-        <img src={icon} alt="" className="friend-icon" />
-      </button>
-    </div>
+    <>
+      <div className={`friend-action-wrapper ${className}`}>
+        <div className="friend-tooltip">{tooltipText}</div>
+        <button
+          type="button"
+          className={`user-profile-friend-btn user-profile-friend-${state} ${loading ? 'loading' : ''}`}
+          onClick={handleClick}
+          disabled={loading || state === 'outgoing'}
+        >
+          <img src={icon} alt="" className="friend-icon" />
+        </button>
+      </div>
+
+      {errorModal && createPortal(
+        <div className="join-server-overlay friend-error-overlay" onClick={() => setErrorModal(null)}>
+          <div className="join-server-modal friend-error-modal" onClick={(e) => e.stopPropagation()}>
+            <button className="join-server-close" onClick={() => setErrorModal(null)}>×</button>
+
+            <h2>Невозможно выполнить действие</h2>
+            <p className="modal-subtitle">
+              {errorModal}
+            </p>
+
+            <div className="modal-footer">
+              <button
+                className="btn-primary"
+                onClick={() => setErrorModal(null)}
+              >
+                Понятно
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+    </>
   );
 };
 

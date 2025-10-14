@@ -9,11 +9,20 @@ import { FriendsProvider } from './FriendsContext';
 import LoadingScreen from '../components/LoadingScreen';
 
 const AppLoadingContext = createContext();
+const SettingsContext = createContext();
 
 export const useAppLoading = () => {
   const context = useContext(AppLoadingContext);
   if (!context) {
     throw new Error('useAppLoading must be used within AppProvider');
+  }
+  return context;
+};
+
+export const useSettings = () => {
+  const context = useContext(SettingsContext);
+  if (!context) {
+    throw new Error('useSettings must be used within AppProvider');
   }
   return context;
 };
@@ -77,6 +86,34 @@ const AppLoadingManager = ({ children }) => {
 };
 
 /**
+ * Компонент для управления состоянием настроек
+ */
+const SettingsManager = ({ children }) => {
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+
+  const openSettings = () => {
+    console.log('[🔍 SETTINGS DEBUG] openSettings() вызван');
+    setIsSettingsOpen(true);
+  };
+  const closeSettings = () => {
+    console.log('[🔍 SETTINGS DEBUG] closeSettings() вызван, stack:', new Error().stack);
+    setIsSettingsOpen(false);
+  };
+
+  const settingsValue = {
+    isSettingsOpen,
+    openSettings,
+    closeSettings
+  };
+
+  return (
+    <SettingsContext.Provider value={settingsValue}>
+      {children}
+    </SettingsContext.Provider>
+  );
+};
+
+/**
  * Главный провайдер, который объединяет все контексты приложения
  */
 export const AppProvider = ({ children }) => {
@@ -88,9 +125,11 @@ export const AppProvider = ({ children }) => {
             <ServerProvider>
               <SocketProvider>
                 <FriendsProvider>
-                  <AppLoadingManager>
-                    {children}
-                  </AppLoadingManager>
+                  <SettingsManager>
+                    <AppLoadingManager>
+                      {children}
+                    </AppLoadingManager>
+                  </SettingsManager>
                 </FriendsProvider>
               </SocketProvider>
             </ServerProvider>

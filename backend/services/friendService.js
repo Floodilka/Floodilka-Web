@@ -61,7 +61,7 @@ class FriendService {
 
     const targetUser = await User.findOne({
       username: { $regex: new RegExp(`^${escapeRegex(normalizedUsername)}$`, 'i') }
-    }).select(USER_SELECT_FIELDS);
+    }).select(`${USER_SELECT_FIELDS} blockedUsers`);
 
     if (!targetUser) {
       throw new NotFoundError('Пользователь не найден');
@@ -71,13 +71,27 @@ class FriendService {
       throw new ValidationError('Нельзя добавить в друзья самого себя');
     }
 
-    const currentUser = await User.findById(userId).select(`friends ${USER_SELECT_FIELDS}`);
+    const currentUser = await User.findById(userId).select(`friends blockedUsers ${USER_SELECT_FIELDS}`);
     if (!currentUser) {
       throw new NotFoundError('Пользователь не найден');
     }
 
     if (currentUser.friends.some(friendId => friendId.equals(targetUser._id))) {
       throw new ValidationError('Пользователь уже у вас в друзьях');
+    }
+
+    const hasBlockedTarget = (currentUser.blockedUsers || []).some(entry =>
+      entry.userId && entry.userId.toString() === targetUser._id.toString()
+    );
+    if (hasBlockedTarget) {
+      throw new ForbiddenError('Пользователь заблокирован. Разблокируйте его, чтобы отправить заявку.');
+    }
+
+    const targetBlockedRequester = (targetUser.blockedUsers || []).some(entry =>
+      entry.userId && entry.userId.toString() === userId.toString()
+    );
+    if (targetBlockedRequester) {
+      throw new ForbiddenError('Пользователь не принимает заявки от вас.');
     }
 
     // Проверяем, не существует ли встречная заявка — принимаем её автоматически

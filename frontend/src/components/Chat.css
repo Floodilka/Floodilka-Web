@@ -946,8 +946,21 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: transparent;
-  z-index: 9998;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(2px);
+  z-index: 100000;
+  animation: profileFadeIn 0.2s ease-out;
+}
+
+@keyframes profileFadeIn {
+  from {
+    opacity: 0;
+    backdrop-filter: blur(0px);
+  }
+  to {
+    opacity: 1;
+    backdrop-filter: blur(2px);
+  }
 }
 
 /* Карточка профиля пользователя в чате */
@@ -957,7 +970,7 @@
   background: #111214;
   border-radius: 8px;
   box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
-  z-index: 9999;
+  z-index: 100001;
   animation: profileSlideInChat 0.15s ease-out;
   overflow: visible;
 }
@@ -1062,6 +1075,23 @@
 .user-profile-card-chat .user-profile-message-input .message-input-container:focus-within .message-input-field {
   background: none !important;
   background-color: transparent !important;
+}
+
+/* Заблокированное поле ввода в чате */
+.user-profile-card-chat .user-profile-message-input .message-input-container:has(.message-input-field:disabled) {
+  background: #1e1f22 !important;
+  border-color: #40444b !important;
+}
+
+.user-profile-card-chat .user-profile-message-input .message-input-field:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: #1e1f22 !important;
+  color: #8e9297 !important;
+}
+
+.user-profile-card-chat .user-profile-message-input .message-input-field:disabled::placeholder {
+  color: #6c6f75 !important;
 }
 
 

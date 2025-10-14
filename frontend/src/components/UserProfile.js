@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import './UserProfile.css';
 import UserSettingsModal from './UserSettingsModal';
+import { useSettings } from '../context/AppContext';
 
 const BACKEND_URL = window.location.hostname === 'localhost'
   ? 'http://localhost:3001'
@@ -20,7 +21,7 @@ function UserProfile({
   isScreenSharing,
   onToggleScreenShare
 }) {
-  const [showSettings, setShowSettings] = useState(false);
+  const { isSettingsOpen, openSettings, closeSettings } = useSettings();
   const [showVoiceControls, setShowVoiceControls] = useState(false);
   const [voiceClosing, setVoiceClosing] = useState(false);
 
@@ -78,7 +79,7 @@ function UserProfile({
 
           <button
             className="profile-control-btn"
-            onClick={() => setShowSettings(true)}
+            onClick={openSettings}
             title="Настройки пользователя"
           >
             <img
@@ -143,10 +144,10 @@ function UserProfile({
       </div>
 
 
-      {showSettings && (
+      {isSettingsOpen && (
         <UserSettingsModal
           user={user}
-          onClose={() => setShowSettings(false)}
+          onClose={closeSettings}
           onLogout={onLogout}
           onAvatarUpdate={onAvatarUpdate}
         />

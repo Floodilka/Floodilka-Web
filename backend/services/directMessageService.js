@@ -1,6 +1,7 @@
 const DirectMessage = require('../models/DirectMessage');
+const User = require('../models/User');
 const mongoose = require('mongoose');
-const { ValidationError, NotFoundError } = require('../utils/errors');
+const { ValidationError, NotFoundError, ForbiddenError } = require('../utils/errors');
 const { validateMessageContent } = require('../validators/messageValidator');
 
 class DirectMessageService {
@@ -10,6 +11,29 @@ class DirectMessageService {
 
     if (receiverId === senderId) {
       throw new ValidationError('Нельзя отправить сообщение самому себе');
+    }
+
+    const [sender, receiver] = await Promise.all([
+      User.findById(senderId).select('blockedUsers'),
+      User.findById(receiverId).select('blockedUsers')
+    ]);
+
+    if (!sender || !receiver) {
+      throw new NotFoundError('Пользователь не найден');
+    }
+
+    const senderHasBlocked = (sender.blockedUsers || []).some(entry =>
+      entry.userId.toString() === receiver._id.toString()
+    );
+    if (senderHasBlocked) {
+      throw new ForbiddenError('Вы заблокировали этого пользователя. Разблокируйте его, чтобы отправлять сообщения.');
+    }
+
+    const receiverHasBlocked = (receiver.blockedUsers || []).some(entry =>
+      entry.userId.toString() === sender._id.toString()
+    );
+    if (receiverHasBlocked) {
+      throw new ForbiddenError('Пользователь заблокировал вас и не принимает сообщения.');
     }
 
     let replyTo = null;
@@ -180,7 +204,63 @@ class DirectMessageService {
       }
     ]);
 
-    return conversations;
+    if (conversations.length === 0) {
+      return conversations;
+    }
+
+    const targetIdStrings = Array.from(new Set(
+      conversations
+        .map(conv => conv.user?._id)
+        .filter(Boolean)
+        .map(id => id.toString())
+    ));
+
+    const targetObjectIds = targetIdStrings.map(id => new mongoose.Types.ObjectId(id));
+
+    const [currentUser, targetUsers] = await Promise.all([
+      User.findById(userId).select('blockedUsers').lean(),
+      targetObjectIds.length
+        ? User.find({ _id: { $in: targetObjectIds } }).select('blockedUsers').lean()
+        : Promise.resolve([])
+    ]);
+
+    if (!currentUser) {
+      throw new NotFoundError('Пользователь не найден');
+    }
+
+    const blockedByMeSet = new Set(
+      (currentUser?.blockedUsers || []).map(entry => entry.userId.toString())
+    );
+
+    const blockedMeSet = new Set();
+    targetUsers.forEach(target => {
+      (target.blockedUsers || []).forEach(entry => {
+        if (entry.userId.toString() === userId.toString()) {
+          blockedMeSet.add(target._id.toString());
+        }
+      });
+    });
+
+    return conversations.map(conv => {
+      const targetId = conv.user?._id?.toString();
+      if (!targetId) {
+        return {
+          ...conv,
+          blockStatus: {
+            isBlockedByMe: false,
+            hasBlockedMe: false
+          }
+        };
+      }
+
+      return {
+        ...conv,
+        blockStatus: {
+          isBlockedByMe: blockedByMeSet.has(targetId),
+          hasBlockedMe: blockedMeSet.has(targetId)
+        }
+      };
+    });
   }
 
   async markAsRead(currentUserId, senderId) {

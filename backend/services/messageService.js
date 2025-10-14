@@ -3,7 +3,7 @@ const Message = require('../models/Message');
 const User = require('../models/User');
 const Server = require('../models/Server');
 const Channel = require('../models/Channel');
-const { NotFoundError, ValidationError } = require('../utils/errors');
+const { NotFoundError, ValidationError, ForbiddenError } = require('../utils/errors');
 const { validateMessageContent, canEditMessage } = require('../validators/messageValidator');
 const { MESSAGE_EDIT_TIME_LIMIT } = require('../constants');
 const cache = require('../utils/cache');
@@ -214,6 +214,30 @@ class MessageService {
 
     const hasAttachments = attachments && attachments.length > 0;
     const validatedContent = validateMessageContent(content, hasAttachments);
+
+    if (userId) {
+      const channel = await Channel.findById(channelId).select('serverId');
+      if (channel?.serverId) {
+        const server = await Server.findById(channel.serverId)
+          .select('ownerId members bans')
+          .lean();
+
+        if (server) {
+          const userIdStr = userId.toString();
+          const isOwner = server.ownerId?.toString() === userIdStr;
+          const isMember = (server.members || []).some(memberId => memberId.toString() === userIdStr);
+          const isBanned = (server.bans || []).some(ban => ban.userId.toString() === userIdStr);
+
+          if (isBanned && !isOwner) {
+            throw new ForbiddenError('Вы заблокированы на сервере и не можете отправлять сообщения.');
+          }
+
+          if (!isOwner && !isMember) {
+            throw new ForbiddenError('Вы больше не участник этого сервера.');
+          }
+        }
+      }
+    }
 
     // Если есть userId, загружаем актуальные данные пользователя
     let actualUserData = {

@@ -53,7 +53,7 @@
   position: absolute;
   top: 12px;
   right: 12px;
-  z-index: 10;
+  z-index: 100001;
 }
 
 .friend-tooltip {
@@ -72,6 +72,7 @@
   transform: translateY(4px);
   transition: opacity 0.2s ease 0.3s, transform 0.2s ease 0.3s;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  z-index: 100002;
 }
 
 .friend-action-wrapper:hover .friend-tooltip {
@@ -89,4 +90,119 @@
   border-left: 6px solid transparent;
   border-right: 6px solid transparent;
   border-top: 6px solid #111214;
+}
+
+/* Модальное окно ошибки */
+.friend-error-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2147483647;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.friend-error-modal {
+  background: #1e1f22;
+  border-radius: 8px;
+  padding: 24px;
+  padding-top: 48px;
+  width: 440px;
+  max-width: 90vw;
+  position: relative;
+  animation: slideIn 0.2s ease;
+  z-index: 2147483648;
+}
+
+@keyframes slideIn {
+  from {
+    transform: scale(0.95) translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1) translateY(0);
+    opacity: 1;
+  }
+}
+
+.friend-error-modal .join-server-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: none;
+  border: none;
+  color: #b5bac1;
+  font-size: 28px;
+  cursor: pointer;
+  padding: 4px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: all 0.2s;
+  line-height: 1;
+  z-index: 10;
+}
+
+.friend-error-modal .join-server-close:hover {
+  background: #404249;
+  color: #f2f3f5;
+}
+
+.friend-error-modal h2 {
+  color: #f2f3f5;
+  font-size: 24px;
+  margin: 0 0 8px 0;
+  text-align: center;
+}
+
+.friend-error-modal .modal-subtitle {
+  color: #b5bac1;
+  font-size: 14px;
+  text-align: center;
+  margin: 0 0 24px 0;
+  line-height: 1.5;
+}
+
+.friend-error-modal .modal-footer {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+
+.friend-error-modal .btn-primary {
+  padding: 10px 24px;
+  border-radius: 4px;
+  border: none;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: #5865f2;
+  color: white;
+  min-width: 120px;
+}
+
+.friend-error-modal .btn-primary:hover {
+  background: #4752c4;
+}
+
+.friend-error-modal .btn-primary:active {
+  transform: scale(0.98);
 }

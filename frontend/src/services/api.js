@@ -197,6 +197,56 @@ class ApiService {
     });
   }
 
+  // Блокировки пользователей
+  async getBlockedUsers() {
+    return this.request('/api/users/blocks');
+  }
+
+  async getBlockStatus(userId) {
+    return this.request(`/api/users/blocks/status/${userId}`);
+  }
+
+  async blockUser(userId, reason) {
+    return this.request(`/api/users/blocks/${userId}`, {
+      method: 'POST',
+      body: JSON.stringify({ reason })
+    });
+  }
+
+  async unblockUser(userId) {
+    return this.request(`/api/users/blocks/${userId}`, {
+      method: 'DELETE'
+    });
+  }
+
+  // Баны сервера
+  async getServerBans(serverId) {
+    return this.request(`/api/servers/${serverId}/bans`, {
+      cache: {
+        key: `server-bans:${serverId}`,
+        ttl: 10_000
+      }
+    });
+  }
+
+  async banServerMember(serverId, data) {
+    const result = await this.request(`/api/servers/${serverId}/bans`, {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+    this.invalidateCache(`server-members:${serverId}`);
+    this.invalidateCache(`server-bans:${serverId}`);
+    return result;
+  }
+
+  async unbanServerMember(serverId, userId) {
+    const result = await this.request(`/api/servers/${serverId}/bans/${userId}`, {
+      method: 'DELETE'
+    });
+    this.invalidateCache(`server-bans:${serverId}`);
+    return result;
+  }
+
   // Аутентификация
   async login(email, password) {
     return this.request('/api/auth/login', {
@@ -210,6 +260,10 @@ class ApiService {
       method: 'POST',
       body: JSON.stringify({ username, password, email }),
     });
+  }
+
+  async getCurrentUser() {
+    return this.request('/api/auth/me');
   }
 
   async updateUser(userId, data) {

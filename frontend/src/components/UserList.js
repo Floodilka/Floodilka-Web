@@ -17,6 +17,21 @@ const UserList = memo(function UserList({ onlineUsers, allMembers, currentUser, 
   const [showOwnerTooltip, setShowOwnerTooltip] = useState(false);
   const [tooltipPosition, setTooltipPosition] = useState({ top: 0, left: 0 });
 
+  // Функция для проверки блокировки пользователя
+  const isUserBlocked = (targetUser, currentUser) => {
+    if (!targetUser || !currentUser || !currentUser.blockedUsers) {
+      return false;
+    }
+
+    const targetUserId = targetUser.userId || targetUser.id || targetUser._id;
+    if (!targetUserId) return false;
+
+    return currentUser.blockedUsers.some(blockedUser => {
+      const blockedUserId = blockedUser.userId?._id || blockedUser.userId;
+      return blockedUserId && blockedUserId.toString() === targetUserId.toString();
+    });
+  };
+
   // Мемоизируем создание Map из онлайн пользователей для быстрой проверки
   const onlineUsersMap = useMemo(() => {
     const map = new Map();
@@ -37,9 +52,34 @@ const UserList = memo(function UserList({ onlineUsers, allMembers, currentUser, 
 
   const handleUserClick = async (user, event) => {
     const rect = event.currentTarget.getBoundingClientRect();
+    const cardWidth = 320;
+    const cardHeight = 400;
+
+    // Рассчитываем позицию слева от элемента
+    let left = rect.left - cardWidth - 8;
+
+    // Если карточка выходит за левый край экрана, показываем справа
+    if (left < 8) {
+      left = rect.right + 8;
+    }
+
+    // Если карточка выходит за правый край экрана, корректируем
+    if (left + cardWidth > window.innerWidth - 8) {
+      left = window.innerWidth - cardWidth - 8;
+    }
+
+    // Корректируем вертикальную позицию
+    let top = rect.top;
+    if (top + cardHeight > window.innerHeight - 8) {
+      top = window.innerHeight - cardHeight - 8;
+    }
+    if (top < 8) {
+      top = 8;
+    }
+
     setProfilePosition({
-      top: rect.top,
-      left: rect.left - 8
+      top: top,
+      left: left
     });
 
     // Если есть userId, загрузить актуальные данные пользователя
@@ -253,10 +293,13 @@ const UserList = memo(function UserList({ onlineUsers, allMembers, currentUser, 
               )}
             </div>
 
-            <FriendActionButton
-              targetUser={selectedUser}
-              currentUserId={currentUser?.id}
-            />
+            {/* Кнопка добавления в друзья */}
+            {selectedUser && currentUser && (selectedUser.userId !== currentUser.id && selectedUser.username !== currentUser.username) && (
+              <FriendActionButton
+                targetUser={selectedUser}
+                currentUserId={currentUser?.id}
+              />
+            )}
 
             {/* Поле для отправки личного сообщения - только если не свой профиль */}
             {selectedUser && currentUser && (selectedUser.userId !== currentUser.id && selectedUser.username !== currentUser.username) && (
@@ -264,16 +307,21 @@ const UserList = memo(function UserList({ onlineUsers, allMembers, currentUser, 
                 <div className="message-input-container">
                   <input
                     type="text"
-                    placeholder={`Сообщение для @${selectedUser.username}`}
+                    placeholder={
+                      isUserBlocked(selectedUser, currentUser)
+                        ? `Вы не можете написать @${selectedUser.username}`
+                        : `Сообщение для @${selectedUser.username}`
+                    }
                     value={messageText}
                     onChange={(e) => setMessageText(e.target.value)}
                     onKeyPress={handleKeyPress}
-                    disabled={sendingMessage}
+                    disabled={sendingMessage || isUserBlocked(selectedUser, currentUser)}
                     className="message-input-field"
                   />
                 </div>
               </div>
             )}
+
           </div>
         </>
       )}

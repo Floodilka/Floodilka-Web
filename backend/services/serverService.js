@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const Server = require('../models/Server');
 const Channel = require('../models/Channel');
 const Role = require('../models/Role');
@@ -12,10 +13,12 @@ const MEMBER_LIST_CACHE_TTL = 15_000;
 
 const memberListCacheKey = (serverId) => `server:${serverId}:members:list`;
 const serverMembersCacheKey = (serverId) => `server:${serverId}:members`;
+const serverBansCacheKey = (serverId) => `server:${serverId}:bans`;
 
 const invalidateServerMemberCaches = (serverId) => {
   cache.del(memberListCacheKey(serverId));
   cache.del(serverMembersCacheKey(serverId));
+  cache.del(serverBansCacheKey(serverId));
 };
 
 class ServerService {
@@ -50,25 +53,34 @@ class ServerService {
     roles.forEach(role => {
       if (!role.roleId) return;
 
-      const canManage = Boolean(
-        role.roleId.permissions?.manageChannels ||
-        role.roleId.permissions?.manageServer
-      );
+      const serverIdStr = role.serverId.toString();
+      const rolePerms = role.roleId.permissions || {};
+      const aggregated = permissionsByServer.get(serverIdStr) || {
+        manageServer: false,
+        manageChannels: false,
+        manageMembers: false,
+        manageMessages: false,
+        kickMembers: false,
+        banMembers: false
+      };
 
-      if (!permissionsByServer.has(role.serverId.toString())) {
-        permissionsByServer.set(role.serverId.toString(), canManage);
-      } else {
-        permissionsByServer.set(
-          role.serverId.toString(),
-          permissionsByServer.get(role.serverId.toString()) || canManage
-        );
-      }
+      permissionsByServer.set(serverIdStr, {
+        manageServer: aggregated.manageServer || Boolean(rolePerms.manageServer),
+        manageChannels: aggregated.manageChannels || Boolean(rolePerms.manageChannels) || Boolean(rolePerms.manageServer),
+        manageMembers: aggregated.manageMembers || Boolean(rolePerms.manageMembers) || Boolean(rolePerms.manageServer),
+        manageMessages: aggregated.manageMessages || Boolean(rolePerms.manageMessages) || Boolean(rolePerms.manageServer),
+        kickMembers: aggregated.kickMembers || Boolean(rolePerms.kickMembers) || Boolean(rolePerms.manageServer),
+        banMembers: aggregated.banMembers || Boolean(rolePerms.banMembers) || Boolean(rolePerms.manageServer) || Boolean(rolePerms.manageMembers)
+      });
     });
 
     return servers.map(server => {
       const serverId = server._id.toString();
       const isOwner = server.ownerId?.toString() === normalizedUserId;
-      const canManageChannels = isOwner || permissionsByServer.get(serverId) || false;
+      const aggregatedPermissions = permissionsByServer.get(serverId) || {};
+      const canManageChannels = isOwner || aggregatedPermissions.manageChannels || aggregatedPermissions.manageServer;
+      const canBanMembers = isOwner || aggregatedPermissions.banMembers || aggregatedPermissions.manageServer;
+      const canManageMembers = isOwner || aggregatedPermissions.manageMembers || aggregatedPermissions.manageServer;
 
       return {
         ...server,
@@ -76,7 +88,9 @@ class ServerService {
         ownerId: server.ownerId?.toString(),
         members: (server.members || []).map(memberId => memberId.toString()),
         isOwner,
-        canManageChannels
+        canManageChannels,
+        canManageMembers,
+        canBanMembers
       };
     });
   }
@@ -163,12 +177,40 @@ class ServerService {
     const members = server.members || [];
     const isMember = members.some(memberId => memberId.toString() === userId.toString());
     const isOwner = server.ownerId.toString() === userId.toString();
+    const isBanned = (server.bans || []).some(ban => ban.userId.toString() === userId.toString());
+
+    if (isBanned && !isOwner) {
+      throw new ForbiddenError('Вы заблокированы на этом сервере');
+    }
 
     if (!isMember && !isOwner) {
       throw new ForbiddenError('Нет доступа к этому серверу');
     }
 
     return server;
+  }
+
+  async ensureBanPermission(server, userId) {
+    const normalizedUserId = userId.toString();
+    if (server.ownerId.toString() === normalizedUserId) {
+      return true;
+    }
+
+    const roles = await ServerRole.find({
+      userId: normalizedUserId,
+      serverId: server._id
+    }).populate('roleId', 'permissions').lean();
+
+    const hasPermission = roles.some(role => {
+      const perms = role.roleId?.permissions || {};
+      return perms.manageServer || perms.manageMembers || perms.banMembers;
+    });
+
+    if (!hasPermission) {
+      throw new ForbiddenError('Недостаточно прав для управления банами');
+    }
+
+    return true;
   }
 
   async getServerMembers(serverId, userId) {
@@ -271,6 +313,11 @@ class ServerService {
       throw new NotFoundError('Сервер не найден');
     }
 
+    const isBanned = (server.bans || []).some(ban => ban.userId.toString() === userId.toString());
+    if (isBanned) {
+      throw new ForbiddenError('Вы заблокированы на этом сервере');
+    }
+
     // Проверить, не является ли пользователь уже членом
     const alreadyMember = server.ownerId?.toString() === userId.toString() ||
       (server.members || []).some(memberId => memberId.toString() === userId.toString());
@@ -289,6 +336,170 @@ class ServerService {
     await invite.save();
 
     return { message: 'Успешно присоединились к серверу', server };
+  }
+
+  async getBannedMembers(serverId, userId) {
+    const server = await this.verifyServerAccess(serverId, userId);
+    await this.ensureBanPermission(server, userId);
+
+    const cacheKey = serverBansCacheKey(serverId);
+    const cached = cache.get(cacheKey);
+    if (cached) {
+      return cached;
+    }
+
+    const bans = server.bans || [];
+    if (bans.length === 0) {
+      cache.set(cacheKey, [], MEMBER_LIST_CACHE_TTL);
+      return [];
+    }
+
+    const uniqueUserIds = Array.from(new Set(
+      bans
+        .map(ban => ban.userId)
+        .filter(Boolean)
+        .map(id => id.toString())
+    ));
+
+    const users = await User.find({ _id: { $in: uniqueUserIds } })
+      .select('username displayName avatar badge badgeTooltip status')
+      .lean();
+
+    const usersMap = new Map(users.map(user => [user._id.toString(), user]));
+
+    const normalized = bans
+      .filter(ban => ban && ban.userId)
+      .map(ban => {
+        const id = ban.userId.toString();
+        const userInfo = usersMap.get(id);
+        return {
+          id,
+          reason: ban.reason || null,
+          bannedAt: ban.bannedAt,
+          bannedBy: ban.bannedBy ? ban.bannedBy.toString() : null,
+          user: userInfo ? {
+            id: userInfo._id.toString(),
+            username: userInfo.username,
+            displayName: userInfo.displayName,
+            avatar: userInfo.avatar,
+            badge: userInfo.badge,
+            badgeTooltip: userInfo.badgeTooltip,
+            status: userInfo.status
+          } : null
+        };
+      });
+
+    cache.set(cacheKey, normalized, MEMBER_LIST_CACHE_TTL);
+
+    return normalized;
+  }
+
+  async banMember(serverId, userId, targetUserId, reason = '') {
+    if (!mongoose.Types.ObjectId.isValid(targetUserId)) {
+      throw new ValidationError('Некорректный идентификатор пользователя');
+    }
+
+    const server = await this.getServerById(serverId);
+    await this.ensureBanPermission(server, userId);
+
+    const targetObjectId = new mongoose.Types.ObjectId(targetUserId);
+    const normalizedTargetId = targetObjectId.toString();
+
+    if (server.ownerId.toString() === normalizedTargetId) {
+      throw new ValidationError('Нельзя забанить владельца сервера');
+    }
+
+    const targetUser = await User.findById(targetObjectId)
+      .select('username displayName avatar badge badgeTooltip status');
+
+    if (!targetUser) {
+      throw new NotFoundError('Пользователь не найден');
+    }
+
+    const sanitizedReason = typeof reason === 'string' ? reason.trim().slice(0, 200) : '';
+    const banEntry = {
+      userId: targetObjectId,
+      bannedBy: new mongoose.Types.ObjectId(userId),
+      bannedAt: new Date()
+    };
+
+    if (sanitizedReason) {
+      banEntry.reason = sanitizedReason;
+    }
+
+    // Сначала удаляем из members и старые баны
+    await Server.updateOne(
+      { _id: server._id },
+      {
+        $pull: {
+          members: targetObjectId,
+          bans: { userId: targetObjectId }
+        }
+      }
+    );
+
+    // Затем добавляем новый бан
+    await Server.updateOne(
+      { _id: server._id },
+      {
+        $push: {
+          bans: banEntry
+        }
+      }
+    );
+
+    await ServerRole.deleteMany({
+      serverId: server._id,
+      userId: targetObjectId
+    });
+
+    invalidateServerMemberCaches(server._id.toString());
+
+    return {
+      success: true,
+      ban: {
+        userId: targetObjectId.toString(),
+        reason: banEntry.reason || null,
+        bannedAt: banEntry.bannedAt,
+        bannedBy: banEntry.bannedBy.toString(),
+        user: {
+          id: targetUser._id.toString(),
+          username: targetUser.username,
+          displayName: targetUser.displayName,
+          avatar: targetUser.avatar,
+          badge: targetUser.badge,
+          badgeTooltip: targetUser.badgeTooltip,
+          status: targetUser.status
+        }
+      }
+    };
+  }
+
+  async unbanMember(serverId, userId, targetUserId) {
+    if (!mongoose.Types.ObjectId.isValid(targetUserId)) {
+      throw new ValidationError('Некорректный идентификатор пользователя');
+    }
+
+    const server = await this.getServerById(serverId);
+    await this.ensureBanPermission(server, userId);
+
+    const targetIdStr = targetUserId.toString();
+    const existingBan = (server.bans || []).find(ban => ban.userId.toString() === targetIdStr);
+
+    if (!existingBan) {
+      throw new NotFoundError('Пользователь не находится в списке банов');
+    }
+
+    const targetObjectId = new mongoose.Types.ObjectId(targetUserId);
+
+    await Server.updateOne(
+      { _id: server._id },
+      { $pull: { bans: { userId: targetObjectId } } }
+    );
+
+    invalidateServerMemberCaches(server._id.toString());
+
+    return { success: true };
   }
 }
 

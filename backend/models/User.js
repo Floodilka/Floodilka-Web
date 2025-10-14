@@ -54,6 +54,22 @@ const userSchema = new mongoose.Schema({
   friends: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User'
+  }],
+  blockedUsers: [{
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      required: true
+    },
+    reason: {
+      type: String,
+      trim: true,
+      maxlength: 200
+    },
+    blockedAt: {
+      type: Date,
+      default: Date.now
+    }
   }]
 });
 
@@ -73,5 +89,6 @@ userSchema.methods.comparePassword = async function(candidatePassword) {
 
 userSchema.index({ status: 1 });
 userSchema.index({ createdAt: -1 });
+userSchema.index({ 'blockedUsers.userId': 1 });
 
 module.exports = mongoose.model('User', userSchema);
