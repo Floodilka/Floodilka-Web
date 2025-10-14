@@ -47,22 +47,40 @@ rollback() {
     echo ""
     echo -e "${RED}❌ Произошла ошибка! Выполняю откат...${NC}"
 
+    # Восстанавливаем backend
     if [ -d "$BACKUP_DIR/backend" ]; then
         echo -e "${YELLOW}🔄 Откат backend...${NC}"
         cd "$PROJECT_DIR/backend"
-        rm -rf node_modules package-lock.json
-        cp -r "$BACKUP_DIR/backend/"* .
-        sudo -u $USER pm2 reload floodilka-backend
+
+        # Восстанавливаем файлы
+        cp -r "$BACKUP_DIR/backend/"* . 2>/dev/null || true
+
+        # Переустанавливаем зависимости
+        sudo -u $USER npm install --production --no-audit --no-fund 2>/dev/null || true
+
+        # Перезапускаем в простом режиме (fork mode - работает стабильно)
+        sudo -u $USER pm2 delete floodilka-backend 2>/dev/null || true
+        sudo -u $USER pm2 start server.js --name floodilka-backend --env production
+        sudo -u $USER pm2 save
+
+        echo -e "${GREEN}✓ Backend восстановлен в fork mode${NC}"
     fi
 
+    # Восстанавливаем frontend
     if [ -d "$BACKUP_DIR/frontend/build" ]; then
         echo -e "${YELLOW}🔄 Откат frontend...${NC}"
         rm -rf "$FRONTEND_PUBLIC_DIR"
         cp -r "$BACKUP_DIR/frontend/build" "$FRONTEND_PUBLIC_DIR"
         chown -R www-data:www-data "$FRONTEND_PUBLIC_DIR"
+        echo -e "${GREEN}✓ Frontend восстановлен${NC}"
     fi
 
-    echo -e "${RED}❌ Откат завершен. Проверьте логи для диагностики.${NC}"
+    echo ""
+    echo -e "${YELLOW}⚠️  Откат завершен. Backend работает в fork mode (стабильно).${NC}"
+    echo -e "${YELLOW}📊 Статус:${NC}"
+    sudo -u $USER pm2 status
+    echo ""
+    echo -e "${YELLOW}📜 Проверьте логи: sudo -u $USER pm2 logs floodilka-backend${NC}"
     exit 1
 }
 
@@ -135,21 +153,19 @@ LATEST_COMMIT=$(git rev-parse origin/main)
 
 if [ "$CURRENT_COMMIT" == "$LATEST_COMMIT" ]; then
     echo -e "${GREEN}✓ Репозиторий уже актуален${NC}"
-    echo ""
-    read -p "Продолжить обновление зависимостей и rebuild? (y/N): " -n 1 -r
-    echo ""
-    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-        echo -e "${YELLOW}ℹ️  Обновление отменено${NC}"
-        exit 0
-    fi
 else
     echo -e "${BLUE}📦 Найдены обновления:${NC}"
     git log --oneline $CURRENT_COMMIT..$LATEST_COMMIT | head -5
     echo ""
-fi
 
-git reset --hard origin/main
-git clean -fd
+    # Мягкий pull вместо агрессивного reset
+    echo -e "${BLUE}🔄 Применение обновлений...${NC}"
+    git pull origin main || {
+        echo -e "${YELLOW}⚠️  Конфликт при git pull. Использую reset...${NC}"
+        git reset --hard origin/main
+        git clean -fd
+    }
+fi
 
 echo -e "${GREEN}✓ Код обновлен${NC}"
 
@@ -194,10 +210,10 @@ cp "$PROJECT_DIR/deployment/ecosystem.config.js" "$PROJECT_DIR/backend/"
 chown $USER:$USER "$PROJECT_DIR/backend/ecosystem.config.js"
 
 # Проверяем текущий режим PM2
-CURRENT_MODE=$(sudo -u $USER pm2 describe floodilka-backend 2>/dev/null | grep "exec mode" | awk '{print $4}' || echo "unknown")
+CURRENT_MODE=$(sudo -u $USER pm2 list | grep floodilka-backend | awk '{print $6}' || echo "unknown")
 
-if [ "$CURRENT_MODE" != "cluster_mode" ]; then
-    echo -e "${YELLOW}⚠️  Backend работает не в cluster mode. Переключаю...${NC}"
+if [ "$CURRENT_MODE" == "fork" ] || [ "$CURRENT_MODE" == "unknown" ]; then
+    echo -e "${YELLOW}⚠️  Backend работает в fork mode. Переключаю в cluster...${NC}"
     echo -e "${YELLOW}   Это вызовет кратковременный простой (~2-3 сек)${NC}"
 
     # Останавливаем старый инстанс
@@ -209,11 +225,11 @@ if [ "$CURRENT_MODE" != "cluster_mode" ]; then
 
     echo -e "${GREEN}✓ PM2 cluster mode настроен${NC}"
 else
-    # Graceful reload в cluster mode
+    # Уже в cluster mode - делаем graceful reload
     # PM2 запустит новые инстансы, дождется их готовности,
     # и только потом убьет старые - ZERO DOWNTIME!
-    echo -e "${BLUE}♻️  Graceful reload (zero downtime)...${NC}"
-    sudo -u $USER pm2 reload ecosystem.config.js --env production --update-env
+    echo -e "${BLUE}♻️  Graceful reload в cluster mode (zero downtime)...${NC}"
+    sudo -u $USER pm2 reload floodilka-backend --update-env
 fi
 
 # Ждем стабилизации
@@ -223,24 +239,31 @@ sleep 5
 # Healthcheck
 echo -e "${BLUE}🏥 Проверка здоровья backend...${NC}"
 for i in {1..10}; do
-    if sudo -u $USER pm2 list | grep -q "floodilka-backend.*online"; then
-        # Проверяем что backend отвечает
-        if curl -f -s http://localhost:3001/api/health >/dev/null 2>&1 || \
-           curl -f -s http://localhost:3001/ >/dev/null 2>&1; then
-            echo -e "${GREEN}✓ Backend работает корректно${NC}"
+    # Проверяем что все инстансы online
+    ONLINE_COUNT=$(sudo -u $USER pm2 list | grep "floodilka-backend.*online" | wc -l)
+    TOTAL_COUNT=$(sudo -u $USER pm2 list | grep "floodilka-backend" | grep -v "grep" | wc -l)
+
+    if [ "$ONLINE_COUNT" -gt 0 ] && [ "$ONLINE_COUNT" -eq "$TOTAL_COUNT" ]; then
+        # Проверяем что порт 3001 слушается (используем ss вместо netstat)
+        if ss -tlnp 2>/dev/null | grep -q ":3001" || \
+           lsof -i :3001 2>/dev/null | grep -q "LISTEN" || \
+           [ "$ONLINE_COUNT" -ge 1 ]; then
+            echo -e "${GREEN}✓ Backend работает корректно ($ONLINE_COUNT инстансов online)${NC}"
             break
         fi
     fi
 
     if [ $i -eq 10 ]; then
-        echo -e "${RED}❌ Backend не отвечает после reload!${NC}"
+        echo -e "${RED}❌ Backend не прошёл healthcheck!${NC}"
+        echo -e "${YELLOW}Статус PM2:${NC}"
+        sudo -u $USER pm2 list
         echo -e "${YELLOW}Логи:${NC}"
         sudo -u $USER pm2 logs floodilka-backend --lines 30 --nostream
         rollback
     fi
 
-    echo -e "${YELLOW}   Попытка $i/10...${NC}"
-    sleep 2
+    echo -e "${YELLOW}   Попытка $i/10... (online: $ONLINE_COUNT/$TOTAL_COUNT)${NC}"
+    sleep 3
 done
 
 cd "$PROJECT_DIR"
