@@ -5,6 +5,8 @@ import markdownToSanitizedHtml from '../utils/markdown';
 const MarkdownMessage = ({
   content,
   mentions,
+  roles = [],
+  channels = [],
   currentUsername,
   onMentionClick,
   onMentionHover,
@@ -14,9 +16,11 @@ const MarkdownMessage = ({
     () =>
       markdownToSanitizedHtml(content, {
         mentions,
+        roles,
+        channels,
         currentUsername
       }),
-    [content, mentions, currentUsername]
+    [content, mentions, roles, channels, currentUsername]
   );
 
   const hoveredMentionRef = useRef(null);
@@ -24,6 +28,10 @@ const MarkdownMessage = ({
   const getMentionData = useCallback((element, event) => ({
     username: element.getAttribute('data-mention'),
     id: element.getAttribute('data-mention-id') || undefined,
+    type: element.getAttribute('data-mention-type') || 'user',
+    roleId: element.getAttribute('data-role-id') || undefined,
+    channelId: element.getAttribute('data-channel-id') || undefined,
+    unknownChannel: element.hasAttribute('data-channel-unknown'),
     element,
     rect: element.getBoundingClientRect(),
     clientX: event?.clientX,

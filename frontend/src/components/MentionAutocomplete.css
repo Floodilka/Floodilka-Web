@@ -52,7 +52,8 @@
 
 .mention-avatar,
 .mention-avatar-fallback,
-.mention-everyone-icon {
+.mention-everyone-icon,
+.mention-channel-icon {
   width: 32px;
   height: 32px;
   border-radius: 50%;
@@ -83,6 +84,17 @@
   font-size: 18px;
 }
 
+.mention-channel-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #3ba55c 0%, #2d7d44 100%);
+  color: white;
+  font-weight: 700;
+  font-size: 18px;
+  border-radius: 8px;
+}
+
 .mention-info {
   display: flex;
   flex-direction: column;
@@ -106,4 +118,3 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
-

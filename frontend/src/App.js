@@ -420,6 +420,7 @@ const ServerRoute = () => {
         username={user?.username}
         user={user}
         currentServer={currentServer}
+        channels={channels}
         onSendMessage={sendMessage}
         hasServer={!!currentServer}
         hasTextChannels={!serverLoading && channels.some(c => c.type === 'text')}
@@ -518,4 +519,3 @@ function App() {
 }
 
 export default App;
-

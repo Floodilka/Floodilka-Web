@@ -11,6 +11,7 @@ import { SOCKET_EVENTS } from '../constants/events';
 import EmojiPicker from './EmojiPicker';
 import MessageReactions from './MessageReactions';
 import MarkdownMessage from './MarkdownMessage';
+import MessageEmbeds from './MessageEmbeds';
 import api from '../services/api';
 
 const BACKEND_URL = window.location.hostname === 'localhost'
@@ -182,6 +183,10 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
       return;
     }
 
+    if (mentionData && typeof mentionData === 'object' && mentionData.type && mentionData.type !== 'user') {
+      return;
+    }
+
     hideMentionTooltip();
 
     const normalized = mentionUsername.toLowerCase();
@@ -206,36 +211,8 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
   }, [handleUserClick, hideMentionTooltip, mentionableUsers]);
 
   const handleMentionHover = useCallback((mentionMeta, sourceMessage) => {
-    if (!mentionMeta?.username) {
+    if (!mentionMeta) {
       return;
-    }
-
-    const normalized = mentionMeta.username.toLowerCase();
-
-    if (normalized === 'everyone') {
-      hideMentionTooltip();
-      return;
-    }
-    const mentionEntry = mentionableUsers.get(normalized) ||
-      (Array.isArray(sourceMessage?.mentions)
-        ? sourceMessage.mentions.find(item => item.username?.toLowerCase() === normalized)
-        : null);
-
-    const displayName = mentionEntry?.displayName
-      || mentionEntry?.nickname
-      || mentionMeta.username;
-
-    const subtitleUsername = mentionEntry?.username || mentionMeta.username;
-    const subtitle = `@${subtitleUsername}`;
-
-    let roleName;
-    if (mentionEntry?.primaryRole?.name) {
-      roleName = mentionEntry.primaryRole.name;
-    } else if (Array.isArray(mentionEntry?.roles) && mentionEntry.roles.length > 0) {
-      const primaryRole = mentionEntry.roles.find(role => role.isPrimary || role.primary);
-      roleName = primaryRole?.name || mentionEntry.roles[0]?.name;
-    } else if (mentionEntry?.roleName) {
-      roleName = mentionEntry.roleName;
     }
 
     const { rect, clientX, clientY } = mentionMeta;
@@ -268,11 +245,71 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
       top = padding;
     }
 
+    const position = { top, left };
+    const type = mentionMeta.type || 'user';
+
+    if (type === 'role') {
+      const displayName = mentionMeta.username?.startsWith('@')
+        ? mentionMeta.username
+        : `@${mentionMeta.username || 'роль'}`;
+      setMentionTooltip({
+        displayName,
+        subtitle: 'Роль сервера',
+        role: null,
+        position,
+        username: mentionMeta.username || displayName
+      });
+      return;
+    }
+
+    if (type === 'channel') {
+      setMentionTooltip({
+        displayName: mentionMeta.username || '#канал',
+        subtitle: 'Канал сервера',
+        role: null,
+        position,
+        username: mentionMeta.username || '#канал'
+      });
+      return;
+    }
+
+    if (!mentionMeta.username) {
+      return;
+    }
+
+    const normalized = mentionMeta.username.toLowerCase();
+
+    if (normalized === 'everyone') {
+      hideMentionTooltip();
+      return;
+    }
+    const mentionEntry = mentionableUsers.get(normalized) ||
+      (Array.isArray(sourceMessage?.mentions)
+        ? sourceMessage.mentions.find(item => item.username?.toLowerCase() === normalized)
+        : null);
+
+    const displayName = mentionEntry?.displayName
+      || mentionEntry?.nickname
+      || mentionMeta.username;
+
+    const subtitleUsername = mentionEntry?.username || mentionMeta.username;
+    const subtitle = `@${subtitleUsername}`;
+
+    let roleName;
+    if (mentionEntry?.primaryRole?.name) {
+      roleName = mentionEntry.primaryRole.name;
+    } else if (Array.isArray(mentionEntry?.roles) && mentionEntry.roles.length > 0) {
+      const primaryRole = mentionEntry.roles.find(role => role.isPrimary || role.primary);
+      roleName = primaryRole?.name || mentionEntry.roles[0]?.name;
+    } else if (mentionEntry?.roleName) {
+      roleName = mentionEntry.roleName;
+    }
+
     setMentionTooltip({
       displayName,
       subtitle,
       role: roleName,
-      position: { top, left },
+      position,
       username: mentionMeta.username
     });
   }, [hideMentionTooltip, mentionableUsers]);
@@ -1522,18 +1559,21 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
                               </div>
                             </button>
                           )}
-                          {message.content && (
-                            <div className="dm-message-text">
-                              <MarkdownMessage
-                                content={message.content}
-                                mentions={message.mentions}
-                                currentUsername={user?.username}
-                                onMentionClick={handleMentionClick}
-                                onMentionHover={(data) => handleMentionHover(data, message)}
-                                onMentionLeave={hideMentionTooltip}
-                              />
-                            </div>
-                          )}
+                              {message.content && (
+                                <div className="dm-message-text">
+                                  <MarkdownMessage
+                                    content={message.content}
+                                    mentions={message.mentions}
+                                    roles={[]}
+                                    channels={[]}
+                                    currentUsername={user?.username}
+                                    onMentionClick={handleMentionClick}
+                                    onMentionHover={(data) => handleMentionHover(data, message)}
+                                    onMentionLeave={hideMentionTooltip}
+                                  />
+                                  <MessageEmbeds content={message.content} />
+                                </div>
+                              )}
                           {message.attachments && message.attachments.length > 0 && (
                             <div className="message-attachments">
                               {message.attachments.map((attachment, index) => (
@@ -1969,14 +2009,17 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
                               )}
                               {message.content && (
                                 <div className="dm-message-text">
-                                <MarkdownMessage
-                                  content={message.content}
-                                  mentions={message.mentions}
-                                  currentUsername={user?.username}
-                                  onMentionClick={handleMentionClick}
-                                  onMentionHover={(data) => handleMentionHover(data, message)}
-                                  onMentionLeave={hideMentionTooltip}
-                                />
+                                  <MarkdownMessage
+                                    content={message.content}
+                                    mentions={message.mentions}
+                                    roles={[]}
+                                    channels={[]}
+                                    currentUsername={user?.username}
+                                    onMentionClick={handleMentionClick}
+                                    onMentionHover={(data) => handleMentionHover(data, message)}
+                                    onMentionLeave={hideMentionTooltip}
+                                  />
+                                  <MessageEmbeds content={message.content} />
                                 </div>
                               )}
                               {message.attachments && message.attachments.length > 0 && (

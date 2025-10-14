@@ -4,6 +4,7 @@
   "description": "Frontend for Floodilka - a Discord-like chat app",
   "private": true,
   "dependencies": {
+    "dayjs": "^1.11.18",
     "dompurify": "^3.3.0",
     "howler": "^2.2.4",
     "prismjs": "^1.30.0",

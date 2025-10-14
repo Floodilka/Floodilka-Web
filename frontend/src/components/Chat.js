@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useLayoutEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useRef, useCallback, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import './Chat.css';
 import FriendActionButton from './FriendActionButton';
 import { useChat } from '../context/ChatContext';
@@ -7,13 +8,15 @@ import EmojiPicker from './EmojiPicker';
 import MessageReactions from './MessageReactions';
 import MentionAutocomplete from './MentionAutocomplete';
 import MarkdownMessage from './MarkdownMessage';
+import MessageEmbeds from './MessageEmbeds';
+import ChannelAutocomplete from './ChannelAutocomplete';
 import api from '../services/api';
 
 const BACKEND_URL = window.location.hostname === 'localhost'
   ? 'http://localhost:3001'
   : `${window.location.protocol}//${window.location.hostname}`;
 
-function Chat({ channel, messages, username, user, currentServer, onSendMessage, hasServer, hasTextChannels, serverLoading, socket, onMessageSent, preloadedMessages, isLoadingMessages }) {
+function Chat({ channel, messages, username, user, currentServer, channels = [], onSendMessage, hasServer, hasTextChannels, serverLoading, socket, onMessageSent, preloadedMessages, isLoadingMessages }) {
   const { setIsLoadingMessages, saveScrollPosition, getSavedScrollPosition } = useChat();
   const [inputValue, setInputValue] = useState('');
   const messagesEndRef = useRef(null);
@@ -37,16 +40,104 @@ function Chat({ channel, messages, username, user, currentServer, onSendMessage,
   const [replyingTo, setReplyingTo] = useState(null);
   const [highlightedMessageId, setHighlightedMessageId] = useState(null);
   const [mentionTooltip, setMentionTooltip] = useState(null);
-
-  // Состояния для автокомплита упоминаний
+  const [serverMembers, setServerMembers] = useState([]);
   const [showMentionAutocomplete, setShowMentionAutocomplete] = useState(false);
   const [mentionFilter, setMentionFilter] = useState('');
   const [mentionPosition, setMentionPosition] = useState({ top: 0, left: 0, width: 0 });
   const [mentionSelectedIndex, setMentionSelectedIndex] = useState(0);
-  const [serverMembers, setServerMembers] = useState([]);
+  const [showChannelAutocomplete, setShowChannelAutocomplete] = useState(false);
+  const [channelFilter, setChannelFilter] = useState('');
+  const [channelPosition, setChannelPosition] = useState({ top: 0, left: 0, width: 0 });
+  const [channelSelectedIndex, setChannelSelectedIndex] = useState(0);
   const inputRef = useRef(null);
   const messageInputFieldRef = useRef(null);
   const hideMentionTooltip = useCallback(() => setMentionTooltip(null), []);
+  const [showUnknownChannelModal, setShowUnknownChannelModal] = useState(false);
+  const closeUnknownChannelModal = useCallback(() => setShowUnknownChannelModal(false), []);
+  const navigate = useNavigate();
+
+  const textChannels = useMemo(() => {
+    if (!Array.isArray(channels)) {
+      return [];
+    }
+    return channels.filter(channel => (channel?.type || 'text') === 'text');
+  }, [channels]);
+
+  const channelReplaceMap = useMemo(() => {
+    const map = new Map();
+    textChannels.forEach((channel) => {
+      const name = channel?.name || channel?.channelName || channel?.displayName;
+      const id = channel?.id || channel?._id || channel?.channelId;
+      if (!name || !id) return;
+      map.set(name.toLowerCase(), String(id));
+    });
+    return map;
+  }, [textChannels]);
+
+  const replaceChannelTokens = useCallback((text) => {
+    if (!text || channelReplaceMap.size === 0) {
+      return text;
+    }
+
+    return text.replace(/#([\p{L}\p{N}_-]+)/gu, (match, name) => {
+      const id = channelReplaceMap.get(name.toLowerCase());
+      if (!id) {
+        return match;
+      }
+      return `<#${id}>`;
+    });
+  }, [channelReplaceMap]);
+
+
+  const roleMetadata = useMemo(() => {
+    const map = new Map();
+
+    if (Array.isArray(currentServer?.roles)) {
+      currentServer.roles.forEach((role) => {
+        const id = role?._id ?? role?.id ?? role?.roleId;
+        if (!id) return;
+        map.set(String(id), {
+          id: String(id),
+          name: role?.name || role?.displayName || `Роль ${id}`
+        });
+      });
+    }
+
+    serverMembers.forEach((member) => {
+      if (!Array.isArray(member?.roles)) return;
+      member.roles.forEach((role) => {
+        const id = role?.id ?? role?._id ?? role?.roleId ?? role?.role?.id;
+        if (!id) return;
+        if (!map.has(String(id))) {
+          map.set(String(id), {
+            id: String(id),
+            name: role?.name || role?.roleName || role?.displayName || role?.label || `Роль ${id}`
+          });
+        }
+      });
+    });
+
+    const list = Array.from(map.values());
+    return { list, byId: map };
+  }, [currentServer?.roles, serverMembers]);
+
+  const channelMetadata = useMemo(() => {
+    const map = new Map();
+    if (Array.isArray(channels)) {
+      channels.forEach((ch) => {
+        const id = ch?.id ?? ch?._id ?? ch?.channelId;
+        if (!id) return;
+        map.set(String(id), {
+          id: String(id),
+          name: ch?.name || ch?.channelName || ch?.displayName || `канал-${id}`,
+          type: ch?.type || 'text'
+        });
+      });
+    }
+
+    const list = Array.from(map.values());
+    return { list, byId: map };
+  }, [channels]);
 
   const handleUserClick = async (message, event) => {
     const rect = event.currentTarget.getBoundingClientRect();
@@ -114,7 +205,82 @@ function Chat({ channel, messages, username, user, currentServer, onSendMessage,
   };
 
   const handleMentionHover = useCallback((mentionMeta, sourceMessage) => {
-    if (!mentionMeta?.username) {
+    if (!mentionMeta) {
+      return;
+    }
+
+    const { rect, clientX, clientY } = mentionMeta;
+    const tooltipWidth = 220;
+    const padding = 12;
+    const viewportWidth = typeof window !== 'undefined' ? window.innerWidth : 0;
+    const viewportHeight = typeof window !== 'undefined' ? window.innerHeight : 0;
+
+    let left = rect ? rect.left + rect.width / 2 : clientX ?? 0;
+    if (viewportWidth) {
+      left = Math.max(
+        padding + tooltipWidth / 2,
+        Math.min(left, viewportWidth - padding - tooltipWidth / 2)
+      );
+    }
+
+    if (!Number.isFinite(left)) {
+      left = padding + tooltipWidth / 2;
+    }
+
+    let top = rect ? rect.bottom + 8 : (clientY ?? 0) + 12;
+    if (viewportHeight) {
+      if (top > viewportHeight - padding) {
+        top = rect ? rect.top - 8 : (clientY ?? 0) - 12;
+      }
+      top = Math.max(top, padding);
+    }
+
+    if (!Number.isFinite(top)) {
+      top = padding;
+    }
+
+    const basePosition = { top, left };
+    const type = mentionMeta.type || 'user';
+
+    if (type === 'role') {
+      const roleId = mentionMeta.roleId || mentionMeta.id;
+      const role = roleMetadata.byId.get(String(roleId));
+      if (!role) {
+        hideMentionTooltip();
+        return;
+      }
+
+      setMentionTooltip({
+        displayName: `@${role.name}`,
+        subtitle: 'Роль сервера',
+        role: null,
+        position: basePosition,
+        username: role.name
+      });
+      return;
+    }
+
+    if (type === 'channel') {
+      const channelId = mentionMeta.channelId || mentionMeta.id;
+      const channel = channelMetadata.byId.get(String(channelId));
+      if (!channel) {
+        hideMentionTooltip();
+        return;
+      }
+
+      const channelTypeLabel = channel.type === 'voice' ? 'Голосовой канал' : 'Текстовый канал';
+
+      setMentionTooltip({
+        displayName: `#${channel.name}`,
+        subtitle: channelTypeLabel,
+        role: null,
+        position: basePosition,
+        username: channel.name
+      });
+      return;
+    }
+
+    if (!mentionMeta.username) {
       return;
     }
 
@@ -160,44 +326,14 @@ function Chat({ channel, messages, username, user, currentServer, onSendMessage,
       roleName = primaryMentionRole?.name || messageMention.roles[0]?.name;
     }
 
-    const { rect, clientX, clientY } = mentionMeta;
-    const tooltipWidth = 220;
-    const padding = 12;
-    const viewportWidth = typeof window !== 'undefined' ? window.innerWidth : 0;
-    const viewportHeight = typeof window !== 'undefined' ? window.innerHeight : 0;
-
-    let left = rect ? rect.left + rect.width / 2 : clientX ?? 0;
-    if (viewportWidth) {
-      left = Math.max(
-        padding + tooltipWidth / 2,
-        Math.min(left, viewportWidth - padding - tooltipWidth / 2)
-      );
-    }
-
-    if (!Number.isFinite(left)) {
-      left = padding + tooltipWidth / 2;
-    }
-
-    let top = rect ? rect.bottom + 8 : (clientY ?? 0) + 12;
-    if (viewportHeight) {
-      if (top > viewportHeight - padding) {
-        top = rect ? rect.top - 8 : (clientY ?? 0) - 12;
-      }
-      top = Math.max(top, padding);
-    }
-
-    if (!Number.isFinite(top)) {
-      top = padding;
-    }
-
     setMentionTooltip({
       displayName,
       subtitle,
       role: roleName,
-      position: { top, left },
+      position: basePosition,
       username: mentionMeta.username
     });
-  }, [hideMentionTooltip, serverMembers]);
+  }, [channelMetadata, hideMentionTooltip, roleMetadata, serverMembers]);
 
   const handleCloseProfile = () => {
     setSelectedUser(null);
@@ -1153,9 +1289,10 @@ function Chat({ channel, messages, username, user, currentServer, onSendMessage,
     const textBeforeCursor = value.substring(0, cursorPosition);
     const lastAtIndex = textBeforeCursor.lastIndexOf('@');
 
+    let mentionTriggered = false;
+
     if (lastAtIndex !== -1) {
       const textAfterAt = textBeforeCursor.substring(lastAtIndex + 1);
-      // Проверяем, что после @ нет пробела
       if (!textAfterAt.includes(' ')) {
         const normalizedFilter = textAfterAt.toLowerCase();
         const filteredUsers = serverMembers.filter(user =>
@@ -1176,6 +1313,7 @@ function Chat({ channel, messages, username, user, currentServer, onSendMessage,
             setMentionFilter(textAfterAt);
             setShowMentionAutocomplete(true);
             setMentionSelectedIndex(0);
+            mentionTriggered = true;
           }
         } else {
           setShowMentionAutocomplete(false);
@@ -1185,6 +1323,46 @@ function Chat({ channel, messages, username, user, currentServer, onSendMessage,
       }
     } else {
       setShowMentionAutocomplete(false);
+    }
+
+    if (mentionTriggered) {
+      setShowChannelAutocomplete(false);
+      return;
+    }
+
+    const lastHashIndex = textBeforeCursor.lastIndexOf('#');
+    if (lastHashIndex !== -1) {
+      const charBeforeHash = lastHashIndex === 0 ? ' ' : textBeforeCursor[lastHashIndex - 1];
+      const textAfterHash = textBeforeCursor.substring(lastHashIndex + 1);
+      const isValidPrefix = lastHashIndex === 0 || /\s/.test(charBeforeHash);
+
+      if (isValidPrefix && !textAfterHash.includes(' ') && !textAfterHash.includes('#')) {
+        const normalizedFilter = textAfterHash.toLowerCase();
+        const filteredChannels = textChannels.filter(channel => {
+          const name = channel?.name || channel?.channelName || channel?.displayName;
+          if (!name) return false;
+          return name.toLowerCase().startsWith(normalizedFilter);
+        });
+
+        if (filteredChannels.length > 0) {
+          const fieldRect = messageInputFieldRef.current?.getBoundingClientRect();
+          if (fieldRect) {
+            setChannelPosition({
+              top: fieldRect.top - 8,
+              left: fieldRect.left,
+              width: fieldRect.width
+            });
+            setChannelFilter(textAfterHash);
+            setShowChannelAutocomplete(true);
+            setChannelSelectedIndex(0);
+            return;
+          }
+        }
+      }
+
+      setShowChannelAutocomplete(false);
+    } else {
+      setShowChannelAutocomplete(false);
     }
   };
 
@@ -1211,10 +1389,90 @@ function Chat({ channel, messages, username, user, currentServer, onSendMessage,
     }
 
     setShowMentionAutocomplete(false);
+    setShowChannelAutocomplete(false);
   };
+
+const handleChannelSelect = (channel) => {
+    if (!channel) {
+      setShowChannelAutocomplete(false);
+      return;
+    }
+
+    const channelName = channel.name || channel.channelName || channel.displayName;
+    if (!channelName) {
+      setShowChannelAutocomplete(false);
+      return;
+    }
+
+    const cursorPosition = inputRef.current.selectionStart;
+    const textBeforeCursor = inputValue.substring(0, cursorPosition);
+    const textAfterCursor = inputValue.substring(cursorPosition);
+    const lastHashIndex = textBeforeCursor.lastIndexOf('#');
+
+    if (lastHashIndex !== -1) {
+      const insertion = `#${channelName} `;
+      const newValue =
+        inputValue.substring(0, lastHashIndex) +
+        insertion +
+        textAfterCursor;
+      setInputValue(newValue);
+
+      setTimeout(() => {
+        const newCursorPos = lastHashIndex + insertion.length;
+        inputRef.current.setSelectionRange(newCursorPos, newCursorPos);
+        inputRef.current.focus({ preventScroll: true });
+      }, 0);
+    }
+
+    setShowChannelAutocomplete(false);
+    setChannelFilter('');
+};
 
   // Обработка клавиш в поле ввода
   const handleInputKeyDown = (e) => {
+    if (showChannelAutocomplete) {
+      const normalizedFilter = channelFilter.toLowerCase();
+      const filteredChannels = textChannels.filter(channel => {
+        const name = channel?.name || channel?.channelName || channel?.displayName;
+        if (!name) return false;
+        return name.toLowerCase().startsWith(normalizedFilter);
+      });
+
+      if (filteredChannels.length === 0) {
+        setShowChannelAutocomplete(false);
+        return;
+      }
+
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        setChannelSelectedIndex(prev =>
+          prev < filteredChannels.length - 1 ? prev + 1 : prev
+        );
+        return;
+      }
+
+      if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        setChannelSelectedIndex(prev => prev > 0 ? prev - 1 : 0);
+        return;
+      }
+
+      if (e.key === 'Enter') {
+        if (filteredChannels[channelSelectedIndex]) {
+          e.preventDefault();
+          handleChannelSelect(filteredChannels[channelSelectedIndex]);
+        } else {
+          setShowChannelAutocomplete(false);
+        }
+        return;
+      }
+
+      if (e.key === 'Escape') {
+        setShowChannelAutocomplete(false);
+        return;
+      }
+    }
+
     if (showMentionAutocomplete) {
       const filteredUsers = serverMembers.filter(user =>
         user.username.toLowerCase().startsWith(mentionFilter.toLowerCase())
@@ -1247,6 +1505,8 @@ function Chat({ channel, messages, username, user, currentServer, onSendMessage,
       } else if (e.key === 'Escape') {
         setShowMentionAutocomplete(false);
       }
+
+      return;
     }
   };
 
@@ -1257,15 +1517,19 @@ function Chat({ channel, messages, username, user, currentServer, onSendMessage,
     if (showMentionAutocomplete) {
       setShowMentionAutocomplete(false);
     }
+    if (showChannelAutocomplete) {
+      setShowChannelAutocomplete(false);
+    }
 
     const trimmedValue = inputValue.trim();
     if (trimmedValue || selectedFiles.length > 0) {
+      const convertedValue = replaceChannelTokens(trimmedValue);
       const replyTarget = replyingTo
         ? messages.find(msg => msg.id === replyingTo.id) || replyingTo
         : null;
 
       console.log('[SCROLL] 📤 Отправка сообщения - будет скролл через 100мс');
-      onSendMessage(trimmedValue, selectedFiles, replyTarget);
+      onSendMessage(convertedValue, selectedFiles, replyTarget);
       setInputValue('');
       setSelectedFiles([]);
       setReplyingTo(null);
@@ -1324,6 +1588,39 @@ function Chat({ channel, messages, username, user, currentServer, onSendMessage,
 
   // Обработка клика на упоминание пользователя
   const handleMentionClick = async (mentionData, event) => {
+    hideMentionTooltip();
+
+    if (!mentionData) {
+      return;
+    }
+
+    if (mentionData.type === 'channel') {
+      if (event?.preventDefault) {
+        event.preventDefault();
+      }
+      if (event?.stopPropagation) {
+        event.stopPropagation();
+      }
+
+      const rawChannelId = mentionData.channelId || mentionData.id;
+      const channelId = rawChannelId ? String(rawChannelId) : null;
+
+      if (!channelId) {
+        setShowUnknownChannelModal(true);
+        return;
+      }
+
+      const channelExists = channelMetadata.byId.has(channelId);
+
+      if (mentionData.unknownChannel || !channelExists || !currentServer?._id) {
+        setShowUnknownChannelModal(true);
+        return;
+      }
+
+      navigate(`/channels/${currentServer._id}/${channelId}`);
+      return;
+    }
+
     const mentionUsername =
       typeof mentionData === 'string'
         ? mentionData
@@ -1332,8 +1629,6 @@ function Chat({ channel, messages, username, user, currentServer, onSendMessage,
     if (!mentionUsername) {
       return;
     }
-
-    hideMentionTooltip();
 
     // Не показываем профиль для @everyone
     if (mentionUsername.toLowerCase() === 'everyone') return;
@@ -1345,7 +1640,6 @@ function Chat({ channel, messages, username, user, currentServer, onSendMessage,
 
     if (!mentionedUser) return;
 
-    // Умное позиционирование профильной карточки
     const triggerElement =
       (mentionData && mentionData.element) ||
       event?.target?.closest('[data-mention]') ||
@@ -1356,37 +1650,28 @@ function Chat({ channel, messages, username, user, currentServer, onSendMessage,
     }
 
     const rect = triggerElement.getBoundingClientRect();
-    const cardWidth = 300; // Примерная ширина карточки
-    const cardHeight = 200; // Примерная высота карточки
-    const padding = 10; // Отступ от края экрана
+    const cardWidth = 300;
+    const cardHeight = 200;
+    const padding = 10;
 
     let top = rect.top;
     let left = rect.right + 8;
 
-    // Проверяем, не уходит ли карточка за правый край экрана
     if (left + cardWidth > window.innerWidth - padding) {
-      left = rect.left - cardWidth - 8; // Показываем слева от элемента
+      left = rect.left - cardWidth - 8;
     }
 
-    // Проверяем, не уходит ли карточка за нижний край экрана
     if (top + cardHeight > window.innerHeight - padding) {
-      // Если места внизу мало, показываем над элементом
-      // Выравниваем нижний край карточки с верхним краем элемента
       top = rect.top - cardHeight - 8;
-
-      // Проверяем, не уходит ли карточка за верхний край экрана после сдвига вверх
       if (top < padding) {
-        // Если карточка все еще не помещается сверху, центрируем её по вертикали
         top = Math.max(padding, (window.innerHeight - cardHeight) / 2);
       }
     }
 
-    // Проверяем, не уходит ли карточка за верхний край экрана (для обычного случая)
     if (top < padding) {
       top = padding;
     }
 
-    // Проверяем, не уходит ли карточка за левый край экрана
     if (left < padding) {
       left = padding;
     }
@@ -1682,11 +1967,14 @@ function Chat({ channel, messages, username, user, currentServer, onSendMessage,
                         <MarkdownMessage
                           content={message.content}
                           mentions={message.mentions}
+                          roles={roleMetadata.list}
+                          channels={channelMetadata.list}
                           currentUsername={username}
                           onMentionClick={handleMentionClick}
                           onMentionHover={(data) => handleMentionHover(data, message)}
                           onMentionLeave={hideMentionTooltip}
                         />
+                        <MessageEmbeds content={message.content} />
                       </div>
                     )}
                     {message.attachments && message.attachments.length > 0 && (
@@ -2038,6 +2326,31 @@ function Chat({ channel, messages, username, user, currentServer, onSendMessage,
           position={mentionPosition}
           selectedIndex={mentionSelectedIndex}
         />
+      )}
+      {showChannelAutocomplete && (
+        <ChannelAutocomplete
+          channels={textChannels}
+          filter={channelFilter}
+          onSelect={handleChannelSelect}
+          position={channelPosition}
+          selectedIndex={channelSelectedIndex}
+        />
+      )}
+
+      {showUnknownChannelModal && (
+        <div className="join-server-overlay" onClick={closeUnknownChannelModal}>
+          <div className="join-server-modal" onClick={(e) => e.stopPropagation()}>
+            <h2>Канал недоступен</h2>
+            <p className="modal-subtitle">
+              Этот канал удален или у вас нет к нему доступа
+            </p>
+            <div className="modal-footer">
+              <button className="btn-primary" onClick={closeUnknownChannelModal}>
+                Понятно
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

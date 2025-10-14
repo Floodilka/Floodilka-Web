@@ -222,6 +222,7 @@ function MobileLayout({
               username={user?.username}
               user={user}
               currentServer={currentServer}
+              channels={channels}
               onSendMessage={onSendMessage}
               hasServer={!!currentServer}
               hasTextChannels={hasTextChannels}

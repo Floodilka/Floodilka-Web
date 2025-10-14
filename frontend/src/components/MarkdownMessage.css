@@ -76,6 +76,34 @@
   text-decoration: underline;
 }
 
+.markdown-message .md-underline {
+  text-decoration: underline;
+}
+
+.markdown-message strong .md-underline,
+.markdown-message .md-underline strong {
+  font-weight: 700;
+}
+
+.markdown-message em .md-underline,
+.markdown-message .md-underline em {
+  font-style: italic;
+}
+
+.markdown-message .md-custom-emoji {
+  height: 22px;
+  width: 22px;
+  vertical-align: text-bottom;
+  margin: 0 2px;
+  border: none;
+  background: none;
+}
+
+.markdown-message .md-custom-emoji.md-custom-emoji-large {
+  height: 32px;
+  width: 32px;
+}
+
 .markdown-message .md-spoiler {
   position: relative;
   border-radius: 4px;
@@ -165,4 +193,28 @@
 .markdown-message pre::-webkit-scrollbar-thumb {
   background: rgba(255, 255, 255, 0.35);
   border-radius: 999px;
+}
+
+.message-mention.mention-role {
+  color: #f9a8ff;
+  background: rgba(249, 168, 255, 0.12);
+}
+
+.message-mention.mention-channel {
+  color: #3ba55c;
+  background: rgba(59, 165, 92, 0.12);
+}
+
+.message-mention.mention-channel-unknown {
+  font-style: italic;
+}
+
+.md-timestamp {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.6);
+  background: rgba(255, 255, 255, 0.08);
+  padding: 1px 6px;
+  border-radius: 4px;
+  margin: 0 2px;
+  cursor: default;
 }
