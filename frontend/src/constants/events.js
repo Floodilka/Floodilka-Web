@@ -15,6 +15,8 @@ export const SOCKET_EVENTS = {
   // Channel events
   CHANNEL_JOIN: 'channel:join',
   CHANNEL_CREATED: 'channel:created',
+  CHANNEL_UPDATED: 'channel:updated',
+  CHANNEL_DELETED: 'channel:deleted',
 
   // Message events
   MESSAGE_SEND: 'message:send',

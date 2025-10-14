@@ -48,18 +48,48 @@ exports.joinServerByInvite = asyncHandler(async (req, res) => {
 exports.createChannel = asyncHandler(async (req, res) => {
   const { serverId } = req.params;
   const channel = await channelService.createChannel(serverId, req.user.id, req.body);
+
+  // Отправляем WebSocket событие всем участникам сервера
+  const io = req.app.get('io');
+  if (io) {
+    io.to(`server:${serverId}`).emit(SOCKET_EVENTS.CHANNEL_CREATED, {
+      serverId,
+      channel
+    });
+  }
+
   res.status(201).json(channel);
 });
 
 exports.updateChannel = asyncHandler(async (req, res) => {
   const { serverId, channelId } = req.params;
   const channel = await channelService.updateChannel(serverId, channelId, req.body);
+
+  // Отправляем WebSocket событие всем участникам сервера
+  const io = req.app.get('io');
+  if (io) {
+    io.to(`server:${serverId}`).emit(SOCKET_EVENTS.CHANNEL_UPDATED, {
+      serverId,
+      channel
+    });
+  }
+
   res.json(channel);
 });
 
 exports.deleteChannel = asyncHandler(async (req, res) => {
   const { serverId, channelId } = req.params;
   const result = await channelService.deleteChannel(serverId, channelId);
+
+  // Отправляем WebSocket событие всем участникам сервера
+  const io = req.app.get('io');
+  if (io) {
+    io.to(`server:${serverId}`).emit(SOCKET_EVENTS.CHANNEL_DELETED, {
+      serverId,
+      channelId
+    });
+  }
+
   res.json(result);
 });
 

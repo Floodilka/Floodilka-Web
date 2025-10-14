@@ -30,8 +30,35 @@ export const SocketProvider = ({ children }) => {
     setSocket(newSocket);
 
     // Channel events
-    socketService.on(SOCKET_EVENTS.CHANNEL_CREATED, (newChannel) => {
-      setChannels(prev => [...prev, newChannel]);
+    socketService.on(SOCKET_EVENTS.CHANNEL_CREATED, ({ serverId, channel }) => {
+      console.log('[SocketContext] Получено событие создания канала:', channel.name, 'для сервера:', serverId);
+      // Обновляем каналы только если это касается текущего сервера
+      setChannels(prev => {
+        // Проверяем, не существует ли уже канал с таким ID
+        const exists = prev.find(c => c.id === channel.id || c._id === channel._id);
+        if (exists) {
+          console.log('[SocketContext] Канал уже существует, пропускаем');
+          return prev;
+        }
+        console.log('[SocketContext] Добавляем новый канал в список');
+        return [...prev, channel];
+      });
+    });
+
+    socketService.on(SOCKET_EVENTS.CHANNEL_UPDATED, ({ serverId, channel }) => {
+      console.log('[SocketContext] Получено событие обновления канала:', channel.name, 'для сервера:', serverId);
+      setChannels(prev =>
+        prev.map(c =>
+          (c.id === channel.id || c._id === channel._id) ? channel : c
+        )
+      );
+    });
+
+    socketService.on(SOCKET_EVENTS.CHANNEL_DELETED, ({ serverId, channelId }) => {
+      console.log('[SocketContext] Получено событие удаления канала:', channelId, 'для сервера:', serverId);
+      setChannels(prev =>
+        prev.filter(c => c.id !== channelId && c._id !== channelId)
+      );
     });
 
     // Message events
@@ -134,6 +161,8 @@ export const SocketProvider = ({ children }) => {
 
     return () => {
       socketService.removeAllListeners(SOCKET_EVENTS.CHANNEL_CREATED);
+      socketService.removeAllListeners(SOCKET_EVENTS.CHANNEL_UPDATED);
+      socketService.removeAllListeners(SOCKET_EVENTS.CHANNEL_DELETED);
       socketService.removeAllListeners(SOCKET_EVENTS.MESSAGES_HISTORY);
       socketService.removeAllListeners(SOCKET_EVENTS.MESSAGE_NEW);
       socketService.removeAllListeners(SOCKET_EVENTS.MESSAGE_EDITED);
