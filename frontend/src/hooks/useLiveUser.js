@@ -4,7 +4,7 @@ import { useGlobalUsers } from '../context/GlobalUsersContext';
 /**
  * Хук для получения актуальных данных пользователя в реальном времени
  * Автоматически обновляется при изменении avatar/displayName через GLOBAL_USERS_UPDATE
- * 
+ *
  * @param {Object} initialUser - начальные данные пользователя
  * @returns {Object} - актуальные данные пользователя
  */
@@ -25,7 +25,7 @@ export function useLiveUser(initialUser) {
       return;
     }
 
-    const onlineUser = globalOnlineUsers.find(u => 
+    const onlineUser = globalOnlineUsers.find(u =>
       (u.userId || u.id || u._id) === userId
     );
 
