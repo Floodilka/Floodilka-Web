@@ -1,4 +1,5 @@
 import React, { useState, memo, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import './UserList.css';
 import FriendActionButton from './FriendActionButton';
@@ -238,7 +239,7 @@ const UserList = memo(function UserList({ onlineUsers, allMembers, currentUser, 
         </div>
       )}
 
-      {selectedUser && (
+      {selectedUser && createPortal(
         <>
           <div className="user-profile-overlay" onClick={handleCloseProfile} />
           <div
@@ -323,7 +324,8 @@ const UserList = memo(function UserList({ onlineUsers, allMembers, currentUser, 
             )}
 
           </div>
-        </>
+        </>,
+        document.body
       )}
 
       {/* Информационное меню для иконки владельца */}

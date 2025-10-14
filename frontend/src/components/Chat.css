@@ -947,7 +947,6 @@
   right: 0;
   bottom: 0;
   background: rgba(0, 0, 0, 0.4);
-  backdrop-filter: blur(2px);
   z-index: 100000;
   animation: profileFadeIn 0.2s ease-out;
 }
@@ -955,11 +954,9 @@
 @keyframes profileFadeIn {
   from {
     opacity: 0;
-    backdrop-filter: blur(0px);
   }
   to {
     opacity: 1;
-    backdrop-filter: blur(2px);
   }
 }
 

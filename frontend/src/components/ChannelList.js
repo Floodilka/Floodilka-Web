@@ -794,7 +794,7 @@ function ChannelList({ channels, currentTextChannel, currentVoiceChannel, voiceC
 
       {selectedUser && (
         <>
-          <div className="user-profile-overlay" onClick={handleCloseProfile} />
+          <div className="user-profile-overlay-voice" onClick={handleCloseProfile} />
           <div
             className="user-profile-card-voice"
             style={{

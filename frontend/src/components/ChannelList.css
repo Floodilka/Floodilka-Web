@@ -776,27 +776,24 @@
 }
 
 
-/* Оверлей для карточки профиля */
-.user-profile-overlay {
+/* Оверлей для карточки профиля (БЕЗ блюра для голосового канала) */
+.user-profile-overlay-voice {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
   background: rgba(0, 0, 0, 0.4);
-  backdrop-filter: blur(2px);
   z-index: 9998;
-  animation: profileFadeIn 0.2s ease-out;
+  animation: profileFadeInVoice 0.2s ease-out;
 }
 
-@keyframes profileFadeIn {
+@keyframes profileFadeInVoice {
   from {
     opacity: 0;
-    backdrop-filter: blur(0px);
   }
   to {
     opacity: 1;
-    backdrop-filter: blur(2px);
   }
 }
 

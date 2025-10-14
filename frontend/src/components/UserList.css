@@ -198,7 +198,6 @@
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.4);
-  backdrop-filter: blur(2px);
   z-index: 99999;
   animation: profileFadeIn 0.2s ease-out;
 }
