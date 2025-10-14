@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import './UserList.css';
 import FriendActionButton from './FriendActionButton';
 import api from '../services/api';
+import { useLiveUser } from '../hooks/useLiveUser';
 
 const BACKEND_URL = window.location.hostname === 'localhost'
   ? 'http://localhost:3001'
@@ -12,6 +13,7 @@ const BACKEND_URL = window.location.hostname === 'localhost'
 const UserList = memo(function UserList({ onlineUsers, allMembers, currentUser, currentServer, onMessageSent }) {
   const navigate = useNavigate();
   const [selectedUser, setSelectedUser] = useState(null);
+  const liveSelectedUser = useLiveUser(selectedUser);
   const [profilePosition, setProfilePosition] = useState({ top: 0, left: 0 });
   const [messageText, setMessageText] = useState('');
   const [sendingMessage, setSendingMessage] = useState(false);
@@ -252,30 +254,30 @@ const UserList = memo(function UserList({ onlineUsers, allMembers, currentUser, 
             <div className="user-profile-banner" />
             <div className="user-profile-content">
               <div className="user-profile-avatar-wrapper">
-                {selectedUser.avatar ? (
+                {liveSelectedUser?.avatar ? (
                   <img
-                    src={`${BACKEND_URL}${selectedUser.avatar}`}
+                    src={`${BACKEND_URL}${liveSelectedUser.avatar}`}
                     alt="Avatar"
                     className="user-profile-avatar-large"
                   />
                 ) : (
                   <div className="user-profile-avatar-large user-profile-avatar-fallback">
-                    {(selectedUser.displayName || selectedUser.username)[0].toUpperCase()}
+                    {(liveSelectedUser?.displayName || liveSelectedUser?.username)[0].toUpperCase()}
                   </div>
                 )}
               </div>
-              {selectedUser.displayName ? (
+              {liveSelectedUser?.displayName ? (
                 <>
                   <div className="user-profile-display-name">
-                    {selectedUser.displayName}
+                    {liveSelectedUser.displayName}
                   </div>
                   <div className="user-profile-username-row">
                     <div className="user-profile-username">
-                      {selectedUser.username}
+                      {liveSelectedUser.username}
                     </div>
-                    {selectedUser.badge && selectedUser.badge !== 'User' && (
+                    {liveSelectedUser.badge && liveSelectedUser.badge !== 'User' && (
                       <span className="user-profile-badge">
-                        {selectedUser.badge}
+                        {liveSelectedUser.badge}
                       </span>
                     )}
                   </div>
@@ -283,11 +285,11 @@ const UserList = memo(function UserList({ onlineUsers, allMembers, currentUser, 
               ) : (
                 <div className="user-profile-username-row">
                   <div className="user-profile-display-name">
-                    {selectedUser.username}
+                    {liveSelectedUser?.username}
                   </div>
-                  {selectedUser.badge && selectedUser.badge !== 'User' && (
-                    <span className={`user-profile-badge badge-${selectedUser.badge.toLowerCase()}`}>
-                      {selectedUser.badge}
+                  {liveSelectedUser?.badge && liveSelectedUser.badge !== 'User' && (
+                    <span className={`user-profile-badge badge-${liveSelectedUser.badge.toLowerCase()}`}>
+                      {liveSelectedUser.badge}
                     </span>
                   )}
                 </div>
