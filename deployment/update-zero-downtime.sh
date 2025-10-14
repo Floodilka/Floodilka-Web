@@ -202,8 +202,8 @@ if ! node -e "require('./server.js')" 2>/dev/null; then
     echo -e "${YELLOW}⚠️  Предупреждение: Не удалось загрузить server.js для проверки${NC}"
 fi
 
-# Проверка/настройка PM2 cluster mode
-echo -e "${BLUE}🔄 Настройка PM2 cluster mode...${NC}"
+# Проверка/настройка PM2 mode (поддержка fork и cluster)
+echo -e "${BLUE}🔄 Настройка PM2...${NC}"
 
 # Копируем ecosystem config
 cp "$PROJECT_DIR/deployment/ecosystem.config.js" "$PROJECT_DIR/backend/"
@@ -212,23 +212,28 @@ chown $USER:$USER "$PROJECT_DIR/backend/ecosystem.config.js"
 # Проверяем текущий режим PM2
 CURRENT_MODE=$(sudo -u $USER pm2 list | grep floodilka-backend | awk '{print $6}' || echo "unknown")
 
-if [ "$CURRENT_MODE" == "fork" ] || [ "$CURRENT_MODE" == "unknown" ]; then
-    echo -e "${YELLOW}⚠️  Backend работает в fork mode. Переключаю в cluster...${NC}"
+# Определяем нужный режим из ecosystem.config.js
+DESIRED_MODE=$(grep "exec_mode:" "$PROJECT_DIR/backend/ecosystem.config.js" | sed "s/.*['\"]//g" | sed "s/['\"].*//g" | tr -d ' ')
+DESIRED_INSTANCES=$(grep "instances:" "$PROJECT_DIR/backend/ecosystem.config.js" | grep -o '[0-9]*' | head -1)
+
+echo -e "${BLUE}📊 Текущий режим: ${CURRENT_MODE}${NC}"
+echo -e "${BLUE}📊 Нужный режим: ${DESIRED_MODE} (${DESIRED_INSTANCES} instances)${NC}"
+
+if [ "$CURRENT_MODE" == "unknown" ] || [ "$CURRENT_MODE" != "$DESIRED_MODE" ]; then
+    echo -e "${YELLOW}⚠️  Переключение режима PM2: ${CURRENT_MODE} → ${DESIRED_MODE}${NC}"
     echo -e "${YELLOW}   Это вызовет кратковременный простой (~2-3 сек)${NC}"
 
     # Останавливаем старый инстанс
     sudo -u $USER pm2 delete floodilka-backend 2>/dev/null || true
 
-    # Запускаем через ecosystem
+    # Запускаем через ecosystem (учтет настройки fork/cluster из конфига)
     sudo -u $USER pm2 start ecosystem.config.js --env production
     sudo -u $USER pm2 save
 
-    echo -e "${GREEN}✓ PM2 cluster mode настроен${NC}"
+    echo -e "${GREEN}✓ PM2 настроен в режиме ${DESIRED_MODE}${NC}"
 else
-    # Уже в cluster mode - делаем graceful reload
-    # PM2 запустит новые инстансы, дождется их готовности,
-    # и только потом убьет старые - ZERO DOWNTIME!
-    echo -e "${BLUE}♻️  Graceful reload в cluster mode (zero downtime)...${NC}"
+    # Режим не изменился - делаем graceful reload
+    echo -e "${BLUE}♻️  Graceful reload (минимальный downtime)...${NC}"
     sudo -u $USER pm2 reload floodilka-backend --update-env
 fi
 
