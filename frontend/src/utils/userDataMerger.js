@@ -11,17 +11,17 @@
  */
 export function getMergedUserData(sourceData, globalOnlineUsers) {
   if (!sourceData) return null;
-  
+
   const userId = sourceData.userId || sourceData.id || sourceData._id;
-  
+
   // Если нет userId, возвращаем исходные данные
   if (!userId) return sourceData;
-  
+
   // Ищем актуальные данные в globalOnlineUsers
-  const onlineUser = globalOnlineUsers.find(u => 
+  const onlineUser = globalOnlineUsers.find(u =>
     (u.userId || u.id || u._id) === userId
   );
-  
+
   // Если пользователь онлайн, используем актуальные данные
   if (onlineUser) {
     return {
@@ -32,7 +32,7 @@ export function getMergedUserData(sourceData, globalOnlineUsers) {
       badgeTooltip: onlineUser.badgeTooltip
     };
   }
-  
+
   // Если оффлайн, возвращаем исходные данные
   return sourceData;
 }
@@ -46,7 +46,7 @@ export function getMergedUserData(sourceData, globalOnlineUsers) {
 export function mergeMessagesWithLiveUsers(messages, globalOnlineUsers) {
   if (!messages || !Array.isArray(messages)) return messages;
   if (!globalOnlineUsers || !Array.isArray(globalOnlineUsers)) return messages;
-  
+
   return messages.map(message => {
     const mergedData = getMergedUserData(message, globalOnlineUsers);
     return mergedData || message;

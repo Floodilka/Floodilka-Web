@@ -5,6 +5,8 @@ import './UserList.css';
 import FriendActionButton from './FriendActionButton';
 import api from '../services/api';
 import { useLiveUser } from '../hooks/useLiveUser';
+import { useGlobalUsers } from '../context/GlobalUsersContext';
+import { getMergedUserData } from '../utils/userDataMerger';
 
 const BACKEND_URL = window.location.hostname === 'localhost'
   ? 'http://localhost:3001'
@@ -12,6 +14,7 @@ const BACKEND_URL = window.location.hostname === 'localhost'
 
 const UserList = memo(function UserList({ onlineUsers, allMembers, currentUser, currentServer, onMessageSent }) {
   const navigate = useNavigate();
+  const { globalOnlineUsers } = useGlobalUsers();
   const [selectedUser, setSelectedUser] = useState(null);
   const liveSelectedUser = useLiveUser(selectedUser);
   const [profilePosition, setProfilePosition] = useState({ top: 0, left: 0 });
@@ -46,12 +49,16 @@ const UserList = memo(function UserList({ onlineUsers, allMembers, currentUser, 
     return map;
   }, [onlineUsers]);
 
-  // Мемоизируем разделение участников на онлайн и оффлайн
+  // Мемоизируем разделение участников на онлайн и оффлайн с актуальными данными
   const { onlineMembers, offlineMembers } = useMemo(() => {
-    const online = allMembers.filter(member => onlineUsersMap.has(member.id));
-    const offline = allMembers.filter(member => !onlineUsersMap.has(member.id));
+    const online = allMembers
+      .filter(member => onlineUsersMap.has(member.id))
+      .map(member => getMergedUserData(member, globalOnlineUsers) || member);
+    const offline = allMembers
+      .filter(member => !onlineUsersMap.has(member.id))
+      .map(member => getMergedUserData(member, globalOnlineUsers) || member);
     return { onlineMembers: online, offlineMembers: offline };
-  }, [allMembers, onlineUsersMap]);
+  }, [allMembers, onlineUsersMap, globalOnlineUsers]);
 
   const handleUserClick = async (user, event) => {
     const rect = event.currentTarget.getBoundingClientRect();

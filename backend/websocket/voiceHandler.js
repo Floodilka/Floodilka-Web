@@ -100,7 +100,7 @@ class VoiceHandler {
 
       io.emit(SOCKET_EVENTS.VOICE_CHANNELS_UPDATE, voiceChannelsData);
       io.emit(SOCKET_EVENTS.SCREEN_SHARING_UPDATE, screenSharingData);
-      
+
       logger.debug('📡 Broadcast voice channel users update (forced)');
     } catch (error) {
       logger.error('Ошибка при broadcast voice users:', error);
