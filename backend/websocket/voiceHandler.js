@@ -70,6 +70,37 @@ class VoiceHandler {
     }
   }
 
+  // Static метод для broadcast без digest проверки (для форсированных обновлений)
+  static broadcastVoiceChannelUsersStatic(io) {
+    const voiceChannelsData = {};
+
+    voiceUsers.forEach((users, channelId) => {
+      voiceChannelsData[channelId] = Array.from(users.entries()).map(([id, data]) => ({
+        id,
+        username: data.username,
+        avatar: data.avatar,
+        badge: data.badge,
+        badgeTooltip: data.badgeTooltip,
+        displayName: data.displayName,
+        userId: data.userId,
+        isMuted: data.isMuted,
+        isDeafened: data.isDeafened
+      }));
+    });
+
+    const screenSharingData = {};
+    screenSharingUsers.forEach((channelSharing, channelId) => {
+      screenSharingData[channelId] = Array.from(channelSharing.entries()).map(([socketId, data]) => ({
+        socketId,
+        username: data.username,
+        userId: data.userId
+      }));
+    });
+
+    io.emit(SOCKET_EVENTS.VOICE_CHANNELS_UPDATE, voiceChannelsData);
+    io.emit(SOCKET_EVENTS.SCREEN_SHARING_UPDATE, screenSharingData);
+  }
+
   logVoiceEvent(action, socket, channelId, userData = {}) {
     if (!config.voice?.logJoinLeave) {
       return;
@@ -438,3 +469,4 @@ class VoiceHandler {
 }
 
 module.exports = VoiceHandler;
+module.exports.voiceUsers = voiceUsers;

@@ -290,17 +290,36 @@ router.post('/avatar', upload.single('avatar'), async (req, res) => {
     if (io) {
       const { SOCKET_EVENTS } = require('../constants/events');
       const { globalOnlineUsers } = require('../websocket/serverHandler');
-
+      const { voiceUsers } = require('../websocket/voiceHandler');
+      
+      const userId = user._id.toString();
+      
       // Обновить данные в globalOnlineUsers если пользователь онлайн
-      if (globalOnlineUsers.has(user._id.toString())) {
-        const userData = globalOnlineUsers.get(user._id.toString());
+      if (globalOnlineUsers.has(userId)) {
+        const userData = globalOnlineUsers.get(userId);
         userData.avatar = user.avatar;
-        globalOnlineUsers.set(user._id.toString(), userData);
-
+        globalOnlineUsers.set(userId, userData);
+        
         // Broadcast обновление всем
         io.emit(SOCKET_EVENTS.GLOBAL_USERS_UPDATE, {
           users: Array.from(globalOnlineUsers.values())
         });
+      }
+      
+      // Также обновить в voiceUsers для всех голосовых каналов
+      voiceUsers.forEach((channelUsers, channelId) => {
+        channelUsers.forEach((userData, socketId) => {
+          if (userData.userId === userId) {
+            userData.avatar = user.avatar;
+            channelUsers.set(socketId, userData);
+          }
+        });
+      });
+      
+      // Broadcast обновление голосовых каналов
+      const VoiceHandler = require('../websocket/voiceHandler');
+      if (VoiceHandler.broadcastVoiceChannelUsersStatic) {
+        VoiceHandler.broadcastVoiceChannelUsersStatic(io);
       }
     }
 
@@ -349,17 +368,36 @@ router.patch('/displayname', async (req, res) => {
     if (io) {
       const { SOCKET_EVENTS } = require('../constants/events');
       const { globalOnlineUsers } = require('../websocket/serverHandler');
-
+      const { voiceUsers } = require('../websocket/voiceHandler');
+      
+      const userId = user._id.toString();
+      
       // Обновить данные в globalOnlineUsers если пользователь онлайн
-      if (globalOnlineUsers.has(user._id.toString())) {
-        const userData = globalOnlineUsers.get(user._id.toString());
+      if (globalOnlineUsers.has(userId)) {
+        const userData = globalOnlineUsers.get(userId);
         userData.displayName = user.displayName;
-        globalOnlineUsers.set(user._id.toString(), userData);
-
+        globalOnlineUsers.set(userId, userData);
+        
         // Broadcast обновление всем
         io.emit(SOCKET_EVENTS.GLOBAL_USERS_UPDATE, {
           users: Array.from(globalOnlineUsers.values())
         });
+      }
+      
+      // Также обновить в voiceUsers для всех голосовых каналов
+      voiceUsers.forEach((channelUsers, channelId) => {
+        channelUsers.forEach((userData, socketId) => {
+          if (userData.userId === userId) {
+            userData.displayName = user.displayName;
+            channelUsers.set(socketId, userData);
+          }
+        });
+      });
+      
+      // Broadcast обновление голосовых каналов
+      const VoiceHandler = require('../websocket/voiceHandler');
+      if (VoiceHandler.broadcastVoiceChannelUsersStatic) {
+        VoiceHandler.broadcastVoiceChannelUsersStatic(io);
       }
     }
 
