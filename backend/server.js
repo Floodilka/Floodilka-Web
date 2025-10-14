@@ -37,6 +37,14 @@ const app = express();
 let server;
 let serverProtocol = 'http';
 
+// Настройка разрешенных origins для CORS
+const allowedOrigins = [
+  config.frontendUrl,
+  'https://floodilka.com',
+  'https://floodilka.ru',
+  'http://localhost:3000' // для локальной разработки
+];
+
 if (config.tls.enabled) {
   try {
     const tlsOptions = {
@@ -64,7 +72,11 @@ if (config.tls.enabled) {
 }
 
 const io = socketIo(server, {
-  cors: config.corsOptions,
+  cors: {
+    origin: allowedOrigins,
+    methods: ['GET', 'POST'],
+    credentials: true
+  },
   transports: ['websocket', 'polling'],
   maxHttpBufferSize: 1e6,
   pingInterval: 20000,
@@ -116,8 +128,20 @@ app.use(helmet({
   crossOriginResourcePolicy: { policy: 'cross-origin' }
 }));
 app.use(compression());
+
+// Настройка CORS для поддержки нескольких доменов
 app.use(cors({
-  origin: config.frontendUrl,
+  origin: (origin, callback) => {
+    // Разрешить запросы без origin (например, Postman)
+    if (!origin) return callback(null, true);
+
+    if (allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      logger.warn(`CORS блокировка для origin: ${origin}`);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true
 }));
 app.use(cookieParser(config.cookieSecret || undefined));
