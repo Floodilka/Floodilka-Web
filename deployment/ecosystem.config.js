@@ -10,9 +10,9 @@ module.exports = {
     script: './server.js',
     cwd: '/var/www/floodilka/backend',
 
-    // Cluster mode для zero-downtime reload
-    instances: 2, // 2 инстанса для минимального потребления памяти
-    exec_mode: 'cluster',
+    // Fork mode - один процесс, проще для WebSocket без Redis
+    instances: 1,
+    exec_mode: 'fork',
 
     // Автоматические параметры
     max_memory_restart: '500M',
