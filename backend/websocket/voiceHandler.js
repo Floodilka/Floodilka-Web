@@ -7,6 +7,9 @@ const { recordAuditEvent } = require('../utils/auditLogger');
 const voiceUsers = new Map(); // channelId -> Map(socketId -> userData)
 // Map для отслеживания демонстраций экрана
 const screenSharingUsers = new Map(); // channelId -> Map(socketId -> { username, userId })
+// Глобальная Map для отслеживания активных голосовых соединений по userId
+// Один пользователь может быть только в одном голосовом канале одновременно
+const activeVoiceConnections = new Map(); // userId -> { channelId, socketId, username }
 
 class VoiceHandler {
   constructor(io) {
@@ -134,12 +137,71 @@ class VoiceHandler {
 
   handleVoiceJoin(socket) {
     socket.on(SOCKET_EVENTS.VOICE_JOIN, ({ channelId, username, avatar, badge, badgeTooltip, displayName, userId }) => {
-      // Получить или создать Map пользователей для голосового канала
+      // ГЛОБАЛЬНАЯ ПРОВЕРКА: Один пользователь может быть только в одном голосовом канале
+      // Проверяем, находится ли пользователь уже в каком-либо голосовом канале
+      const existingConnection = activeVoiceConnections.get(userId);
+
+      if (existingConnection && existingConnection.socketId !== socket.id) {
+        const oldChannelId = existingConnection.channelId;
+        const oldSocketId = existingConnection.socketId;
+
+        logger.debug(`⚠️ Пользователь ${username} (${userId}) уже в голосовом канале ${oldChannelId}, отключаем старое соединение ${oldSocketId}`);
+
+        // Удаляем из глобального реестра (будет перезаписано новым соединением позже)
+        activeVoiceConnections.delete(userId);
+
+        // Удаляем старое соединение из старого канала
+        const oldChannelUsers = voiceUsers.get(oldChannelId);
+        if (oldChannelUsers) {
+          oldChannelUsers.delete(oldSocketId);
+          if (oldChannelUsers.size === 0) {
+            voiceUsers.delete(oldChannelId);
+          }
+        }
+
+        // Удаляем демонстрацию экрана, если была
+        const oldChannelScreenSharing = screenSharingUsers.get(oldChannelId);
+        if (oldChannelScreenSharing && oldChannelScreenSharing.has(oldSocketId)) {
+          oldChannelScreenSharing.delete(oldSocketId);
+          if (oldChannelScreenSharing.size === 0) {
+            screenSharingUsers.delete(oldChannelId);
+          }
+          this.io.to(oldChannelId).emit(SOCKET_EVENTS.SCREEN_SHARE_STOP, { id: oldSocketId });
+        }
+
+        // Уведомляем всех в старом канале что пользователь покинул его
+        this.io.to(oldChannelId).emit(SOCKET_EVENTS.VOICE_USER_LEFT, { id: oldSocketId });
+
+        // Пытаемся найти старый socket и выполнить на нем leave
+        const oldSocket = this.io.sockets.sockets.get(oldSocketId);
+        if (oldSocket) {
+          oldSocket.leave(oldChannelId);
+          oldSocket.currentVoiceChannel = null;
+        }
+      }
+
+      // Получить или создать Map пользователей для нового голосового канала
       let users = voiceUsers.get(channelId);
       if (!users) {
         users = new Map();
         voiceUsers.set(channelId, users);
       }
+
+      // Дополнительная проверка: если в текущем канале есть этот пользователь с другим socketId
+      // (например, быстрое переподключение с той же вкладки)
+      let duplicateInChannel = null;
+      users.forEach((userData, socketId) => {
+        if (userData.userId === userId && socketId !== socket.id) {
+          duplicateInChannel = socketId;
+        }
+      });
+
+      if (duplicateInChannel) {
+        logger.debug(`⚠️ Дубликат в канале ${channelId}: ${duplicateInChannel}, удаляем`);
+        users.delete(duplicateInChannel);
+        this.io.to(channelId).emit(SOCKET_EVENTS.VOICE_USER_LEFT, { id: duplicateInChannel });
+      }
+
       users.set(socket.id, {
         username,
         avatar,
@@ -154,6 +216,13 @@ class VoiceHandler {
       // Присоединиться к комнате
       socket.join(channelId);
       socket.currentVoiceChannel = channelId;
+
+      // Регистрируем активное голосовое соединение глобально
+      activeVoiceConnections.set(userId, {
+        channelId,
+        socketId: socket.id,
+        username
+      });
 
       // Получить список других пользователей в канале
       const otherUsers = Array.from(users.entries())
@@ -229,6 +298,11 @@ class VoiceHandler {
         users.delete(socket.id);
         socket.leave(channelId);
         socket.to(channelId).emit(SOCKET_EVENTS.VOICE_USER_LEFT, { id: socket.id });
+
+        // Удаляем из глобального реестра активных соединений
+        if (userData && userData.userId) {
+          activeVoiceConnections.delete(userData.userId);
+        }
 
         // Обновить сайдбар у всех
         this.broadcastVoiceChannelUsers();
@@ -427,6 +501,12 @@ class VoiceHandler {
           const userData = users.get(socket.id) || null;
           users.delete(socket.id);
           socket.to(socket.currentVoiceChannel).emit(SOCKET_EVENTS.VOICE_USER_LEFT, { id: socket.id });
+
+          // Удаляем из глобального реестра активных соединений
+          if (userData && userData.userId) {
+            activeVoiceConnections.delete(userData.userId);
+          }
+
           this.broadcastVoiceChannelUsers();
 
           if (userData) {

@@ -266,6 +266,11 @@ function VoiceChannel({
   useEffect(() => {
     if (lastError) {
       console.error('Voice engine error:', lastError);
+
+      // Если это ошибка дублирования соединения, показываем понятное уведомление
+      if (lastError.isDuplicateConnection) {
+        alert('⚠️ Вы подключились к голосовому каналу с другой вкладки.\n\nСоединение на этой вкладке было автоматически закрыто.');
+      }
     }
   }, [lastError]);
 

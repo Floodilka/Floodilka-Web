@@ -354,6 +354,22 @@ export class VoiceEngine {
   }
 
   handleSocketUserLeft({ id }) {
+    // ВАЖНО: Если получили событие об отключении самого себя, значит мы были вытеснены другой вкладкой
+    if (id === this.socket.id) {
+      console.warn('⚠️ Обнаружено дублирование соединения - эта вкладка была вытеснена новой');
+
+      // Уведомляем пользователя о причине отключения
+      const duplicateConnectionError = new Error('Вы подключились к голосовому каналу с другой вкладки. Это соединение было закрыто.');
+      duplicateConnectionError.isDuplicateConnection = true;
+      this.callbacks.onError(duplicateConnectionError);
+
+      // Корректно завершаем работу этого экземпляра VoiceEngine
+      this.stop().catch(err => {
+        console.error('Ошибка при завершении вытесненного соединения:', err);
+      });
+      return;
+    }
+
     this.callbacks.onUserLeft(id);
     this.teardownPeer(id);
   }
