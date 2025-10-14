@@ -276,7 +276,7 @@ const gracefulShutdown = (signal) => {
   const mongoose = require('mongoose');
   mongoose.connection.close().then(() => {
     logger.info('MongoDB соединение закрыто');
-    
+
     server.close(() => {
       clearTimeout(forceExit);
       logger.info('HTTP сервер остановлен');
