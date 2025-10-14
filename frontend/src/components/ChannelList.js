@@ -164,7 +164,7 @@ function ChannelList({ channels, currentTextChannel, currentVoiceChannel, voiceC
     setHoveredScreenSharingUser(null);
 
     // Получаем информацию о пользователе из screenSharingUsers
-    const channelScreenSharing = screenSharingUsers[currentVoiceChannel?.id] || new Map();
+    const channelScreenSharing = screenSharingUsers?.[currentVoiceChannel?.id] || new Map();
     let socketId = null;
 
     // Ищем socketId по userId (теперь ключом является userId)
@@ -651,8 +651,8 @@ function ChannelList({ channels, currentTextChannel, currentVoiceChannel, voiceC
 
         <div className="channels">
           {voiceChannels.map(channel => {
-            const usersInChannel = voiceChannelUsers[channel.id] || [];
-            const channelSpeaking = speakingUsers[channel.id] || new Set();
+            const usersInChannel = voiceChannelUsers?.[channel.id] || [];
+            const channelSpeaking = speakingUsers?.[channel.id] || new Set();
             const isCurrentInChannel = currentVoiceChannel?.id === channel.id;
 
             // Объединяем текущего пользователя с другими если он в этом канале
@@ -695,7 +695,7 @@ function ChannelList({ channels, currentTextChannel, currentVoiceChannel, voiceC
                         : channelSpeaking.has(user.id);
 
                       // Проверяем, демонстрирует ли пользователь экран
-                      const channelScreenSharing = screenSharingUsers[channel.id] || new Map();
+                      const channelScreenSharing = screenSharingUsers?.[channel.id] || new Map();
                       const isUserScreenSharing = user.id === 'me'
                         ? isScreenSharing
                         : channelScreenSharing.has(user.userId || user.id);
@@ -782,7 +782,7 @@ function ChannelList({ channels, currentTextChannel, currentVoiceChannel, voiceC
         isMuted={isMuted}
         isDeafened={isDeafened}
         isInVoice={isInVoice}
-        isSpeaking={currentVoiceChannel && speakingUsers[currentVoiceChannel.id]?.has('me')}
+        isSpeaking={currentVoiceChannel && speakingUsers?.[currentVoiceChannel.id]?.has('me')}
         isScreenSharing={isScreenSharing}
         onToggleMute={onToggleMute}
         onToggleDeafen={onToggleDeafen}
