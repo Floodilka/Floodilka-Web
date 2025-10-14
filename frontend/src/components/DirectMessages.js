@@ -20,6 +20,20 @@ const BACKEND_URL = window.location.hostname === 'localhost'
   ? 'http://localhost:3001'
   : `${window.location.protocol}//${window.location.hostname}`;
 
+const buildAuthHeaders = (extra = {}) => {
+  let token = null;
+  try {
+    token = localStorage.getItem('token');
+  } catch (err) {
+    // storage может быть недоступным
+  }
+
+  return {
+    ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+    ...extra
+  };
+};
+
 function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser, onAutoSelectComplete, onUnreadDMsUpdate, isMuted, isDeafened, isInVoice, isSpeaking, onToggleMute, onToggleDeafen, onDisconnect, onDMUserSelect, showOnlyList, showOnlyChat }) {
   const navigate = useNavigate();
   const { globalOnlineUsers } = useGlobalUsers();
@@ -358,15 +372,10 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
 
     setSendingDirectMessage(true);
     try {
-      const token = localStorage.getItem('token');
-      if (!token) throw new Error('Токен не найден');
-
       const response = await fetch(`${BACKEND_URL}/api/direct-messages/send`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
+        headers: buildAuthHeaders({ 'Content-Type': 'application/json' }),
+        credentials: 'include',
         body: JSON.stringify({
           receiverId: receiverId,
           content: messageText.trim()
@@ -668,9 +677,6 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
     setSendingMessage(true);
 
     try {
-      const token = localStorage.getItem('token');
-      if (!token) return;
-
       let attachments = [];
 
       // Если есть файлы, сначала загружаем их
@@ -682,9 +688,8 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
 
         const uploadResponse = await fetch(`${BACKEND_URL}/api/messages/upload`, {
           method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`
-          },
+          headers: buildAuthHeaders(),
+          credentials: 'include',
           body: formData
         });
 
@@ -698,10 +703,10 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
 
       const response = await fetch(`${BACKEND_URL}/api/direct-messages/send`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
+        headers: buildAuthHeaders({
+          'Content-Type': 'application/json'
+        }),
+        credentials: 'include',
         body: JSON.stringify({
           receiverId: currentDM._id,
           content: inputValue.trim(),
@@ -1216,14 +1221,10 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
     setError('');
 
     try {
-      const token = localStorage.getItem('token');
-      if (!token) return;
-
       console.log('📥 Загружаем список разговоров...');
       const response = await fetch(`${BACKEND_URL}/api/direct-messages/conversations`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+        headers: buildAuthHeaders(),
+        credentials: 'include'
       });
 
       if (!response.ok) {
@@ -1265,9 +1266,6 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
     setShowBlockDialog(false);
     setBlockReason('');
     try {
-      const token = localStorage.getItem('token');
-      if (!token) return;
-
       console.log('📥 Загружаем сообщения с пользователем:', userId);
 
       // Присоединяемся к комнате DM для получения обновлений в реальном времени
@@ -1283,9 +1281,8 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
       }
 
       const response = await fetch(`${BACKEND_URL}/api/direct-messages/conversation/${userId}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+        headers: buildAuthHeaders(),
+        credentials: 'include'
       });
 
       if (!response.ok) {
@@ -1391,32 +1388,26 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
         loadMessagesWithUser(conversation._id);
 
         if (conversation.unreadCount > 0) {
-          try {
-            const token = localStorage.getItem('token');
-            if (token) {
-              console.log('📖 Отмечаем сообщения как прочитанные для пользователя:', conversation._id);
-              fetch(`${BACKEND_URL}/api/direct-messages/read/${conversation._id}`, {
-                method: 'PUT',
-                headers: {
-                  'Authorization': `Bearer ${token}`
-                }
-              }).then(response => {
-                if (response.ok) {
-                  setDirectMessages(prev => prev.map(directMsg => {
-                    if (directMsg._id === conversation._id) {
-                      return { ...directMsg, unreadCount: 0 };
-                    }
-                    return directMsg;
-                  }));
-                  console.log('✅ Сообщения отмечены как прочитанные');
-                }
-              }).catch(err => {
-                console.error('❌ Ошибка при отметке сообщений как прочитанных:', err);
-              });
-            }
-          } catch (err) {
-            console.error('❌ Ошибка при отметке сообщений как прочитанных:', err);
-          }
+          console.log('📖 Отмечаем сообщения как прочитанные для пользователя:', conversation._id);
+          fetch(`${BACKEND_URL}/api/direct-messages/read/${conversation._id}`, {
+            method: 'PUT',
+            headers: buildAuthHeaders(),
+            credentials: 'include'
+          })
+            .then(response => {
+              if (response.ok) {
+                setDirectMessages(prev => prev.map(directMsg => {
+                  if (directMsg._id === conversation._id) {
+                    return { ...directMsg, unreadCount: 0 };
+                  }
+                  return directMsg;
+                }));
+                console.log('✅ Сообщения отмечены как прочитанные');
+              }
+            })
+            .catch(err => {
+              console.error('❌ Ошибка при отметке сообщений как прочитанных:', err);
+            });
         }
 
         if (onAutoSelectComplete) {
@@ -1449,9 +1440,8 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
             console.log('📖 Отмечаем сообщения как прочитанные для пользователя:', autoSelectUser._id);
             fetch(`${BACKEND_URL}/api/direct-messages/read/${autoSelectUser._id}`, {
               method: 'PUT',
-              headers: {
-                'Authorization': `Bearer ${token}`
-              }
+              headers: buildAuthHeaders(),
+              credentials: 'include'
             }).then(response => {
               if (response.ok) {
                 setDirectMessages(prev => prev.map(directMsg => {

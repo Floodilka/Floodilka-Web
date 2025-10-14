@@ -96,13 +96,15 @@ const ServerSidebar = memo(function ServerSidebar({ servers, currentServer, onSe
     try {
       const code = extractInviteCode(inviteLink);
       const token = localStorage.getItem('token');
+      const headers = {
+        'Content-Type': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+      };
 
       const response = await fetch(`${BACKEND_URL}/api/servers/join/${code}`, {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
+        headers,
+        credentials: 'include'
       });
 
       const data = await response.json();
@@ -318,4 +320,3 @@ const ServerSidebar = memo(function ServerSidebar({ servers, currentServer, onSe
 });
 
 export default ServerSidebar;
-

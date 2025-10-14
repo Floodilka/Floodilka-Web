@@ -313,12 +313,12 @@ function ChannelList({ channels, currentTextChannel, currentVoiceChannel, voiceC
     let generatedCode = '';
     try {
       const token = localStorage.getItem('token');
+      const authHeaders = token ? { 'Authorization': `Bearer ${token}` } : {};
 
       // Сначала попробуем загрузить существующие инвайты
       const getResponse = await fetch(`${BACKEND_URL}/api/servers/${currentServer._id}/invites`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+        headers: authHeaders,
+        credentials: 'include'
       });
 
       if (getResponse.ok) {
@@ -353,9 +353,10 @@ function ChannelList({ channels, currentTextChannel, currentVoiceChannel, voiceC
       const createResponse = await fetch(`${BACKEND_URL}/api/servers/${currentServer._id}/invites`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
+          ...authHeaders,
           'Content-Type': 'application/json'
         },
+        credentials: 'include',
         body: JSON.stringify({})
       });
 

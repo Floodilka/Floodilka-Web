@@ -4,6 +4,10 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const User = require('../models/User');
+const config = require('../config/env');
+const { authenticateToken } = require('../middleware/auth');
+const { setAuthCookie, clearAuthCookie } = require('../utils/authCookies');
+const { recordAuthEvent } = require('../utils/auditLogger');
 
 const router = express.Router();
 
@@ -40,8 +44,29 @@ const upload = multer({
   fileFilter: fileFilter
 });
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
-const JWT_EXPIRES_IN = '7d';
+const signToken = (user) => jwt.sign(
+  { userId: user._id, username: user.username },
+  config.jwtSecret,
+  { expiresIn: config.jwtExpiresIn }
+);
+
+const sendAuthResponse = (res, { user, token }) => {
+  setAuthCookie(res, token);
+
+  res.json({
+    token,
+    user: {
+      id: user._id,
+      username: user.username,
+      displayName: user.displayName,
+      email: user.email,
+      avatar: user.avatar,
+      badge: user.badge,
+      badgeTooltip: user.badgeTooltip,
+      blockedUsers: user.blockedUsers || []
+    }
+  });
+};
 
 // Регистрация
 router.post('/register', async (req, res) => {
@@ -87,24 +112,19 @@ router.post('/register', async (req, res) => {
     await user.save();
 
     // Создание токена
-    const token = jwt.sign(
-      { userId: user._id, username: user.username },
-      JWT_SECRET,
-      { expiresIn: JWT_EXPIRES_IN }
-    );
+    const token = signToken(user);
 
-    res.status(201).json({
-      token,
-      user: {
-        id: user._id,
-        username: user.username,
-        displayName: user.displayName,
-        email: user.email,
-        avatar: user.avatar,
-        badge: user.badge,
-        badgeTooltip: user.badgeTooltip
-      }
+    recordAuthEvent({
+      action: 'register',
+      userId: user._id.toString(),
+      username: user.username,
+      ip: req.ip,
+      userAgent: req.get('user-agent') || 'unknown',
+      metadata: { method: 'password' }
     });
+
+    res.status(201);
+    sendAuthResponse(res, { user, token });
   } catch (error) {
     console.error('Ошибка регистрации:', error);
     res.status(500).json({ error: 'Ошибка сервера' });
@@ -134,29 +154,22 @@ router.post('/login', async (req, res) => {
     }
 
     // Создание токена
-    const token = jwt.sign(
-      { userId: user._id, username: user.username },
-      JWT_SECRET,
-      { expiresIn: JWT_EXPIRES_IN }
-    );
+    const token = signToken(user);
 
     // Обновление статуса
     user.status = 'online';
     await user.save();
 
-    res.json({
-      token,
-      user: {
-        id: user._id,
-        username: user.username,
-        displayName: user.displayName,
-        email: user.email,
-        avatar: user.avatar,
-        badge: user.badge,
-        badgeTooltip: user.badgeTooltip,
-        blockedUsers: user.blockedUsers || []
-      }
+    recordAuthEvent({
+      action: 'login',
+      userId: user._id.toString(),
+      username: user.username,
+      ip: req.ip,
+      userAgent: req.get('user-agent') || 'unknown',
+      metadata: { method: 'password' }
     });
+
+    sendAuthResponse(res, { user, token });
   } catch (error) {
     console.error('Ошибка логина:', error);
     res.status(500).json({ error: 'Ошибка сервера' });
@@ -164,16 +177,9 @@ router.post('/login', async (req, res) => {
 });
 
 // Получить текущего пользователя
-router.get('/me', async (req, res) => {
+router.get('/me', authenticateToken, async (req, res) => {
   try {
-    const token = req.headers.authorization?.split(' ')[1];
-
-    if (!token) {
-      return res.status(401).json({ error: 'Не авторизован' });
-    }
-
-    const decoded = jwt.verify(token, JWT_SECRET);
-    const user = await User.findById(decoded.userId).select('-password');
+    const user = await User.findById(req.user.id).select('-password');
 
     if (!user) {
       return res.status(404).json({ error: 'Пользователь не найден' });
@@ -192,7 +198,33 @@ router.get('/me', async (req, res) => {
     });
   } catch (error) {
     console.error('Ошибка получения пользователя:', error);
-    res.status(401).json({ error: 'Неверный токен' });
+    res.status(401).json({ error: 'Не авторизован' });
+  }
+});
+
+// Logout
+router.post('/logout', authenticateToken, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id);
+    if (user) {
+      user.status = 'offline';
+      await user.save();
+    }
+
+    clearAuthCookie(res);
+
+    recordAuthEvent({
+      action: 'logout',
+      userId: req.user.id,
+      username: req.user.username,
+      ip: req.ip,
+      userAgent: req.get('user-agent') || 'unknown'
+    });
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Ошибка выхода из системы:', error);
+    res.status(500).json({ error: 'Ошибка сервера' });
   }
 });
 
@@ -684,4 +716,3 @@ router.get('/users/online/json', async (req, res) => {
 });
 
 module.exports = router;
-

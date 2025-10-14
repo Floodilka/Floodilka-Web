@@ -376,12 +376,13 @@ function Chat({ channel, messages, username, user, currentServer, channels = [],
       }
 
       try {
+        const token = localStorage.getItem('token');
+        const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
         const response = await fetch(
           `${BACKEND_URL}/api/roles/servers/${currentServer._id}/users/${user.id}/roles`,
           {
-            headers: {
-              'Authorization': `Bearer ${localStorage.getItem('token')}`
-            }
+            headers,
+            credentials: 'include'
           }
         );
 
@@ -478,14 +479,15 @@ function Chat({ channel, messages, username, user, currentServer, channels = [],
     setSendingMessage(true);
     try {
       const token = localStorage.getItem('token');
-      if (!token) throw new Error('Токен не найден');
+      const headers = {
+        'Content-Type': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+      };
 
       const response = await fetch(`${BACKEND_URL}/api/direct-messages/send`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
+        headers,
+        credentials: 'include',
         body: JSON.stringify({
           receiverId: selectedUser.userId || selectedUser.id,
           content: messageText.trim()

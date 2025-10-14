@@ -1,12 +1,15 @@
 const express = require('express');
 const http = require('http');
+const https = require('https');
 const socketIo = require('socket.io');
+const fs = require('fs');
 const cors = require('cors');
 const compression = require('compression');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const Redis = require('ioredis');
 const { createAdapter } = require('@socket.io/redis-adapter');
+const cookieParser = require('cookie-parser');
 
 // Конфигурация
 const config = require('./config/env');
@@ -24,13 +27,42 @@ const directMessageRoutes = require('./routes/directMessages');
 const messageRoutes = require('./routes/messages');
 const friendRoutes = require('./routes/friends');
 const userRoutes = require('./routes/users');
+const voiceRoutes = require('./routes/voice');
 
 // WebSocket
 const WebSocketManager = require('./websocket');
 
 // Инициализация приложения
 const app = express();
-const server = http.createServer(app);
+let server;
+let serverProtocol = 'http';
+
+if (config.tls.enabled) {
+  try {
+    const tlsOptions = {
+      key: fs.readFileSync(config.tls.keyPath),
+      cert: fs.readFileSync(config.tls.certPath)
+    };
+
+    if (config.tls.caPath) {
+      tlsOptions.ca = fs.readFileSync(config.tls.caPath);
+    }
+
+    if (config.tls.passphrase) {
+      tlsOptions.passphrase = config.tls.passphrase;
+    }
+
+    server = https.createServer(tlsOptions, app);
+    serverProtocol = 'https';
+    logger.info('🔐 HTTPS режим включен');
+  } catch (error) {
+    logger.error('⚠️  Не удалось инициализировать HTTPS, используется HTTP:', error);
+    server = http.createServer(app);
+  }
+} else {
+  server = http.createServer(app);
+}
+
 const io = socketIo(server, {
   cors: config.corsOptions,
   transports: ['websocket', 'polling'],
@@ -88,6 +120,7 @@ app.use(cors({
   origin: config.frontendUrl,
   credentials: true
 }));
+app.use(cookieParser(config.cookieSecret || undefined));
 app.use(express.json({ limit: '2mb' }));
 app.use(express.urlencoded({ limit: '2mb', extended: true }));
 
@@ -137,6 +170,7 @@ app.use('/api/direct-messages', directMessageRoutes);
 app.use('/api/messages', messageRoutes);
 app.use('/api/friends', friendRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/voice', voiceRoutes);
 
 // Health check endpoint
 app.get('/health', (req, res) => {
@@ -165,6 +199,7 @@ wsManager.initialize();
 // Запуск сервера
 server.listen(config.port, () => {
   logger.info(`🚀 Сервер запущен на порту ${config.port}`);
+  logger.info(`🔒 Протокол: ${serverProtocol.toUpperCase()}`);
   logger.info(`📝 Режим: ${config.nodeEnv}`);
   logger.info(`🌐 CORS настроен для: ${config.frontendUrl}`);
   logger.info(`✅ Новая архитектура загружена`);

@@ -17,51 +17,67 @@ export const AuthProvider = ({ children }) => {
   const [showAuthModal, setShowAuthModal] = useState(false);
 
   useEffect(() => {
-    // Проверка сохраненного токена при загрузке
-    const token = localStorage.getItem('token');
-    const savedUser = localStorage.getItem('user');
+    let isMounted = true;
 
-    if (token && savedUser) {
-      try {
-        const userData = JSON.parse(savedUser);
-        setUser(userData);
+    try {
+      const savedUser = localStorage.getItem('user');
+      if (savedUser) {
+        const parsed = JSON.parse(savedUser);
+        setUser(parsed);
         setShowAuthModal(false);
-
-        // Загружаем актуальные данные пользователя с сервера
-        apiService.getCurrentUser()
-          .then(currentUser => {
-            const updatedUser = {
-              ...userData,
-              ...currentUser,
-              blockedUsers: currentUser.blockedUsers || []
-            };
-            setUser(updatedUser);
-            localStorage.setItem('user', JSON.stringify(updatedUser));
-          })
-          .catch(err => {
-            console.error('Ошибка загрузки данных пользователя:', err);
-            // Если не удалось загрузить данные, используем сохраненные
-          });
-      } catch (err) {
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        setShowAuthModal(true);
       }
-    } else {
-      setShowAuthModal(true);
+    } catch (err) {
+      console.warn('Не удалось восстановить локального пользователя из storage', err);
+      localStorage.removeItem('user');
     }
-    setLoading(false);
+
+    apiService.getCurrentUser()
+      .then(currentUser => {
+        if (!isMounted) return;
+        const normalizedUser = {
+          ...currentUser,
+          blockedUsers: currentUser.blockedUsers || []
+        };
+        setUser(normalizedUser);
+        setShowAuthModal(false);
+        try {
+          localStorage.setItem('user', JSON.stringify(normalizedUser));
+        } catch (err) {
+          console.warn('Не удалось сохранить пользователя в storage', err);
+        }
+      })
+      .catch(err => {
+        if (!isMounted) return;
+        console.error('Ошибка загрузки данных пользователя:', err);
+        setUser(null);
+        setShowAuthModal(true);
+        localStorage.removeItem('user');
+        localStorage.removeItem('token');
+      })
+      .finally(() => {
+        if (isMounted) {
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const login = async (email, password) => {
     try {
       const data = await apiService.login(email, password);
 
-      localStorage.setItem('token', data.token);
-      localStorage.setItem('user', JSON.stringify(data.user));
-
       setUser(data.user);
       setShowAuthModal(false);
+
+      try {
+        localStorage.setItem('user', JSON.stringify(data.user));
+        localStorage.removeItem('token');
+      } catch (err) {
+        console.warn('Не удалось обновить пользователя в storage после логина', err);
+      }
 
       return data;
     } catch (error) {
@@ -73,11 +89,15 @@ export const AuthProvider = ({ children }) => {
     try {
       const data = await apiService.register(username, password, email);
 
-      localStorage.setItem('token', data.token);
-      localStorage.setItem('user', JSON.stringify(data.user));
-
       setUser(data.user);
       setShowAuthModal(false);
+
+      try {
+        localStorage.setItem('user', JSON.stringify(data.user));
+        localStorage.removeItem('token');
+      } catch (err) {
+        console.warn('Не удалось обновить пользователя в storage после регистрации', err);
+      }
 
       return data;
     } catch (error) {
@@ -85,11 +105,21 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const logout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    localStorage.removeItem('lastServerId');
-    localStorage.removeItem('lastChannelId');
+  const logout = async () => {
+    try {
+      await apiService.logout();
+    } catch (err) {
+      console.error('Ошибка при попытке выхода из системы:', err);
+    }
+
+    try {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      localStorage.removeItem('lastServerId');
+      localStorage.removeItem('lastChannelId');
+    } catch (err) {
+      console.warn('Не удалось очистить локальное хранилище при выходе', err);
+    }
 
     setUser(null);
     setShowAuthModal(true);
@@ -101,11 +131,15 @@ export const AuthProvider = ({ children }) => {
       ...updatedUser,
       blockedUsers: updatedUser.blockedUsers || prevUser?.blockedUsers || []
     }));
-    localStorage.setItem('user', JSON.stringify({
-      ...user,
-      ...updatedUser,
-      blockedUsers: updatedUser.blockedUsers || user?.blockedUsers || []
-    }));
+    try {
+      localStorage.setItem('user', JSON.stringify({
+        ...user,
+        ...updatedUser,
+        blockedUsers: updatedUser.blockedUsers || user?.blockedUsers || []
+      }));
+    } catch (err) {
+      console.warn('Не удалось обновить пользователя в storage', err);
+    }
   };
 
   const value = {
@@ -121,4 +155,3 @@ export const AuthProvider = ({ children }) => {
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
-

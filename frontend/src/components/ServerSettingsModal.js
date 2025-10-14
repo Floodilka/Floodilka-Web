@@ -65,10 +65,10 @@ function ServerSettingsModal({
 
     try {
       const token = localStorage.getItem('token');
+      const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
       const response = await fetch(`${BACKEND_URL}/api/servers/${server._id}/bans`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+        headers,
+        credentials: 'include'
       });
 
       if (!response.ok) {
@@ -167,11 +167,11 @@ function ServerSettingsModal({
 
     try {
       const token = localStorage.getItem('token');
+      const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
       const response = await fetch(`${BACKEND_URL}/api/servers/${server._id}/bans/${bannedUser.id}`, {
         method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+        headers,
+        credentials: 'include'
       });
 
       if (!response.ok) {

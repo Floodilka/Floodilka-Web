@@ -6,6 +6,20 @@ const BACKEND_URL = window.location.hostname === 'localhost'
   ? 'http://localhost:3001'
   : `${window.location.protocol}//${window.location.hostname}`;
 
+const buildAuthHeaders = (extra = {}) => {
+  let token = null;
+  try {
+    token = localStorage.getItem('token');
+  } catch (err) {
+    // storage недоступно
+  }
+
+  return {
+    ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+    ...extra
+  };
+};
+
 function UserSettingsModal({ user, onClose, onLogout, onAvatarUpdate }) {
   const [uploading, setUploading] = useState(false);
   const [isEditingDisplayName, setIsEditingDisplayName] = useState(false);
@@ -332,11 +346,9 @@ function UserSettingsModal({ user, onClose, onLogout, onAvatarUpdate }) {
   useEffect(() => {
     const fetchUserData = async () => {
       try {
-        const token = localStorage.getItem('token');
         const response = await fetch(`${BACKEND_URL}/api/auth/me`, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
+          headers: buildAuthHeaders(),
+          credentials: 'include'
         });
 
         if (response.ok) {
@@ -347,7 +359,11 @@ function UserSettingsModal({ user, onClose, onLogout, onAvatarUpdate }) {
           };
           setCurrentUser(updatedUser);
           // Обновить в localStorage
-          localStorage.setItem('user', JSON.stringify(updatedUser));
+          try {
+            localStorage.setItem('user', JSON.stringify(updatedUser));
+          } catch (err) {
+            console.warn('Не удалось обновить пользователя в storage из модального окна', err);
+          }
           if (onAvatarUpdate) {
             onAvatarUpdate(updatedUser);
           }
@@ -388,12 +404,10 @@ function UserSettingsModal({ user, onClose, onLogout, onAvatarUpdate }) {
       const formData = new FormData();
       formData.append('avatar', file);
 
-      const token = localStorage.getItem('token');
       const response = await fetch(`${BACKEND_URL}/api/auth/avatar`, {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        },
+        headers: buildAuthHeaders(),
+        credentials: 'include',
         body: formData
       });
 
@@ -409,7 +423,11 @@ function UserSettingsModal({ user, onClose, onLogout, onAvatarUpdate }) {
         avatar: data.avatar,
         blockedUsers: data.blockedUsers || currentUser.blockedUsers || []
       };
-      localStorage.setItem('user', JSON.stringify(updatedUser));
+      try {
+        localStorage.setItem('user', JSON.stringify(updatedUser));
+      } catch (err) {
+        console.warn('Не удалось сохранить обновленного пользователя после загрузки аватара', err);
+      }
       setCurrentUser(updatedUser);
 
       if (onAvatarUpdate) {
@@ -445,13 +463,10 @@ function UserSettingsModal({ user, onClose, onLogout, onAvatarUpdate }) {
     }
 
     try {
-      const token = localStorage.getItem('token');
       const response = await fetch(`${BACKEND_URL}/api/auth/displayname`, {
         method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
+        headers: buildAuthHeaders({ 'Content-Type': 'application/json' }),
+        credentials: 'include',
         body: JSON.stringify({ displayName: trimmedName })
       });
 
@@ -467,7 +482,11 @@ function UserSettingsModal({ user, onClose, onLogout, onAvatarUpdate }) {
         displayName: data.displayName,
         blockedUsers: currentUser.blockedUsers || []
       };
-      localStorage.setItem('user', JSON.stringify(updatedUser));
+      try {
+        localStorage.setItem('user', JSON.stringify(updatedUser));
+      } catch (err) {
+        console.warn('Не удалось обновить пользователя при сохранении отображаемого имени', err);
+      }
       setCurrentUser(updatedUser);
 
       if (onAvatarUpdate) {
@@ -995,13 +1014,10 @@ function UserSettingsModal({ user, onClose, onLogout, onAvatarUpdate }) {
     setIsAssigningBadge(true);
 
     try {
-      const token = localStorage.getItem('token');
       const response = await fetch(`${BACKEND_URL}/api/auth/assign-badge`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
+        headers: buildAuthHeaders({ 'Content-Type': 'application/json' }),
+        credentials: 'include',
         body: JSON.stringify({
           username: targetUsername.trim(),
           badge: badgeText.trim(),

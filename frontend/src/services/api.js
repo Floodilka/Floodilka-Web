@@ -6,12 +6,28 @@ class ApiService {
     this.cache = new Map();
   }
 
-  getAuthHeaders() {
-    const token = localStorage.getItem('token');
-    return {
-      'Content-Type': 'application/json',
-      ...(token && { 'Authorization': `Bearer ${token}` })
+  getAuthHeaders(includeJson = true) {
+    let token = null;
+
+    try {
+      token = localStorage.getItem('token');
+    } catch (err) {
+      // localStorage может быть недоступен (SSR / privacy режим)
+    }
+
+    const headers = {
+      Accept: 'application/json'
     };
+
+    if (includeJson) {
+      headers['Content-Type'] = 'application/json';
+    }
+
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
+
+    return headers;
   }
 
   async request(endpoint, options = {}) {
@@ -28,10 +44,12 @@ class ApiService {
       }
     }
 
+    const isFormData = fetchOptions.body instanceof FormData;
     const config = {
       ...fetchOptions,
+      credentials: fetchOptions.credentials || 'include',
       headers: {
-        ...this.getAuthHeaders(),
+        ...this.getAuthHeaders(!isFormData),
         ...fetchOptions.headers,
       },
     };
@@ -266,6 +284,12 @@ class ApiService {
     return this.request('/api/auth/me');
   }
 
+  async logout() {
+    return this.request('/api/auth/logout', {
+      method: 'POST'
+    });
+  }
+
   async updateUser(userId, data) {
     return this.request(`/api/auth/users/${userId}`, {
       method: 'PUT',
@@ -283,12 +307,9 @@ class ApiService {
   }
 
   async uploadAvatar(userId, formData) {
-    const token = localStorage.getItem('token');
     const response = await fetch(`${this.baseURL}/api/auth/users/${userId}/avatar`, {
       method: 'POST',
-      headers: {
-        ...(token && { 'Authorization': `Bearer ${token}` })
-      },
+      credentials: 'include',
       body: formData,
     });
 
@@ -301,12 +322,9 @@ class ApiService {
   }
 
   async uploadMessageFiles(formData) {
-    const token = localStorage.getItem('token');
     const response = await fetch(`${this.baseURL}/api/messages/upload`, {
       method: 'POST',
-      headers: {
-        ...(token && { 'Authorization': `Bearer ${token}` })
-      },
+      credentials: 'include',
       body: formData,
     });
 

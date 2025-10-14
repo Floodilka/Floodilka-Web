@@ -1,5 +1,7 @@
 const { SOCKET_EVENTS } = require('../constants/events');
 const logger = require('../utils/logger');
+const config = require('../config/env');
+const { recordAuditEvent } = require('../utils/auditLogger');
 
 // Map для хранения пользователей в голосовых каналах
 const voiceUsers = new Map(); // channelId -> Map(socketId -> userData)
@@ -66,6 +68,31 @@ class VoiceHandler {
       logger.debug('📡 Обновление списка пользователей в голосовых каналах и screen sharing');
       this.lastLogAt = now;
     }
+  }
+
+  logVoiceEvent(action, socket, channelId, userData = {}) {
+    if (!config.voice?.logJoinLeave) {
+      return;
+    }
+
+    const effectiveUserId = userData.userId || userData.id;
+    if (!effectiveUserId) {
+      return;
+    }
+
+    recordAuditEvent({
+      category: 'voice',
+      action,
+      userId: effectiveUserId.toString(),
+      username: userData.username || socket.handshake?.auth?.username || null,
+      ip: socket.handshake?.address,
+      userAgent: socket.handshake?.headers?.['user-agent'],
+      metadata: {
+        channelId,
+        socketId: socket.id,
+        displayName: userData.displayName || null
+      }
+    });
   }
 
   handleVoiceJoin(socket) {
@@ -147,13 +174,21 @@ class VoiceHandler {
       this.broadcastVoiceChannelUsers();
 
       logger.debug(`${username} присоединился к голосовому каналу ${channelId}`);
+
+      this.logVoiceEvent('join', socket, channelId, {
+        userId,
+        username,
+        displayName
+      });
     });
   }
 
   handleVoiceLeave(socket) {
     socket.on(SOCKET_EVENTS.VOICE_LEAVE, ({ channelId }) => {
       const users = voiceUsers.get(channelId);
+      let userData = null;
       if (users) {
+        userData = users.get(socket.id) || null;
         users.delete(socket.id);
         socket.leave(channelId);
         socket.to(channelId).emit(SOCKET_EVENTS.VOICE_USER_LEFT, { id: socket.id });
@@ -178,6 +213,10 @@ class VoiceHandler {
       }
 
       socket.currentVoiceChannel = null;
+
+      if (userData) {
+        this.logVoiceEvent('leave', socket, channelId, userData);
+      }
     });
   }
 
@@ -347,9 +386,14 @@ class VoiceHandler {
       if (socket.currentVoiceChannel) {
         const users = voiceUsers.get(socket.currentVoiceChannel);
         if (users) {
+          const userData = users.get(socket.id) || null;
           users.delete(socket.id);
           socket.to(socket.currentVoiceChannel).emit(SOCKET_EVENTS.VOICE_USER_LEFT, { id: socket.id });
           this.broadcastVoiceChannelUsers();
+
+          if (userData) {
+            this.logVoiceEvent('disconnect', socket, socket.currentVoiceChannel, userData);
+          }
         }
 
         // Очистить демонстрацию экрана при отключении

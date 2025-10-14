@@ -1,16 +1,17 @@
 const jwt = require('jsonwebtoken');
-
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
+const config = require('../config/env');
 
 const authenticateToken = (req, res, next) => {
   try {
-    const token = req.headers.authorization?.split(' ')[1];
+    const headerToken = req.headers.authorization?.split(' ')[1];
+    const cookieToken = req.signedCookies?.[config.jwtCookie.name] || req.cookies?.[config.jwtCookie.name];
+    const token = headerToken || cookieToken;
 
     if (!token) {
       return res.status(401).json({ error: 'Токен не предоставлен' });
     }
 
-    const decoded = jwt.verify(token, JWT_SECRET);
+    const decoded = jwt.verify(token, config.jwtSecret);
     req.user = { id: decoded.userId, username: decoded.username };
     next();
   } catch (error) {
@@ -19,4 +20,3 @@ const authenticateToken = (req, res, next) => {
 };
 
 module.exports = { authenticateToken };
-

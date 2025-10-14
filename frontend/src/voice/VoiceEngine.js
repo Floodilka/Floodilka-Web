@@ -4,7 +4,7 @@ import { createProcessingGraph } from './audioProcessing';
 import { RemoteAudioPlayer, teardownAllRemoteAudio } from './remoteAudio';
 import { AudioLevelMonitor, makeReceiverSampler, makeSenderSampler } from './audioLevelMonitor';
 
-const ICE_SERVERS = [
+const DEFAULT_ICE_SERVERS = [
   { urls: 'stun:stun.l.google.com:19302' },
   { urls: 'stun:stun1.l.google.com:19302' },
   { urls: 'stun:stun2.l.google.com:19302' },
@@ -17,11 +17,58 @@ const ICE_SERVERS = [
   { urls: 'stun:stun.1und1.de' },
 ];
 
-const RTC_CONFIGURATION = {
-  iceServers: ICE_SERVERS,
+const DEFAULT_RTC_CONFIGURATION = {
+  iceServers: DEFAULT_ICE_SERVERS.map((entry) => ({ ...entry })),
   iceCandidatePoolSize: 8,
   bundlePolicy: 'max-bundle',
   rtcpMuxPolicy: 'require',
+};
+
+const sanitizeIceServer = (entry) => {
+  if (!entry) return null;
+  if (typeof entry === 'string') {
+    return { urls: entry };
+  }
+  if (Array.isArray(entry.urls)) {
+    return {
+      urls: [...entry.urls],
+      ...(entry.username ? { username: entry.username } : {}),
+      ...(entry.credential ? { credential: entry.credential } : {}),
+      ...(entry.credentialType ? { credentialType: entry.credentialType } : {}),
+    };
+  }
+  if (entry.urls) {
+    return {
+      urls: entry.urls,
+      ...(entry.username ? { username: entry.username } : {}),
+      ...(entry.credential ? { credential: entry.credential } : {}),
+      ...(entry.credentialType ? { credentialType: entry.credentialType } : {}),
+    };
+  }
+  return null;
+};
+
+const resolveRTCConfiguration = (voiceConfig = {}) => {
+  const rawServers = Array.isArray(voiceConfig.iceServers) ? voiceConfig.iceServers : null;
+  const normalizedServers = rawServers
+    ? rawServers.map(sanitizeIceServer).filter(Boolean)
+    : null;
+
+  const usingCustom = Boolean(normalizedServers && normalizedServers.length > 0);
+
+  const config = {
+    ...DEFAULT_RTC_CONFIGURATION,
+    iceServers: usingCustom ? normalizedServers : DEFAULT_RTC_CONFIGURATION.iceServers,
+  };
+
+  if (voiceConfig.iceTransportPolicy) {
+    config.iceTransportPolicy = voiceConfig.iceTransportPolicy;
+  }
+
+  return {
+    config,
+    usingCustom,
+  };
 };
 
 const NETWORK_SAMPLE_INTERVAL = 5000;
@@ -38,6 +85,7 @@ export class VoiceEngine {
     user,
     settings,
     callbacks = {},
+    voiceConfig = null,
   }) {
     this.socket = socket;
     this.channel = channel;
@@ -54,6 +102,10 @@ export class VoiceEngine {
       onError: callbacks.onError || noop,
       onUserUpdated: callbacks.onUserUpdated || noop,
     };
+    this.voiceConfig = voiceConfig || null;
+    const { config: rtcConfiguration, usingCustom } = resolveRTCConfiguration(this.voiceConfig || {});
+    this.rtcConfiguration = rtcConfiguration;
+    this.usingCustomIceServers = usingCustom;
 
     this.peerConnections = new Map();
     this.remotePlayers = new Map();
@@ -360,6 +412,16 @@ export class VoiceEngine {
     }
   }
 
+  getRTCConfiguration() {
+    const config = {
+      ...this.rtcConfiguration,
+    };
+    if (Array.isArray(this.rtcConfiguration.iceServers)) {
+      config.iceServers = this.rtcConfiguration.iceServers.map((server) => ({ ...server }));
+    }
+    return config;
+  }
+
   ensurePeerConnection(remoteId, { makeOffer }) {
     if (!remoteId || remoteId === this.socket.id) {
       return null;
@@ -373,7 +435,7 @@ export class VoiceEngine {
       return pc;
     }
 
-    pc = new RTCPeerConnection(RTC_CONFIGURATION);
+    pc = new RTCPeerConnection(this.getRTCConfiguration());
     this.peerConnections.set(remoteId, pc);
 
     this.monitorPeerConnection(remoteId, pc);
