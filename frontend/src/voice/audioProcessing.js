@@ -69,11 +69,13 @@ export async function createProcessingGraph(stream, {
   // Состояние Noise Gate
   let gateOpen = false;
   let noiseGateTimer = null;
+  let currentGateThreshold = 15; // Текущий порог
 
   // Параметры Noise Gate
   const GATE_ATTACK_TIME = 0.01; // 10ms - время открытия ворот
   const GATE_RELEASE_TIME = 0.1; // 100ms - время закрытия ворот
   const GATE_HYSTERESIS = 0.7; // Гистерезис для предотвращения дребезга
+  const GATE_UPDATE_INTERVAL = 20; // 20ms - обновление Noise Gate (50 раз в секунду)
 
   // ========== 4. DE-ESSER ==========
   // Убирает шипение на высоких частотах (s, sh, ch звуки)
@@ -139,8 +141,16 @@ export async function createProcessingGraph(stream, {
 
   // ========== NOISE GATE LOGIC ==========
   // Функция обновления Noise Gate в реальном времени
-  const updateNoiseGate = (threshold) => {
+  // Использует setInterval вместо requestAnimationFrame для надежной работы на фоновых вкладках
+  const updateNoiseGate = () => {
     if (context.state === 'closed') return;
+
+    // Возобновляем контекст если он suspended (может произойти на фоновых вкладках)
+    if (context.state === 'suspended') {
+      context.resume().catch(err => {
+        console.warn('Failed to resume audio context in noise gate', err);
+      });
+    }
 
     noiseGateAnalyser.getByteTimeDomainData(noiseGateDataArray);
 
@@ -156,7 +166,7 @@ export async function createProcessingGraph(stream, {
     const currentTime = context.currentTime;
 
     // Логика открытия/закрытия ворот с гистерезисом
-    if (level > threshold) {
+    if (level > currentGateThreshold) {
       // Звук выше порога - открываем ворота
       if (!gateOpen) {
         noiseGateGain.gain.cancelScheduledValues(currentTime);
@@ -164,7 +174,7 @@ export async function createProcessingGraph(stream, {
         noiseGateGain.gain.linearRampToValueAtTime(1.0, currentTime + GATE_ATTACK_TIME);
         gateOpen = true;
       }
-    } else if (level < threshold * GATE_HYSTERESIS) {
+    } else if (level < currentGateThreshold * GATE_HYSTERESIS) {
       // Звук ниже порога с гистерезисом - закрываем ворота
       if (gateOpen) {
         noiseGateGain.gain.cancelScheduledValues(currentTime);
@@ -173,16 +183,12 @@ export async function createProcessingGraph(stream, {
         gateOpen = false;
       }
     }
-
-    // Продолжаем мониторинг
-    if (noiseGateTimer !== null) {
-      noiseGateTimer = requestAnimationFrame(() => updateNoiseGate(threshold));
-    }
   };
 
-  // Вычисляем порог из micSensitivity и запускаем Noise Gate
-  const gateThreshold = computeGateThreshold(micSensitivity);
-  noiseGateTimer = requestAnimationFrame(() => updateNoiseGate(gateThreshold));
+  // Вычисляем порог из micSensitivity и запускаем Noise Gate с помощью setInterval
+  // setInterval работает надежнее на фоновых вкладках чем requestAnimationFrame
+  currentGateThreshold = computeGateThreshold(micSensitivity);
+  noiseGateTimer = setInterval(updateNoiseGate, GATE_UPDATE_INTERVAL);
 
   // ========== API ФУНКЦИИ ==========
 
@@ -213,12 +219,8 @@ export async function createProcessingGraph(stream, {
    * Обновляет порог активации голоса (0-50)
    */
   const updateMicSensitivity = (sensitivity) => {
-    const newThreshold = computeGateThreshold(sensitivity);
-    // Порог обновится в следующей итерации updateNoiseGate
-    if (noiseGateTimer !== null) {
-      cancelAnimationFrame(noiseGateTimer);
-      noiseGateTimer = requestAnimationFrame(() => updateNoiseGate(newThreshold));
-    }
+    currentGateThreshold = computeGateThreshold(sensitivity);
+    // Порог обновится в следующей итерации updateNoiseGate автоматически
   };
 
   /**
@@ -227,7 +229,7 @@ export async function createProcessingGraph(stream, {
   const teardown = async () => {
     // Останавливаем Noise Gate
     if (noiseGateTimer !== null) {
-      cancelAnimationFrame(noiseGateTimer);
+      clearInterval(noiseGateTimer);
       noiseGateTimer = null;
     }
 

@@ -815,9 +815,9 @@ export class VoiceEngine {
   startBackgroundKeepalive() {
     if (this.backgroundKeepalive) return;
 
-    // Используем requestAnimationFrame вместо setInterval
-    // он работает даже на фоновых вкладках (хоть и медленнее)
-    const keepalive = () => {
+    // Используем setInterval вместо requestAnimationFrame для надежной работы на фоновых вкладках
+    // setInterval продолжает работать даже когда вкладка неактивна
+    this.backgroundKeepalive = setInterval(() => {
       if (document.visibilityState !== 'hidden') {
         this.stopBackgroundKeepalive();
         return;
@@ -830,54 +830,101 @@ export class VoiceEngine {
         });
       }
 
+      // Проверяем состояние аудио-трека
+      const audioTrack = this.localStream?.getAudioTracks()[0];
+      if (audioTrack) {
+        // Если трек остановлен, нужно переподключить микрофон
+        if (audioTrack.readyState === 'ended') {
+          console.warn('Audio track ended in background, will reconnect on visibility');
+        }
+        // Проверяем что трек включен (если не в mute/ptt)
+        const shouldBeEnabled = !this.isMuted && (this.settings?.voiceMode === 'ptt' ? this.pttActive : true);
+        if (audioTrack.enabled !== shouldBeEnabled) {
+          console.warn('Audio track state mismatch in background, fixing...');
+          audioTrack.enabled = shouldBeEnabled;
+        }
+      }
+
       // Проверяем что peerConnections активны
-      this.peerConnections.forEach((pc) => {
-        if (pc.connectionState === 'connected' && pc.getSenders) {
+      this.peerConnections.forEach((pc, remoteId) => {
+        if (pc.connectionState === 'failed' || pc.iceConnectionState === 'failed') {
+          console.warn(`Peer connection failed in background for ${remoteId}, will restart`);
+          // Не перезапускаем сразу, подождем возвращения на вкладку
+        } else if (pc.connectionState === 'connected' && pc.getSenders) {
           // Трогаем sender чтобы держать соединение активным
           const sender = pc.getSenders().find(s => s.track?.kind === 'audio');
-          if (sender?.track) {
-            // Просто проверяем enabled - это легковесная операция
-            const _ = sender.track.enabled;
+          if (sender?.track && sender.track.readyState === 'live') {
+            // Проверяем параметры отправки
+            const params = sender.getParameters();
+            if (params && !params.degradationPreference) {
+              // Переприменяем параметры если они сбросились
+              this.configureSender(sender);
+            }
           }
         }
       });
-
-      this.backgroundKeepalive = requestAnimationFrame(keepalive);
-    };
-
-    this.backgroundKeepalive = requestAnimationFrame(keepalive);
+    }, 1000); // Проверяем каждую секунду
   }
 
   stopBackgroundKeepalive() {
     if (this.backgroundKeepalive) {
-      cancelAnimationFrame(this.backgroundKeepalive);
+      clearInterval(this.backgroundKeepalive);
       this.backgroundKeepalive = null;
     }
   }
 
   async resumeIfNeeded() {
+    // 1. Возобновляем AudioContext
     if (this.processingGraph?.context?.state === 'suspended') {
       try {
         await this.processingGraph.context.resume();
+        console.log('AudioContext resumed after visibility change');
       } catch (err) {
         console.warn('Failed to resume audio context', err);
       }
     }
 
+    // 2. Проверяем состояние аудио-трека
     let track = this.localStream?.getAudioTracks()[0];
     if (track && track.readyState === 'ended') {
+      console.warn('Audio track ended, resetting local audio');
       await this.resetLocalAudio();
       track = this.localStream?.getAudioTracks()[0] || null;
+      // Заменяем треки во всех соединениях
       this.peerConnections.forEach((pc) => {
         pc.getSenders()
           .filter((sender) => sender.track?.kind === 'audio')
-          .forEach((sender) => sender.replaceTrack(track));
+          .forEach((sender) => {
+            sender.replaceTrack(track);
+            this.configureSender(sender); // Переприменяем параметры
+          });
       });
+    } else if (track) {
+      // Проверяем что трек в правильном состоянии
+      const shouldBeEnabled = !this.isMuted && (this.settings?.voiceMode === 'ptt' ? this.pttActive : true);
+      if (track.enabled !== shouldBeEnabled) {
+        console.log(`Fixing audio track enabled state: ${track.enabled} -> ${shouldBeEnabled}`);
+        track.enabled = shouldBeEnabled;
+      }
     }
 
-    this.peerConnections.forEach((pc) => {
-      if (pc.connectionState === 'failed' || pc.iceConnectionState === 'failed') {
-        pc.restartIce?.();
+    // 3. Проверяем и восстанавливаем peer connections
+    this.peerConnections.forEach((pc, remoteId) => {
+      const connState = pc.connectionState;
+      const iceState = pc.iceConnectionState;
+
+      if (connState === 'failed' || iceState === 'failed') {
+        console.warn(`Restarting failed peer connection for ${remoteId}`);
+        if (pc.restartIce && connState !== 'closed') {
+          pc.restartIce();
+        } else {
+          this.restartPeer(remoteId);
+        }
+      } else if (connState === 'disconnected' || iceState === 'disconnected') {
+        console.log(`Attempting to reconnect disconnected peer ${remoteId}`);
+        if (pc.restartIce && connState !== 'closed') {
+          pc.restartIce();
+        }
       }
     });
   }
