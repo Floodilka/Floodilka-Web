@@ -8,7 +8,10 @@
 ssh root@your-server
 cd /var/www/floodilka
 
-# ⭐ Graceful обновление (РЕКОМЕНДУЕТСЯ, минимальный downtime)
+# ⭐⭐⭐ ZERO-DOWNTIME обновление (САМОЕ ЛУЧШЕЕ!)
+sudo bash deployment/update-zero-downtime.sh
+
+# ⭐ Graceful обновление (минимальный downtime)
 sudo bash deployment/update-graceful.sh
 
 # Стандартное обновление (с nginx если нужно)
@@ -18,9 +21,12 @@ sudo bash deployment/update.sh
 sudo bash deployment/update-nginx.sh
 ```
 
-**Разница между graceful и стандартным:**
+**Разница между методами обновления:**
+- `update-zero-downtime.sh` - ✅ PM2 cluster mode, БЕЗ простоя, автоматический rollback
 - `update-graceful.sh` - PM2 reload (graceful), проверки, backup (~2-5 сек downtime)
 - `update.sh` - PM2 restart (hard), быстрее но больше downtime (~5-10 сек)
+
+**При первом использовании zero-downtime будет простой ~2-3 сек (один раз) для настройки cluster mode**
 
 ### 📊 Проверка статуса
 ```bash
@@ -194,7 +200,8 @@ sudo bash deployment/update.sh
 
 ```bash
 # floodilka shortcuts
-alias b-update='cd /var/www/floodilka && sudo bash deployment/update-graceful.sh'
+alias b-update='cd /var/www/floodilka && sudo bash deployment/update-zero-downtime.sh'
+alias b-update-graceful='cd /var/www/floodilka && sudo bash deployment/update-graceful.sh'
 alias b-update-fast='cd /var/www/floodilka && sudo bash deployment/update.sh'
 alias b-logs='sudo -u floodilka pm2 logs floodilka-backend'
 alias b-status='sudo -u floodilka pm2 status'
@@ -203,6 +210,7 @@ alias b-restart-hard='sudo -u floodilka pm2 restart floodilka-backend'
 alias b-monit='sudo -u floodilka pm2 monit'
 alias b-nginx-logs='sudo tail -f /var/log/nginx/floodilka-error.log'
 alias b-nginx-reload='sudo nginx -t && sudo systemctl reload nginx'
+alias b-health='curl -s http://localhost:3001/health | jq'
 ```
 
 Активировать:
@@ -212,15 +220,17 @@ source ~/.bashrc
 
 Использование:
 ```bash
-b-update         # graceful обновление (рекомендуется)
-b-update-fast    # быстрое обновление
-b-logs           # посмотреть логи
-b-status         # статус
-b-restart        # graceful перезапуск
-b-restart-hard   # жесткий перезапуск (только для отладки)
-b-monit          # мониторинг
-b-nginx-logs     # логи nginx
-b-nginx-reload   # перезагрузить nginx
+b-update           # ZERO-DOWNTIME обновление (лучший способ!)
+b-update-graceful  # graceful обновление (минимальный простой)
+b-update-fast      # быстрое обновление
+b-logs             # посмотреть логи
+b-status           # статус
+b-restart          # graceful перезапуск
+b-restart-hard     # жесткий перезапуск (только для отладки)
+b-monit            # мониторинг
+b-nginx-logs       # логи nginx
+b-nginx-reload     # перезагрузить nginx
+b-health           # проверить здоровье backend
 ```
 
 ## SOS - Что-то сломалось!
@@ -290,6 +300,7 @@ sudo tail -f /var/log/nginx/floodilka-error.log
 
 ## 📖 Дополнительная документация
 
+- [ZERO-DOWNTIME.md](./ZERO-DOWNTIME.md) - ⭐⭐⭐ Zero-downtime deployment (БЕЗ простоя!)
 - [DEPLOYMENT-BEST-PRACTICES.md](./DEPLOYMENT-BEST-PRACTICES.md) - ⭐ Best practices для деплоя
 - [QUICK-UPDATE.md](./QUICK-UPDATE.md) - Быстрое обновление
 - [DEPLOY.md](./DEPLOY.md) - Полная инструкция по деплою
@@ -297,10 +308,10 @@ sudo tail -f /var/log/nginx/floodilka-error.log
 
 ## 💡 Совет
 
-**Для продакшена всегда используйте graceful обновление:**
+**Для продакшена всегда используйте zero-downtime обновление:**
 ```bash
-sudo bash deployment/update-graceful.sh
+sudo bash deployment/update-zero-downtime.sh
 ```
 
-Это минимизирует влияние на активных пользователей!
+Это гарантирует отсутствие простоя для активных пользователей! 🚀
 

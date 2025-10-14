@@ -27,13 +27,20 @@ bash update.sh
 
 ### Обновление
 
-**⭐ Рекомендуемый способ (с активными пользователями):**
+**⭐⭐⭐ Zero-Downtime (ЛУЧШИЙ СПОСОБ - БЕЗ простоя!):**
+```bash
+cd /var/www/floodilka
+sudo bash deployment/update-zero-downtime.sh
+```
+📖 Подробнее: [ZERO-DOWNTIME.md](./ZERO-DOWNTIME.md) | [Миграция](./MIGRATION-TO-ZERO-DOWNTIME.md)
+
+**⭐ Graceful (минимальный простой ~2-5 сек):**
 ```bash
 cd /var/www/floodilka
 sudo bash deployment/update-graceful.sh
 ```
 
-**Быстрое обновление (без пользователей онлайн):**
+**Быстрое обновление (простой ~5-10 сек):**
 ```bash
 cd /var/www/floodilka
 sudo bash deployment/update.sh
@@ -45,32 +52,44 @@ sudo bash deployment/update.sh
 
 ### Основные документы
 
-1. **[DEPLOYMENT-BEST-PRACTICES.md](./DEPLOYMENT-BEST-PRACTICES.md)** ⭐
+1. **[ZERO-DOWNTIME.md](./ZERO-DOWNTIME.md)** ⭐⭐⭐
+   - Zero-downtime deployment БЕЗ простоя
+   - PM2 cluster mode
+   - Автоматический rollback
+   - Healthcheck
+   - Troubleshooting
+
+2. **[MIGRATION-TO-ZERO-DOWNTIME.md](./MIGRATION-TO-ZERO-DOWNTIME.md)** 🚀
+   - Быстрая миграция с graceful на zero-downtime
+   - Пошаговая инструкция
+   - FAQ и troubleshooting
+
+3. **[DEPLOYMENT-BEST-PRACTICES.md](./DEPLOYMENT-BEST-PRACTICES.md)** ⭐
    - Типы обновлений
    - Лучшее время для деплоя
    - Минимизация downtime
    - План отката
    - Мониторинг после деплоя
 
-2. **[QUICK-UPDATE.md](./QUICK-UPDATE.md)** 🚀
+4. **[QUICK-UPDATE.md](./QUICK-UPDATE.md)** 🚀
    - Graceful vs стандартное обновление
    - Когда деплоить
    - Проверка после обновления
    - Troubleshooting
 
-3. **[CHEATSHEET.md](./CHEATSHEET.md)** 📋
+5. **[CHEATSHEET.md](./CHEATSHEET.md)** 📋
    - Все команды в одном месте
    - Полезные алиасы
    - SOS - что делать если сломалось
    - Быстрые решения типичных проблем
 
-4. **[DEPLOY.md](./DEPLOY.md)** 🔧
+6. **[DEPLOY.md](./DEPLOY.md)** 🔧
    - Полная инструкция по первоначальной настройке
    - MongoDB, PM2, Nginx
    - Переменные окружения
    - Безопасность
 
-5. **[HOTFIX-UPLOADS.md](./HOTFIX-UPLOADS.md)** 🔧
+7. **[HOTFIX-UPLOADS.md](./HOTFIX-UPLOADS.md)** 🔧
    - Исправление проблемы с загрузкой аватаров
    - Настройка nginx для статических файлов
 
@@ -78,7 +97,16 @@ sudo bash deployment/update.sh
 
 ### Основные скрипты обновления
 
-- **`update-graceful.sh`** ⭐ - Graceful обновление с минимальным downtime
+- **`update-zero-downtime.sh`** ⭐⭐⭐ - Zero-downtime обновление
+  - PM2 cluster mode (2 инстанса)
+  - Полное отсутствие простоя
+  - WebSocket соединения не рвутся
+  - Автоматический rollback при ошибках
+  - Healthcheck перед переключением
+  - Бэкап с возможностью отката
+  - ~0 сек downtime!
+
+- **`update-graceful.sh`** ⭐ - Graceful обновление
   - Проверка активных пользователей
   - PM2 reload вместо restart
   - Проверка синтаксиса
@@ -101,6 +129,7 @@ sudo bash deployment/update.sh
 - **`setup-mongodb.sh`** - Установка MongoDB
 - **`setup-production.sh`** - Настройка production окружения
 - **`setup-ssl.sh`** - Настройка Let's Encrypt SSL
+- **`setup-cluster.sh`** ⭐ - Настройка PM2 cluster mode для zero-downtime
 
 ### Скрипты деплоя компонентов
 
@@ -109,22 +138,30 @@ sudo bash deployment/update.sh
 
 ### Дополнительные скрипты
 
+- **`emergency-fix.sh`** - Экстренное восстановление при зависании
 - **`notify-maintenance.sh`** - Уведомление пользователей о обслуживании (TODO)
+
+### Конфигурационные файлы
+
+- **`ecosystem.config.js`** - PM2 конфигурация для cluster mode
+- **`maintenance.html`** - Страница технического обслуживания
+- **`nginx-https.conf`** / **`nginx-http.conf`** - Nginx конфигурации
 
 ## 📊 Сравнение методов обновления
 
-| Метод | Downtime | Проверки | Backup | Когда использовать |
-|-------|----------|----------|--------|-------------------|
-| `update-graceful.sh` | ~2-5 сек | ✅ | ✅ | Есть активные пользователи |
-| `update.sh` | ~5-10 сек | ⚠️ | ❌ | Нет пользователей / hotfix |
-| Manual | Зависит | ❌ | ❌ | Отладка |
+| Метод | Downtime | WebSocket | Rollback | Healthcheck | Когда использовать |
+|-------|----------|-----------|----------|-------------|-------------------|
+| `update-zero-downtime.sh` | **0 сек** ✅ | Сохраняются ✅ | Авто ✅ | ✅ | **Всегда (лучший способ!)** |
+| `update-graceful.sh` | ~2-5 сек | Рвутся ⚠️ | ✅ | ⚠️ | Если не настроен cluster |
+| `update.sh` | ~5-10 сек | Рвутся ❌ | ❌ | ❌ | Экстренный hotfix |
+| Manual | Зависит | Зависит | ❌ | ❌ | Отладка |
 
 ## 🎯 Рекомендации
 
 ### Для продакшена
-1. ✅ Всегда используйте `update-graceful.sh`
-2. ✅ Деплойте в ночное время (02:00-06:00 МСК)
-3. ✅ Проверяйте логи после деплоя
+1. ✅ **Всегда используйте `update-zero-downtime.sh`**
+2. ✅ Обновляйте когда удобно - простоя нет!
+3. ✅ Проверяйте логи после деплоя (для уверенности)
 4. ✅ Держите backup предыдущей версии
 5. ✅ Тестируйте локально перед деплоем
 
