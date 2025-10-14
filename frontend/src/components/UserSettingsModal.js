@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import './UserSettingsModal.css';
 import api from '../services/api';
+import { createProcessingGraph } from '../voice/audioProcessing';
 
 const BACKEND_URL = window.location.hostname === 'localhost'
   ? 'http://localhost:3001'
@@ -115,7 +116,7 @@ function UserSettingsModal({ user, onClose, onLogout, onAvatarUpdate }) {
       selectedSpeaker: 'default',
       inputVolume: 100,  // Громкость исходящего звука (микрофона) 0-200%
       outputVolume: 100,  // Громкость входящего звука (динамиков) 0-200%
-      micSensitivity: 1,  // Порог активации голоса (Voice Activation) 0-50
+      micSensitivity: 0,  // Порог активации голоса (Voice Activation) 0-50
       voiceMode: 'vad',  // Режим активации: 'vad' (Voice Activation) или 'ptt' (Push-to-Talk)
       pttKey: 'ControlLeft'  // Клавиша для PTT (по умолчанию Left Ctrl)
     };
@@ -135,8 +136,9 @@ function UserSettingsModal({ user, onClose, onLogout, onAvatarUpdate }) {
   // Состояния для тестового режима (loopback)
   const [isTestMode, setIsTestMode] = useState(false);
   const [loopbackStream, setLoopbackStream] = useState(null);
-  const [loopbackAudioContext, setLoopbackAudioContext] = useState(null);
   const [loopbackAudioElement, setLoopbackAudioElement] = useState(null);
+  const loopbackProcessingRef = useRef(null); // Граф обработки для реактивности
+  const loopbackOutputVolumeRef = useRef(null); // Узел громкости для реактивности
 
   // Состояния для PTT
   const [isRecordingKey, setIsRecordingKey] = useState(false);
@@ -325,6 +327,51 @@ function UserSettingsModal({ user, onClose, onLogout, onAvatarUpdate }) {
     fetchUserData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // ========== РЕАКТИВНОЕ ПРИМЕНЕНИЕ НАСТРОЕК В ТЕСТОВОМ РЕЖИМЕ ==========
+  useEffect(() => {
+    if (!isTestMode || !loopbackProcessingRef.current) {
+      return;
+    }
+
+    // Применяем изменения микрофона в реальном времени
+    if (loopbackProcessingRef.current.updateInputVolume) {
+      loopbackProcessingRef.current.updateInputVolume(audioSettings.inputVolume);
+    }
+
+    if (loopbackProcessingRef.current.updateMicSensitivity) {
+      loopbackProcessingRef.current.updateMicSensitivity(audioSettings.micSensitivity);
+    }
+
+    // Применяем изменения громкости выхода
+    if (loopbackOutputVolumeRef.current) {
+      const newVolume = Math.min(1.0, Math.max(0, audioSettings.outputVolume / 100));
+      const currentTime = loopbackProcessingRef.current.context.currentTime;
+      loopbackOutputVolumeRef.current.gain.cancelScheduledValues(currentTime);
+      loopbackOutputVolumeRef.current.gain.setValueAtTime(
+        loopbackOutputVolumeRef.current.gain.value,
+        currentTime
+      );
+      loopbackOutputVolumeRef.current.gain.linearRampToValueAtTime(newVolume, currentTime + 0.05);
+    }
+
+    // Применяем изменение выходного устройства
+    if (loopbackAudioElement && audioSettings.selectedSpeaker && typeof loopbackAudioElement.setSinkId === 'function') {
+      loopbackAudioElement.setSinkId(audioSettings.selectedSpeaker).catch(err => {
+        console.warn('Не удалось изменить выходное устройство:', err);
+      });
+    }
+
+    console.log('🔄 Настройки обновлены в реальном времени');
+  }, [
+    isTestMode,
+    audioSettings.inputVolume,
+    audioSettings.outputVolume,
+    audioSettings.micSensitivity,
+    audioSettings.selectedSpeaker,
+  ]);
+
+
 
   const handleLogout = () => {
     onLogout();
@@ -670,11 +717,16 @@ function UserSettingsModal({ user, onClose, onLogout, onAvatarUpdate }) {
       setLoopbackAudioElement(null);
     }
 
-    // Закрываем AudioContext
-    if (loopbackAudioContext && loopbackAudioContext.state !== 'closed') {
-      loopbackAudioContext.close();
-      setLoopbackAudioContext(null);
+    // Очищаем граф обработки
+    if (loopbackProcessingRef.current) {
+      loopbackProcessingRef.current.teardown().catch(err => {
+        console.warn('Ошибка очистки графа обработки:', err);
+      });
+      loopbackProcessingRef.current = null;
     }
+
+    // Очищаем ссылки
+    loopbackOutputVolumeRef.current = null;
 
     // Останавливаем поток
     if (loopbackStream) {
@@ -686,7 +738,14 @@ function UserSettingsModal({ user, onClose, onLogout, onAvatarUpdate }) {
     console.log('✅ Тестовый режим остановлен');
   };
 
-  // Запуск тестового loopback режима с применением всех настроек
+  /**
+   * Запуск тестового режима "Услышать свой голос"
+   *
+   * Особенности:
+   * 1. Использует ТУ ЖЕ обработку что и в реальном голосовом чате (createProcessingGraph)
+   * 2. Задержка 2 секунды с звуковым уведомлением
+   * 3. Реактивное применение всех настроек в реальном времени
+   */
   const startTestMode = async () => {
     if (isTestMode) return;
 
@@ -735,135 +794,39 @@ function UserSettingsModal({ user, onClose, onLogout, onAvatarUpdate }) {
 
       setLoopbackStream(stream);
 
-      // Создаем AudioContext для обработки звука
-      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-      setLoopbackAudioContext(audioContext);
+      // ========== ИСПОЛЬЗУЕМ ТУ ЖЕ ОБРАБОТКУ ЧТО И В РЕАЛЬНОМ ЧАТЕ ==========
+      const processingGraph = await createProcessingGraph(stream, {
+        inputVolume: audioSettings.inputVolume ?? 100,
+        micSensitivity: audioSettings.micSensitivity ?? 1,
+      });
 
-      // Применяем ПОЛНУЮ аудио обработку (идентично VoiceChannel)
-      const source = audioContext.createMediaStreamSource(stream);
+      if (!processingGraph) {
+        throw new Error('Не удалось создать граф обработки звука');
+      }
+
+      // Сохраняем ссылку для реактивного обновления настроек
+      loopbackProcessingRef.current = processingGraph;
+
+      // ========== ДОБАВЛЯЕМ ЗАДЕРЖКУ 2 СЕКУНДЫ ==========
+      const audioContext = processingGraph.context;
+      const processedSource = audioContext.createMediaStreamSource(processingGraph.stream);
+      const delayNode = audioContext.createDelay(5.0); // Максимум 5 секунд
+      delayNode.delayTime.value = 2.0; // Задержка 2 секунды
+
+      // Узел контроля громкости выхода (для реактивности)
+      const outputGain = audioContext.createGain();
+      outputGain.gain.value = Math.min(1.0, Math.max(0, audioSettings.outputVolume / 100));
+      loopbackOutputVolumeRef.current = outputGain;
+
       const destination = audioContext.createMediaStreamDestination();
 
-      // 1. Высокочастотный фильтр - убирает низкочастотные шумы
-      const highPassFilter = audioContext.createBiquadFilter();
-      highPassFilter.type = 'highpass';
-      highPassFilter.frequency.value = 100;
-      highPassFilter.Q.value = 1.0;
-
-      // 2. Notch фильтр - устраняет гудение от электросети
-      const notchFilter = audioContext.createBiquadFilter();
-      notchFilter.type = 'notch';
-      notchFilter.frequency.value = 50;
-      notchFilter.Q.value = 10;
-
-      // 3. Анализатор для Noise Gate
-      const analyser = audioContext.createAnalyser();
-      analyser.fftSize = 2048;
-      analyser.smoothingTimeConstant = 0.3;
-
-      // 4. Noise Gate (шумовые ворота) - ГЛАВНАЯ ФИЧА для чистоты звука!
-      const noiseGateGain = audioContext.createGain();
-      noiseGateGain.gain.value = 0;
-
-      const dataArray = new Uint8Array(analyser.frequencyBinCount);
-      let gateOpen = false;
-      const gateThreshold = audioSettings.micSensitivity / 50 * 255;
-      const attackTime = 0.01;
-      const releaseTime = 0.1;
-
-      const updateNoiseGate = () => {
-        if (audioContext.state === 'closed') return;
-
-        analyser.getByteTimeDomainData(dataArray);
-
-        let sum = 0;
-        for (let i = 0; i < dataArray.length; i++) {
-          const normalized = (dataArray[i] - 128) / 128;
-          sum += normalized * normalized;
-        }
-        const rms = Math.sqrt(sum / dataArray.length);
-        const level = rms * 255;
-
-        const currentTime = audioContext.currentTime;
-
-        if (level > gateThreshold) {
-          if (!gateOpen) {
-            noiseGateGain.gain.cancelScheduledValues(currentTime);
-            noiseGateGain.gain.setValueAtTime(noiseGateGain.gain.value, currentTime);
-            noiseGateGain.gain.linearRampToValueAtTime(1.0, currentTime + attackTime);
-            gateOpen = true;
-          }
-        } else if (level < gateThreshold * 0.7) {
-          if (gateOpen) {
-            noiseGateGain.gain.cancelScheduledValues(currentTime);
-            noiseGateGain.gain.setValueAtTime(noiseGateGain.gain.value, currentTime);
-            noiseGateGain.gain.linearRampToValueAtTime(0.0, currentTime + releaseTime);
-            gateOpen = false;
-          }
-        }
-
-        requestAnimationFrame(updateNoiseGate);
-      };
-      updateNoiseGate();
-
-      // 5. De-esser - убирает шипение
-      const deEsser = audioContext.createBiquadFilter();
-      deEsser.type = 'peaking';
-      deEsser.frequency.value = 7000;
-      deEsser.Q.value = 1.5;
-      deEsser.gain.value = -3;
-
-      // 6. Компрессор для выравнивания громкости
-      const compressor = audioContext.createDynamicsCompressor();
-      compressor.threshold.value = -24;
-      compressor.knee.value = 30;
-      compressor.ratio.value = 12;
-      compressor.attack.value = 0.003;
-      compressor.release.value = 0.25;
-
-      // 7. Низкочастотный фильтр - убирает высокочастотные шумы
-      const lowPassFilter = audioContext.createBiquadFilter();
-      lowPassFilter.type = 'lowpass';
-      lowPassFilter.frequency.value = 10000;
-      lowPassFilter.Q.value = 0.7;
-
-      // 8. Финальный усилитель
-      const finalGain = audioContext.createGain();
-      finalGain.gain.value = 1.5;
-
-      // 9. Контроль громкости
-      const volumeControl = audioContext.createGain();
-      // Для inputVolume > 100% используем максимальное усиление 2.0
-      const inputGain = audioSettings.inputVolume >= 100 ? 2.0 : Math.max(0.1, audioSettings.inputVolume / 100);
-      volumeControl.gain.value = inputGain;
-
-      // 10. Лимитер для предотвращения перегрузки
-      const limiter = audioContext.createDynamicsCompressor();
-      limiter.threshold.value = -1;
-      limiter.knee.value = 0;
-      limiter.ratio.value = 20;
-      limiter.attack.value = 0.001;
-      limiter.release.value = 0.01;
-
-      // ПОЛНАЯ ЦЕПОЧКА ОБРАБОТКИ
-      source
-        .connect(highPassFilter)
-        .connect(notchFilter)
-        .connect(analyser)
-        .connect(noiseGateGain)
-        .connect(deEsser)
-        .connect(compressor)
-        .connect(lowPassFilter)
-        .connect(finalGain)
-        .connect(volumeControl)
-        .connect(limiter)
-        .connect(destination);
+      // Подключаем: обработанный звук -> задержка -> громкость -> выход
+      processedSource.connect(delayNode).connect(outputGain).connect(destination);
 
       // Создаем аудио элемент для воспроизведения
       const audio = new Audio();
       audio.srcObject = destination.stream;
-      // Ограничиваем громкость HTML элемента в диапазоне [0, 1]
-      // Для значений > 100% используем максимальную громкость 1.0
-      audio.volume = audioSettings.outputVolume >= 100 ? 1.0 : audioSettings.outputVolume / 100;
+      audio.volume = 1.0; // Контролируем через gain node
 
       // Устанавливаем выходное устройство
       if (audioSettings.selectedSpeaker && audioSettings.selectedSpeaker !== 'default' && typeof audio.setSinkId === 'function') {
@@ -875,12 +838,29 @@ function UserSettingsModal({ user, onClose, onLogout, onAvatarUpdate }) {
         }
       }
 
-      audio.play().catch(err => {
+      // Воспроизводим звук
+      await audio.play().catch(err => {
         console.error('Ошибка воспроизведения:', err);
+        throw new Error('Не удалось начать воспроизведение');
       });
 
       setLoopbackAudioElement(audio);
-      console.log('✅ Тестовый режим запущен - вы можете слышать себя');
+
+      // ========== ЗВУКОВОЕ УВЕДОМЛЕНИЕ ЧЕРЕЗ 2 СЕКУНДЫ ==========
+      setTimeout(() => {
+        try {
+          const beep = new Audio('/ptt_start.mp3');
+          beep.volume = 0.5;
+          beep.play().catch(() => {
+            console.log('Не удалось воспроизвести звуковое уведомление');
+          });
+          console.log('🔔 Задержка 2 секунды прошла - теперь вы слышите себя!');
+        } catch (err) {
+          console.log('Ошибка воспроизведения звука уведомления:', err);
+        }
+      }, 2000);
+
+      console.log('✅ Тестовый режим запущен - через 2 секунды услышите свой голос');
     } catch (error) {
       console.error('Ошибка запуска тестового режима:', error);
       setIsTestMode(false);
@@ -903,8 +883,20 @@ function UserSettingsModal({ user, onClose, onLogout, onAvatarUpdate }) {
       }
 
       alert(errorMessage);
+
+      // Очистка при ошибке
+      if (loopbackProcessingRef.current) {
+        loopbackProcessingRef.current.teardown().catch(() => {});
+        loopbackProcessingRef.current = null;
+      }
+      loopbackOutputVolumeRef.current = null;
+      if (loopbackStream) {
+        loopbackStream.getTracks().forEach(track => track.stop());
+        setLoopbackStream(null);
+      }
     }
   };
+
 
   // Проверка разрешений микрофона
   const checkMicPermissions = async () => {

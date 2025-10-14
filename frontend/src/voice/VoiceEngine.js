@@ -267,7 +267,10 @@ export class VoiceEngine {
       this.handleLocalTrackEnded();
     });
 
-    this.processingGraph = await createProcessingGraph(stream, this.settings);
+    this.processingGraph = await createProcessingGraph(stream, {
+      inputVolume: this.settings?.inputVolume ?? 100,
+      micSensitivity: this.settings?.micSensitivity ?? 1,
+    });
     if (this.destroyed) {
       stream.getTracks().forEach((track) => track.stop());
       if (this.processingGraph?.teardown) {
@@ -291,7 +294,6 @@ export class VoiceEngine {
 
   startLocalMonitor() {
     this.stopLocalMonitor();
-    const threshold = this.computeMicThreshold();
 
     if (this.processingGraph?.computeVolume) {
       this.localMonitorTimer = setInterval(() => {
@@ -299,7 +301,9 @@ export class VoiceEngine {
           return;
         }
         const level = this.processingGraph.computeVolume();
-        const speaking = level >= threshold;
+        // Noise Gate теперь управляет активацией звука внутри обработки
+        // Здесь просто показываем уровень для визуализации
+        const speaking = level > 0.02; // Минимальный порог для визуализации
         this.callbacks.onLocalSpeaking(speaking, level);
       }, SPEAKING_SAMPLE_INTERVAL);
     }
@@ -314,15 +318,6 @@ export class VoiceEngine {
       this.localSenderMonitor.stop();
       this.localSenderMonitor = null;
     }
-  }
-
-  computeMicThreshold() {
-    const sensitivity = Number(this.settings?.micSensitivity);
-    if (!Number.isFinite(sensitivity)) {
-      return 0.15;
-    }
-    const normalised = Math.max(0, Math.min(100, sensitivity)) / 100;
-    return 0.05 + normalised * 0.2;
   }
 
   async joinVoiceChannel() {
@@ -745,6 +740,10 @@ export class VoiceEngine {
 
     if (this.processingGraph?.updateInputVolume && merged.inputVolume !== undefined && merged.inputVolume !== prevSettings.inputVolume) {
       this.processingGraph.updateInputVolume(merged.inputVolume);
+    }
+
+    if (this.processingGraph?.updateMicSensitivity && merged.micSensitivity !== undefined && merged.micSensitivity !== prevSettings.micSensitivity) {
+      this.processingGraph.updateMicSensitivity(merged.micSensitivity);
     }
 
     if (merged.voiceMode && merged.voiceMode !== prevSettings.voiceMode) {

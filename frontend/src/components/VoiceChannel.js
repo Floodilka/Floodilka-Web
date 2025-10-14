@@ -13,7 +13,7 @@ const DEFAULT_AUDIO_SETTINGS = {
   noiseSuppression: true,
   echoCancellation: true,
   autoGainControl: true,
-  micSensitivity: 50,
+  micSensitivity: 0,
   audioBitrate: 192000,
   selectedMicrophone: 'default',
   selectedSpeaker: 'default',
