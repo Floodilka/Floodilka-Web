@@ -363,7 +363,8 @@ class VoiceHandler {
 
   handleGetAllUsers(socket) {
     socket.on(SOCKET_EVENTS.VOICE_GET_ALL_USERS, () => {
-      const snapshot = this.cachedVoiceState || this.buildVoiceSnapshot();
+      // ВСЕГДА строим свежий snapshot, а не используем кэш
+      const snapshot = this.buildVoiceSnapshot();
       socket.emit(SOCKET_EVENTS.VOICE_CHANNELS_UPDATE, snapshot.voiceChannelsData);
       socket.emit(SOCKET_EVENTS.SCREEN_SHARING_UPDATE, snapshot.screenSharingData);
       logger.debug(`📡 Отправлено текущее состояние voice и screen sharing пользователю ${socket.id}`);
