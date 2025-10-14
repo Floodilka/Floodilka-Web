@@ -125,6 +125,7 @@ export class VoiceEngine {
     this.peerRestartTimers = new Map();
     this.lastNetworkQuality = 'excellent';
     this.pttActive = false;
+    this.backgroundKeepalive = null;
 
     this.visibilityListener = this.handleVisibilityChange.bind(this);
     this.deviceChangeListener = this.handleDeviceChange.bind(this);
@@ -178,6 +179,7 @@ export class VoiceEngine {
     this.clearNetworkMonitoring();
     this.stopLocalMonitor();
     this.stopKeepAlive();
+    this.stopBackgroundKeepalive();
     this.clearPeerRestartTimers();
 
     this.peerConnections.forEach((pc) => {
@@ -801,9 +803,56 @@ export class VoiceEngine {
   handleVisibilityChange() {
     if (document.visibilityState === 'visible') {
       this.resumeIfNeeded();
+      this.stopBackgroundKeepalive();
+    } else {
+      // Запускаем keepalive для фоновой вкладки
+      this.startBackgroundKeepalive();
     }
     // НЕ приостанавливаем AudioContext при сворачивании вкладки,
     // иначе микрофон перестанет работать и вас не будет слышно
+  }
+
+  startBackgroundKeepalive() {
+    if (this.backgroundKeepalive) return;
+
+    // Используем requestAnimationFrame вместо setInterval
+    // он работает даже на фоновых вкладках (хоть и медленнее)
+    const keepalive = () => {
+      if (document.visibilityState !== 'hidden') {
+        this.stopBackgroundKeepalive();
+        return;
+      }
+
+      // Принудительно resume AudioContext если suspended
+      if (this.processingGraph?.context?.state === 'suspended') {
+        this.processingGraph.context.resume().catch(err => {
+          console.warn('Background keepalive: failed to resume context', err);
+        });
+      }
+
+      // Проверяем что peerConnections активны
+      this.peerConnections.forEach((pc) => {
+        if (pc.connectionState === 'connected' && pc.getSenders) {
+          // Трогаем sender чтобы держать соединение активным
+          const sender = pc.getSenders().find(s => s.track?.kind === 'audio');
+          if (sender?.track) {
+            // Просто проверяем enabled - это легковесная операция
+            const _ = sender.track.enabled;
+          }
+        }
+      });
+
+      this.backgroundKeepalive = requestAnimationFrame(keepalive);
+    };
+
+    this.backgroundKeepalive = requestAnimationFrame(keepalive);
+  }
+
+  stopBackgroundKeepalive() {
+    if (this.backgroundKeepalive) {
+      cancelAnimationFrame(this.backgroundKeepalive);
+      this.backgroundKeepalive = null;
+    }
   }
 
   async resumeIfNeeded() {
