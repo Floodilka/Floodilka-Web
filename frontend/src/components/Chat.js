@@ -960,6 +960,7 @@ function Chat({ channel, messages, username, user, currentServer, channels = [],
   }, [isLoadingMessages, channel, messages.length, preloadedMessages, setIsLoadingMessages]);
 
   // Обработчик скролла для сохранения позиции
+  const isChannelSwitching = useRef(false); // Флаг блокировки сохранения при переключении каналов
   const handleScroll = useCallback(() => {
     if (!messagesContainerRef.current || !channel?.id) return;
 
@@ -972,6 +973,12 @@ function Chat({ channel, messages, username, user, currentServer, channels = [],
     }
 
     handleScroll.timeoutId = setTimeout(() => {
+      // НЕ сохраняем позицию если идет переключение каналов
+      if (isChannelSwitching.current) {
+        console.log('[SCROLL] 🚫 Блокируем сохранение позиции - идет переключение каналов');
+        return;
+      }
+
       console.log('[SCROLL] 💾 Сохраняем позицию скролла для канала:', currentChannelId, 'позиция:', scrollTop);
       saveScrollPosition(scrollTop, currentChannelId);
     }, 300);
@@ -1006,9 +1013,17 @@ function Chat({ channel, messages, username, user, currentServer, channels = [],
     if (newChannelId !== oldChannelId) {
       autoScrollStateRef.current = { channelId: null, attempts: 0 };
 
-      // Отменяем все таймауты скролла при смене канала
+      // Отменяем все таймауты скролла при смене канала (включая handleScroll)
       scrollTimeoutsRef.current.forEach(id => clearTimeout(id));
       scrollTimeoutsRef.current = [];
+      if (handleScroll.timeoutId) {
+        clearTimeout(handleScroll.timeoutId);
+        handleScroll.timeoutId = null;
+      }
+
+      // БЛОКИРУЕМ сохранение позиции через handleScroll на время переключения
+      isChannelSwitching.current = true;
+      console.log('[SCROLL] 🔒 Блокируем сохранение позиции на время переключения');
 
       // СНАЧАЛА сохраняем позицию СТАРОГО канала перед переключением
       if (oldChannelId && messagesContainerRef.current) {
@@ -1061,6 +1076,8 @@ function Chat({ channel, messages, username, user, currentServer, channels = [],
         // Если канал стал null/undefined, просто обновляем ref
         console.log('[SCROLL] ❌ Канал стал null/undefined');
         prevChannelRef.current = null;
+        // Разблокируем сохранение позиции
+        isChannelSwitching.current = false;
       }
     }
   }, [channel?.id, getSavedScrollPosition, saveScrollPosition]);
@@ -1094,6 +1111,12 @@ function Chat({ channel, messages, username, user, currentServer, channels = [],
         shouldRestoreScroll.current = false;
         prevMessagesLengthRef.current = messages.length; // ВАЖНО: обновляем prevMessagesLength!
         markChannelScrolled(channel.id, 'restore-saved-position');
+
+        // Разблокируем сохранение позиции через небольшую задержку
+        setTimeout(() => {
+          isChannelSwitching.current = false;
+          console.log('[SCROLL] 🔓 Разблокировали сохранение позиции после восстановления');
+        }, 500);
       } else if (shouldRestoreScroll.current) {
         // Флаг установлен но позиция не найдена
         console.log('[SCROLL] ⚠️ Флаг shouldRestoreScroll был true, но позиция не найдена - переключаем на isInitialLoad');
@@ -1167,8 +1190,22 @@ function Chat({ channel, messages, username, user, currentServer, channels = [],
     if (shouldScroll) {
       console.log('[SCROLL] ✅ СКРОЛЛИМ ВНИЗ');
       autoScrollToBottom('layoutEffect');
+
+      // Разблокируем сохранение позиции через небольшую задержку после автоскролла
+      setTimeout(() => {
+        isChannelSwitching.current = false;
+        console.log('[SCROLL] 🔓 Разблокировали сохранение позиции после автоскролла');
+      }, 500);
     } else {
       console.log('[SCROLL] ⏭️ НЕ скроллим по условию');
+
+      // Если не скроллим, но блокировка всё ещё активна - разблокируем
+      if (isChannelSwitching.current) {
+        setTimeout(() => {
+          isChannelSwitching.current = false;
+          console.log('[SCROLL] 🔓 Разблокировали сохранение позиции (не было скролла)');
+        }, 500);
+      }
     }
 
     prevMessagesLengthRef.current = messages.length;

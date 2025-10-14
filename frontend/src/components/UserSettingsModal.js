@@ -58,23 +58,6 @@ function UserSettingsModal({ user, onClose, onLogout, onAvatarUpdate }) {
     );
   };
 
-  const handleUnblockFromSettings = async (targetId) => {
-    if (!targetId || unblockingUserId === targetId) {
-      return;
-    }
-
-    try {
-      setUnblockingUserId(targetId);
-      await api.unblockUser(targetId);
-      setBlockedUsers(prev => prev.filter(user => user.id !== targetId));
-    } catch (err) {
-      console.error('Ошибка разблокировки пользователя:', err);
-      setBlockedError('Не удалось разблокировать пользователя');
-    } finally {
-      setUnblockingUserId(null);
-    }
-  };
-
   // Элементы навигации с описаниями для поиска
   const navigationItems = [
     {
@@ -98,11 +81,6 @@ function UserSettingsModal({ user, onClose, onLogout, onAvatarUpdate }) {
       description: 'Звуки, всплывающие окна, email'
     },
     {
-      id: 'privacy',
-      label: 'Приватность',
-      description: 'Черный список и блокировки'
-    },
-    {
       id: 'hotkeys',
       label: 'Горячие клавиши',
       description: 'Клавиши быстрого доступа'
@@ -124,7 +102,7 @@ function UserSettingsModal({ user, onClose, onLogout, onAvatarUpdate }) {
     }
   ];
 
-  const userNavItems = navigationItems.filter(item => ['account', 'audio', 'privacy'].includes(item.id));
+  const userNavItems = navigationItems.filter(item => ['account', 'audio'].includes(item.id));
 
   // Состояния для настроек звука
   const [audioSettings, setAudioSettings] = useState(() => {
@@ -163,12 +141,6 @@ function UserSettingsModal({ user, onClose, onLogout, onAvatarUpdate }) {
   // Состояния для PTT
   const [isRecordingKey, setIsRecordingKey] = useState(false);
   const [pressedKeys, setPressedKeys] = useState(new Set());
-
-  // Состояния для блокировок
-  const [blockedUsers, setBlockedUsers] = useState([]);
-  const [blockedLoading, setBlockedLoading] = useState(false);
-  const [blockedError, setBlockedError] = useState('');
-  const [unblockingUserId, setUnblockingUserId] = useState(null);
 
   // Состояния для управления тегами (только для puncher)
   const [targetUsername, setTargetUsername] = useState('');
@@ -306,29 +278,6 @@ function UserSettingsModal({ user, onClose, onLogout, onAvatarUpdate }) {
       }
     }
   }, [activeTab, audioSettings.selectedMicrophone, isMicTesting, isTestMode]);
-
-  useEffect(() => {
-    if (activeTab !== 'privacy') {
-      return;
-    }
-
-    const loadBlockedUsers = async () => {
-      try {
-        setBlockedLoading(true);
-        setBlockedError('');
-        const data = await api.getBlockedUsers();
-        setBlockedUsers(Array.isArray(data) ? data : []);
-      } catch (err) {
-        console.error('Ошибка загрузки списка блокировок:', err);
-        setBlockedError('Не удалось загрузить список блокировок');
-        setBlockedUsers([]);
-      } finally {
-        setBlockedLoading(false);
-      }
-    };
-
-    loadBlockedUsers();
-  }, [activeTab]);
 
   // Очистка тестового потока при закрытии модального окна
   useEffect(() => {
@@ -1198,64 +1147,6 @@ function UserSettingsModal({ user, onClose, onLogout, onAvatarUpdate }) {
             </div>
 
             </>
-          )}
-
-          {activeTab === 'privacy' && (
-            <div className="settings-privacy">
-              <div className="settings-page-header">
-                <h1 className="settings-page-title">Приватность и блокировки</h1>
-                <p className="settings-page-subtitle">Управляйте пользователями, которые не могут писать вам в личные сообщения</p>
-              </div>
-
-              {blockedLoading ? (
-                <div className="settings-loading">Загрузка списка...</div>
-              ) : blockedError ? (
-                <div className="settings-error-inline">{blockedError}</div>
-              ) : blockedUsers.length === 0 ? (
-                <div className="settings-empty-state">
-                  <h3>Никто не заблокирован</h3>
-                  <p>Здесь появятся пользователи, которым запрещено отправлять вам сообщения.</p>
-                </div>
-              ) : (
-                <div className="blocked-users-list">
-                  {blockedUsers.map(blocked => (
-                    <div className="blocked-user-item" key={blocked.id}>
-                      <div className="blocked-user-info">
-                        {blocked.avatar ? (
-                          <img src={`${BACKEND_URL}${blocked.avatar}`} alt={blocked.username} className="blocked-user-avatar" />
-                        ) : (
-                          <div className="blocked-user-avatar placeholder">
-                            {(blocked.displayName || blocked.username || '?').charAt(0).toUpperCase()}
-                          </div>
-                        )}
-                        <div className="blocked-user-details">
-                          <div className="blocked-user-name">{blocked.displayName || blocked.username}</div>
-                          <div className="blocked-user-username">@{blocked.username}</div>
-                          {(blocked.reason || blocked.blockedAt) && (
-                            <div className="blocked-user-meta">
-                              {blocked.reason && <span className="blocked-user-reason">Причина: {blocked.reason}</span>}
-                              {blocked.blockedAt && (
-                                <span className="blocked-user-date">
-                                  с {new Date(blocked.blockedAt).toLocaleDateString('ru-RU', { year: 'numeric', month: 'short', day: 'numeric' })}
-                                </span>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                      <button
-                        type="button"
-                        className="blocked-user-unblock"
-                        onClick={() => handleUnblockFromSettings(blocked.id)}
-                        disabled={unblockingUserId === blocked.id}
-                      >
-                        {unblockingUserId === blocked.id ? '...' : 'Разблокировать'}
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
           )}
 
           {activeTab === 'audio' && (

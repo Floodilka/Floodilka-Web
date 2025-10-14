@@ -6,7 +6,6 @@ import UserProfile from './UserProfile';
 import ChannelSettingsModal from './ChannelSettingsModal';
 import ServerSettingsModal from './ServerSettingsModal';
 import { useVoice } from '../context/VoiceContext';
-import { useSettings } from '../context/AppContext';
 import api from '../services/api';
 
 const BACKEND_URL = window.location.hostname === 'localhost'
@@ -15,12 +14,12 @@ const BACKEND_URL = window.location.hostname === 'localhost'
 
 function ChannelList({ channels, currentTextChannel, currentVoiceChannel, voiceChannelUsers, speakingUsers, user, isMuted, isDeafened, isInVoice, isScreenSharing, screenSharingUsers, serverName, currentServer, serverMembers, onToggleMute, onToggleDeafen, onToggleScreenShare, onDisconnect, onLogout, onAvatarUpdate, onSelectChannel, onCreateChannel, onUpdateChannel, onDeleteChannel, onMessageSent, onRefreshMembers }) {
   const { connectToStream } = useVoice();
-  const { isSettingsOpen, openSettings, closeSettings } = useSettings();
   const [showTextForm, setShowTextForm] = useState(false);
   const [showVoiceForm, setShowVoiceForm] = useState(false);
   const [newChannelName, setNewChannelName] = useState('');
   const [serverMenuOpen, setServerMenuOpen] = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
+  const [isServerSettingsOpen, setIsServerSettingsOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   const [profilePosition, setProfilePosition] = useState({ top: 0, left: 0 });
   const [messageText, setMessageText] = useState('');
@@ -258,11 +257,11 @@ function ChannelList({ channels, currentTextChannel, currentVoiceChannel, voiceC
   }, [serverMenuOpen]);
 
   useEffect(() => {
-    if (!isSettingsOpen) {
+    if (!isServerSettingsOpen) {
       setBanError('');
       setBanLoadingId(null);
     }
-  }, [isSettingsOpen]);
+  }, [isServerSettingsOpen]);
 
   useEffect(() => {
     if (!voiceVolumeMenu) return;
@@ -411,12 +410,12 @@ function ChannelList({ channels, currentTextChannel, currentVoiceChannel, voiceC
   const handleServerSettingsOpen = () => {
     setServerMenuOpen(false);
     setShowInviteModal(false);
-    openSettings();
+    setIsServerSettingsOpen(true);
   };
 
   const handleServerSettingsClose = () => {
     console.log('[🔍 SETTINGS DEBUG] Закрываем настройки сервера');
-    closeSettings();
+    setIsServerSettingsOpen(false);
     setBanError('');
     setBanLoadingId(null);
   };
@@ -931,7 +930,7 @@ function ChannelList({ channels, currentTextChannel, currentVoiceChannel, voiceC
     </div>
   )}
 
-      {isSettingsOpen && currentServer && (
+      {isServerSettingsOpen && currentServer && (
         <ServerSettingsModal
           server={currentServer}
           members={serverMembersList}
