@@ -262,7 +262,7 @@ const UserList = memo(function UserList({ onlineUsers, allMembers, currentUser, 
                   />
                 ) : (
                   <div className="user-profile-avatar-large user-profile-avatar-fallback">
-                    {(liveSelectedUser?.displayName || liveSelectedUser?.username)[0].toUpperCase()}
+                    {((liveSelectedUser?.displayName || liveSelectedUser?.username || 'U')[0]).toUpperCase()}
                   </div>
                 )}
               </div>
@@ -273,7 +273,7 @@ const UserList = memo(function UserList({ onlineUsers, allMembers, currentUser, 
                   </div>
                   <div className="user-profile-username-row">
                     <div className="user-profile-username">
-                      {liveSelectedUser.username}
+                      {liveSelectedUser.username || 'Пользователь'}
                     </div>
                     {liveSelectedUser.badge && liveSelectedUser.badge !== 'User' && (
                       <span className="user-profile-badge">
@@ -285,7 +285,7 @@ const UserList = memo(function UserList({ onlineUsers, allMembers, currentUser, 
               ) : (
                 <div className="user-profile-username-row">
                   <div className="user-profile-display-name">
-                    {liveSelectedUser?.username}
+                    {liveSelectedUser?.username || 'Пользователь'}
                   </div>
                   {liveSelectedUser?.badge && liveSelectedUser.badge !== 'User' && (
                     <span className={`user-profile-badge badge-${liveSelectedUser.badge.toLowerCase()}`}>
