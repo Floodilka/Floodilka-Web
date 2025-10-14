@@ -285,6 +285,25 @@ router.post('/avatar', upload.single('avatar'), async (req, res) => {
     user.avatar = `/uploads/avatars/${req.file.filename}`;
     await user.save();
 
+    // Отправить обновление всем через WebSocket
+    const io = req.app.get('io');
+    if (io) {
+      const { SOCKET_EVENTS } = require('../constants/events');
+      const { globalOnlineUsers } = require('../websocket/serverHandler');
+
+      // Обновить данные в globalOnlineUsers если пользователь онлайн
+      if (globalOnlineUsers.has(user._id.toString())) {
+        const userData = globalOnlineUsers.get(user._id.toString());
+        userData.avatar = user.avatar;
+        globalOnlineUsers.set(user._id.toString(), userData);
+
+        // Broadcast обновление всем
+        io.emit(SOCKET_EVENTS.GLOBAL_USERS_UPDATE, {
+          users: Array.from(globalOnlineUsers.values())
+        });
+      }
+    }
+
     res.json({
       avatar: user.avatar,
       blockedUsers: user.blockedUsers || [],
@@ -324,6 +343,25 @@ router.patch('/displayname', async (req, res) => {
 
     user.displayName = displayName.trim();
     await user.save();
+
+    // Отправить обновление всем через WebSocket
+    const io = req.app.get('io');
+    if (io) {
+      const { SOCKET_EVENTS } = require('../constants/events');
+      const { globalOnlineUsers } = require('../websocket/serverHandler');
+      
+      // Обновить данные в globalOnlineUsers если пользователь онлайн
+      if (globalOnlineUsers.has(user._id.toString())) {
+        const userData = globalOnlineUsers.get(user._id.toString());
+        userData.displayName = user.displayName;
+        globalOnlineUsers.set(user._id.toString(), userData);
+        
+        // Broadcast обновление всем
+        io.emit(SOCKET_EVENTS.GLOBAL_USERS_UPDATE, {
+          users: Array.from(globalOnlineUsers.values())
+        });
+      }
+    }
 
     res.json({
       displayName: user.displayName,

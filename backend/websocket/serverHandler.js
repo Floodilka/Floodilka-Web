@@ -155,4 +155,5 @@ class ServerHandler {
 }
 
 module.exports = ServerHandler;
+module.exports.globalOnlineUsers = globalOnlineUsers;
 
