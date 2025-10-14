@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import './Chat.css';
 import FriendActionButton from './FriendActionButton';
 import { useChat } from '../context/ChatContext';
+import { useGlobalUsers } from '../context/GlobalUsersContext';
 import { SOCKET_EVENTS } from '../constants/events';
 import EmojiPicker from './EmojiPicker';
 import MessageReactions from './MessageReactions';
@@ -11,6 +12,7 @@ import MarkdownMessage from './MarkdownMessage';
 import MessageEmbeds from './MessageEmbeds';
 import ChannelAutocomplete from './ChannelAutocomplete';
 import api from '../services/api';
+import { mergeMessagesWithLiveUsers } from '../utils/userDataMerger';
 
 const BACKEND_URL = window.location.hostname === 'localhost'
   ? 'http://localhost:3001'
@@ -18,6 +20,7 @@ const BACKEND_URL = window.location.hostname === 'localhost'
 
 function Chat({ channel, messages, username, user, currentServer, channels = [], onSendMessage, hasServer, hasTextChannels, serverLoading, socket, onMessageSent, preloadedMessages, isLoadingMessages }) {
   const { setIsLoadingMessages, saveScrollPosition, getSavedScrollPosition } = useChat();
+  const { globalOnlineUsers } = useGlobalUsers();
   const [inputValue, setInputValue] = useState('');
   const messagesEndRef = useRef(null);
   const messagesContainerRef = useRef(null);
@@ -114,6 +117,11 @@ function Chat({ channel, messages, username, user, currentServer, channels = [],
       return `<#${id}>`;
     });
   }, [channelReplaceMap]);
+
+  // Объединяем сообщения с актуальными данными пользователей
+  const liveMessages = useMemo(() => {
+    return mergeMessagesWithLiveUsers(messages, globalOnlineUsers);
+  }, [messages, globalOnlineUsers]);
 
 
   const roleMetadata = useMemo(() => {
@@ -1903,8 +1911,8 @@ const handleChannelSelect = (channel) => {
             </div>
 
             <div style={{ opacity: showMessages ? 1 : 0, transition: 'opacity 0.15s ease' }}>
-            {groupMessages(messages).map((group, groupIndex) => {
-              const prevGroup = groupIndex > 0 ? groupMessages(messages)[groupIndex - 1] : null;
+            {groupMessages(liveMessages).map((group, groupIndex) => {
+              const prevGroup = groupIndex > 0 ? groupMessages(liveMessages)[groupIndex - 1] : null;
               const showDateDivider = !prevGroup || prevGroup.date !== group.date;
 
               return (
