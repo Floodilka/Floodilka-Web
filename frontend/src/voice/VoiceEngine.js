@@ -592,6 +592,10 @@ export class VoiceEngine {
         sinkId: this.settings?.selectedSpeaker,
       });
       this.remotePlayers.set(remoteId, newPlayer);
+      // Если мы в deafen режиме, сразу отключаем звук для нового плеера
+      if (this.isDeafened) {
+        newPlayer.setMuted(true);
+      }
     }
 
     this.reapplyVolume(remoteId);
@@ -874,9 +878,15 @@ export class VoiceEngine {
   setDeafened(isDeafened) {
     this.isDeafened = isDeafened;
     if (isDeafened) {
-      this.remotePlayers.forEach((player) => player.setVolume(0));
+      this.remotePlayers.forEach((player) => {
+        player.setMuted(true);
+        player.setVolume(0);
+      });
     } else {
-      this.remotePlayers.forEach((_, id) => this.reapplyVolume(id));
+      this.remotePlayers.forEach((player, id) => {
+        player.setMuted(false);
+        this.reapplyVolume(id);
+      });
     }
     this.socket.emit(SOCKET_EVENTS.VOICE_DEAFEN_TOGGLE, {
       channelId: this.channel.id,
@@ -908,9 +918,11 @@ export class VoiceEngine {
     const player = this.remotePlayers.get(remoteId);
     if (!player) return;
     if (this.isDeafened) {
+      player.setMuted(true);
       player.setVolume(0);
       return;
     }
+    player.setMuted(false);
     const overridePercent = this.userVolumeOverrides.get(remoteId);
     const overrideMultiplier =
       overridePercent !== undefined ? this.normaliseOutputVolume(overridePercent) : 1;

@@ -42,6 +42,10 @@ export class RemoteAudioPlayer {
     }
   }
 
+  setMuted(muted) {
+    this.element.muted = Boolean(muted);
+  }
+
   async setSinkId(sinkId) {
     if (!this.element.setSinkId || !sinkId || sinkId === 'default') return;
     try {
