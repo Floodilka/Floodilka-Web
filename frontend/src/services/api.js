@@ -307,9 +307,16 @@ class ApiService {
   }
 
   async uploadAvatar(userId, formData) {
+    const headers = {};
+    const token = localStorage.getItem('token');
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
+
     const response = await fetch(`${this.baseURL}/api/auth/users/${userId}/avatar`, {
       method: 'POST',
       credentials: 'include',
+      headers,
       body: formData,
     });
 
@@ -322,9 +329,16 @@ class ApiService {
   }
 
   async uploadMessageFiles(formData) {
+    const headers = {};
+    const token = localStorage.getItem('token');
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
+
     const response = await fetch(`${this.baseURL}/api/messages/upload`, {
       method: 'POST',
       credentials: 'include',
+      headers,
       body: formData,
     });
 
