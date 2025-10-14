@@ -266,7 +266,7 @@ router.post('/avatar', upload.single('avatar'), async (req, res) => {
       return res.status(400).json({ error: 'Файл не загружен' });
     }
 
-    const decoded = jwt.verify(token, JWT_SECRET);
+    const decoded = jwt.verify(token, config.jwtSecret);
     const user = await User.findById(decoded.userId);
 
     if (!user) {
@@ -315,7 +315,7 @@ router.patch('/displayname', async (req, res) => {
       return res.status(400).json({ error: 'Отображаемое имя не может превышать 32 символа' });
     }
 
-    const decoded = jwt.verify(token, JWT_SECRET);
+    const decoded = jwt.verify(token, config.jwtSecret);
     const user = await User.findById(decoded.userId);
 
     if (!user) {
@@ -348,7 +348,7 @@ router.post('/assign-badge', async (req, res) => {
     // Верификация токена
     let decoded;
     try {
-      decoded = jwt.verify(token, JWT_SECRET);
+      decoded = jwt.verify(token, config.jwtSecret);
     } catch (err) {
       console.warn('[SECURITY] Попытка с невалидным токеном:', err.message);
       return res.status(401).json({ error: 'Невалидный токен' });
