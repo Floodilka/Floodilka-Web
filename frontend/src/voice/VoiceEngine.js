@@ -797,9 +797,9 @@ export class VoiceEngine {
   handleVisibilityChange() {
     if (document.visibilityState === 'visible') {
       this.resumeIfNeeded();
-    } else {
-      this.suspendAudioContext();
     }
+    // НЕ приостанавливаем AudioContext при сворачивании вкладки,
+    // иначе микрофон перестанет работать и вас не будет слышно
   }
 
   async resumeIfNeeded() {
@@ -827,14 +827,6 @@ export class VoiceEngine {
         pc.restartIce?.();
       }
     });
-  }
-
-  suspendAudioContext() {
-    if (this.processingGraph?.context?.state === 'running') {
-      this.processingGraph.context.suspend().catch((err) => {
-        console.warn('Failed to suspend audio context', err);
-      });
-    }
   }
 
   async handleDeviceChange() {
