@@ -274,14 +274,20 @@ const gracefulShutdown = (signal) => {
 
   // Закрываем MongoDB соединение
   const mongoose = require('mongoose');
-  mongoose.connection.close(() => {
+  mongoose.connection.close().then(() => {
     logger.info('MongoDB соединение закрыто');
-  });
-
-  server.close(() => {
-    clearTimeout(forceExit);
-    logger.info('HTTP сервер остановлен');
-    process.exit(0);
+    
+    server.close(() => {
+      clearTimeout(forceExit);
+      logger.info('HTTP сервер остановлен');
+      process.exit(0);
+    });
+  }).catch((err) => {
+    logger.error('Ошибка при закрытии MongoDB:', err);
+    server.close(() => {
+      clearTimeout(forceExit);
+      process.exit(1);
+    });
   });
 };
 
