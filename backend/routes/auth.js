@@ -256,7 +256,9 @@ router.get('/user/:userId', async (req, res) => {
 // Загрузка аватара
 router.post('/avatar', upload.single('avatar'), async (req, res) => {
   try {
-    const token = req.headers.authorization?.split(' ')[1];
+    const headerToken = req.headers.authorization?.split(' ')[1];
+    const cookieToken = req.signedCookies?.[config.jwtCookie.name] || req.cookies?.[config.jwtCookie.name];
+    const token = headerToken || cookieToken;
 
     if (!token) {
       return res.status(401).json({ error: 'Не авторизован' });
@@ -337,7 +339,9 @@ router.post('/avatar', upload.single('avatar'), async (req, res) => {
 // Обновление отображаемого имени
 router.patch('/displayname', async (req, res) => {
   try {
-    const token = req.headers.authorization?.split(' ')[1];
+    const headerToken = req.headers.authorization?.split(' ')[1];
+    const cookieToken = req.signedCookies?.[config.jwtCookie.name] || req.cookies?.[config.jwtCookie.name];
+    const token = headerToken || cookieToken;
 
     if (!token) {
       return res.status(401).json({ error: 'Не авторизован' });
@@ -414,7 +418,9 @@ router.patch('/displayname', async (req, res) => {
 // Назначение тега пользователю (только для puncher)
 router.post('/assign-badge', async (req, res) => {
   try {
-    const token = req.headers.authorization?.split(' ')[1];
+    const headerToken = req.headers.authorization?.split(' ')[1];
+    const cookieToken = req.signedCookies?.[config.jwtCookie.name] || req.cookies?.[config.jwtCookie.name];
+    const token = headerToken || cookieToken;
 
     if (!token) {
       console.warn('[SECURITY] Попытка назначить тег без токена');
