@@ -903,17 +903,29 @@ function Chat({ channel, messages, username, user, currentServer, channels = [],
   // Флаги для синхронного скролла
   const [bootstrapping, setBootstrapping] = useState(true);
   const initialScrollDoneRef = useRef(false);
+  const prevLoadingRef = useRef(false);
+  const prevChannelIdRef = useRef(null);
+  const startedEmptyRef = useRef(false);
 
-  // Сбрасываем флаг при смене канала
+  // Вспомогательный id канала
+  const channelId = channel?.id ?? null;
+
+  // Следим за СТАБИЛЬНОЙ сменой канала (игнорим undefined)
   useEffect(() => {
-    console.log(`[CHAT] Channel changed, resetting scroll flags:`, {
-      channelId: channel?.id,
-      channelName: channel?.name,
-      previousChannelId: initialScrollDoneRef.current ? 'had previous' : 'none'
-    });
-    setBootstrapping(true);
-    initialScrollDoneRef.current = false;
-  }, [channel?.id]);
+    if (!channelId) return; // <-- важно: игнорим промежуточный undefined
+    if (prevChannelIdRef.current !== channelId) {
+      console.log(`[CHAT] Channel changed, resetting scroll flags:`, {
+        channelId,
+        channelName: channel?.name,
+        previousChannelId: prevChannelIdRef.current || 'none'
+      });
+      // это реальная смена канала
+      prevChannelIdRef.current = channelId;
+      setBootstrapping(true);
+      initialScrollDoneRef.current = false;
+      startedEmptyRef.current = false;
+    }
+  }, [channelId, channel?.name]);
 
   // Первый скролл — строго синхронно до показа
   useLayoutEffect(() => {
@@ -927,15 +939,12 @@ function Chat({ channel, messages, username, user, currentServer, channels = [],
     });
 
     if (!messagesContainerRef.current) return;
+    if (!channelId) return; // <-- защита от undefined
+
+    // Пока идёт загрузка — ничего не делаем
     if (isLoadingMessages) return;
-    if (!channel?.id) return;
-    if (messages.length === 0) {
-      // пустой канал тоже считаем инициализированным
-      console.log(`[CHAT] Empty channel, marking as initialized:`, { channelId: channel?.id });
-      initialScrollDoneRef.current = true;
-      setBootstrapping(false);
-      return;
-    }
+    // Если сообщений пока 0 — тоже ждём (не считаем скролл сделанным)
+    if (messages.length === 0) return;
 
     if (!initialScrollDoneRef.current) {
       const c = messagesContainerRef.current;
@@ -956,12 +965,71 @@ function Chat({ channel, messages, username, user, currentServer, channels = [],
         console.log(`[CHAT] Setting bootstrapping to false for channel:`, channel?.id);
         setBootstrapping(false);
       });
+      // Дополнительный скролл для надёжности
+      setTimeout(() => {
+        c.scrollTop = c.scrollHeight - c.clientHeight;
+      }, 0);
     }
-  }, [channel?.id, isLoadingMessages, messages.length]);
+  }, [channelId, isLoadingMessages, messages.length]);
+
+  // Доскролл после первой реальной загрузки (переход true → false)
+  useEffect(() => {
+    const wasLoading = prevLoadingRef.current;
+    prevLoadingRef.current = isLoadingMessages;
+
+    // 1) Нормальный кейс: загрузка завершилась, сообщения есть — докрутим вниз
+    if (wasLoading && !isLoadingMessages && !initialScrollDoneRef.current && messages.length > 0 && channelId) {
+      const c = messagesContainerRef.current;
+      if (c) {
+        console.log(`[CHAT] First load completed, scrolling to bottom:`, {
+          channelId,
+          messagesCount: messages.length
+        });
+        requestAnimationFrame(() => {
+          c.scrollTop = c.scrollHeight - c.clientHeight;
+          initialScrollDoneRef.current = true;
+          setBootstrapping(false);
+          setTimeout(() => {
+            c.scrollTop = c.scrollHeight - c.clientHeight;
+          }, 0);
+        });
+      }
+    }
+
+    // 2) Новый кейс: загрузка завершилась, а сообщений НЕТ — просто показываем welcome
+    if (wasLoading && !isLoadingMessages && messages.length === 0 && channelId) {
+      console.log(`[CHAT] First load completed with empty channel, showing welcome:`, {
+        channelId
+      });
+      initialScrollDoneRef.current = true; // инициализацию считаем завершённой для пустого канала
+      setBootstrapping(false);             // чтобы visibility стало 'visible'
+      startedEmptyRef.current = true;      // помечаем, что старт был пустым
+    }
+  }, [isLoadingMessages, messages.length, channelId]);
+
+  // Мостик: пустой старт → появились сообщения
+  useEffect(() => {
+    if (!channelId) return;
+    if (startedEmptyRef.current && messages.length > 0 && messagesContainerRef.current) {
+      console.log(`[CHAT] Messages appeared after empty start, scrolling to bottom:`, {
+        channelId,
+        messagesCount: messages.length
+      });
+      const c = messagesContainerRef.current;
+      c.scrollTop = c.scrollHeight - c.clientHeight;
+      // страховка
+      setTimeout(() => {
+        c.scrollTop = c.scrollHeight - c.clientHeight;
+      }, 0);
+      startedEmptyRef.current = false;
+      initialScrollDoneRef.current = true;
+      setBootstrapping(false);
+    }
+  }, [messages.length, channelId]);
 
   // Автоскролл при добавлении новых сообщений (только если пользователь внизу)
   useLayoutEffect(() => {
-    if (!messagesContainerRef.current || !channel?.id) {
+    if (!messagesContainerRef.current || !channelId) {
       return;
     }
 
@@ -986,12 +1054,12 @@ function Chat({ channel, messages, username, user, currentServer, channels = [],
     }
 
     prevMessagesLengthRef.current = messages.length;
-  }, [messages.length, scrollToBottom, channel?.id, bootstrapping]);
+  }, [messages.length, scrollToBottom, channelId, bootstrapping]);
 
   // Простой ResizeObserver для автоскролла при загрузке изображений
   useEffect(() => {
     const container = messagesContainerRef.current;
-    if (!container || !channel?.id) return;
+    if (!container || !channelId) return;
 
     const isUserNearBottom = () =>
       container.scrollHeight - container.scrollTop - container.clientHeight < 100;
@@ -1016,7 +1084,7 @@ function Chat({ channel, messages, username, user, currentServer, channels = [],
       resizeObserver.disconnect();
       resizeObserverRef.current = null;
     };
-  }, [channel?.id, scrollToBottom, bootstrapping]);
+  }, [channelId, scrollToBottom, bootstrapping]);
 
 
 
@@ -1553,11 +1621,12 @@ const handleChannelSelect = (channel) => {
         <h3>{channel.name}</h3>
       </div>
 
-      <div
-        className="messages-container"
-        ref={messagesContainerRef}
-        style={{ visibility: (bootstrapping && !isLoadingMessages) ? 'hidden' : 'visible' }}
-      >
+        <div
+          className="messages-container"
+          ref={messagesContainerRef}
+          style={{ visibility: isLoadingMessages ? 'visible' : (bootstrapping ? 'hidden' : 'visible') }}
+          aria-busy={isLoadingMessages}
+        >
         {isLoadingMessages ? (
           <div className="chat-skeleton">
             <div className="skeleton-welcome">
@@ -1578,13 +1647,17 @@ const handleChannelSelect = (channel) => {
           </div>
         ) : (
           <>
-            <div className="messages-welcome">
-              <div className="welcome-icon">#</div>
-              <h2>Добро пожаловать в #{channel.name}!</h2>
-              <p>Это начало канала #{channel.name}</p>
-            </div>
+            {/* Показываем welcome только если реально пусто */}
+            {messages.length === 0 && (
+              <div className="messages-welcome">
+                <div className="welcome-icon">#</div>
+                <h2>Добро пожаловать в #{channel.name}!</h2>
+                <p>Это начало канала #{channel.name}</p>
+              </div>
+            )}
 
-            <div>
+            {messages.length > 0 && (
+              <div>
             {groupedMessages.map((group, groupIndex) => {
               const prevGroup = groupIndex > 0 ? groupedMessages[groupIndex - 1] : null;
               const showDateDivider = !prevGroup || prevGroup.date !== group.date;
@@ -1814,7 +1887,8 @@ const handleChannelSelect = (channel) => {
                 </React.Fragment>
               );
             })}
-            </div>
+              </div>
+            )}
           </>
         )}
         <div ref={messagesEndRef} />

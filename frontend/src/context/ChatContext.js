@@ -27,6 +27,7 @@ export const ChatProvider = ({ children }) => {
   // Refs для доступа к актуальным значениям без пересоздания колбеков
   const currentTextChannelRef = useRef(null);
   const messagesRef = useRef([]);
+  const loadIdRef = useRef(0);
 
   // Обновляем refs при изменении state
   currentTextChannelRef.current = currentTextChannel;
@@ -267,6 +268,9 @@ export const ChatProvider = ({ children }) => {
 
 
   const preloadChannelMessages = useCallback(async (channelId, serverId) => {
+    // Защита от гонок: увеличиваем ID запроса
+    const loadId = ++loadIdRef.current;
+
     // Используем ref для проверки кеша без зависимости
     let cacheChecked = false;
     const cacheKey = getCacheKey(serverId, channelId);
@@ -294,6 +298,13 @@ export const ChatProvider = ({ children }) => {
     setIsLoadingMessages(true);
     try {
       const messagesData = await apiService.getChannelMessages(serverId, channelId);
+
+      // Проверяем, не устарел ли запрос
+      if (loadId !== loadIdRef.current) {
+        console.log(`[CHAT_CONTEXT] Ignoring outdated response for channel ${channelId}`);
+        return;
+      }
+
       const messagesArray = Array.isArray(messagesData) ? messagesData : [];
 
       setMessages(messagesArray);
@@ -315,6 +326,12 @@ export const ChatProvider = ({ children }) => {
 
       // Скелетон скроется автоматически в Chat.js
     } catch (err) {
+      // Проверяем, не устарел ли запрос
+      if (loadId !== loadIdRef.current) {
+        console.log(`[CHAT_CONTEXT] Ignoring outdated error for channel ${channelId}`);
+        return;
+      }
+
       console.error('Ошибка предзагрузки сообщений:', err);
       setMessages([]);
       setIsLoadingMessages(false);

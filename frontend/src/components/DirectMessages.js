@@ -79,6 +79,7 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
   // Discord-like scroll mechanics
   const [bootstrapping, setBootstrapping] = useState(true);
   const initialScrollDoneRef = useRef(false);
+  const prevLoadingRef = useRef(false);
   const [newDmMessageIds, setNewDmMessageIds] = useState(new Set());
   const prevMessagesLengthRef = useRef(0);
   const dmWelcomeRef = useRef(null);
@@ -203,7 +204,6 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
   }, [selectedDM?._id]);
 
   // Скролл после завершения первой загрузки
-  const prevLoadingRef = useRef(false);
   useEffect(() => {
     const wasLoading = prevLoadingRef.current;
     prevLoadingRef.current = messagesLoading;
@@ -262,13 +262,12 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
 
     const c = messagesContainerRef.current;
     if (!c) return;
-    if (messagesLoading) return;
     if (!selectedDM?._id) return;
 
-    if (selectedMessages.length === 0) {
-      // Ничего не делаем: ждём либо загрузку истории, либо новое сообщение.
-      return;
-    }
+    // Пока идёт загрузка — ничего не делаем
+    if (messagesLoading) return;
+    // Если сообщений пока 0 — тоже ждём (не считаем скролл сделанным)
+    if (selectedMessages.length === 0) return;
 
     if (!initialScrollDoneRef.current) {
       const target = c.scrollHeight - c.clientHeight;
@@ -297,6 +296,40 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
       });
     }
   }, [selectedDM?._id, messagesLoading, selectedMessages.length, dmWelcomeH]);
+
+  // Доскролл после первой реальной загрузки (переход true → false)
+  useEffect(() => {
+    const wasLoading = prevLoadingRef.current;
+    prevLoadingRef.current = messagesLoading;
+
+    // 1) Нормальный кейс: загрузка завершилась, сообщения есть — докрутим вниз
+    if (wasLoading && !messagesLoading && !initialScrollDoneRef.current && selectedMessages.length > 0) {
+      const c = messagesContainerRef.current;
+      if (c) {
+        console.log(`[DM] First load completed, scrolling to bottom:`, {
+          dmId: selectedDM?._id,
+          messagesCount: selectedMessages.length
+        });
+        requestAnimationFrame(() => {
+          c.scrollTop = c.scrollHeight - c.clientHeight;
+          initialScrollDoneRef.current = true;
+          setBootstrapping(false);
+          setTimeout(() => {
+            c.scrollTop = c.scrollHeight - c.clientHeight;
+          }, 0);
+        });
+      }
+    }
+
+    // 2) Новый кейс: загрузка завершилась, а сообщений НЕТ — просто показываем welcome
+    if (wasLoading && !messagesLoading && selectedMessages.length === 0) {
+      console.log(`[DM] First load completed with empty DM, showing welcome:`, {
+        dmId: selectedDM?._id
+      });
+      initialScrollDoneRef.current = true; // инициализацию считаем завершённой для пустого DM
+      setBootstrapping(false);             // чтобы visibility стало 'visible'
+    }
+  }, [messagesLoading, selectedMessages.length, selectedDM?._id]);
 
   // Анимация новых сообщений
   useLayoutEffect(() => {
