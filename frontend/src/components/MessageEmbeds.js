@@ -51,6 +51,7 @@ const buildEmbeds = (content) => {
 const MessageEmbeds = ({ content }) => {
   const embeds = useMemo(() => buildEmbeds(content), [content]);
   const [metadata, setMetadata] = useState({});
+  const [embedErrors, setEmbedErrors] = useState(new Set());
 
   useEffect(() => {
     let isMounted = true;
@@ -76,10 +77,19 @@ const MessageEmbeds = ({ content }) => {
         return;
       }
 
-      fetch(`https://www.youtube.com/oembed?url=${encodeURIComponent(url)}&format=json`)
+      // Добавляем обработку ошибок для YouTube API
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 секунд таймаут
+
+      fetch(`https://www.youtube.com/oembed?url=${encodeURIComponent(url)}&format=json`, {
+        signal: controller.signal,
+        mode: 'cors',
+        credentials: 'omit'
+      })
         .then((response) => {
+          clearTimeout(timeoutId);
           if (!response.ok) {
-            throw new Error('Failed to load metadata');
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
           }
           return response.json();
         })
@@ -92,9 +102,19 @@ const MessageEmbeds = ({ content }) => {
           };
           metadataCache.set(videoId, normalized);
           updateMetadata(videoId, normalized);
+          // Убираем ошибку если она была
+          setEmbedErrors(prev => {
+            const newSet = new Set(prev);
+            newSet.delete(videoId);
+            return newSet;
+          });
         })
-        .catch(() => {
+        .catch((error) => {
+          clearTimeout(timeoutId);
           if (!isMounted) return;
+          
+          console.warn(`Не удалось загрузить метаданные YouTube для видео ${videoId}:`, error.message);
+          
           const fallback = {
             title: 'Видео на YouTube',
             authorName: null,
@@ -102,6 +122,9 @@ const MessageEmbeds = ({ content }) => {
           };
           metadataCache.set(videoId, fallback);
           updateMetadata(videoId, fallback);
+          
+          // Добавляем ошибку в список
+          setEmbedErrors(prev => new Set(prev).add(videoId));
         });
     });
 
@@ -120,6 +143,7 @@ const MessageEmbeds = ({ content }) => {
         if (embed.type === 'youtube') {
           const info = metadata[embed.videoId] || metadataCache.get(embed.videoId);
           const title = info?.title || 'Видео на YouTube';
+          const hasError = embedErrors.has(embed.videoId);
 
           return (
             <div
@@ -133,8 +157,27 @@ const MessageEmbeds = ({ content }) => {
                   loading="lazy"
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                   allowFullScreen
+                  onError={(e) => {
+                    console.warn('Ошибка загрузки YouTube iframe:', e);
+                    // Можно добавить fallback изображение
+                  }}
+                  onLoad={() => {
+                    // Убираем ошибку при успешной загрузке
+                    if (hasError) {
+                      setEmbedErrors(prev => {
+                        const newSet = new Set(prev);
+                        newSet.delete(embed.videoId);
+                        return newSet;
+                      });
+                    }
+                  }}
                 />
                 <span className="embed-card-badge">YouTube</span>
+                {hasError && (
+                  <div className="embed-error-indicator" title="Возможны проблемы с загрузкой">
+                    ⚠️
+                  </div>
+                )}
               </div>
               <div className="embed-card-body">
                 <a
@@ -158,6 +201,11 @@ const MessageEmbeds = ({ content }) => {
                   ) : (
                     <div className="embed-card-subtitle">{info.authorName}</div>
                   )
+                )}
+                {hasError && (
+                  <div className="embed-error-message">
+                    Возможны проблемы с загрузкой. Попробуйте открыть видео напрямую.
+                  </div>
                 )}
               </div>
             </div>
