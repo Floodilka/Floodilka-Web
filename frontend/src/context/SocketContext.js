@@ -34,8 +34,12 @@ export const SocketProvider = ({ children }) => {
       console.log('[SocketContext] Получено событие создания канала:', channel.name, 'для сервера:', serverId);
       // Обновляем каналы только если это касается текущего сервера
       setChannels(prev => {
-        // Проверяем, не существует ли уже канал с таким ID
-        const exists = prev.find(c => c.id === channel.id || c._id === channel._id);
+        // Проверяем, не существует ли уже канал с таким ID или именем
+        const exists = prev.find(c =>
+          c.id === channel.id ||
+          c._id === channel._id ||
+          (c.name === channel.name && c.type === channel.type)
+        );
         if (exists) {
           console.log('[SocketContext] Канал уже существует, пропускаем');
           return prev;

@@ -233,7 +233,8 @@ export const ServerProvider = ({ children }) => {
         type: channelType
       });
 
-      setChannels(prev => [...prev, newChannel]);
+      // Не добавляем канал локально - он будет добавлен через WebSocket событие
+      // setChannels(prev => [...prev, newChannel]);
       return newChannel;
     } catch (err) {
       console.error('Ошибка создания канала:', err);
