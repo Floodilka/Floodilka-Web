@@ -54,11 +54,17 @@ const DirectMessagesRoute = () => {
 
   // Мемоизируем обработчики для предотвращения лишних перерендеров
   const handleServerSelect = useCallback((server) => {
+    console.log(`[APP] Switching to server:`, {
+      serverId: server._id,
+      serverName: server.name,
+      from: 'DirectMessagesRoute'
+    });
     localStorage.setItem('lastServerId', server._id);
     navigate(`/channels/${server._id}`);
   }, [navigate]);
 
   const handleSelectDirectMessages = useCallback(() => {
+    console.log(`[APP] Switching to Direct Messages from:`, 'DirectMessagesRoute');
     navigate('/channels/@me');
   }, [navigate]);
 
@@ -348,11 +354,22 @@ const ServerRoute = () => {
   }, [channelId, channels, currentTextChannel, selectTextChannel, joinVoiceChannel, activeVoiceChannel, navigate, serverId, currentServer]);
 
   const handleServerSelect = (server) => {
+    console.log(`[APP] Switching to server:`, {
+      serverId: server._id,
+      serverName: server.name,
+      from: 'MainApp'
+    });
     localStorage.setItem('lastServerId', server._id);
     navigate(`/channels/${server._id}`);
   };
 
   const handleChannelSelect = (channel) => {
+    console.log(`[APP] Selecting channel:`, {
+      channelId: channel.id,
+      channelName: channel.name,
+      channelType: channel.type,
+      serverId
+    });
     if (channel.type === 'voice') {
       if (activeVoiceChannel?.id === channel.id) {
         return;
@@ -366,6 +383,7 @@ const ServerRoute = () => {
   };
 
   const handleSelectDirectMessages = () => {
+    console.log(`[APP] Switching to Direct Messages from:`, 'MainApp');
     navigate('/channels/@me');
   };
 

@@ -21,7 +21,7 @@ export const ChatProvider = ({ children }) => {
   const [hasUnreadDMs, setHasUnreadDMs] = useState(false);
   const [preloadedMessages, setPreloadedMessages] = useState(false);
   const [isLoadingMessages, setIsLoadingMessages] = useState(false);
-  // Кеш сообщений для каналов: { channelId: { messages: [], scrollPosition: number, timestamp: Date } }
+  // Кеш сообщений для каналов: { "serverId:channelId": { messages: [], scrollPosition: number, timestamp: Date } }
   const [messagesCache, setMessagesCache] = useState({});
 
   // Refs для доступа к актуальным значениям без пересоздания колбеков
@@ -32,23 +32,11 @@ export const ChatProvider = ({ children }) => {
   currentTextChannelRef.current = currentTextChannel;
   messagesRef.current = messages;
 
-  // 🔍 ЛОГ: Отслеживаем изменения messages
-  useEffect(() => {
-    const stackLines = new Error().stack.split('\n');
-    const caller = stackLines[2] || stackLines[1] || 'unknown';
-    console.log('[🔍 MESSAGES DEBUG] Messages изменились:', {
-      count: messages.length,
-      channelId: currentTextChannel?.id,
-      channelName: currentTextChannel?.name,
-      caller: caller.trim(),
-      firstMessage: messages[0]?.content?.substring(0, 50)
-    });
+  // Функция для создания ключа кэша
+  const getCacheKey = useCallback((serverId, channelId) => {
+    return `${serverId}:${channelId}`;
+  }, []);
 
-    if (messages.length === 0 && currentTextChannel?.id) {
-      console.warn('[⚠️ MESSAGES EMPTY] Сообщения обнулились для канала:', currentTextChannel.id);
-      console.trace('Stack trace для пустых сообщений:');
-    }
-  }, [messages, currentTextChannel]);
 
   // Функция для очистки старых записей из кеша
   const cleanupCache = useCallback((cache) => {
@@ -66,21 +54,24 @@ export const ChatProvider = ({ children }) => {
     return cleaned;
   }, []);
 
-  const selectTextChannel = useCallback((channel, shouldRestoreScrollFlag) => {
-    console.log('[SCROLL] 📺 ChatContext.selectTextChannel:', {
+  const selectTextChannel = useCallback((channel, shouldRestoreScrollFlag, serverId) => {
+    console.log(`[CHAT_CONTEXT] selectTextChannel called:`, {
       channelId: channel?.id,
       channelName: channel?.name,
-      shouldRestoreScrollFlag
+      serverId,
+      shouldRestoreScrollFlag,
+      currentChannel: currentTextChannelRef.current?.id,
+      currentMessagesCount: messagesRef.current.length
     });
 
-    // Проверяем кеш для этого канала
-    const cached = messagesCache[channel?.id];
-    console.log('[SCROLL] 🔍 Проверка кеша для канала:', {
-      channelId: channel?.id,
+    // Создаем ключ кэша с учетом serverId
+    const cacheKey = getCacheKey(serverId, channel?.id);
+    const cached = messagesCache[cacheKey];
+
+    console.log(`[CHAT_CONTEXT] Cache check:`, {
+      cacheKey,
       hasCached: !!cached,
-      hasMessages: !!(cached && cached.messages),
-      messagesCount: cached?.messages?.length || 0,
-      scrollPosition: cached?.scrollPosition
+      cachedMessagesCount: cached?.messages?.length || 0
     });
 
     // ВАЖНО: НЕ используем кеш с 0 сообщениями, если это не новый канал
@@ -88,21 +79,31 @@ export const ChatProvider = ({ children }) => {
     const shouldUseCache = cached && Array.isArray(cached.messages) && cached.messages.length > 0;
 
     if (shouldUseCache) {
-      console.log('[SCROLL] ✅ Используем кешированные сообщения:', cached.messages.length);
+      console.log(`[CHAT_CONTEXT] Using cached messages:`, {
+        channelId: channel?.id,
+        messagesCount: cached.messages.length
+      });
       setMessages(cached.messages);
       setPreloadedMessages(true);
       setIsLoadingMessages(false);
     } else {
-      console.log('[SCROLL] 🔄 Кеша нет или он пустой - начинаем загрузку');
+      console.log(`[CHAT_CONTEXT] Loading fresh messages:`, {
+        channelId: channel?.id
+      });
       setIsLoadingMessages(true);
       setPreloadedMessages(false);
     }
 
     setCurrentTextChannel(channel);
     setShowDirectMessages(false);
-  }, [messagesCache]);
+  }, [messagesCache, getCacheKey]);
 
   const selectDirectMessages = useCallback(() => {
+    console.log(`[CHAT_CONTEXT] selectDirectMessages called:`, {
+      currentChannel: currentTextChannelRef.current?.id,
+      currentChannelName: currentTextChannelRef.current?.name,
+      currentMessagesCount: messagesRef.current.length
+    });
     setShowDirectMessages(true);
     setCurrentTextChannel(null);
     setHasUnreadDMs(false);
@@ -122,29 +123,30 @@ export const ChatProvider = ({ children }) => {
     setAutoSelectUser(null);
   }, []);
 
-  const clearChannelState = useCallback(() => {
+  const clearChannelState = useCallback((serverId) => {
     const currentChannel = currentTextChannelRef.current;
     const currentMessages = messagesRef.current;
 
-    console.log('[SCROLL] 🧹 ChatContext.clearChannelState:', {
+    console.log(`[CHAT_CONTEXT] clearChannelState called:`, {
+      serverId,
       currentChannelId: currentChannel?.id,
-      messagesCount: currentMessages.length
+      currentChannelName: currentChannel?.name,
+      messagesCount: currentMessages.length,
+      hasMessages: currentMessages.length > 0
     });
 
-    // Сохраняем текущие сообщения в кеш перед очисткой (даже если канал пустой)
-    if (currentChannel?.id) {
+    // Сохраняем текущие сообщения в кеш перед очисткой ТОЛЬКО если есть сообщения
+    if (currentChannel?.id && currentMessages.length > 0 && serverId) {
+      const cacheKey = getCacheKey(serverId, currentChannel.id);
+      console.log(`[CHAT_CONTEXT] Saving messages to cache:`, {
+        cacheKey,
+        messagesCount: currentMessages.length
+      });
       setMessagesCache(cache => {
-        const oldCache = cache[currentChannel.id] || {};
-        console.log('[SCROLL] 💾 Сохраняем состояние канала перед очисткой:', {
-          channelId: currentChannel.id,
-          messagesCount: currentMessages.length,
-          scrollPosition: oldCache.scrollPosition
-        });
         const newCache = {
           ...cache,
-          [currentChannel.id]: {
-            messages: currentMessages, // Сохраняем даже пустой массив
-            scrollPosition: oldCache.scrollPosition, // СОХРАНЯЕМ scrollPosition из старого кеша!
+          [cacheKey]: {
+            messages: currentMessages,
             timestamp: Date.now()
           }
         };
@@ -152,15 +154,17 @@ export const ChatProvider = ({ children }) => {
       });
     }
 
-    console.log('[SCROLL] 🧹 Очищаем состояние канала');
+    console.log(`[CHAT_CONTEXT] Clearing channel state:`, {
+      serverId,
+      clearingChannel: currentChannel?.id
+    });
     setCurrentTextChannel(null);
     setMessages([]);
     setPreloadedMessages(false);
     setIsLoadingMessages(false);
-  }, [cleanupCache]);
+  }, [cleanupCache, getCacheKey]);
 
   const clearServerCache = useCallback(() => {
-    console.log('[SCROLL] 🧹 ChatContext.clearServerCache: очищаем весь кеш при смене сервера');
     setMessagesCache({});
     setCurrentTextChannel(null);
     setMessages([]);
@@ -177,21 +181,12 @@ export const ChatProvider = ({ children }) => {
       }
 
       const updated = [...prev, message];
-      // Обновляем кеш для текущего канала
+      // Обновляем кеш для текущего канала (нужен serverId для ключа)
       const currentChannel = currentTextChannelRef.current;
       if (currentChannel?.id) {
-        setMessagesCache(cache => {
-          const oldCache = cache[currentChannel.id] || {};
-          const newCache = {
-            ...cache,
-            [currentChannel.id]: {
-              messages: updated,
-              scrollPosition: oldCache.scrollPosition, // Сохраняем scrollPosition
-              timestamp: Date.now()
-            }
-          };
-          return cleanupCache(newCache);
-        });
+        // Для обновления кэша нужен serverId, но у нас его нет в контексте
+        // Пока что не обновляем кэш при добавлении сообщений
+        // Это можно будет исправить позже, передав serverId в функцию
       }
       return updated;
     });
@@ -270,115 +265,61 @@ export const ChatProvider = ({ children }) => {
     });
   }, [cleanupCache]);
 
-  const saveScrollPosition = useCallback((scrollPosition, channelId) => {
-    // Если channelId передан явно, используем его, иначе берем из currentTextChannel
-    const currentChannel = currentTextChannelRef.current;
-    const currentMessages = messagesRef.current;
-    const targetChannelId = channelId || currentChannel?.id;
-
-    console.log('[SCROLL] 💾 ChatContext.saveScrollPosition:', {
-      scrollPosition,
-      explicitChannelId: channelId,
-      currentChannelId: currentChannel?.id,
-      targetChannelId
-    });
-
-    if (!targetChannelId) {
-      console.log('[SCROLL] ⚠️ saveScrollPosition: нет targetChannelId');
-      return;
-    }
-
-    setMessagesCache(cache => {
-      const newCache = {
-        ...cache,
-        [targetChannelId]: {
-          ...cache[targetChannelId],
-          messages: cache[targetChannelId]?.messages || currentMessages,
-          scrollPosition: scrollPosition,
-          timestamp: Date.now()
-        }
-      };
-      console.log('[SCROLL] 💾 Сохранено в кеш:', targetChannelId, 'позиция:', scrollPosition);
-      return newCache;
-    });
-  }, []);
-
-  const getSavedScrollPosition = useCallback((channelId) => {
-    const cached = messagesCache[channelId];
-    const position = (cached && typeof cached.scrollPosition === 'number') ? cached.scrollPosition : null;
-
-    console.log('[SCROLL] 📖 ChatContext.getSavedScrollPosition:', {
-      channelId,
-      hasCached: !!cached,
-      position,
-      cacheKeys: Object.keys(messagesCache)
-    });
-
-    return position;
-  }, [messagesCache]);
 
   const preloadChannelMessages = useCallback(async (channelId, serverId) => {
-    console.log('[SCROLL] 📥 ChatContext.preloadChannelMessages:', {
-      channelId,
-      serverId
-    });
-
     // Используем ref для проверки кеша без зависимости
     let cacheChecked = false;
+    const cacheKey = getCacheKey(serverId, channelId);
 
     // Проверяем кеш перед загрузкой
     setMessagesCache(prevCache => {
-      const cached = prevCache[channelId];
+      const cached = prevCache[cacheKey];
+
       // ВАЖНО: НЕ используем пустой кеш! Загружаем заново если кеш пуст
       if (cached && cached.messages && cached.messages.length > 0) {
-        console.log('[SCROLL] ✅ preloadChannelMessages: найден кеш с', cached.messages.length, 'сообщениями');
         setMessages(cached.messages);
         setPreloadedMessages(true);
         setIsLoadingMessages(false);
         cacheChecked = true;
         return prevCache; // Возвращаем старый кеш без изменений
       }
-      console.log('[SCROLL] 🔄 preloadChannelMessages: кеша нет или он пустой, продолжаем загрузку');
       return prevCache;
     });
 
     // Если кеш был найден, выходим
     if (cacheChecked) {
-      console.log('[SCROLL] ✅ preloadChannelMessages: кеш уже обработан');
       return;
     }
 
-    console.log('[SCROLL] 🌐 preloadChannelMessages: начинаем загрузку с сервера');
     setIsLoadingMessages(true);
     try {
       const messagesData = await apiService.getChannelMessages(serverId, channelId);
       const messagesArray = Array.isArray(messagesData) ? messagesData : [];
 
-      console.log('[SCROLL] ✅ preloadChannelMessages: загружено сообщений:', messagesArray.length);
       setMessages(messagesArray);
       setPreloadedMessages(true);
 
-      // Сохраняем в кеш
-      setMessagesCache(prevCache => {
-        const newCache = {
-          ...prevCache,
-          [channelId]: {
-            messages: messagesArray,
-            scrollPosition: prevCache[channelId]?.scrollPosition, // Сохраняем старую позицию скролла если была
-            timestamp: Date.now()
-          }
-        };
-        console.log('[SCROLL] 💾 preloadChannelMessages: сохранено в кеш, scrollPosition:', prevCache[channelId]?.scrollPosition);
-        return cleanupCache(newCache);
-      });
+      // Сохраняем в кеш ТОЛЬКО если есть сообщения
+      if (messagesArray.length > 0) {
+        setMessagesCache(prevCache => {
+          const newCache = {
+            ...prevCache,
+            [cacheKey]: {
+              messages: messagesArray,
+              timestamp: Date.now()
+            }
+          };
+          return cleanupCache(newCache);
+        });
+      }
 
       // Скелетон скроется автоматически в Chat.js
     } catch (err) {
-      console.error('[SCROLL] ❌ Ошибка предзагрузки сообщений:', err);
+      console.error('Ошибка предзагрузки сообщений:', err);
       setMessages([]);
       setIsLoadingMessages(false);
     }
-  }, [cleanupCache]);
+  }, [cleanupCache, getCacheKey]);
 
   const value = {
     currentTextChannel,
@@ -403,8 +344,6 @@ export const ChatProvider = ({ children }) => {
     setHasUnreadDMs,
     preloadChannelMessages,
     setIsLoadingMessages,
-    saveScrollPosition,
-    getSavedScrollPosition
   };
 
   return <ChatContext.Provider value={value}>{children}</ChatContext.Provider>;

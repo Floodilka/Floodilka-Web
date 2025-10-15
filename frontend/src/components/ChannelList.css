@@ -362,6 +362,38 @@
   -webkit-overflow-scrolling: touch;
 }
 
+/* Кастомный скроллбар */
+.channels-container::-webkit-scrollbar {
+  width: 8px;
+}
+
+.channels-container::-webkit-scrollbar-track {
+  background: transparent;
+  margin: 4px 0;
+}
+
+.channels-container::-webkit-scrollbar-thumb {
+  background-color: #3a3d44;
+  border-radius: 10px;
+  border: 2px solid #1e1f22;
+  transition: background-color 0.2s ease;
+}
+
+.channels-container::-webkit-scrollbar-thumb:hover {
+  background-color: #4f545c;
+  border: 2px solid #1e1f22;
+}
+
+.channels-container::-webkit-scrollbar-thumb:active {
+  background-color: #5865f2;
+}
+
+/* Для Firefox */
+.channels-container {
+  scrollbar-width: thin;
+  scrollbar-color: #3a3d44 #1e1f22;
+}
+
 .channels-section {
   padding: 8px 0;
 }

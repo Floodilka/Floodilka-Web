@@ -43,6 +43,7 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
   const [selectedMessages, setSelectedMessages] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showMessages, setShowMessages] = useState(true);
   const [showFriendsPanel, setShowFriendsPanel] = useState(true);
   const [messagesLoading, setMessagesLoading] = useState(false);
   const [error, setError] = useState('');
@@ -75,6 +76,20 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
   const [blockActionError, setBlockActionError] = useState('');
   const [errorModal, setErrorModal] = useState(null);
 
+  // Discord-like scroll mechanics
+  const [bootstrapping, setBootstrapping] = useState(true);
+  const initialScrollDoneRef = useRef(false);
+  const [newDmMessageIds, setNewDmMessageIds] = useState(new Set());
+  const prevMessagesLengthRef = useRef(0);
+  const dmWelcomeRef = useRef(null);
+  const [dmWelcomeH, setDmWelcomeH] = useState(0);
+  const resizeObserverRef = useRef(null);
+
+  // prefersReducedMotion для анимаций
+  const prefersReducedMotion = useMemo(() => {
+    return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  }, []);
+
   // Функция для проверки блокировки пользователя
   const isUserBlocked = (targetUser, currentUser) => {
     if (!targetUser || !currentUser || !currentUser.blockedUsers) {
@@ -89,6 +104,41 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
       return blockedUserId && blockedUserId.toString() === targetUserId.toString();
     });
   };
+
+  // scrollToBottom функция
+  const scrollToBottom = useCallback((smooth = false) => {
+    const c = messagesContainerRef.current;
+    if (!c || selectedMessages.length === 0) return;
+
+    const target = c.scrollHeight - c.clientHeight;
+    console.log(`[DM] scrollToBottom called:`, {
+      dmId: selectedDM?._id,
+      dmUsername: selectedDM?.user?.username || selectedDM?.username,
+      smooth,
+      messagesCount: selectedMessages.length,
+      scrollHeight: c.scrollHeight,
+      clientHeight: c.clientHeight,
+      target,
+      currentScrollTop: c.scrollTop
+    });
+
+    if (smooth && !prefersReducedMotion) {
+      c.scrollTo({ top: target, behavior: 'smooth' });
+    } else {
+      c.scrollTop = target;
+    }
+
+    // 👉 оставляем страховку только для НЕплавного
+    if (!smooth) {
+      setTimeout(() => {
+        c.scrollTop = c.scrollHeight - c.clientHeight;
+        console.log(`[DM] scrollToBottom fallback applied:`, {
+          dmId: selectedDM?._id,
+          finalScrollTop: c.scrollTop
+        });
+      }, 10);
+    }
+  }, [selectedMessages.length, prefersReducedMotion, selectedDM?._id, selectedDM?.user?.username, selectedDM?.username]);
 
   const mentionableUsers = useMemo(() => {
     const map = new Map();
@@ -129,6 +179,181 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
   }, [selectedDM, user]);
 
   const hideMentionTooltip = useCallback(() => setMentionTooltip(null), []);
+
+  // Измерение высоты welcome блока
+  useLayoutEffect(() => {
+    const el = dmWelcomeRef.current;
+    if (!el) return;
+    const update = () => setDmWelcomeH(el.offsetHeight || 0);
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [selectedDM?._id, messagesLoading]);
+
+  // Сброс флагов при смене собеседника
+  useEffect(() => {
+    console.log(`[DM] DM changed, resetting scroll flags:`, {
+      dmId: selectedDM?._id,
+      dmUsername: selectedDM?.user?.username || selectedDM?.username,
+      previousDMId: initialScrollDoneRef.current ? 'had previous' : 'none'
+    });
+    setBootstrapping(true);
+    initialScrollDoneRef.current = false;
+  }, [selectedDM?._id]);
+
+  // Скролл после завершения первой загрузки
+  const prevLoadingRef = useRef(false);
+  useEffect(() => {
+    const wasLoading = prevLoadingRef.current;
+    prevLoadingRef.current = messagesLoading;
+
+    if (wasLoading && !messagesLoading && !initialScrollDoneRef.current && selectedMessages.length > 0) {
+      console.log(`[DM] First load completed, scrolling to bottom:`, {
+        dmId: selectedDM?._id,
+        messagesCount: selectedMessages.length
+      });
+      const c = messagesContainerRef.current;
+      if (c) {
+        requestAnimationFrame(() => {
+          c.scrollTop = c.scrollHeight - c.clientHeight;
+          initialScrollDoneRef.current = true;
+          setBootstrapping(false);
+          console.log(`[DM] Initial scroll completed after load:`, {
+            dmId: selectedDM?._id,
+            finalScrollTop: c.scrollTop
+          });
+          // страховка
+          setTimeout(() => {
+            c.scrollTop = c.scrollHeight - c.clientHeight;
+          }, 0);
+        });
+      }
+    }
+  }, [messagesLoading, selectedMessages.length, selectedDM?._id]);
+
+  // Компенсация для welcome-блока
+  useLayoutEffect(() => {
+    const c = messagesContainerRef.current;
+    if (!c) return;
+
+    const atBottom = c.scrollHeight - c.scrollTop - c.clientHeight < 2;
+    if (atBottom) {
+      console.log(`[DM] Welcome block height changed, maintaining bottom position:`, {
+        dmId: selectedDM?._id,
+        dmWelcomeH,
+        atBottom
+      });
+      c.scrollTop = c.scrollHeight - c.clientHeight;
+    }
+  }, [dmWelcomeH, selectedDM?._id]);
+
+  // Первый скролл — синхронно
+  useLayoutEffect(() => {
+    console.log(`[DM] useLayoutEffect for initial scroll:`, {
+      dmId: selectedDM?._id,
+      dmUsername: selectedDM?.user?.username || selectedDM?.username,
+      messagesLoading,
+      messagesCount: selectedMessages.length,
+      hasContainer: !!messagesContainerRef.current,
+      initialScrollDone: initialScrollDoneRef.current,
+      dmWelcomeH
+    });
+
+    const c = messagesContainerRef.current;
+    if (!c) return;
+    if (messagesLoading) return;
+    if (!selectedDM?._id) return;
+
+    if (selectedMessages.length === 0) {
+      // Ничего не делаем: ждём либо загрузку истории, либо новое сообщение.
+      return;
+    }
+
+    if (!initialScrollDoneRef.current) {
+      const target = c.scrollHeight - c.clientHeight;
+      console.log(`[DM] Initial scroll to bottom:`, {
+        dmId: selectedDM?._id,
+        dmUsername: selectedDM?.user?.username || selectedDM?.username,
+        scrollHeight: c.scrollHeight,
+        clientHeight: c.clientHeight,
+        target,
+        currentScrollTop: c.scrollTop
+      });
+      // ждём, пока welcome измерится и поток смонтирован
+      requestAnimationFrame(() => {
+        c.scrollTop = c.scrollHeight - c.clientHeight;
+        initialScrollDoneRef.current = true;
+        setBootstrapping(false);
+        console.log(`[DM] Setting bootstrapping to false for DM:`, selectedDM?._id);
+        // ещё одна страховка, если что-то дорисуется следом
+        setTimeout(() => {
+          c.scrollTop = c.scrollHeight - c.clientHeight;
+          console.log(`[DM] Initial scroll fallback applied:`, {
+            dmId: selectedDM?._id,
+            finalScrollTop: c.scrollTop
+          });
+        }, 0);
+      });
+    }
+  }, [selectedDM?._id, messagesLoading, selectedMessages.length, dmWelcomeH]);
+
+  // Анимация новых сообщений
+  useLayoutEffect(() => {
+    if (!messagesContainerRef.current || !selectedDM?._id) return;
+
+    const container = messagesContainerRef.current;
+    const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 100;
+    const hasNewMessages = selectedMessages.length > prevMessagesLengthRef.current;
+
+    if (hasNewMessages) {
+      // 👉 не анимируем на первом заходе
+      const isFirstPaint = prevMessagesLengthRef.current === 0;
+
+      if (!isFirstPaint && isNearBottom && !bootstrapping) {
+        const newIds = new Set();
+        const start = prevMessagesLengthRef.current;
+        for (let i = start; i < selectedMessages.length; i++) {
+          if (selectedMessages[i]?._id) newIds.add(selectedMessages[i]._id);
+        }
+        setNewDmMessageIds(newIds);
+        scrollToBottom(true);
+        setTimeout(() => setNewDmMessageIds(new Set()), 200);
+      }
+    }
+
+    prevMessagesLengthRef.current = selectedMessages.length;
+  }, [selectedMessages.length, scrollToBottom, selectedDM?._id, bootstrapping]);
+
+  // ResizeObserver для автоскролла при догрузке медиа
+  useEffect(() => {
+    const container = messagesContainerRef.current;
+    if (!container || !selectedDM?._id) return;
+
+    const isUserNearBottom = () =>
+      container.scrollHeight - container.scrollTop - container.clientHeight < 100;
+
+    let lastHeight = container.scrollHeight;
+    const resizeObserver = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const newHeight = entry.target.scrollHeight;
+        if (newHeight > lastHeight) {
+          if (!bootstrapping && isUserNearBottom()) {
+            scrollToBottom(true);
+          }
+          lastHeight = newHeight;
+        }
+      }
+    });
+
+    resizeObserver.observe(container);
+    resizeObserverRef.current = resizeObserver;
+
+    return () => {
+      resizeObserver.disconnect();
+      resizeObserverRef.current = null;
+    };
+  }, [selectedDM?._id, scrollToBottom, bootstrapping]);
 
   // Функция для проверки онлайн статуса пользователя
   const isUserOnline = useCallback((userId) => {
@@ -476,153 +701,9 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
     }
   };
 
-  // Продвинутая система автоматического скролла (как в Chat.js)
-  const AUTO_SCROLL_EPSILON = 32;
-  const MAX_AUTO_SCROLL_ATTEMPTS = 12;
-  const autoScrollStateRef = useRef({ dmId: null, attempts: 0 });
-  const scrollTimeoutsRef = useRef([]);
 
-  const scrollContainerToBottom = useCallback((trigger = 'default') => {
-    const container = messagesContainerRef.current;
-    if (!container) return;
 
-    // Отменяем предыдущие таймауты
-    scrollTimeoutsRef.current.forEach(id => clearTimeout(id));
-    scrollTimeoutsRef.current = [];
 
-    const applyScroll = (source) => {
-      const maxScrollTop = container.scrollHeight - container.clientHeight;
-      const nextScrollTop = maxScrollTop > 0 ? maxScrollTop : 0;
-      container.scrollTop = nextScrollTop;
-
-      if (messagesEndRef.current) {
-        messagesEndRef.current.scrollIntoView({ behavior: 'auto', block: 'end' });
-      }
-
-      console.log('[DM SCROLL] 📐 scrollContainerToBottom:', {
-        trigger,
-        source,
-        scrollTop: container.scrollTop,
-        scrollHeight: container.scrollHeight,
-        clientHeight: container.clientHeight,
-        hasOverflow: container.scrollHeight > container.clientHeight
-      });
-    };
-
-    applyScroll('immediate');
-    requestAnimationFrame(() => applyScroll('raf'));
-
-    const t1 = setTimeout(() => applyScroll('timeout'), 0);
-    const t2 = setTimeout(() => applyScroll('timeout-10'), 10);
-    const t3 = setTimeout(() => applyScroll('timeout-50'), 50);
-    const t4 = setTimeout(() => applyScroll('timeout-100'), 100);
-
-    scrollTimeoutsRef.current.push(t1, t2, t3, t4);
-  }, []);
-
-  const markDMScrolled = useCallback((dmId, reason) => {
-    if (!dmId) return;
-    autoScrollStateRef.current = { dmId: null, attempts: 0 };
-    console.log('[DM SCROLL] 🟢 Автоскролл завершен', { dmId, reason });
-  }, []);
-
-  const finalizeAutoScroll = useCallback((reason) => {
-    const container = messagesContainerRef.current;
-    const dmId = selectedDM?._id;
-    if (!container || !dmId) return;
-
-    const totalMessages = selectedMessages.length;
-
-    if (totalMessages === 0) {
-      console.log('[DM SCROLL] 🔁 Автоскролл: ждем сообщений перед проверкой', {
-        dmId,
-        reason
-      });
-      return;
-    }
-
-    const distance = container.scrollHeight - container.scrollTop - container.clientHeight;
-    const hasOverflow = container.scrollHeight > container.clientHeight;
-
-    // ВАЖНО: Если много сообщений, но нет переполнения - DOM еще не обновился
-    if (totalMessages > 10 && !hasOverflow) {
-      const prevState = autoScrollStateRef.current;
-      const prevAttempts = prevState.dmId === dmId ? prevState.attempts : 0;
-      const nextAttempts = prevAttempts + 1;
-
-      if (nextAttempts >= MAX_AUTO_SCROLL_ATTEMPTS) {
-        console.log('[DM SCROLL] ⚠️ Автоскролл: достигнут лимит попыток (нет overflow)', {
-          dmId,
-          reason,
-          totalMessages,
-          scrollHeight: container.scrollHeight,
-          clientHeight: container.clientHeight,
-          attempts: nextAttempts
-        });
-        markDMScrolled(dmId, reason);
-        return;
-      }
-
-      console.log('[DM SCROLL] 🔄 Автоскролл: ждем рендер сообщений', {
-        dmId,
-        reason,
-        totalMessages,
-        hasOverflow,
-        attempts: nextAttempts
-      });
-
-      autoScrollStateRef.current = { dmId, attempts: nextAttempts };
-      setTimeout(() => {
-        scrollContainerToBottom(`${reason}-retry-${nextAttempts}`);
-        finalizeAutoScroll(reason);
-      }, 50);
-      return;
-    }
-
-    if (!hasOverflow || distance <= AUTO_SCROLL_EPSILON) {
-      markDMScrolled(dmId, reason);
-      return;
-    }
-
-    const prevState = autoScrollStateRef.current;
-    const prevAttempts = prevState.dmId === dmId ? prevState.attempts : 0;
-    const nextAttempts = prevAttempts + 1;
-
-    if (nextAttempts >= MAX_AUTO_SCROLL_ATTEMPTS) {
-      console.log('[DM SCROLL] ⚠️ Автоскролл: достигнут лимит попыток', {
-        dmId,
-        reason,
-        distance,
-        attempts: nextAttempts
-      });
-      autoScrollStateRef.current = { dmId: null, attempts: 0 };
-      return;
-    }
-
-    autoScrollStateRef.current = { dmId, attempts: nextAttempts };
-    requestAnimationFrame(() => {
-      scrollContainerToBottom(`${reason}-retry-${nextAttempts}`);
-      finalizeAutoScroll(reason);
-    });
-  }, [selectedDM?._id, markDMScrolled, scrollContainerToBottom, selectedMessages.length]);
-
-  const autoScrollToBottom = useCallback((reason) => {
-    scrollContainerToBottom(reason);
-    finalizeAutoScroll(reason);
-  }, [finalizeAutoScroll, scrollContainerToBottom]);
-
-  const scrollToBottom = useCallback(() => {
-    console.log('[DM SCROLL] 📍 scrollToBottom вызван');
-    autoScrollToBottom('manual');
-  }, [autoScrollToBottom]);
-
-  // Очистка таймаутов при размонтировании
-  useEffect(() => {
-    return () => {
-      scrollTimeoutsRef.current.forEach(id => clearTimeout(id));
-      scrollTimeoutsRef.current = [];
-    };
-  }, []);
 
   // Функции для работы с файлами
   const handleFileSelect = (e) => {
@@ -648,10 +729,24 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
 
     setSelectedFiles(prev => [...prev, ...validFiles]);
     e.target.value = ''; // Очищаем input для возможности выбора того же файла
+
+    // Возвращаем фокус в поле ввода после выбора файла
+    setTimeout(() => {
+      if (inputRef.current) {
+        inputRef.current.focus({ preventScroll: true });
+      }
+    }, 50);
   };
 
   const removeFile = (index) => {
     setSelectedFiles(prev => prev.filter((_, i) => i !== index));
+
+    // Возвращаем фокус в поле ввода после удаления файла
+    setTimeout(() => {
+      if (inputRef.current) {
+        inputRef.current.focus({ preventScroll: true });
+      }
+    }, 50);
   };
 
   const openFileDialog = () => {
@@ -761,14 +856,24 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
       // Прокручиваем к последнему сообщению
       setTimeout(() => scrollToBottom(), 100);
 
+      // Возвращаем фокус в поле ввода после небольшой задержки
+      setTimeout(() => {
+        if (inputRef.current) {
+          inputRef.current.focus({ preventScroll: true });
+        }
+      }, 150);
+
   } catch (err) {
     console.error('❌ Ошибка отправки сообщения:', err);
     setError('Ошибка отправки сообщения');
+    // Возвращаем фокус в поле ввода даже при ошибке
+    setTimeout(() => {
+      if (inputRef.current) {
+        inputRef.current.focus({ preventScroll: true });
+      }
+    }, 100);
   } finally {
     setSendingMessage(false);
-    if (inputRef.current) {
-      inputRef.current.focus({ preventScroll: true });
-    }
   }
 };
 
@@ -974,7 +1079,15 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
     });
   };
 
-  const cancelReply = () => setReplyingTo(null);
+  const cancelReply = () => {
+    setReplyingTo(null);
+    // Возвращаем фокус в поле ввода после отмены ответа
+    setTimeout(() => {
+      if (inputRef.current) {
+        inputRef.current.focus({ preventScroll: true });
+      }
+    }, 50);
+  };
 
   const handleReplyNavigation = (messageId) => {
     if (!messageId) return;
@@ -1115,6 +1228,9 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
 
     return grouped;
   };
+
+  // Группировка сообщений с useMemo
+  const groupedDMs = useMemo(() => groupMessages(selectedMessages), [selectedMessages]);
 
   // Функция для форматирования даты в русском формате
   const formatDate = (dateString) => {
@@ -1262,6 +1378,7 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
   // Мемоизируем функцию загрузки сообщений
   const loadMessagesWithUser = useCallback(async (userId) => {
     setMessagesLoading(true);
+    setSelectedMessages([]);       // очистили старый поток — покажется скелетон
     setBlockStatus(null);
     setShowBlockDialog(false);
     setBlockReason('');
@@ -1298,9 +1415,10 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
       setSelectedMessages([]);
       setBlockStatus(null);
     } finally {
-      setMessagesLoading(false);
+      setMessagesLoading(false);   // выключаем скелетон строго после запроса
     }
   }, [socket, user, refreshBlockStatus]);
+
 
   const handleOpenBlockDialog = useCallback(() => {
     setBlockActionError('');
@@ -1474,97 +1592,6 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
     }
   }, [autoSelectUser, directMessages, onAutoSelectComplete, loadMessagesWithUser]);
 
-  // Умная автоматическая прокрутка - используем useLayoutEffect как в Chat.js
-  const prevMessagesLengthRef = useRef(0);
-  const isInitialLoadRef = useRef(true); // true по умолчанию для первой загрузки
-  const prevDMIdRef = useRef(null);
-  const scrolledDMsRef = useRef(new Set()); // Список DM, для которых уже делали скролл
-
-  useEffect(() => {
-    // Сбрасываем флаг начальной загрузки при смене разговора
-    const newDMId = selectedDM?._id;
-    const oldDMId = prevDMIdRef.current;
-
-    if (newDMId !== oldDMId) {
-      console.log('[DM SCROLL] 🔄 Смена разговора:', { oldDMId, newDMId });
-
-      // Отменяем все таймауты скролла при смене разговора
-      scrollTimeoutsRef.current.forEach(id => clearTimeout(id));
-      scrollTimeoutsRef.current = [];
-
-      autoScrollStateRef.current = { dmId: null, attempts: 0 };
-
-      if (newDMId) {
-        prevDMIdRef.current = newDMId;
-        isInitialLoadRef.current = true;
-        // Убираем из списка проскролленных, чтобы разрешить скролл
-        scrolledDMsRef.current.delete(newDMId);
-
-        console.log('[DM SCROLL] 🎯 Установлены флаги для нового разговора');
-      } else {
-        prevDMIdRef.current = null;
-      }
-    }
-  }, [selectedDM?._id]);
-
-  useLayoutEffect(() => {
-    if (!messagesContainerRef.current || !messagesEndRef.current) {
-      console.log('[DM SCROLL] ⚠️ useLayoutEffect автоскролл: нет контейнера или endRef');
-      return;
-    }
-
-    const container = messagesContainerRef.current;
-    const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 100;
-    const hasScrolledForThisDM = scrolledDMsRef.current.has(selectedDM?._id);
-
-    console.log('[DM SCROLL] 🤖 useLayoutEffect автоскролл:', {
-      dmId: selectedDM?._id,
-      messagesLength: selectedMessages.length,
-      prevMessagesLength: prevMessagesLengthRef.current,
-      isNearBottom,
-      hasScrolledForThisDM,
-      isInitialLoad: isInitialLoadRef.current,
-      scrollHeight: container.scrollHeight,
-      scrollTop: container.scrollTop,
-      clientHeight: container.clientHeight,
-      distanceFromBottom: container.scrollHeight - container.scrollTop - container.clientHeight
-    });
-
-    // НЕ скроллим если уже скроллили для этого DM
-    if (hasScrolledForThisDM && !isInitialLoadRef.current) {
-      console.log('[DM SCROLL] ⛔ НЕ скроллим: DM уже был проскроллен');
-      prevMessagesLengthRef.current = selectedMessages.length;
-      return;
-    }
-
-    // Скроллим вниз если:
-    // 1. Это начальная загрузка сообщений для нового DM И есть хотя бы одно сообщение
-    // 2. ИЛИ пользователь был близко к низу И количество сообщений увеличилось
-    const shouldScroll = (isInitialLoadRef.current && selectedMessages.length > 0) || (isNearBottom && selectedMessages.length >= prevMessagesLengthRef.current);
-
-    console.log('[DM SCROLL] 🔎 Проверка shouldScroll:', {
-      shouldScroll,
-      condition1: isInitialLoadRef.current && selectedMessages.length > 0,
-      condition2: isNearBottom && selectedMessages.length >= prevMessagesLengthRef.current
-    });
-
-    if (shouldScroll) {
-      console.log('[DM SCROLL] ✅ СКРОЛЛИМ ВНИЗ');
-      autoScrollToBottom('layoutEffect');
-
-      // После первого скролла сбрасываем флаг начальной загрузки
-      if (isInitialLoadRef.current) {
-        isInitialLoadRef.current = false;
-        if (selectedDM?._id) {
-          scrolledDMsRef.current.add(selectedDM._id);
-        }
-      }
-    } else {
-      console.log('[DM SCROLL] ⏭️ НЕ скроллим по условию');
-    }
-
-    prevMessagesLengthRef.current = selectedMessages.length;
-  }, [selectedMessages.length, selectedDM?._id, autoScrollToBottom]);
 
   // WebSocket обработчики для личных сообщений
   useEffect(() => {
@@ -1877,12 +1904,33 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
             {blockBanners}
 
               {/* Область сообщений */}
-              <div className="dm-messages" ref={messagesContainerRef}>
-                {messagesLoading ? (
-                  <div className="dm-loading">Загрузка сообщений...</div>
-                ) : (
-                  <>
-                    <div className="dm-messages-welcome">
+              <div
+                className="dm-messages"
+                ref={messagesContainerRef}
+                style={{
+                  position: 'relative',
+                  paddingTop: dmWelcomeH ? `${dmWelcomeH}px` : undefined,
+                }}
+              >
+                {/* welcome фиксированный сверху */}
+                <div
+                  className="dm-messages-welcome"
+                  ref={dmWelcomeRef}
+                  style={{ position: 'absolute', top: 0, left: 0, right: 0, pointerEvents: 'none' }}
+                >
+                  {(messagesLoading || bootstrapping) ? (
+                    <div className="dm-welcome-skeleton">
+                      <div className="dm-welcome-skeleton-avatar" />
+                      <div className="dm-welcome-skeleton-name" />
+                      <div className="dm-welcome-skeleton-username" />
+                      <div className="dm-welcome-skeleton-description" />
+                      <div className="dm-welcome-skeleton-actions">
+                        <div className="dm-welcome-skeleton-button" />
+                        <div className="dm-welcome-skeleton-button" />
+                      </div>
+                    </div>
+                  ) : (
+                    <>
                       <div className="dm-welcome-avatar">
                         {autoSelectUser.user?.avatar ? (
                           <img src={`${BACKEND_URL}${autoSelectUser.user.avatar}`} alt={autoSelectUser.user.username} />
@@ -1925,10 +1973,33 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
                           </button>
                         )}
                       </div>
-                    </div>
-                    {selectedMessages.length > 0 && (
-                groupMessages(selectedMessages).map((group, groupIndex) => {
-                  const prevGroup = groupIndex > 0 ? groupMessages(selectedMessages)[groupIndex - 1] : null;
+                    </>
+                  )}
+                </div>
+
+                {/* Скелетон — ОТДЕЛЬНЫЙ оверлей, виден даже когда поток невидим */}
+                {(messagesLoading || bootstrapping) && (
+                  <div
+                    className="dm-skeleton-overlay"
+                    style={{ position: 'absolute', top: dmWelcomeH, left: 0, right: 0 }}
+                  >
+                    <div className="dm-skel-row" />
+                    <div className="dm-skel-row" />
+                    <div className="dm-skel-row" />
+                  </div>
+                )}
+
+                {/* Поток сообщений ВСЕГДА смонтирован */}
+                <div
+                  className="dm-thread"
+                  style={{
+                    opacity: bootstrapping ? 0 : 1,
+                    pointerEvents: bootstrapping ? 'none' : 'auto',
+                  }}
+                >
+                  {selectedMessages.length > 0 && showMessages && (
+                  groupedDMs.map((group, groupIndex) => {
+                    const prevGroup = groupIndex > 0 ? groupedDMs[groupIndex - 1] : null;
                   const showDateDivider = !prevGroup || prevGroup.date !== group.date;
 
                   return (
@@ -1944,7 +2015,7 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
                         <div
                           key={message._id}
                           data-message-id={message._id}
-                          className={`dm-message ${message.sender._id === user?.id ? 'dm-message-own' : ''} ${messageIndex > 0 ? 'dm-message-grouped' : ''} ${messageIndex === 0 && group.messages.length > 1 ? 'dm-message-group-first' : ''} ${highlightedMessageId === message._id ? 'dm-message-highlighted' : ''}`}
+                          className={`dm-message ${message.sender._id === user?.id ? 'dm-message-own' : ''} ${messageIndex > 0 ? 'dm-message-grouped' : ''} ${messageIndex === 0 && group.messages.length > 1 ? 'dm-message-group-first' : ''} ${highlightedMessageId === message._id ? 'dm-message-highlighted' : ''} ${newDmMessageIds.has(message._id) ? 'dm-msg--just-in' : ''}`}
                         >
                       {messageIndex === 0 && (
                         <div
@@ -2019,7 +2090,15 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
                                     src={`${BACKEND_URL}${attachment.path}`}
                                     alt={attachment.originalName}
                                     className="message-attachment-image"
+                                    loading="lazy"
                                     onClick={() => window.open(`${BACKEND_URL}${attachment.path}`, '_blank')}
+                                    onError={(e) => {
+                                      console.error('Ошибка загрузки изображения:', e.target.src);
+                                      e.target.style.display = 'none';
+                                    }}
+                                    onLoad={() => {
+                                      console.log('Изображение загружено:', `${BACKEND_URL}${attachment.path}`);
+                                    }}
                                   />
                                 </div>
                               ))}
@@ -2074,11 +2153,10 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
                     </React.Fragment>
                   );
                 })
-                    )}
-                  </>
                 )}
-              {/* Невидимый элемент для прокрутки к последнему сообщению */}
-              <div ref={messagesEndRef} />
+                  {/* Невидимый элемент для прокрутки к последнему сообщению */}
+                  <div ref={messagesEndRef} />
+                </div>
             </div>
 
             {/* Поле ввода */}
@@ -2311,12 +2389,33 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
               {blockBanners}
 
               {/* Область сообщений */}
-              <div className="dm-messages" ref={messagesContainerRef}>
-                {messagesLoading ? (
-                  <div className="dm-loading">Загрузка сообщений...</div>
-                ) : (
-                  <>
-                    <div className="dm-messages-welcome">
+              <div
+                className="dm-messages"
+                ref={messagesContainerRef}
+                style={{
+                  position: 'relative',
+                  paddingTop: dmWelcomeH ? `${dmWelcomeH}px` : undefined,
+                }}
+              >
+                {/* welcome фиксированный сверху */}
+                <div
+                  className="dm-messages-welcome"
+                  ref={dmWelcomeRef}
+                  style={{ position: 'absolute', top: 0, left: 0, right: 0, pointerEvents: 'none' }}
+                >
+                  {(messagesLoading || bootstrapping) ? (
+                    <div className="dm-welcome-skeleton">
+                      <div className="dm-welcome-skeleton-avatar" />
+                      <div className="dm-welcome-skeleton-name" />
+                      <div className="dm-welcome-skeleton-username" />
+                      <div className="dm-welcome-skeleton-description" />
+                      <div className="dm-welcome-skeleton-actions">
+                        <div className="dm-welcome-skeleton-button" />
+                        <div className="dm-welcome-skeleton-button" />
+                      </div>
+                    </div>
+                  ) : (
+                    <>
                       <div className="dm-welcome-avatar">
                         {selectedDM.user.avatar ? (
                           <img src={`${BACKEND_URL}${selectedDM.user.avatar}`} alt={selectedDM.user.username} />
@@ -2359,10 +2458,33 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
                           </button>
                         )}
                       </div>
-                    </div>
-                    {selectedMessages.length > 0 && (
-                  groupMessages(selectedMessages).map((group, groupIndex) => {
-                    const prevGroup = groupIndex > 0 ? groupMessages(selectedMessages)[groupIndex - 1] : null;
+                    </>
+                  )}
+                </div>
+
+                {/* Скелетон — ОТДЕЛЬНЫЙ оверлей, виден даже когда поток невидим */}
+                {(messagesLoading || bootstrapping) && (
+                  <div
+                    className="dm-skeleton-overlay"
+                    style={{ position: 'absolute', top: dmWelcomeH, left: 0, right: 0 }}
+                  >
+                    <div className="dm-skel-row" />
+                    <div className="dm-skel-row" />
+                    <div className="dm-skel-row" />
+                  </div>
+                )}
+
+                {/* Поток сообщений ВСЕГДА смонтирован */}
+                <div
+                  className="dm-thread"
+                  style={{
+                    opacity: bootstrapping ? 0 : 1,
+                    pointerEvents: bootstrapping ? 'none' : 'auto',
+                  }}
+                >
+                  {selectedMessages.length > 0 && showMessages && (
+                    groupedDMs.map((group, groupIndex) => {
+                      const prevGroup = groupIndex > 0 ? groupedDMs[groupIndex - 1] : null;
                     const showDateDivider = !prevGroup || prevGroup.date !== group.date;
 
                     return (
@@ -2378,7 +2500,7 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
                           <div
                             key={message._id}
                             data-message-id={message._id}
-                            className={`dm-message ${message.sender._id === user?.id ? 'dm-message-own' : ''} ${messageIndex > 0 ? 'dm-message-grouped' : ''} ${messageIndex === 0 && group.messages.length > 1 ? 'dm-message-group-first' : ''} ${messageIndex === group.messages.length - 1 ? 'dm-message-group-last' : ''} ${editingMessage?._id === message._id ? 'dm-message-edit-mode' : ''} ${highlightedMessageId === message._id ? 'dm-message-highlighted' : ''}`}
+                            className={`dm-message ${message.sender._id === user?.id ? 'dm-message-own' : ''} ${messageIndex > 0 ? 'dm-message-grouped' : ''} ${messageIndex === 0 && group.messages.length > 1 ? 'dm-message-group-first' : ''} ${messageIndex === group.messages.length - 1 ? 'dm-message-group-last' : ''} ${editingMessage?._id === message._id ? 'dm-message-edit-mode' : ''} ${highlightedMessageId === message._id ? 'dm-message-highlighted' : ''} ${newDmMessageIds.has(message._id) ? 'dm-msg--just-in' : ''}`}
                           >
                         {messageIndex === 0 && (
                           <div
@@ -2490,7 +2612,15 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
                                         src={`${BACKEND_URL}${attachment.path}`}
                                         alt={attachment.originalName}
                                         className="message-attachment-image"
+                                        loading="lazy"
                                         onClick={() => window.open(`${BACKEND_URL}${attachment.path}`, '_blank')}
+                                        onError={(e) => {
+                                          console.error('Ошибка загрузки изображения:', e.target.src);
+                                          e.target.style.display = 'none';
+                                        }}
+                                        onLoad={() => {
+                                          console.log('Изображение загружено:', `${BACKEND_URL}${attachment.path}`);
+                                        }}
                                       />
                                     </div>
                                   ))}
@@ -2546,11 +2676,10 @@ function DirectMessages({ user, socket, onLogout, onAvatarUpdate, autoSelectUser
                       </React.Fragment>
                     );
                   })
-                    )}
-                  </>
-                )}
-                {/* Невидимый элемент для прокрутки к последнему сообщению */}
-                <div ref={messagesEndRef} />
+                  )}
+                    {/* Невидимый элемент для прокрутки к последнему сообщению */}
+                    <div ref={messagesEndRef} />
+                  </div>
               </div>
 
               {/* Поле ввода */}

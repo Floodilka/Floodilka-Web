@@ -24,6 +24,9 @@
 
 .embed-card.embed-card-youtube {
   border-left: 4px solid #f23f43;
+  height: 350px; /* Фиксированная высота для предотвращения микро-скролла */
+  display: flex;
+  flex-direction: column;
 }
 
 .embed-card:hover {
@@ -34,8 +37,9 @@
 .embed-card-thumbnail {
   position: relative;
   width: 100%;
-  padding-top: 56.25%;
+  height: 280px; /* Фиксированная высота для thumbnail */
   overflow: hidden;
+  flex-shrink: 0;
 }
 
 .embed-card-thumbnail img {
@@ -52,6 +56,7 @@
   width: 100%;
   height: 100%;
   border: none;
+  object-fit: cover; /* Масштабирует iframe для заполнения контейнера */
 }
 
 .embed-card-badge {
@@ -68,15 +73,25 @@
 }
 
 .embed-card-body {
-  padding: 10px 12px;
+  padding: 8px 12px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 0; /* Позволяет тексту обрезаться */
 }
 
 .embed-card-title {
   display: block;
   font-weight: 600;
-  margin-bottom: 4px;
+  margin-bottom: 2px;
   color: inherit;
   text-decoration: none;
+  font-size: 13px;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .embed-card-title:hover {
@@ -85,10 +100,13 @@
 
 .embed-card-subtitle {
   display: inline-flex;
-  font-size: 12px;
+  font-size: 11px;
   color: rgba(255, 255, 255, 0.7);
-  margin-bottom: 4px;
+  margin-bottom: 2px;
   text-decoration: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .embed-card-subtitle:hover {
