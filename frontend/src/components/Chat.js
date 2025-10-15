@@ -1449,49 +1449,53 @@ const handleChannelSelect = (channel) => {
     });
   };
 
-  // Функция для группировки сообщений
-  const groupMessages = (messages) => {
-    if (!messages || messages.length === 0) return [];
+  // Функция для группировки сообщений «как в Discord»
+  const groupMessages = (messages, { thresholdMs = 60_000 } = {}) => {
+    if (!Array.isArray(messages) || messages.length === 0) return [];
 
     const grouped = [];
     let currentGroup = null;
 
-    messages.forEach((message, index) => {
-      const messageTime = new Date(message.timestamp);
-      const messageMinute = messageTime.getMinutes();
-      const messageHour = messageTime.getHours();
-      const messageDate = messageTime.toDateString();
+    for (const msg of messages) {
+      const t = new Date(msg.timestamp);
+      const dayKey = t.getFullYear() + '-' + (t.getMonth()+1) + '-' + t.getDate();
 
-      // Проверяем, нужно ли начать новую группу
-      const shouldStartNewGroup = !currentGroup ||
-        currentGroup.username !== message.username ||
-        currentGroup.hour !== messageHour ||
-        currentGroup.minute !== messageMinute;
+      const needNewGroup =
+        !currentGroup ||
+        currentGroup.username !== msg.username ||
+        currentGroup.dayKey !== dayKey ||
+        // строгое окно по времени между соседними сообщениями в группе
+        (t - new Date(currentGroup.lastTimestamp)) > thresholdMs ||
+        // системные сообщения всегда в отдельном блоке
+        msg.isSystem;
 
-      if (shouldStartNewGroup) {
-        // Создаем новую группу
+      if (needNewGroup) {
         currentGroup = {
-          username: message.username,
-          userId: message.userId,
-          hour: messageHour,
-          minute: messageMinute,
-          date: messageDate,
-          messages: [message],
-          timestamp: message.timestamp,
-          isOwn: message.username === username
+          username: msg.username,
+          userId: msg.userId,
+          dayKey,
+          // для разделителя дат
+          date: new Date(t.getFullYear(), t.getMonth(), t.getDate()).toDateString(),
+          messages: [msg],
+          firstTimestamp: msg.timestamp,
+          lastTimestamp: msg.timestamp,
+          isOwn: msg.username === username,
         };
         grouped.push(currentGroup);
       } else {
-        // Добавляем сообщение в существующую группу
-        currentGroup.messages.push(message);
+        currentGroup.messages.push(msg);
+        currentGroup.lastTimestamp = msg.timestamp;
       }
-    });
+    }
 
     return grouped;
   };
 
   // Оптимизированная группировка сообщений
-  const groupedMessages = useMemo(() => groupMessages(liveMessages), [liveMessages]);
+  const groupedMessages = useMemo(
+    () => groupMessages(liveMessages, { thresholdMs: 60_000 }),
+    [liveMessages]
+  );
 
   // Функция для форматирования даты в русском формате
   const formatDate = (dateString) => {
