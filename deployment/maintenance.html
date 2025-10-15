@@ -13,7 +13,7 @@
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #1e1f22;
             color: #fff;
             display: flex;
             align-items: center;
@@ -25,12 +25,12 @@
         .container {
             text-align: center;
             max-width: 600px;
-            background: rgba(255, 255, 255, 0.1);
+            background: rgba(30, 31, 34, 0.9);
             backdrop-filter: blur(10px);
             border-radius: 20px;
             padding: 60px 40px;
-            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
-            border: 1px solid rgba(255, 255, 255, 0.18);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.1);
         }
 
         .icon {
@@ -57,8 +57,9 @@
         p {
             font-size: 1.2em;
             margin-bottom: 15px;
-            opacity: 0.9;
+            opacity: 0.8;
             line-height: 1.6;
+            color: #B5BAC1;
         }
 
         .status {
@@ -67,16 +68,18 @@
             gap: 10px;
             margin-top: 30px;
             padding: 15px 30px;
-            background: rgba(255, 255, 255, 0.2);
+            background: rgba(88, 101, 242, 0.2);
             border-radius: 50px;
             font-size: 1.1em;
+            color: #B5BAC1;
+            border: 1px solid rgba(88, 101, 242, 0.3);
         }
 
         .spinner {
             width: 20px;
             height: 20px;
-            border: 3px solid rgba(255, 255, 255, 0.3);
-            border-top-color: #fff;
+            border: 3px solid rgba(88, 101, 242, 0.15);
+            border-top-color: #5865F2;
             border-radius: 50%;
             animation: spin 1s linear infinite;
         }
@@ -101,8 +104,8 @@
         .retry-button {
             margin-top: 30px;
             padding: 15px 40px;
-            background: rgba(255, 255, 255, 0.2);
-            border: 2px solid rgba(255, 255, 255, 0.3);
+            background: rgba(88, 101, 242, 0.2);
+            border: 2px solid rgba(88, 101, 242, 0.4);
             border-radius: 50px;
             color: #fff;
             font-size: 1.1em;
@@ -112,9 +115,10 @@
         }
 
         .retry-button:hover {
-            background: rgba(255, 255, 255, 0.3);
+            background: rgba(88, 101, 242, 0.4);
+            border-color: rgba(88, 101, 242, 0.6);
             transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 5px 15px rgba(88, 101, 242, 0.3);
         }
 
         @media (max-width: 600px) {
@@ -146,8 +150,8 @@
     <div class="container">
         <div class="icon">🔧</div>
         <h1>Техническое обслуживание</h1>
-        <p>Мы обновляем Floodilka для улучшения сервиса</p>
-        <p>Это займет всего несколько секунд</p>
+        <p>Мы обновляем Floodilka для добавления новой функциональности и исправления багов</p>
+        <p>Обычно это занимает пару минут</p>
 
         <div class="status">
             <div class="spinner"></div>
@@ -160,7 +164,6 @@
 
         <div class="info">
             <p>Автоматическая проверка через: <span class="countdown" id="countdown">10</span> сек</p>
-            <p>Обычно обновление занимает менее 30 секунд</p>
         </div>
     </div>
 

@@ -75,6 +75,13 @@ rollback() {
         echo -e "${GREEN}✓ Frontend восстановлен${NC}"
     fi
 
+    # Отключаем режим технических работ при откате
+    echo -e "${BLUE}🚀 Отключение режима технических работ после отката...${NC}"
+    if [ -f "$PROJECT_DIR/deployment/disable-maintenance.sh" ]; then
+        bash "$PROJECT_DIR/deployment/disable-maintenance.sh"
+        echo -e "${GREEN}✓ Режим технических работ отключен${NC}"
+    fi
+
     echo ""
     echo -e "${YELLOW}⚠️  Откат завершен. Backend работает в fork mode (стабильно).${NC}"
     echo -e "${YELLOW}📊 Статус:${NC}"
@@ -176,6 +183,15 @@ echo -e "${GREEN}✓ Код обновлен${NC}"
 echo ""
 echo -e "${GREEN}🔧 Этап 3/5: Обновление Backend (zero downtime)${NC}"
 echo ""
+
+# Включаем режим технических работ для frontend
+echo -e "${BLUE}🔧 Включение режима технических работ...${NC}"
+if [ -f "$PROJECT_DIR/deployment/enable-maintenance.sh" ]; then
+    bash "$PROJECT_DIR/deployment/enable-maintenance.sh"
+    echo -e "${GREEN}✓ Режим технических работ включен${NC}"
+else
+    echo -e "${YELLOW}⚠️  Скрипт enable-maintenance.sh не найден, пропускаем${NC}"
+fi
 
 cd "$PROJECT_DIR/backend"
 
@@ -338,6 +354,15 @@ fi
 mv "$TEMP_DIR" "$FRONTEND_PUBLIC_DIR"
 
 echo -e "${GREEN}✓ Frontend обновлен${NC}"
+
+# Отключаем режим технических работ
+echo -e "${BLUE}🚀 Отключение режима технических работ...${NC}"
+if [ -f "$PROJECT_DIR/deployment/disable-maintenance.sh" ]; then
+    bash "$PROJECT_DIR/deployment/disable-maintenance.sh"
+    echo -e "${GREEN}✓ Режим технических работ отключен${NC}"
+else
+    echo -e "${YELLOW}⚠️  Скрипт disable-maintenance.sh не найден, пропускаем${NC}"
+fi
 
 cd "$PROJECT_DIR"
 
