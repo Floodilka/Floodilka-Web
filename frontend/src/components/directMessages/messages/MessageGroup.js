@@ -27,7 +27,8 @@ const MessageGroup = ({
   canDeleteMessage,
   BACKEND_URL,
   messagesContainerRef,
-  scrollToBottom
+  scrollToBottom,
+  onImageClick
 }) => {
   const showDateDivider = !prevGroup || prevGroup.date !== group.date;
 
@@ -68,6 +69,7 @@ const MessageGroup = ({
           BACKEND_URL={BACKEND_URL}
           messagesContainerRef={messagesContainerRef}
           scrollToBottom={scrollToBottom}
+          onImageClick={onImageClick}
         />
       ))}
     </React.Fragment>

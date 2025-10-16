@@ -11,12 +11,14 @@ import UnknownChannelModal from './modals/UnknownChannelModal';
 import EmojiPicker from './EmojiPicker';
 import MentionAutocomplete from './MentionAutocomplete';
 import ChannelAutocomplete from './ChannelAutocomplete';
+import ImageLightbox from './ImageLightbox';
 
 // Хуки
 import { useChatLoading } from '../hooks/useChatLoading';
 import { useSimpleScroll } from '../hooks/useSimpleScroll';
 import { useMentions } from '../hooks/useMentions';
 import { useReactions } from '../hooks/useReactions';
+import { useImageLightbox } from '../hooks/useImageLightbox';
 
 // Утилиты
 import {
@@ -75,6 +77,9 @@ function Chat({
   const [mentionTooltip, setMentionTooltip] = useState(null);
   const [serverMembers, setServerMembers] = useState([]);
   const [showUnknownChannelModal, setShowUnknownChannelModal] = useState(false);
+
+  // Лайтбокс изображений
+  const { isOpen: isLightboxOpen, images: lightboxImages, initialIndex: lightboxInitialIndex, openLightbox, closeLightbox } = useImageLightbox();
 
   // Refs
   const inputRef = useRef(null);
@@ -785,6 +790,65 @@ function Chat({
   };
 
 
+  // Layout-shift guard для предотвращения скачков при загрузке изображений
+  useEffect(() => {
+    const container = messagesContainerRef.current;
+    if (!container || !showMessages) return;
+
+    // берём все IMG вложений в видимом чате
+    const imgs = Array.from(
+      container.querySelectorAll('img.message-attachment-image:not([data-ls-watch])')
+    );
+
+    const cleaners = [];
+
+    imgs.forEach((img) => {
+      img.dataset.lsWatch = '1';
+      const wrapper = img.closest('.message-attachment-image-wrapper') || img;
+
+      // высота до загрузки
+      const before = wrapper.offsetHeight;
+
+      const fixScroll = () => {
+        // если DOM уже отрисовал окончательную высоту
+        const after = wrapper.offsetHeight;
+        const delta = after - before;
+        if (!delta) return;
+
+        const contRect = container.getBoundingClientRect();
+        const wrapRect = wrapper.getBoundingClientRect();
+
+        const isAboveViewportBottom = wrapRect.bottom <= contRect.bottom;
+        const isPinnedToBottom = Math.abs(
+          container.scrollHeight - container.scrollTop - container.clientHeight
+        ) < 2;
+
+        // Если пользователь у низа — просто держим низ.
+        if (isPinnedToBottom) {
+          container.scrollTop = container.scrollHeight;
+        } else if (isAboveViewportBottom) {
+          // Если картинка выше текущего низа вьюпорта — компенсируем дельту.
+          container.scrollTop += delta;
+        }
+      };
+
+      const onLoad = () => {
+        // если уже закешировано — дельта появится сразу
+        Promise.resolve(img.decode?.()).finally(fixScroll);
+        img.removeEventListener('load', onLoad);
+      };
+
+      if (img.complete) {
+        onLoad();
+      } else {
+        img.addEventListener('load', onLoad);
+        cleaners.push(() => img.removeEventListener('load', onLoad));
+      }
+    });
+
+    return () => cleaners.forEach((fn) => fn());
+  }, [messages, showMessages, isReady]);
+
   // Очистка состояний при смене канала
   useEffect(() => {
     setReplyingTo(null);
@@ -877,13 +941,11 @@ function Chat({
           </div>
         ) : showMessages ? (
           <>
-            {messages.length === 0 && (
-              <div className="messages-welcome">
-                <div className="welcome-icon">#</div>
-                <h2>Добро пожаловать в #{channel.name}!</h2>
-                <p>Это начало канала #{channel.name}</p>
-              </div>
-            )}
+            <div className="messages-welcome">
+              <div className="welcome-icon">#</div>
+              <h2>Добро пожаловать в #{channel.name}!</h2>
+              <p>Это начало канала #{channel.name}</p>
+            </div>
 
             {messages.length > 0 && (
               <MessagesList
@@ -916,6 +978,7 @@ function Chat({
                 canDeleteMessage={(message) => canDeleteMessage(message, username, userPermissions)}
                 messagesContainerRef={messagesContainerRef}
                 scrollToBottom={scrollToBottom}
+                onImageClick={openLightbox}
               />
             )}
             <div ref={messagesEndRef} className="scroll-anchor" />
@@ -1045,6 +1108,15 @@ function Chat({
           onSelect={(channel) => handleChannelSelect(channel, inputRef, inputValue, setInputValue)}
           position={channelPosition}
           selectedIndex={channelSelectedIndex}
+        />
+      )}
+
+      {/* Лайтбокс изображений */}
+      {isLightboxOpen && (
+        <ImageLightbox
+          images={lightboxImages}
+          initialIndex={lightboxInitialIndex}
+          onClose={closeLightbox}
         />
       )}
 

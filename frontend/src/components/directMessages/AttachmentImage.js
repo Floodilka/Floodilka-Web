@@ -1,80 +1,77 @@
 import React, { useRef, useLayoutEffect } from 'react';
 
-/**
- * Компонент для отображения изображений-вложений с плейсхолдером
- * Предотвращает прыжки скролла при загрузке изображений
- */
-export default function AttachmentImage({
-  src,
-  alt = '',
-  naturalWidth,
-  naturalHeight,
-  containerRef,       // ref на контейнер сообщений
-  onKeepBottom,       // функция scrollToBottom
-  className = 'message-attachment-image',
-  onClick,
-  onError,
-  onLoad,
-  variant = 'dm',     // 'dm' для DirectMessages, 'chat' для Chat
-  maxSize = 350       // максимальный размер для Chat
-}) {
+function AttachmentImage({ src, alt, width, height, onImageClick, message, attachmentIndex }) {
   const wrapperRef = useRef(null);
 
-  // Держим «якорь» у низа, если пользователь был внизу
-  const handleLoad = (e) => {
-    const c = containerRef?.current;
-    if (!c) return;
-    const atBottom = c.scrollHeight - (c.scrollTop + c.clientHeight) <= 2;
-    if (atBottom) onKeepBottom?.();
+  // Если бэкенд присылает размеры — используем их
+  const haveMeta = width && height;
+  const ar = haveMeta ? `${width} / ${height}` : undefined;
 
-    // Устанавливаем data-loaded="true" для shimmer эффекта
-    if (wrapperRef.current) {
-      wrapperRef.current.setAttribute('data-loaded', 'true');
+  // Проставляем CSS-переменную для aspect-ratio на wrapper
+  useLayoutEffect(() => {
+    if (wrapperRef.current && ar) {
+      wrapperRef.current.style.setProperty('--ar', ar);
     }
+  }, [ar]);
 
-    // Вызываем пользовательский onLoad
-    if (onLoad) onLoad(e);
+  const openLightbox = () => {
+    if (onImageClick && message && message.attachments) {
+      // Создаем массив изображений из вложений сообщения
+      const images = message.attachments
+        .filter(attachment => attachment.mimetype.startsWith('image/'))
+        .map(attachment => ({
+          src: `${window.location.hostname === 'localhost' ? 'http://localhost:3001' : `${window.location.protocol}//${window.location.hostname}`}${attachment.path}`,
+          alt: attachment.originalName,
+          width: attachment.width,
+          height: attachment.height,
+          name: attachment.originalName
+        }));
+
+      // Находим индекс текущего изображения среди всех изображений
+      const imageIndex = message.attachments
+        .filter(attachment => attachment.mimetype.startsWith('image/'))
+        .findIndex(attachment => attachment.path === message.attachments[attachmentIndex].path);
+
+      onImageClick(images, imageIndex);
+    }
   };
 
-  // Соотношение сторон: лучше всего из метаданных
-  const aspectRatio =
-    naturalWidth && naturalHeight ? `${naturalWidth} / ${naturalHeight}` : '4 / 3';
+  const onLoad = (e) => {
+    if (wrapperRef.current) {
+      wrapperRef.current.setAttribute('data-loaded', 'true');
+      // полезно, если захочешь показать размеры на оверлее
+      e.currentTarget.setAttribute('data-w', e.currentTarget.naturalWidth);
+      e.currentTarget.setAttribute('data-h', e.currentTarget.naturalHeight);
 
-  // Стили в зависимости от варианта
-  const wrapperStyle = variant === 'chat'
-    ? {
-        width: `${maxSize}px`,
-        height: `${maxSize}px`,
-        aspectRatio: '1 / 1' // квадрат для Chat
+      // Если размера не было — считаем его по natural* и устанавливаем аспект на wrapper
+      if (!ar && wrapperRef.current) {
+        const naturalAr = `${e.currentTarget.naturalWidth} / ${e.currentTarget.naturalHeight}`;
+        wrapperRef.current.style.setProperty('--ar', naturalAr);
       }
-    : {
-        aspectRatio,
-        maxWidth: 'min(420px, 70%)',
-        width: '100%'
-      };
-
-  const wrapperClassName = variant === 'chat'
-    ? 'message-attachment-image-wrapper'
-    : 'message-attachment';
+    }
+  };
 
   return (
     <div
-      className={wrapperClassName}
-      style={wrapperStyle}
       ref={wrapperRef}
-      data-loaded="false"
+      className="message-attachment-image-wrapper"
+      data-loaded={Boolean(haveMeta)}
+      onClick={openLightbox}
+      style={ar ? {'--ar': ar} : undefined}
     >
       <img
-        className={className}
+        className="message-attachment-image"
         src={src}
-        alt={alt}
-        width={naturalWidth}     // резервирует место ещё до загрузки
-        height={naturalHeight}
+        alt={alt || ""}
         loading="lazy"
-        onClick={onClick}
-        onError={onError}
-        onLoad={handleLoad}
+        decoding="async"
+        /* эти атрибуты помогают браузеру зарезервировать место ещё до CSS */
+        width={width || undefined}
+        height={height || undefined}
+        onLoad={onLoad}
       />
     </div>
   );
 }
+
+export default AttachmentImage;

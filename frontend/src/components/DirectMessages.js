@@ -17,12 +17,14 @@ import api from '../services/api';
 import MessagesList from './directMessages/messages/MessagesList';
 import MessageInput from './directMessages/input/MessageInput';
 import DMMessageSkeleton from './directMessages/skeleton/DMMessageSkeleton';
+import ImageLightbox from './ImageLightbox';
 
 // Хуки
 import { useDMLoading } from '../hooks/useDMLoading';
 import { useSimpleDMScroll } from '../hooks/useSimpleDMScroll';
 import { useBlockStatus } from './directMessages/hooks/useBlockStatus';
 import { useReactions } from './directMessages/hooks/useReactions';
+import { useImageLightbox } from '../hooks/useImageLightbox';
 
 // Утилиты
 import { groupMessages, canDeleteMessage, buildReplySnapshot } from './directMessages/utils/messageUtils';
@@ -95,6 +97,9 @@ function DirectMessages({
   const [profilePosition, setProfilePosition] = useState({ top: 0, left: 0 });
   const [errorModal, setErrorModal] = useState(null);
 
+  // Лайтбокс изображений
+  const { isOpen: isLightboxOpen, images: lightboxImages, initialIndex: lightboxInitialIndex, openLightbox, closeLightbox } = useImageLightbox();
+
   // Рефы
   const lastProcessedUserIdRef = useRef(null);
   const inputRef = useRef(null);
@@ -111,6 +116,65 @@ function DirectMessages({
     skeletonMessages,
     isReady
   } = useDMLoading(selectedDM, selectedMessages, messagesLoading, false);
+
+  // Layout-shift guard для предотвращения скачков при загрузке изображений
+  useEffect(() => {
+    const container = messagesContainerRef.current;
+    if (!container || !showDMMessages) return;
+
+    // берём все IMG вложений в видимом чате
+    const imgs = Array.from(
+      container.querySelectorAll('img.message-attachment-image:not([data-ls-watch])')
+    );
+
+    const cleaners = [];
+
+    imgs.forEach((img) => {
+      img.dataset.lsWatch = '1';
+      const wrapper = img.closest('.message-attachment-image-wrapper') || img;
+
+      // высота до загрузки
+      const before = wrapper.offsetHeight;
+
+      const fixScroll = () => {
+        // если DOM уже отрисовал окончательную высоту
+        const after = wrapper.offsetHeight;
+        const delta = after - before;
+        if (!delta) return;
+
+        const contRect = container.getBoundingClientRect();
+        const wrapRect = wrapper.getBoundingClientRect();
+
+        const isAboveViewportBottom = wrapRect.bottom <= contRect.bottom;
+        const isPinnedToBottom = Math.abs(
+          container.scrollHeight - container.scrollTop - container.clientHeight
+        ) < 2;
+
+        // Если пользователь у низа — просто держим низ.
+        if (isPinnedToBottom) {
+          container.scrollTop = container.scrollHeight;
+        } else if (isAboveViewportBottom) {
+          // Если картинка выше текущего низа вьюпорта — компенсируем дельту.
+          container.scrollTop += delta;
+        }
+      };
+
+      const onLoad = () => {
+        // если уже закешировано — дельта появится сразу
+        Promise.resolve(img.decode?.()).finally(fixScroll);
+        img.removeEventListener('load', onLoad);
+      };
+
+      if (img.complete) {
+        onLoad();
+      } else {
+        img.addEventListener('load', onLoad);
+        cleaners.push(() => img.removeEventListener('load', onLoad));
+      }
+    });
+
+    return () => cleaners.forEach((fn) => fn());
+  }, [selectedMessages, showDMMessages, isReady]);
 
   // Блокировка скролла во время показа скелетона
   useEffect(() => {
@@ -1059,7 +1123,7 @@ function DirectMessages({
                         <div className="dm-welcome-skeleton-button" />
                       </div>
                     </div>
-                  ) : showDMMessages ? (
+                  ) : (
                     <>
                       <div className="dm-welcome-avatar">
                         {autoSelectUser.user?.avatar ? (
@@ -1104,7 +1168,7 @@ function DirectMessages({
                         )}
                       </div>
                     </>
-                  ) : null}
+                  )}
                 </div>
 
               {/* Скелетон сообщений */}
@@ -1161,6 +1225,7 @@ function DirectMessages({
                         BACKEND_URL={BACKEND_URL}
                         messagesContainerRef={messagesContainerRef}
                         scrollToBottom={scrollToBottom}
+                        onImageClick={openLightbox}
                       />
                     )}
                     <div ref={messagesEndRef} className="scroll-anchor" />
@@ -1345,7 +1410,7 @@ function DirectMessages({
                         <div className="dm-welcome-skeleton-button" />
                       </div>
                     </div>
-                  ) : showDMMessages ? (
+                  ) : (
                     <>
                       <div className="dm-welcome-avatar">
                         {selectedDM.user.avatar ? (
@@ -1390,7 +1455,7 @@ function DirectMessages({
                         )}
                       </div>
                     </>
-                  ) : null}
+                  )}
                 </div>
 
                 {/* Скелетон сообщений */}
@@ -1447,6 +1512,7 @@ function DirectMessages({
                         BACKEND_URL={BACKEND_URL}
                         messagesContainerRef={messagesContainerRef}
                         scrollToBottom={scrollToBottom}
+                        onImageClick={openLightbox}
                       />
                     )}
                     <div ref={messagesEndRef} className="scroll-anchor" />
@@ -1619,6 +1685,15 @@ function DirectMessages({
           </div>
         </div>,
         document.body
+      )}
+
+      {/* Лайтбокс изображений */}
+      {isLightboxOpen && (
+        <ImageLightbox
+          images={lightboxImages}
+          initialIndex={lightboxInitialIndex}
+          onClose={closeLightbox}
+        />
       )}
     </div>
   );

@@ -34,7 +34,8 @@ const MessagesList = ({
   canEditMessage,
   canDeleteMessage,
   messagesContainerRef,
-  scrollToBottom
+  scrollToBottom,
+  onImageClick
 }) => {
   // Группировка сообщений
   const groupedMessages = React.useMemo(
@@ -85,6 +86,7 @@ const MessagesList = ({
             canDeleteMessage={canDeleteMessage}
             messagesContainerRef={messagesContainerRef}
             scrollToBottom={scrollToBottom}
+            onImageClick={onImageClick}
           />
         );
       })}

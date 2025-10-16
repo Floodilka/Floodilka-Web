@@ -43,7 +43,8 @@ const Message = ({
   canEditMessage,
   canDeleteMessage,
   messagesContainerRef,
-  scrollToBottom
+  scrollToBottom,
+  onImageClick
 }) => {
   const isOwn = message.username === username;
   const isMentioned = isUserMentioned(message, username);
@@ -201,27 +202,18 @@ const Message = ({
             )}
 
             {message.attachments && message.attachments.length > 0 && (
-              <div className="message-attachments">
+              <div className={`message-attachments count-${message.attachments.length}`}>
                 {message.attachments.map((attachment, index) => (
                   <div key={index} className="message-attachment">
                     {attachment.mimetype.startsWith('image/') ? (
                       <AttachmentImage
                         src={`${BACKEND_URL}${attachment.path}`}
                         alt={attachment.originalName}
-                        naturalWidth={attachment.width}
-                        naturalHeight={attachment.height}
-                        containerRef={messagesContainerRef}
-                        onKeepBottom={scrollToBottom}
-                        variant="chat"
-                        maxSize={350}
-                        onClick={() => window.open(`${BACKEND_URL}${attachment.path}`, '_blank')}
-                        onError={(e) => {
-                          console.error('Ошибка загрузки изображения:', e.target.src);
-                          e.target.style.display = 'none';
-                        }}
-                        onLoad={() => {
-                          console.log('Изображение загружено:', `${BACKEND_URL}${attachment.path}`);
-                        }}
+                        width={attachment.width}
+                        height={attachment.height}
+                        onImageClick={onImageClick}
+                        message={message}
+                        attachmentIndex={index}
                       />
                     ) : (
                       <div className="message-attachment-file">

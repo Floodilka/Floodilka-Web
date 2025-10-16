@@ -23,7 +23,8 @@ const MessagesList = ({
   onReplyNavigation,
   BACKEND_URL,
   messagesContainerRef,
-  scrollToBottom
+  scrollToBottom,
+  onImageClick
 }) => {
   return (
     <>
@@ -55,6 +56,7 @@ const MessagesList = ({
             BACKEND_URL={BACKEND_URL}
             messagesContainerRef={messagesContainerRef}
             scrollToBottom={scrollToBottom}
+            onImageClick={onImageClick}
           />
         );
       })}

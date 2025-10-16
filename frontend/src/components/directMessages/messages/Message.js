@@ -33,7 +33,8 @@ const Message = ({
   canDelete,
   BACKEND_URL,
   messagesContainerRef,
-  scrollToBottom
+  scrollToBottom,
+  onImageClick
 }) => {
   const handleEditKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -148,26 +149,27 @@ const Message = ({
             )}
 
             {message.attachments && message.attachments.length > 0 && (
-              <div className="message-attachments">
+              <div className={`message-attachments count-${message.attachments.length}`}>
                 {message.attachments.map((attachment, index) => (
-                  <AttachmentImage
-                    key={index}
-                    src={`${BACKEND_URL}${attachment.path}`}
-                    alt={attachment.originalName}
-                    naturalWidth={attachment.width}
-                    naturalHeight={attachment.height}
-                    containerRef={messagesContainerRef}
-                    onKeepBottom={scrollToBottom}
-                    className="message-attachment-image"
-                    onClick={() => window.open(`${BACKEND_URL}${attachment.path}`, '_blank')}
-                    onError={(e) => {
-                      console.error('Ошибка загрузки изображения:', e.target.src);
-                      e.target.style.display = 'none';
-                    }}
-                    onLoad={() => {
-                      console.log('Изображение загружено:', `${BACKEND_URL}${attachment.path}`);
-                    }}
-                  />
+                  <div key={index} className="message-attachment">
+                    {attachment.mimetype.startsWith('image/') ? (
+                      <AttachmentImage
+                        src={`${BACKEND_URL}${attachment.path}`}
+                        alt={attachment.originalName}
+                        width={attachment.width}
+                        height={attachment.height}
+                        onImageClick={onImageClick}
+                        message={message}
+                        attachmentIndex={index}
+                      />
+                    ) : (
+                      <div className="message-attachment-file">
+                        <span className="attachment-icon">📎</span>
+                        <span className="attachment-name">{attachment.originalName}</span>
+                        <span className="attachment-size">{(attachment.size / 1024 / 1024).toFixed(2)} MB</span>
+                      </div>
+                    )}
+                  </div>
                 ))}
               </div>
             )}

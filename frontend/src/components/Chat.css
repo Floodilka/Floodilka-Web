@@ -166,6 +166,14 @@
 }
 
 .message-attachment-image {
+  display: block;
+  width: 100%;
+  height: auto;                 /* высота идёт от ширины */
+  max-height: calc(100vh - 160px); /* не обязателен, но удобно для ультра-высоких */
+  aspect-ratio: var(--ar, 4 / 3);  /* РЕЗЕРВ места теперь у <img>, не у контейнера */
+  object-fit: contain;             /* картинка всегда целиком видна, без обрезки */
+  border-radius: 8px;
+  cursor: pointer;
   opacity: 0;
   transition: opacity 0.12s ease-out;
 }
@@ -312,6 +320,12 @@
 
 .message:hover {
   background-color: #32353b;
+}
+
+/* Убираем hover эффект для контейнеров изображений */
+.message:hover .message-attachment-image-wrapper,
+.message:hover .message-attachment {
+  background-color: transparent !important;
 }
 
 .message-highlighted {
@@ -570,15 +584,23 @@
 .message-attachment {
   display: flex;
   flex-direction: column;
+  background: transparent;
 }
 
 /* Контейнер для изображения с shimmer эффектом */
 .message-attachment-image-wrapper {
-  border-radius: 8px;
   position: relative;
+  width: 100%;
+  aspect-ratio: var(--ar, 4 / 3); /* запасной вариант */
+  min-height: 140px;              /* только для неизвестных размеров */
+  border-radius: 8px;
   overflow: hidden;
   cursor: pointer;
-  background: var(--bg-2, #1d1f23);
+  background: transparent;
+}
+
+.message-attachment-image-wrapper[data-loaded="true"] {
+  min-height: 0; /* не нужен, если знаем размеры */
 }
 
 /* Эффект shimmer во время загрузки */
@@ -627,9 +649,7 @@
   display: block;
 }
 
-.message-attachment-image-wrapper:hover {
-  opacity: 0.9;
-}
+/* Убираем hover эффект для чистого вида */
 
 .message-attachment-file {
   display: flex;
@@ -1698,4 +1718,286 @@
 
 .message-mentioned:hover {
   background: rgba(250, 168, 26, 0.12) !important;
+}
+
+/* --- Attachments: раскладка и карточки а-ля Discord --- */
+
+/* Грид: от 1 до N изображений, адаптивно */
+.message-attachments {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 8px;
+}
+
+/* Если добавишь класс count-N на контейнер, можно точнее рулить колонками */
+.message-attachments.count-1 { grid-template-columns: 1fr; }
+.message-attachments.count-2,
+.message-attachments.count-3 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.message-attachments.count-4,
+.message-attachments.count-5,
+.message-attachments.count-6 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+/* Карточка изображения */
+.message-attachment-image-wrapper {
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  overflow: hidden;
+  position: relative;
+  cursor: zoom-in;
+}
+
+/* Миниатюры: cover (чтобы не было «полей») */
+.message-attachments:not(.count-1) .message-attachment-image {
+  aspect-ratio: 4/3;          /* аккуратная миниатюра */
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Одиночное изображение: большой блок с ограничением высоты */
+.message-attachments.count-1 .message-attachment-image-wrapper {
+  max-width: min(560px, 90%);
+  max-height: 512px;
+}
+.message-attachments.count-1 .message-attachment-image {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+
+/* Чуть аккуратнее уплотняем сгруппированные сообщения */
+.message.message-grouped {
+  padding-left: 16px; /* Уменьшаем отступ, так как уже есть spacer */
+}
+
+/* Lightbox для зума изображений */
+.image-lightbox::backdrop {
+  background: rgba(0,0,0,.82);
+  backdrop-filter: blur(4px);
+}
+
+.image-lightbox {
+  border: none;
+  padding: 0;
+  background: transparent;
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  cursor: zoom-out;
+}
+
+.image-lightbox-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  cursor: zoom-out;
+}
+
+.image-lightbox img {
+  max-width: min(80vw, 1200px);
+  max-height: min(80vh, 800px);
+  width: auto;
+  height: auto;
+  display: block;
+  border-radius: 12px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  transition: transform 0.2s ease-out;
+  will-change: transform;
+  cursor: zoom-out;
+  user-select: none;
+  -webkit-user-drag: none;
+  object-fit: contain;
+}
+
+.image-lightbox img.zoomed {
+  cursor: grab;
+}
+
+.image-lightbox img.zoomed:active {
+  cursor: grabbing;
+}
+
+/* Навигационные кнопки */
+.image-lightbox-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(0, 0, 0, 0.6);
+  border: none;
+  color: white;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  z-index: 10;
+  opacity: 0;
+}
+
+.image-lightbox:hover .image-lightbox-nav {
+  opacity: 1;
+}
+
+.image-lightbox-nav:hover {
+  background: rgba(0, 0, 0, 0.8);
+  transform: translateY(-50%) scale(1.1);
+}
+
+.image-lightbox-nav:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.image-lightbox-nav:disabled:hover {
+  transform: translateY(-50%);
+  background: rgba(0, 0, 0, 0.6);
+}
+
+.image-lightbox-nav.prev {
+  left: 24px;
+}
+
+.image-lightbox-nav.next {
+  right: 24px;
+}
+
+/* Кнопка закрытия */
+.image-lightbox-close {
+  position: absolute;
+  top: 24px;
+  right: 24px;
+  background: rgba(0, 0, 0, 0.6);
+  border: none;
+  color: white;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  z-index: 10;
+  font-size: 20px;
+  line-height: 1;
+}
+
+.image-lightbox-close:hover {
+  background: rgba(0, 0, 0, 0.8);
+  transform: scale(1.1);
+}
+
+/* Счетчик изображений */
+.image-lightbox-counter {
+  position: absolute;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.6);
+  color: white;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 500;
+  z-index: 10;
+}
+
+/* Индикатор загрузки */
+.image-lightbox-loading {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: white;
+  font-size: 16px;
+  z-index: 5;
+}
+
+/* Поддержка prefers-reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+  .image-lightbox img {
+    transition: none;
+  }
+
+  .image-lightbox-nav {
+    transition: none;
+  }
+
+  .image-lightbox-close {
+    transition: none;
+  }
+}
+
+/* Анимация появления */
+.image-lightbox[open] {
+  animation: lightboxFadeIn 0.2s ease-out;
+}
+
+@keyframes lightboxFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.image-lightbox img {
+  animation: lightboxScaleIn 0.2s ease-out;
+}
+
+@keyframes lightboxScaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Адаптивные размеры для разных экранов */
+@media (max-width: 768px) {
+  .image-lightbox img {
+    max-width: min(90vw, 600px);
+    max-height: min(85vh, 600px);
+  }
+}
+
+@media (max-width: 480px) {
+  .image-lightbox img {
+    max-width: min(95vw, 400px);
+    max-height: min(80vh, 400px);
+  }
+}
+
+/* Для очень больших экранов */
+@media (min-width: 1920px) {
+  .image-lightbox img {
+    max-width: min(70vw, 1400px);
+    max-height: min(70vh, 900px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .image-lightbox[open] {
+    animation: none;
+  }
+
+  .image-lightbox img {
+    animation: none;
+  }
 }
