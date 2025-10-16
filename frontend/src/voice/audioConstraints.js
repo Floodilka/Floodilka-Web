@@ -20,6 +20,17 @@ const ADVANCED_CHROME_PARAMS = {
   googAudioMirroring: false,
 };
 
+// Параметры для Safari/WebKit
+const WEBKIT_PARAMS = {
+  echoCancellation: true,
+  noiseSuppression: true,
+  autoGainControl: true,
+  // Safari не поддерживает advanced параметры
+};
+
+// Определяем браузер
+const isWebKit = /WebKit/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent);
+
 const tieredConstraintBuilders = [
   (settings) => ({
     audio: {
@@ -27,11 +38,15 @@ const tieredConstraintBuilders = [
       echoCancellation: settings?.echoCancellation ?? true,
       noiseSuppression: settings?.noiseSuppression ?? true,
       autoGainControl: settings?.autoGainControl ?? true,
-      advanced: [
-        {
-          ...ADVANCED_CHROME_PARAMS,
-        },
-      ],
+      // Используем разные параметры для Chrome и Safari
+      ...(isWebKit ? WEBKIT_PARAMS : {}),
+      ...(isWebKit ? {} : {
+        advanced: [
+          {
+            ...ADVANCED_CHROME_PARAMS,
+          },
+        ],
+      }),
       deviceId:
         settings?.selectedMicrophone && settings.selectedMicrophone !== 'default'
           ? { exact: settings.selectedMicrophone }
@@ -91,6 +106,12 @@ export function buildTrackConstraints(settings = {}) {
 
   if (settings?.selectedMicrophone && settings.selectedMicrophone !== 'default') {
     base.deviceId = settings.selectedMicrophone;
+  }
+
+  // Для Safari добавляем дополнительные параметры
+  if (isWebKit) {
+    base.sampleRate = 48000;
+    base.channelCount = 1;
   }
 
   return base;

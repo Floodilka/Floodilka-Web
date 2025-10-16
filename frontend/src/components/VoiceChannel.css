@@ -161,3 +161,81 @@
   color: #b9bbbe;
   font-size: 15px;
 }
+
+/* Индикатор качества соединения */
+.voice-quality-indicator {
+  position: fixed;
+  top: 20px;
+  left: 20px;
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(10px);
+  border: 1px solid #3c3f44;
+  border-radius: 8px;
+  padding: 8px 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  z-index: 1000;
+  font-size: 14px;
+  color: #f2f3f5;
+  max-width: 300px;
+}
+
+.quality-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.5; }
+  100% { opacity: 1; }
+}
+
+.quality-text {
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.quality-recommendations {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: rgba(0, 0, 0, 0.9);
+  border: 1px solid #3c3f44;
+  border-radius: 6px;
+  margin-top: 4px;
+  padding: 8px;
+  display: none;
+  z-index: 1001;
+}
+
+.voice-quality-indicator:hover .quality-recommendations {
+  display: block;
+}
+
+.quality-recommendation {
+  padding: 4px 0;
+  font-size: 12px;
+  border-bottom: 1px solid #3c3f44;
+}
+
+.quality-recommendation:last-child {
+  border-bottom: none;
+}
+
+.quality-recommendation.high {
+  color: #ff6b6b;
+}
+
+.quality-recommendation.medium {
+  color: #ffa726;
+}
+
+.quality-recommendation.low {
+  color: #66bb6a;
+}

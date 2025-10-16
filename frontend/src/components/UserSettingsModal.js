@@ -118,7 +118,9 @@ function UserSettingsModal({ user, onClose, onLogout, onAvatarUpdate }) {
       outputVolume: 100,  // Громкость входящего звука (динамиков) 0-200%
       micSensitivity: 0,  // Порог активации голоса (Voice Activation) 0-50
       voiceMode: 'vad',  // Режим активации: 'vad' (Voice Activation) или 'ptt' (Push-to-Talk)
-      pttKey: 'ControlLeft'  // Клавиша для PTT (по умолчанию Left Ctrl)
+      pttKey: 'ControlLeft',  // Клавиша для PTT (по умолчанию Left Ctrl)
+      audioBitrate: 64000,  // Битрейт для речи (64k оптимально)
+      audioProfile: 'speech'  // Профиль звука: 'speech' или 'music'
     };
   });
 
@@ -1496,6 +1498,7 @@ function UserSettingsModal({ user, onClose, onLogout, onAvatarUpdate }) {
                   </label>
                 </div>
               </div>
+
 
             </div>
             </>

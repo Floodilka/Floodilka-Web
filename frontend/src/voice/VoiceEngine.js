@@ -3,6 +3,9 @@ import { getUserMediaWithFallback, SPEECH_CONTENT_HINT } from './audioConstraint
 import { createProcessingGraph } from './audioProcessing';
 import { RemoteAudioPlayer, teardownAllRemoteAudio } from './remoteAudio';
 import { AudioLevelMonitor, makeReceiverSampler, makeSenderSampler } from './audioLevelMonitor';
+import { getProcessedMicStream, configureAudioEncoding, createOptimizedOffer } from './processedStream';
+import audioMixer from './audioMixer';
+import AudioQualityMonitor from './audioQualityMonitor';
 
 const DEFAULT_ICE_SERVERS = [
   { urls: 'stun:stun.l.google.com:19302' },
@@ -126,6 +129,7 @@ export class VoiceEngine {
     this.lastNetworkQuality = 'excellent';
     this.pttActive = false;
     this.backgroundKeepalive = null;
+    this.qualityMonitor = new AudioQualityMonitor();
 
     this.visibilityListener = this.handleVisibilityChange.bind(this);
     this.deviceChangeListener = this.handleDeviceChange.bind(this);
@@ -198,6 +202,14 @@ export class VoiceEngine {
     this.remotePlayers.clear();
     teardownAllRemoteAudio();
 
+    // Очищаем микшер
+    audioMixer.cleanup().catch(err => {
+      console.warn('Ошибка очистки микшера:', err);
+    });
+
+    // Очищаем мониторинг качества
+    this.qualityMonitor.destroy();
+
     if (this.localStream) {
       this.localStream.getTracks().forEach((track) => track.stop());
       this.localStream = null;
@@ -251,47 +263,65 @@ export class VoiceEngine {
   }
 
   async prepareLocalAudio() {
-    const { stream } = await getUserMediaWithFallback(this.settings);
-    if (this.destroyed) {
-      stream.getTracks().forEach((track) => track.stop());
-      return false;
-    }
+    try {
+      // Используем новый метод для получения обработанного потока
+      const { processed, track, proc } = await getProcessedMicStream(this.settings);
 
-    this.originalStream = stream;
-    const [audioTrack] = stream.getAudioTracks();
-    if (!audioTrack) {
-      throw new Error('Microphone capture did not provide an audio track');
-    }
-    audioTrack.contentHint = SPEECH_CONTENT_HINT;
-    audioTrack.enabled = this.settings.voiceMode === 'ptt' ? false : true;
-    audioTrack.addEventListener('ended', () => {
-      if (this.destroyed) return;
-      this.handleLocalTrackEnded();
-    });
-
-    this.processingGraph = await createProcessingGraph(stream, {
-      inputVolume: this.settings?.inputVolume ?? 100,
-      micSensitivity: this.settings?.micSensitivity ?? 1,
-    });
-    if (this.destroyed) {
-      stream.getTracks().forEach((track) => track.stop());
-      if (this.processingGraph?.teardown) {
-        this.processingGraph.teardown().catch(() => {});
+      if (this.destroyed) {
+        processed.getTracks().forEach((track) => track.stop());
+        if (proc) await proc.teardown();
+        return false;
       }
-      this.processingGraph = null;
-      this.originalStream = null;
-      this.localStream = null;
-      return false;
-    }
 
-    if (this.processingGraph?.stream) {
-      this.localStream = this.processingGraph.stream;
-    } else {
-      this.localStream = stream;
-    }
+      this.originalStream = processed;
+      this.processingGraph = proc;
+      this.localStream = processed;
 
-    this.startLocalMonitor();
-    return true;
+      // Настраиваем трек
+      if (track) {
+        track.enabled = this.settings.voiceMode === 'ptt' ? false : true;
+        track.addEventListener('ended', () => {
+          if (this.destroyed) return;
+          this.handleLocalTrackEnded();
+        });
+      }
+
+      this.startLocalMonitor();
+      console.log('✅ Локальный аудио-поток подготовлен с полной обработкой');
+      return true;
+    } catch (error) {
+      console.error('Ошибка подготовки локального аудио:', error);
+
+      // Fallback к старому методу
+      try {
+        const { stream } = await getUserMediaWithFallback(this.settings);
+        if (this.destroyed) {
+          stream.getTracks().forEach((track) => track.stop());
+          return false;
+        }
+
+        this.originalStream = stream;
+        this.localStream = stream;
+        this.processingGraph = null;
+
+        const [audioTrack] = stream.getAudioTracks();
+        if (audioTrack) {
+          audioTrack.contentHint = SPEECH_CONTENT_HINT;
+          audioTrack.enabled = this.settings.voiceMode === 'ptt' ? false : true;
+          audioTrack.addEventListener('ended', () => {
+            if (this.destroyed) return;
+            this.handleLocalTrackEnded();
+          });
+        }
+
+        this.startLocalMonitor();
+        console.warn('⚠️ Используется fallback без обработки звука');
+        return true;
+      } catch (fallbackError) {
+        console.error('Fallback также не удался:', fallbackError);
+        return false;
+      }
+    }
   }
 
   startLocalMonitor() {
@@ -487,6 +517,22 @@ export class VoiceEngine {
       this.createOffer(pc, remoteId);
     }
 
+    // Запускаем мониторинг качества для первого соединения
+    if (this.peerConnections.size === 1) {
+      this.qualityMonitor.startMonitoring(pc, { interval: 5000 });
+
+      // Настраиваем колбэки для мониторинга
+      this.qualityMonitor.onQualityChange((stats) => {
+        this.lastNetworkQuality = stats.quality;
+        this.callbacks.onNetworkQuality?.(stats.quality);
+      });
+
+      this.qualityMonitor.onRecommendation((recommendations) => {
+        console.warn('🔧 Рекомендации по качеству звука:', recommendations);
+        // Можно добавить уведомления пользователю
+      });
+    }
+
     return pc;
   }
 
@@ -558,18 +604,11 @@ export class VoiceEngine {
 
   configureSender(sender) {
     if (!sender) return;
-    const params = sender.getParameters();
-    if (!params.encodings) {
-      params.encodings = [{}];
-    }
-    params.encodings.forEach((encoding) => {
-      encoding.maxBitrate = this.resolveBitrate();
-      encoding.priority = 'high';
+
+    // Используем новый метод настройки кодирования
+    configureAudioEncoding(sender, this.settings).catch((err) => {
+      console.warn('Failed to configure audio encoding', err);
     });
-    params.degradationPreference = 'maintain-framerate';
-    sender
-      .setParameters(params)
-      .catch((err) => console.warn('Failed to apply sender parameters', err));
   }
 
   resolveBitrate() {
@@ -581,11 +620,8 @@ export class VoiceEngine {
 
   async createOffer(pc, remoteId) {
     try {
-      const offer = await pc.createOffer({
-        offerToReceiveAudio: true,
-        offerToReceiveVideo: false,
-        voiceActivityDetection: false,
-      });
+      // Используем оптимизированный offer с настройками Opus
+      const offer = await createOptimizedOffer(pc, this.settings);
       await pc.setLocalDescription(offer);
 
       this.socket.emit(SOCKET_EVENTS.VOICE_OFFER, {
@@ -598,21 +634,48 @@ export class VoiceEngine {
     }
   }
 
-  attachRemoteStream(remoteId, stream, receiver) {
-    const player = this.remotePlayers.get(remoteId);
-    if (player) {
-      player.setStream(stream);
-    } else {
-      const newPlayer = new RemoteAudioPlayer({
-        id: remoteId,
-        stream,
-        initialVolume: this.remoteOutputVolume ?? 1,
-        sinkId: this.settings?.selectedSpeaker,
+  async attachRemoteStream(remoteId, stream, receiver) {
+    try {
+      // Инициализируем микшер если нужно
+      await audioMixer.initialize();
+
+      // Подключаем поток к микшеру
+      const initialVolume = this.isDeafened ? 0 : (this.remoteOutputVolume ?? 1);
+      const mixerControl = await audioMixer.connectRemoteStream(remoteId, stream, initialVolume);
+
+      // Сохраняем управление микшером
+      this.remotePlayers.set(remoteId, {
+        setVolume: (volume) => mixerControl.setGain(volume),
+        setMuted: (muted) => mixerControl.setGain(muted ? 0 : initialVolume),
+        setSinkId: (sinkId) => {
+          // Для микшера sinkId не нужен, так как он использует AudioContext
+          console.log('SinkId change ignored in mixer mode');
+        },
+        destroy: () => {
+          mixerControl.disconnect();
+          this.remotePlayers.delete(remoteId);
+        }
       });
-      this.remotePlayers.set(remoteId, newPlayer);
-      // Если мы в deafen режиме, сразу отключаем звук для нового плеера
-      if (this.isDeafened) {
-        newPlayer.setMuted(true);
+
+      console.log(`✅ Удалённый поток ${remoteId} подключён к микшеру`);
+    } catch (error) {
+      console.error(`Ошибка подключения удалённого потока ${remoteId}:`, error);
+
+      // Fallback к старому методу
+      const player = this.remotePlayers.get(remoteId);
+      if (player) {
+        player.setStream(stream);
+      } else {
+        const newPlayer = new RemoteAudioPlayer({
+          id: remoteId,
+          stream,
+          initialVolume: this.remoteOutputVolume ?? 1,
+          sinkId: this.settings?.selectedSpeaker,
+        });
+        this.remotePlayers.set(remoteId, newPlayer);
+        if (this.isDeafened) {
+          newPlayer.setMuted(true);
+        }
       }
     }
 
@@ -746,6 +809,10 @@ export class VoiceEngine {
       merged.noiseSuppression !== prevSettings.noiseSuppression ||
       merged.autoGainControl !== prevSettings.autoGainControl;
 
+    const needsRenegotiation =
+      merged.audioProfile !== prevSettings.audioProfile ||
+      (merged.audioProfile === 'music' && merged.audioBitrate !== prevSettings.audioBitrate);
+
     this.settings = merged;
 
     if (needsDeviceSwitch) {
@@ -787,6 +854,55 @@ export class VoiceEngine {
     if (merged.outputVolume !== undefined && merged.outputVolume !== prevSettings.outputVolume) {
       this.remoteOutputVolume = this.normaliseOutputVolume(merged.outputVolume);
       this.remotePlayers.forEach((_, id) => this.reapplyVolume(id));
+    }
+
+    // Применяем constraints к живому треку
+    const track = this.localStream?.getAudioTracks()[0];
+    if (track && (needsDeviceSwitch || merged.echoCancellation !== prevSettings.echoCancellation ||
+        merged.noiseSuppression !== prevSettings.noiseSuppression ||
+        merged.autoGainControl !== prevSettings.autoGainControl)) {
+      try {
+        const { buildTrackConstraints } = await import('./audioConstraints');
+        await track.applyConstraints(buildTrackConstraints(merged));
+        console.log('✅ Constraints применены к живому треку');
+      } catch (error) {
+        console.warn('Ошибка применения constraints к треку:', error);
+      }
+    }
+
+    // Обновляем кодирование для всех отправителей
+    if (merged.audioBitrate !== prevSettings.audioBitrate) {
+      this.peerConnections.forEach((pc) => {
+        pc.getSenders()
+          .filter((sender) => sender.track?.kind === 'audio')
+          .forEach((sender) => {
+            configureAudioEncoding(sender, merged).catch(err => {
+              console.warn('Ошибка обновления кодирования:', err);
+            });
+          });
+      });
+    }
+
+    // Ренегоциация при смене профиля звука
+    if (needsRenegotiation) {
+      console.log('🔄 Смена профиля звука, запуск ренегоциации...');
+      try {
+        // Создаём новый offer с обновлёнными настройками
+        for (const [remoteId, pc] of this.peerConnections) {
+          if (pc.connectionState === 'connected' || pc.connectionState === 'connecting') {
+            const offer = await createOptimizedOffer(pc, merged);
+            await pc.setLocalDescription(offer);
+
+            this.socket.emit(SOCKET_EVENTS.VOICE_OFFER, {
+              offer: pc.localDescription,
+              to: remoteId,
+            });
+          }
+        }
+        console.log('✅ Ренегоциация завершена');
+      } catch (error) {
+        console.error('Ошибка ренегоциации:', error);
+      }
     }
   }
 
@@ -1040,5 +1156,32 @@ export class VoiceEngine {
       overridePercent !== undefined ? this.normaliseOutputVolume(overridePercent) : 1;
     const finalVolume = Math.min(2, (this.remoteOutputVolume || 1) * overrideMultiplier);
     player.setVolume(finalVolume);
+  }
+
+  /**
+   * Получает статистику качества звука
+   *
+   * @returns {Object} Статистика качества
+   */
+  getQualityStats() {
+    return this.qualityMonitor.getStats();
+  }
+
+  /**
+   * Получает описание качества соединения
+   *
+   * @returns {string} Описание качества
+   */
+  getQualityDescription() {
+    return this.qualityMonitor.getQualityDescription();
+  }
+
+  /**
+   * Получает цвет индикатора качества
+   *
+   * @returns {string} CSS цвет
+   */
+  getQualityColor() {
+    return this.qualityMonitor.getQualityColor();
   }
 }

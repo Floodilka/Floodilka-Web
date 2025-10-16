@@ -14,13 +14,14 @@ const DEFAULT_AUDIO_SETTINGS = {
   echoCancellation: true,
   autoGainControl: true,
   micSensitivity: 0,
-  audioBitrate: 192000,
+  audioBitrate: 64000, // Оптимальный битрейт для речи (вместо 192k)
   selectedMicrophone: 'default',
   selectedSpeaker: 'default',
   inputVolume: 100,
   outputVolume: 100,
   voiceMode: 'vad',
   pttKey: 'ControlLeft',
+  audioProfile: 'speech', // Новый профиль: 'speech' или 'music'
 };
 
 function VoiceChannel({
@@ -41,6 +42,7 @@ function VoiceChannel({
   const [userVolumes, setUserVolumes] = useState(loadUserVolumes);
   const [isPttActive, setIsPttActive] = useState(false);
   const [lastError, setLastError] = useState(null);
+  const [qualityStats, setQualityStats] = useState(null);
 
   const {
     screenShareRef: globalScreenShareRef,
@@ -65,6 +67,9 @@ function VoiceChannel({
     setPushToTalk,
     applyUserVolume,
     stop,
+    getQualityStats,
+    getQualityDescription,
+    getQualityColor,
   } = engine;
 
   const speakingSet = useMemo(() => {
@@ -274,17 +279,62 @@ function VoiceChannel({
     }
   }, [lastError]);
 
+  // Мониторинг качества соединения
+  useEffect(() => {
+    if (!ready) return;
+
+    const updateQualityStats = () => {
+      try {
+        const stats = getQualityStats();
+        setQualityStats(stats);
+      } catch (error) {
+        console.warn('Ошибка получения статистики качества:', error);
+      }
+    };
+
+    // Обновляем статистику каждые 5 секунд
+    const qualityInterval = setInterval(updateQualityStats, 5000);
+    updateQualityStats(); // Первоначальное обновление
+
+    return () => {
+      clearInterval(qualityInterval);
+    };
+  }, [ready, getQualityStats]);
+
   const isInVoice = ready;
 
   return (
-    <ScreenShare
-      ref={screenShareRef}
-      socket={socket}
-      channel={channel}
-      user={user}
-      isInVoice={isInVoice}
-      voiceUsers={participants}
-    />
+    <>
+      {/* Индикатор качества соединения */}
+      {isInVoice && qualityStats && (
+        <div className="voice-quality-indicator">
+          <div
+            className="quality-dot"
+            style={{ backgroundColor: getQualityColor() }}
+            title={getQualityDescription()}
+          />
+          <span className="quality-text">{getQualityDescription()}</span>
+          {qualityStats.recommendations.length > 0 && (
+            <div className="quality-recommendations">
+              {qualityStats.recommendations.map((rec, index) => (
+                <div key={index} className={`quality-recommendation ${rec.severity}`}>
+                  {rec.message}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      <ScreenShare
+        ref={screenShareRef}
+        socket={socket}
+        channel={channel}
+        user={user}
+        isInVoice={isInVoice}
+        voiceUsers={participants}
+      />
+    </>
   );
 }
 

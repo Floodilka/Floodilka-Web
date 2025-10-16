@@ -23,7 +23,8 @@ function getAudioContextClass() {
  */
 export async function createProcessingGraph(stream, {
   inputVolume = 100,
-  micSensitivity = 1
+  micSensitivity = 1,
+  audioProfile = 'speech' // 'speech' или 'music'
 } = {}) {
   const AudioContextClass = getAudioContextClass();
   if (!AudioContextClass) {
@@ -31,10 +32,18 @@ export async function createProcessingGraph(stream, {
   }
 
   // Создаем контекст с оптимальными настройками для голоса
-  const context = new AudioContextClass({
+  const contextOptions = {
     sampleRate: 48000, // Стандарт для качественного аудио
     latencyHint: 'interactive', // Минимальная задержка
-  });
+  };
+
+  // Для Safari добавляем дополнительные параметры
+  if (/WebKit/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent)) {
+    // Safari может не поддерживать latencyHint
+    delete contextOptions.latencyHint;
+  }
+
+  const context = new AudioContextClass(contextOptions);
 
   const source = context.createMediaStreamSource(stream);
   const destination = context.createMediaStreamDestination();
@@ -77,13 +86,22 @@ export async function createProcessingGraph(stream, {
   const GATE_HYSTERESIS = 0.7; // Гистерезис для предотвращения дребезга
   const GATE_UPDATE_INTERVAL = 20; // 20ms - обновление Noise Gate (50 раз в секунду)
 
+  // Для музыки отключаем Noise Gate
+  const useNoiseGate = audioProfile !== 'music';
+
   // ========== 4. DE-ESSER ==========
   // Убирает шипение на высоких частотах (s, sh, ch звуки)
   const deEsser = context.createBiquadFilter();
   deEsser.type = 'peaking';
   deEsser.frequency.value = 7000; // Частота шипения
   deEsser.Q.value = 1.5; // Ширина среза
-  deEsser.gain.value = -3; // Ослабление на 3 дБ
+
+  // Для музыки отключаем De-Esser
+  if (audioProfile === 'music') {
+    deEsser.gain.value = 0; // Без ослабления
+  } else {
+    deEsser.gain.value = -3; // Ослабление на 3 дБ для речи
+  }
 
   // ========== 5. COMPRESSOR ==========
   // Выравнивает динамический диапазон (тихое становится громче, громкое - тише)
@@ -98,7 +116,13 @@ export async function createProcessingGraph(stream, {
   // Убирает сверхвысокие частоты (шипение, шум)
   const lowPass = context.createBiquadFilter();
   lowPass.type = 'lowpass';
-  lowPass.frequency.value = 10000; // Человеческий голос до 8-10 kHz
+
+  // Настраиваем частоту среза в зависимости от профиля
+  if (audioProfile === 'music') {
+    lowPass.frequency.value = 18000; // Для музыки оставляем больше высоких частот
+  } else {
+    lowPass.frequency.value = 10000; // Человеческий голос до 8-10 kHz
+  }
   lowPass.Q.value = 0.7; // Плавный срез
 
   // ========== 7. INPUT GAIN ==========
@@ -187,8 +211,13 @@ export async function createProcessingGraph(stream, {
 
   // Вычисляем порог из micSensitivity и запускаем Noise Gate с помощью setInterval
   // setInterval работает надежнее на фоновых вкладках чем requestAnimationFrame
-  currentGateThreshold = computeGateThreshold(micSensitivity);
-  noiseGateTimer = setInterval(updateNoiseGate, GATE_UPDATE_INTERVAL);
+  if (useNoiseGate) {
+    currentGateThreshold = computeGateThreshold(micSensitivity);
+    noiseGateTimer = setInterval(updateNoiseGate, GATE_UPDATE_INTERVAL);
+  } else {
+    // Для музыки всегда открываем ворота
+    noiseGateGain.gain.value = 1.0;
+  }
 
   // ========== API ФУНКЦИИ ==========
 
