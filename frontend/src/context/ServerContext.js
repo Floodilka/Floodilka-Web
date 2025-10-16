@@ -16,9 +16,9 @@ export const useServer = () => {
 };
 
 export const ServerProvider = ({ children }) => {
-  const { user, showAuthModal } = useAuth();
+  const { user } = useAuth();
   const { tryRestoreVoiceConnection, finishVoiceReconnect, pendingReconnect } = useVoice();
-  const { preloadChannelMessages, currentTextChannel } = useChat();
+  const { preloadChannelMessages, currentTextChannel, messages } = useChat();
   const [servers, setServers] = useState([]);
   const [currentServer, setCurrentServer] = useState(null);
   const [channels, setChannels] = useState([]);
@@ -76,12 +76,9 @@ export const ServerProvider = ({ children }) => {
               }
             }
 
-            // Предзагружаем сообщения ТОЛЬКО если канал еще не выбран
-            if (targetChannel && !currentTextChannel) {
-              console.log('[ServerContext] Предзагружаем сообщения для канала:', targetChannel.id);
+            // Предзагружаем сообщения ТОЛЬКО если канал еще не выбран И нет сообщений
+            if (targetChannel && !currentTextChannel && messages.length === 0) {
               await preloadChannelMessages(targetChannel.id, targetServer._id);
-            } else {
-              console.log('[ServerContext] Пропускаем предзагрузку - канал уже выбран:', currentTextChannel?.id);
             }
           } catch (err) {
             console.error('Ошибка предзагрузки данных сервера:', err);

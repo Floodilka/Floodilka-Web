@@ -13,7 +13,8 @@ import MentionAutocomplete from './MentionAutocomplete';
 import ChannelAutocomplete from './ChannelAutocomplete';
 
 // Хуки
-import { useScroll } from '../hooks/useScroll';
+import { useChatLoading } from '../hooks/useChatLoading';
+import { useSimpleScroll } from '../hooks/useSimpleScroll';
 import { useMentions } from '../hooks/useMentions';
 import { useReactions } from '../hooks/useReactions';
 
@@ -25,7 +26,6 @@ import {
 } from '../utils/messageUtils';
 
 // Контексты и сервисы
-import { useChat } from '../context/ChatContext';
 import { useGlobalUsers } from '../context/GlobalUsersContext';
 import { mergeMessagesWithLiveUsers } from '../utils/userDataMerger';
 import api from '../services/api';
@@ -53,7 +53,6 @@ function Chat({
   preloadedMessages,
   isLoadingMessages
 }) {
-  const { setIsLoadingMessages } = useChat();
   const { globalOnlineUsers } = useGlobalUsers();
   const navigate = useNavigate();
 
@@ -94,12 +93,55 @@ function Chat({
 
   // Использование кастомных хуков
   const {
+    loadingState,
+    showSkeleton,
+    showMessages,
+    isReady
+  } = useChatLoading(channel, messages, isLoadingMessages, preloadedMessages);
+
+  const {
     messagesContainerRef,
-    bootstrapping,
+    messagesEndRef,
     newMessageIds,
     scrollToBottom,
     scrollToMessage
-  } = useScroll(messages, channel, isLoadingMessages, prefersReducedMotion);
+  } = useSimpleScroll(messages, channel, isReady, prefersReducedMotion);
+
+  // Блокировка скролла во время показа скелетона
+  useEffect(() => {
+    if (!messagesContainerRef.current) return;
+
+    const container = messagesContainerRef.current;
+
+    if (showSkeleton) {
+      // Блокируем скролл
+      container.style.overflow = 'hidden';
+      container.style.pointerEvents = 'none';
+      container.style.userSelect = 'none';
+
+      // Предотвращаем скролл через wheel и touch события
+      const preventScroll = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        return false;
+      };
+
+      container.addEventListener('wheel', preventScroll, { passive: false });
+      container.addEventListener('touchmove', preventScroll, { passive: false });
+      container.addEventListener('scroll', preventScroll, { passive: false });
+
+      return () => {
+        container.removeEventListener('wheel', preventScroll);
+        container.removeEventListener('touchmove', preventScroll);
+        container.removeEventListener('scroll', preventScroll);
+      };
+    } else {
+      // Восстанавливаем скролл
+      container.style.overflow = 'auto';
+      container.style.pointerEvents = 'auto';
+      container.style.userSelect = 'auto';
+    }
+  }, [showSkeleton]);
 
   const {
     showMentionAutocomplete,
@@ -742,28 +784,6 @@ function Chat({
     }
   };
 
-  // Автоматическое скрытие скелетона
-  useEffect(() => {
-    if (!isLoadingMessages || !channel) return;
-
-    if (preloadedMessages && messages.length > 0) {
-      setIsLoadingMessages(false);
-      return;
-    }
-
-    if (messages.length === 0) {
-      const timer = setTimeout(() => {
-        setIsLoadingMessages(false);
-      }, 50);
-      return () => clearTimeout(timer);
-    }
-
-    const maxTimer = setTimeout(() => {
-      setIsLoadingMessages(false);
-    }, 500);
-
-    return () => clearTimeout(maxTimer);
-  }, [isLoadingMessages, channel, messages.length, preloadedMessages, setIsLoadingMessages]);
 
   // Очистка состояний при смене канала
   useEffect(() => {
@@ -828,12 +848,16 @@ function Chat({
       </div>
 
       <div
-        className="messages-container"
+        className={`messages-container ${showSkeleton ? 'skeleton-loading' : ''}`}
         ref={messagesContainerRef}
-        style={{ visibility: isLoadingMessages ? 'visible' : (bootstrapping ? 'hidden' : 'visible') }}
-        aria-busy={isLoadingMessages}
+        style={{
+          visibility: showSkeleton ? 'visible' : (showMessages ? 'visible' : 'hidden'),
+          overflow: showSkeleton ? 'hidden' : 'auto',
+          pointerEvents: showSkeleton ? 'none' : 'auto'
+        }}
+        aria-busy={loadingState === 'loading'}
       >
-        {isLoadingMessages ? (
+        {showSkeleton ? (
           <div className="chat-skeleton">
             <div className="skeleton-welcome">
               <div className="skeleton-icon"></div>
@@ -851,7 +875,7 @@ function Chat({
               </div>
             ))}
           </div>
-        ) : (
+        ) : showMessages ? (
           <>
             {messages.length === 0 && (
               <div className="messages-welcome">
@@ -890,10 +914,13 @@ function Chat({
                 onAddReaction={handleAddReaction}
                 canEditMessage={(message) => canEditMessage(message, username)}
                 canDeleteMessage={(message) => canDeleteMessage(message, username, userPermissions)}
+                messagesContainerRef={messagesContainerRef}
+                scrollToBottom={scrollToBottom}
               />
             )}
+            <div ref={messagesEndRef} className="scroll-anchor" />
           </>
-        )}
+        ) : null}
       </div>
 
       <MessageInput
@@ -1020,6 +1047,7 @@ function Chat({
           selectedIndex={channelSelectedIndex}
         />
       )}
+
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useLayoutEffect, useRef, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import './DirectMessages.css';
@@ -16,15 +16,17 @@ import api from '../services/api';
 // Компоненты
 import MessagesList from './directMessages/messages/MessagesList';
 import MessageInput from './directMessages/input/MessageInput';
+import DMMessageSkeleton from './directMessages/skeleton/DMMessageSkeleton';
 
 // Хуки
-import { useScroll } from './directMessages/hooks/useScroll';
+import { useDMLoading } from '../hooks/useDMLoading';
+import { useSimpleDMScroll } from '../hooks/useSimpleDMScroll';
 import { useBlockStatus } from './directMessages/hooks/useBlockStatus';
 import { useReactions } from './directMessages/hooks/useReactions';
 
 // Утилиты
-import { groupMessages, canEditMessage, canDeleteMessage, buildReplySnapshot, getReplySnippetFromMessage, getReplySnippetFromMeta } from './directMessages/utils/messageUtils';
-import { isUserBlocked, getTargetUserId } from './directMessages/utils/blockUtils';
+import { groupMessages, canDeleteMessage, buildReplySnapshot } from './directMessages/utils/messageUtils';
+import { getTargetUserId } from './directMessages/utils/blockUtils';
 
 const BACKEND_URL = window.location.hostname === 'localhost'
   ? 'http://localhost:3001'
@@ -76,7 +78,6 @@ function DirectMessages({
   const [selectedMessages, setSelectedMessages] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(false);
-  const [showMessages, setShowMessages] = useState(true);
   const [showFriendsPanel, setShowFriendsPanel] = useState(true);
   const [messagesLoading, setMessagesLoading] = useState(false);
   const [error, setError] = useState('');
@@ -92,9 +93,6 @@ function DirectMessages({
   const [addingFriend, setAddingFriend] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   const [profilePosition, setProfilePosition] = useState({ top: 0, left: 0 });
-  const [messageText, setMessageText] = useState('');
-  const [sendingDirectMessage, setSendingDirectMessage] = useState(false);
-  const [mentionTooltip, setMentionTooltip] = useState(null);
   const [errorModal, setErrorModal] = useState(null);
 
   // Рефы
@@ -106,17 +104,59 @@ function DirectMessages({
     return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   }, []);
 
-  // Хуки
+  // Хуки для управления загрузкой
+  const {
+    showSkeleton,
+    showMessages: showDMMessages,
+    skeletonMessages,
+    isReady
+  } = useDMLoading(selectedDM, selectedMessages, messagesLoading, false);
+
+  // Блокировка скролла во время показа скелетона
+  useEffect(() => {
+    if (!messagesContainerRef.current) return;
+
+    const container = messagesContainerRef.current;
+
+    if (showSkeleton) {
+      // Блокируем скролл
+      container.style.overflow = 'hidden';
+      container.style.pointerEvents = 'none';
+      container.style.userSelect = 'none';
+
+      // Предотвращаем скролл через wheel и touch события
+      const preventScroll = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        return false;
+      };
+
+      container.addEventListener('wheel', preventScroll, { passive: false });
+      container.addEventListener('touchmove', preventScroll, { passive: false });
+      container.addEventListener('scroll', preventScroll, { passive: false });
+
+      return () => {
+        container.removeEventListener('wheel', preventScroll);
+        container.removeEventListener('touchmove', preventScroll);
+        container.removeEventListener('scroll', preventScroll);
+      };
+    } else {
+      // Восстанавливаем скролл
+      container.style.overflow = 'auto';
+      container.style.pointerEvents = 'auto';
+      container.style.userSelect = 'auto';
+    }
+  }, [showSkeleton]);
+
   const {
     messagesContainerRef,
     messagesEndRef,
     dmWelcomeRef,
-    bootstrapping,
-        dmWelcomeH,
+    dmWelcomeH,
     newDmMessageIds,
     scrollToBottom,
     scrollToMessageById
-  } = useScroll(selectedMessages, selectedDM, messagesLoading, prefersReducedMotion);
+  } = useSimpleDMScroll(selectedMessages, selectedDM, isReady, prefersReducedMotion);
 
   const {
     blockStatus,
@@ -126,20 +166,14 @@ function DirectMessages({
     setShowBlockDialog,
     blockReason,
     setBlockReason,
-    blockActionError,
-    setBlockActionError,
-    updateConversationBlockStatus,
     refreshBlockStatus,
     handleOpenBlockDialog,
-    handleCloseBlockDialog,
-    handleBlockConfirm,
     handleUnblock
   } = useBlockStatus();
 
   const {
     showEmojiPicker,
     emojiPickerPosition,
-    selectedMessageForReaction,
     handleAddReaction,
     handleEmojiSelect,
     handleReactionClick,
@@ -213,7 +247,6 @@ function DirectMessages({
 
   const handleCloseProfile = () => {
     setSelectedUser(null);
-    setMessageText('');
   };
 
   // Функции для работы с файлами
@@ -435,11 +468,6 @@ function DirectMessages({
     scrollToMessageById(messageId);
   };
 
-  const handleEditMessage = (message) => {
-    setEditingMessage(message);
-    setEditValue(message.content || '');
-    setContextMenu(null);
-  };
 
   const handleSaveEdit = () => {
     if (!editingMessage || !editValue.trim()) return;
@@ -662,7 +690,6 @@ function DirectMessages({
     : targetUserDisplayName
       ? `Написать @${targetUserDisplayName}`
       : 'Написать сообщение';
-  const isSendDisabled = (!inputValue.trim() && selectedFiles.length === 0) || sendingMessage || isConversationBlocked;
 
   // Обработка кликов вне контекстного меню
   useEffect(() => {
@@ -1005,11 +1032,14 @@ function DirectMessages({
 
               {/* Область сообщений */}
               <div
-                className="dm-messages"
+                className={`dm-messages ${showSkeleton ? 'skeleton-loading' : ''}`}
                 ref={messagesContainerRef}
                 style={{
                   position: 'relative',
                   paddingTop: dmWelcomeH ? `${dmWelcomeH}px` : undefined,
+                  visibility: showSkeleton ? 'visible' : (showDMMessages ? 'visible' : 'hidden'),
+                  overflow: showSkeleton ? 'hidden' : 'auto',
+                  pointerEvents: showSkeleton ? 'none' : 'auto'
                 }}
               >
                 {/* welcome фиксированный сверху */}
@@ -1018,7 +1048,7 @@ function DirectMessages({
                   ref={dmWelcomeRef}
                   style={{ position: 'absolute', top: 0, left: 0, right: 0, pointerEvents: 'none' }}
                 >
-                  {(messagesLoading || bootstrapping) ? (
+                  {showSkeleton ? (
                     <div className="dm-welcome-skeleton">
                       <div className="dm-welcome-skeleton-avatar" />
                       <div className="dm-welcome-skeleton-name" />
@@ -1029,7 +1059,7 @@ function DirectMessages({
                         <div className="dm-welcome-skeleton-button" />
                       </div>
                     </div>
-                  ) : (
+                  ) : showDMMessages ? (
                     <>
                       <div className="dm-welcome-avatar">
                         {autoSelectUser.user?.avatar ? (
@@ -1074,54 +1104,68 @@ function DirectMessages({
                         )}
                       </div>
                     </>
-                  )}
+                  ) : null}
                 </div>
 
-              {/* Скелетон */}
-                {(messagesLoading || bootstrapping) && (
+              {/* Скелетон сообщений */}
+                {showSkeleton && (
                   <div
                     className="dm-skeleton-overlay"
                     style={{ position: 'absolute', top: dmWelcomeH, left: 0, right: 0 }}
                   >
-                    <div className="dm-skel-row" />
-                    <div className="dm-skel-row" />
-                    <div className="dm-skel-row" />
+                    {skeletonMessages.length > 0 ? (
+                      skeletonMessages.map((messageData, index) => (
+                        <DMMessageSkeleton key={messageData.id || index} messageData={messageData} />
+                      ))
+                    ) : (
+                      <>
+                        <DMMessageSkeleton />
+                        <DMMessageSkeleton messageData={{ hasImages: true, imageCount: 2 }} />
+                        <DMMessageSkeleton />
+                        <DMMessageSkeleton messageData={{ hasImages: true, imageCount: 1 }} />
+                        <DMMessageSkeleton />
+                      </>
+                    )}
                   </div>
                 )}
 
               {/* Поток сообщений */}
-                <div
-                  className="dm-thread"
-                  style={{
-                    opacity: bootstrapping ? 0 : 1,
-                    pointerEvents: bootstrapping ? 'none' : 'auto',
-                  }}
-                >
-                  {selectedMessages.length > 0 && showMessages && (
-                  <MessagesList
-                    groupedMessages={groupedDMs}
-                    user={user}
-                    editingMessage={editingMessage}
-                    editValue={editValue}
-                    onEditChange={setEditValue}
-                    onEditSave={handleSaveEdit}
-                    onEditCancel={() => {
-                      setEditingMessage(null);
-                      setEditValue('');
+                {showDMMessages && (
+                  <div
+                    className="dm-thread"
+                    style={{
+                      opacity: 1,
+                      pointerEvents: 'auto',
                     }}
-                    highlightedMessageId={highlightedMessageId}
-                    newDmMessageIds={newDmMessageIds}
-                    onUserClick={handleUserClick}
-                    onReplySelect={handleReplySelect}
-                    onAddReaction={handleAddReaction}
-                    onReactionClick={handleReactionClick}
-                    onMoreActions={handleMoreActions}
-                    onReplyNavigation={handleReplyNavigation}
-                    BACKEND_URL={BACKEND_URL}
-                  />
+                  >
+                    {selectedMessages.length > 0 && (
+                      <MessagesList
+                        groupedMessages={groupedDMs}
+                        user={user}
+                        editingMessage={editingMessage}
+                        editValue={editValue}
+                        onEditChange={setEditValue}
+                        onEditSave={handleSaveEdit}
+                        onEditCancel={() => {
+                          setEditingMessage(null);
+                          setEditValue('');
+                        }}
+                        highlightedMessageId={highlightedMessageId}
+                        newDmMessageIds={newDmMessageIds}
+                        onUserClick={handleUserClick}
+                        onReplySelect={handleReplySelect}
+                        onAddReaction={handleAddReaction}
+                        onReactionClick={handleReactionClick}
+                        onMoreActions={handleMoreActions}
+                        onReplyNavigation={handleReplyNavigation}
+                        BACKEND_URL={BACKEND_URL}
+                        messagesContainerRef={messagesContainerRef}
+                        scrollToBottom={scrollToBottom}
+                      />
+                    )}
+                    <div ref={messagesEndRef} className="scroll-anchor" />
+                  </div>
                 )}
-                  <div ref={messagesEndRef} />
-                </div>
             </div>
 
             {/* Поле ввода */}
@@ -1274,11 +1318,14 @@ function DirectMessages({
 
               {/* Область сообщений */}
               <div
-                className="dm-messages"
+                className={`dm-messages ${showSkeleton ? 'skeleton-loading' : ''}`}
                 ref={messagesContainerRef}
                 style={{
                   position: 'relative',
                   paddingTop: dmWelcomeH ? `${dmWelcomeH}px` : undefined,
+                  visibility: showSkeleton ? 'visible' : (showDMMessages ? 'visible' : 'hidden'),
+                  overflow: showSkeleton ? 'hidden' : 'auto',
+                  pointerEvents: showSkeleton ? 'none' : 'auto'
                 }}
               >
                 {/* welcome фиксированный сверху */}
@@ -1287,7 +1334,7 @@ function DirectMessages({
                   ref={dmWelcomeRef}
                   style={{ position: 'absolute', top: 0, left: 0, right: 0, pointerEvents: 'none' }}
                 >
-                  {(messagesLoading || bootstrapping) ? (
+                  {showSkeleton ? (
                     <div className="dm-welcome-skeleton">
                       <div className="dm-welcome-skeleton-avatar" />
                       <div className="dm-welcome-skeleton-name" />
@@ -1298,7 +1345,7 @@ function DirectMessages({
                         <div className="dm-welcome-skeleton-button" />
                       </div>
                     </div>
-                  ) : (
+                  ) : showDMMessages ? (
                     <>
                       <div className="dm-welcome-avatar">
                         {selectedDM.user.avatar ? (
@@ -1343,54 +1390,68 @@ function DirectMessages({
                         )}
                       </div>
                     </>
-                  )}
+                  ) : null}
                 </div>
 
-                {/* Скелетон */}
-                {(messagesLoading || bootstrapping) && (
+                {/* Скелетон сообщений */}
+                {showSkeleton && (
                   <div
                     className="dm-skeleton-overlay"
                     style={{ position: 'absolute', top: dmWelcomeH, left: 0, right: 0 }}
                   >
-                    <div className="dm-skel-row" />
-                    <div className="dm-skel-row" />
-                    <div className="dm-skel-row" />
+                    {skeletonMessages.length > 0 ? (
+                      skeletonMessages.map((messageData, index) => (
+                        <DMMessageSkeleton key={messageData.id || index} messageData={messageData} />
+                      ))
+                    ) : (
+                      <>
+                        <DMMessageSkeleton />
+                        <DMMessageSkeleton messageData={{ hasImages: true, imageCount: 2 }} />
+                        <DMMessageSkeleton />
+                        <DMMessageSkeleton messageData={{ hasImages: true, imageCount: 1 }} />
+                        <DMMessageSkeleton />
+                      </>
+                    )}
                   </div>
                 )}
 
                 {/* Поток сообщений */}
-                <div
-                  className="dm-thread"
-                  style={{
-                    opacity: bootstrapping ? 0 : 1,
-                    pointerEvents: bootstrapping ? 'none' : 'auto',
-                  }}
-                >
-                  {selectedMessages.length > 0 && showMessages && (
-                    <MessagesList
-                      groupedMessages={groupedDMs}
-                      user={user}
-                      editingMessage={editingMessage}
-                      editValue={editValue}
-                      onEditChange={setEditValue}
-                      onEditSave={handleSaveEdit}
-                      onEditCancel={() => {
-                                    setEditingMessage(null);
-                                    setEditValue('');
-                      }}
-                      highlightedMessageId={highlightedMessageId}
-                      newDmMessageIds={newDmMessageIds}
-                      onUserClick={handleUserClick}
-                      onReplySelect={handleReplySelect}
-                      onAddReaction={handleAddReaction}
-                      onReactionClick={handleReactionClick}
-                      onMoreActions={handleMoreActions}
-                      onReplyNavigation={handleReplyNavigation}
-                      BACKEND_URL={BACKEND_URL}
-                    />
-                  )}
-                    <div ref={messagesEndRef} />
+                {showDMMessages && (
+                  <div
+                    className="dm-thread"
+                    style={{
+                      opacity: 1,
+                      pointerEvents: 'auto',
+                    }}
+                  >
+                    {selectedMessages.length > 0 && (
+                      <MessagesList
+                        groupedMessages={groupedDMs}
+                        user={user}
+                        editingMessage={editingMessage}
+                        editValue={editValue}
+                        onEditChange={setEditValue}
+                        onEditSave={handleSaveEdit}
+                        onEditCancel={() => {
+                          setEditingMessage(null);
+                          setEditValue('');
+                        }}
+                        highlightedMessageId={highlightedMessageId}
+                        newDmMessageIds={newDmMessageIds}
+                        onUserClick={handleUserClick}
+                        onReplySelect={handleReplySelect}
+                        onAddReaction={handleAddReaction}
+                        onReactionClick={handleReactionClick}
+                        onMoreActions={handleMoreActions}
+                        onReplyNavigation={handleReplyNavigation}
+                        BACKEND_URL={BACKEND_URL}
+                        messagesContainerRef={messagesContainerRef}
+                        scrollToBottom={scrollToBottom}
+                      />
+                    )}
+                    <div ref={messagesEndRef} className="scroll-anchor" />
                   </div>
+                )}
               </div>
 
               {/* Поле ввода */}

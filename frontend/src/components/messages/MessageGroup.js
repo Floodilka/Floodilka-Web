@@ -34,7 +34,9 @@ const MessageGroup = ({
   onReactionClick,
   onAddReaction,
   canEditMessage,
-  canDeleteMessage
+  canDeleteMessage,
+  messagesContainerRef,
+  scrollToBottom
 }) => {
   const showDateDivider = !prevGroup || prevGroup.date !== group.date;
 
@@ -79,6 +81,8 @@ const MessageGroup = ({
           onAddReaction={onAddReaction}
           canEditMessage={canEditMessage}
           canDeleteMessage={canDeleteMessage}
+          messagesContainerRef={messagesContainerRef}
+          scrollToBottom={scrollToBottom}
         />
       ))}
     </React.Fragment>

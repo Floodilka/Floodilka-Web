@@ -64,6 +64,23 @@
   scroll-behavior: auto;
 }
 
+/* Отключаем авто-якорь для элементов потока */
+.messages-container > * {
+  overflow-anchor: none;
+}
+
+/* Якорь у низа для стабилизации скролла */
+.messages-container > .scroll-anchor {
+  overflow-anchor: auto;
+}
+
+/* Блокировка скролла во время показа скелетона */
+.messages-container.skeleton-loading {
+  overflow: hidden !important;
+  pointer-events: none !important;
+  user-select: none !important;
+}
+
 /* Микро-анимации как в Discord */
 .msg--just-in {
   animation: msgIn 0.12s ease-out both;
@@ -557,12 +574,11 @@
 
 /* Контейнер для изображения с shimmer эффектом */
 .message-attachment-image-wrapper {
-  width: 350px;
-  height: 350px;
   border-radius: 8px;
   position: relative;
   overflow: hidden;
   cursor: pointer;
+  background: var(--bg-2, #1d1f23);
 }
 
 /* Эффект shimmer во время загрузки */

@@ -1,0 +1,33 @@
+{
+  "name": "floodilka",
+  "version": "1.0.0",
+  "description": "Floodilka - Discord-like chat application",
+  "private": true,
+  "scripts": {
+    "start": "./scripts/start-dev.sh",
+    "start:frontend": "cd frontend && npm start",
+    "start:backend": "cd backend && npm start",
+    "dev": "./scripts/start-dev.sh",
+    "dev:frontend": "cd frontend && npm run dev",
+    "dev:backend": "cd backend && npm run dev",
+    "kill": "./scripts/kill-dev-ports.sh",
+    "kill:all": "./scripts/force-kill.sh",
+    "db:start": "./scripts/start-db.sh",
+    "db:stop": "./scripts/stop-db.sh",
+    "db:reset": "./scripts/reset-db.sh",
+    "db:logs": "./scripts/db-logs.sh",
+    "install:all": "npm install && cd frontend && npm install && cd ../backend && npm install",
+    "build": "cd frontend && npm run build",
+    "clean": "./scripts/kill-dev-ports.sh && rm -rf frontend/build backend/dist"
+  },
+  "keywords": [
+    "chat",
+    "discord",
+    "realtime",
+    "websocket",
+    "react",
+    "nodejs"
+  ],
+  "author": "Floodilka Team",
+  "license": "MIT"
+}

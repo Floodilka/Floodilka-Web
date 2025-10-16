@@ -18,7 +18,8 @@
     "web-audio-api": "^0.2.2"
   },
   "scripts": {
-    "start": "react-scripts start",
+    "start": "../scripts/kill-dev-ports.sh && react-scripts start",
+    "start:clean": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject"

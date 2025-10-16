@@ -2,6 +2,7 @@ import React from 'react';
 import MarkdownMessage from '../../MarkdownMessage';
 import MessageEmbeds from '../../MessageEmbeds';
 import MessageReactions from '../../MessageReactions';
+import AttachmentImage from '../AttachmentImage';
 import { formatTime } from '../utils/messageUtils';
 
 /**
@@ -30,7 +31,9 @@ const Message = ({
   onReplyNavigation,
   canEdit,
   canDelete,
-  BACKEND_URL
+  BACKEND_URL,
+  messagesContainerRef,
+  scrollToBottom
 }) => {
   const handleEditKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -147,22 +150,24 @@ const Message = ({
             {message.attachments && message.attachments.length > 0 && (
               <div className="message-attachments">
                 {message.attachments.map((attachment, index) => (
-                  <div key={index} className="message-attachment">
-                    <img
-                      src={`${BACKEND_URL}${attachment.path}`}
-                      alt={attachment.originalName}
-                      className="message-attachment-image"
-                      loading="lazy"
-                      onClick={() => window.open(`${BACKEND_URL}${attachment.path}`, '_blank')}
-                      onError={(e) => {
-                        console.error('Ошибка загрузки изображения:', e.target.src);
-                        e.target.style.display = 'none';
-                      }}
-                      onLoad={() => {
-                        console.log('Изображение загружено:', `${BACKEND_URL}${attachment.path}`);
-                      }}
-                    />
-                  </div>
+                  <AttachmentImage
+                    key={index}
+                    src={`${BACKEND_URL}${attachment.path}`}
+                    alt={attachment.originalName}
+                    naturalWidth={attachment.width}
+                    naturalHeight={attachment.height}
+                    containerRef={messagesContainerRef}
+                    onKeepBottom={scrollToBottom}
+                    className="message-attachment-image"
+                    onClick={() => window.open(`${BACKEND_URL}${attachment.path}`, '_blank')}
+                    onError={(e) => {
+                      console.error('Ошибка загрузки изображения:', e.target.src);
+                      e.target.style.display = 'none';
+                    }}
+                    onLoad={() => {
+                      console.log('Изображение загружено:', `${BACKEND_URL}${attachment.path}`);
+                    }}
+                  />
                 ))}
               </div>
             )}

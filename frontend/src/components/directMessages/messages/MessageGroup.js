@@ -25,7 +25,9 @@ const MessageGroup = ({
   onReplyNavigation,
   canEditMessage,
   canDeleteMessage,
-  BACKEND_URL
+  BACKEND_URL,
+  messagesContainerRef,
+  scrollToBottom
 }) => {
   const showDateDivider = !prevGroup || prevGroup.date !== group.date;
 
@@ -64,6 +66,8 @@ const MessageGroup = ({
           canEdit={canEditMessage(message, user?.id)}
           canDelete={canDeleteMessage(message, user?.id)}
           BACKEND_URL={BACKEND_URL}
+          messagesContainerRef={messagesContainerRef}
+          scrollToBottom={scrollToBottom}
         />
       ))}
     </React.Fragment>

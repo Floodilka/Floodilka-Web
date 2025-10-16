@@ -2,6 +2,7 @@ import React from 'react';
 import MarkdownMessage from '../MarkdownMessage';
 import MessageEmbeds from '../MessageEmbeds';
 import MessageReactions from '../MessageReactions';
+import AttachmentImage from '../directMessages/AttachmentImage';
 import { formatTime, isUserMentioned, getReplySnippetFromMeta } from '../../utils/messageUtils';
 
 const BACKEND_URL = window.location.hostname === 'localhost'
@@ -40,7 +41,9 @@ const Message = ({
   onReactionClick,
   onAddReaction,
   canEditMessage,
-  canDeleteMessage
+  canDeleteMessage,
+  messagesContainerRef,
+  scrollToBottom
 }) => {
   const isOwn = message.username === username;
   const isMentioned = isUserMentioned(message, username);
@@ -202,23 +205,24 @@ const Message = ({
                 {message.attachments.map((attachment, index) => (
                   <div key={index} className="message-attachment">
                     {attachment.mimetype.startsWith('image/') ? (
-                      <div
-                        className="message-attachment-image-wrapper"
+                      <AttachmentImage
+                        src={`${BACKEND_URL}${attachment.path}`}
+                        alt={attachment.originalName}
+                        naturalWidth={attachment.width}
+                        naturalHeight={attachment.height}
+                        containerRef={messagesContainerRef}
+                        onKeepBottom={scrollToBottom}
+                        variant="chat"
+                        maxSize={350}
                         onClick={() => window.open(`${BACKEND_URL}${attachment.path}`, '_blank')}
-                      >
-                        <img
-                          src={`${BACKEND_URL}${attachment.path}`}
-                          alt={attachment.originalName}
-                          className="message-attachment-image"
-                          loading="lazy"
-                          onLoad={(e) => {
-                            const wrapper = e.target.parentElement;
-                            if (wrapper) {
-                              wrapper.setAttribute('data-loaded', 'true');
-                            }
-                          }}
-                        />
-                      </div>
+                        onError={(e) => {
+                          console.error('Ошибка загрузки изображения:', e.target.src);
+                          e.target.style.display = 'none';
+                        }}
+                        onLoad={() => {
+                          console.log('Изображение загружено:', `${BACKEND_URL}${attachment.path}`);
+                        }}
+                      />
                     ) : (
                       <div className="message-attachment-file">
                         <span className="attachment-icon">📎</span>

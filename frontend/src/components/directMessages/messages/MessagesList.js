@@ -21,7 +21,9 @@ const MessagesList = ({
   onReactionClick,
   onMoreActions,
   onReplyNavigation,
-  BACKEND_URL
+  BACKEND_URL,
+  messagesContainerRef,
+  scrollToBottom
 }) => {
   return (
     <>
@@ -51,6 +53,8 @@ const MessagesList = ({
             canEditMessage={canEditMessage}
             canDeleteMessage={canDeleteMessage}
             BACKEND_URL={BACKEND_URL}
+            messagesContainerRef={messagesContainerRef}
+            scrollToBottom={scrollToBottom}
           />
         );
       })}
