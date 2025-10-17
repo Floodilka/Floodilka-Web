@@ -1,33 +1,29 @@
 {
-  "name": "floodilka",
-  "version": "1.0.0",
-  "description": "Floodilka - Discord-like chat application",
+  "name": "boltushka",
   "private": true,
+  "version": "0.1.0",
+  "description": "Monorepo for Boltushka Electron and web clients",
   "scripts": {
-    "start": "./scripts/start-dev.sh",
-    "start:frontend": "cd frontend && npm start",
-    "start:backend": "cd backend && npm start",
-    "dev": "./scripts/start-dev.sh",
-    "dev:frontend": "cd frontend && npm run dev",
-    "dev:backend": "cd backend && npm run dev",
-    "kill": "./scripts/kill-dev-ports.sh",
-    "kill:all": "./scripts/force-kill.sh",
-    "db:start": "./scripts/start-db.sh",
-    "db:stop": "./scripts/stop-db.sh",
-    "db:reset": "./scripts/reset-db.sh",
-    "db:logs": "./scripts/db-logs.sh",
-    "install:all": "npm install && cd frontend && npm install && cd ../backend && npm install",
-    "build": "cd frontend && npm run build",
-    "clean": "./scripts/kill-dev-ports.sh && rm -rf frontend/build backend/dist"
+    "prepare": "husky install",
+    "dev": "pnpm -r --parallel run dev",
+    "build": "pnpm -r run build",
+    "lint": "pnpm -r run lint",
+    "format": "pnpm -r run format",
+    "typecheck": "pnpm -r run typecheck"
   },
-  "keywords": [
-    "chat",
-    "discord",
-    "realtime",
-    "websocket",
-    "react",
-    "nodejs"
-  ],
-  "author": "Floodilka Team",
-  "license": "MIT"
+  "devDependencies": {
+    "@types/node": "^20.12.7",
+    "@typescript-eslint/eslint-plugin": "^7.4.0",
+    "@typescript-eslint/parser": "^7.4.0",
+    "eslint": "^9.0.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-import": "^2.29.1",
+    "eslint-plugin-jsx-a11y": "^6.8.0",
+    "eslint-plugin-react": "^7.34.1",
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "husky": "^9.0.11",
+    "lint-staged": "^15.2.2",
+    "prettier": "^3.2.5",
+    "typescript": "^5.4.3"
+  }
 }

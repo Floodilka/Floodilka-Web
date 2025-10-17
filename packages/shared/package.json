@@ -1,0 +1,13 @@
+{
+  "name": "@boltushka/shared",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "echo \"Shared package has no dev server\"",
+    "build": "echo \"TODO: implement shared build\"",
+    "lint": "eslint src --ext .ts",
+    "format": "prettier --write \"src/**/*.{ts,tsx}\"",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  }
+}

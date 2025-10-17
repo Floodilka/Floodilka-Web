@@ -1,176 +1,54 @@
-# 💬 Флудилка (Floodilka)
+# Boltushka Monorepo
 
-Discord-подобное приложение для общения с текстовыми и голосовыми каналами.
+> Монорепозиторий для Electron desktop-клиента и web SPA с общим React/Vite рендерером.
 
-## 🚀 Быстрый старт
+## Структура
 
-### Требования
-- Node.js 16+
-- MongoDB 6+
+```
+apps/
+  desktop/   # Electron main + preload
+  web/       # SPA-обёртка для веб-сборки
+packages/
+  renderer/  # Общий React/Vite UI
+  shared/    # Общие утилиты и типы
+```
 
-### Установка MongoDB
+## Быстрый старт
 
-**macOS:**
 ```bash
-brew tap mongodb/brew
-brew install mongodb-community
-brew services start mongodb-community
+pnpm install
+pnpm -w run dev          # параллельный запуск dev-скриптов (заглушки)
 ```
 
-**Ubuntu/Debian:**
-```bash
-sudo apt-get install -y mongodb-org
-sudo systemctl start mongod
-sudo systemctl enable mongod
-```
+## Скрипты верхнего уровня
 
-**Windows:**
-Скачайте установщик с [mongodb.com](https://www.mongodb.com/try/download/community)
+| Команда             | Описание                             |
+| ------------------- | ------------------------------------ |
+| `pnpm -w run dev`   | Запуск всех dev-скриптов (по мере реализации) |
+| `pnpm -w run build` | Сборка всех пакетов                  |
+| `pnpm -w run lint`  | Проверка ESLint                      |
+| `pnpm -w run format`| Форматирование Prettier              |
+| `pnpm -w run typecheck` | Проверка типов TypeScript        |
 
-### Установка и запуск
+## TODO
 
-1. Клонируйте репозиторий:
-```bash
-git clone <your-repo-url>
-cd Floodilka
-```
+- Заполнить данные приложения (Product name, AppId, BundleId).
+- Добавить реальные иконки (`apps/desktop/resources/icon.*`).
+- Настроить подпись macOS (APPLE_ID, APPLE_TEAM_ID, APPLE_APP_SPECIFIC_PASSWORD).
+- Настроить подпись Windows (CSC_LINK, CSC_KEY_PASSWORD).
+- Создать GitHub токен `GH_TOKEN` для публикации релизов.
+- Определить базовый URL SPA (`WEB_BASE_URL`).
 
-2. Установите backend:
-```bash
-cd backend
-npm install
-cp .env.example .env
-# Отредактируйте .env если нужно изменить настройки
-npm start
-```
+## Секреты для GitHub Actions
 
-3. Установите frontend (в новом терминале):
-```bash
-cd frontend
-npm install
-npm start
-```
+| Ключ | Назначение | Где взять |
+| ---- | ---------- | --------- |
+| `GH_TOKEN` | Публикация релизов и автообновлений | GitHub Personal Access Token |
+| `APPLE_ID` | Подпись и notarization macOS | Apple Developer Account |
+| `APPLE_TEAM_ID` | Team ID для подписи | Apple Developer Account |
+| `APPLE_APP_SPECIFIC_PASSWORD` | Пароль для notarization | Apple ID (App-Specific Password) |
+| `CSC_LINK` | PFX/сертификат для Windows подписи | Сертификат подписи кода |
+| `CSC_KEY_PASSWORD` | Пароль к сертификату | Задает владелец сертификата |
 
-4. Откройте http://localhost:3000
+> ⚠️ Все секреты должны храниться в GitHub Actions Secrets, не коммитить их в репозиторий.
 
-## 📦 Структура проекта
-
-```
-Floodilka/
-├── backend/
-│   ├── models/          # Модели MongoDB (User, Channel, Message)
-│   ├── routes/          # API роуты
-│   ├── server.js        # Главный файл сервера
-│   └── package.json
-├── frontend/
-│   ├── src/
-│   │   ├── components/  # React компоненты
-│   │   ├── App.js       # Главный компонент
-│   │   └── App.css
-│   └── package.json
-└── deployment/          # Скрипты для деплоя
-```
-
-## 🔐 Аутентификация
-
-Приложение использует JWT токены для аутентификации:
-- Регистрация: `/api/auth/register`
-- Логин: `/api/auth/login`
-- Получить профиль: `/api/auth/me`
-
-Токен сохраняется в `localStorage` и автоматически используется при последующих запросах.
-
-## 🌐 Деплой
-
-### Первоначальная настройка
-См. [deployment/DEPLOY.md](./deployment/DEPLOY.md) для полной инструкции по первоначальной настройке на DigitalOcean.
-
-### Обновление продакшена
-
-**Рекомендуемый способ (graceful, минимальный downtime):**
-```bash
-ssh root@your-server
-cd /var/www/floodilka
-sudo bash deployment/update-graceful.sh
-```
-
-**Быстрое обновление:**
-```bash
-sudo bash deployment/update.sh
-```
-
-📚 **Документация по деплою:**
-- ⭐ [DEPLOYMENT-BEST-PRACTICES.md](./deployment/DEPLOYMENT-BEST-PRACTICES.md) - Best practices
-- 🚀 [QUICK-UPDATE.md](./deployment/QUICK-UPDATE.md) - Быстрое обновление
-- 📖 [CHEATSHEET.md](./deployment/CHEATSHEET.md) - Шпаргалка по командам
-- 🔧 [DEPLOY.md](./deployment/DEPLOY.md) - Полная инструкция
-
-**Что происходит при обновлении:**
-- ✅ Graceful reload backend (~2-5 сек downtime)
-- ✅ Автоматическое переподключение пользователей
-- ✅ Проверка синтаксиса перед применением
-- ⚠️ Голосовые звонки прервутся (нужно переподключиться)
-
-## ⚙️ Переменные окружения
-
-Backend `.env`:
-```
-PORT=3001
-FRONTEND_URL=http://localhost:3000
-NODE_ENV=development
-MONGODB_URI=mongodb://localhost:27017/floodilka
-MONGO_MAX_POOL_SIZE=20
-MONGO_MIN_POOL_SIZE=5
-MONGO_CONNECT_TIMEOUT_MS=10000
-JWT_SECRET=your-super-secret-jwt-key
-RATE_LIMIT_WINDOW_MS=60000
-RATE_LIMIT_MAX=600
-# Redis-параметры опциональны, но рекомендуются при горизонтальном масштабировании
-REDIS_URL=redis://localhost:6379
-REDIS_TLS=false
-REDIS_KEY_PREFIX=floodilka
-```
-
-## 🧱 Масштабирование и производительность
-
-- 🧩 **Redis adapter для Socket.IO** — установите `REDIS_URL`, чтобы распределить websocket-нагрузку между несколькими PM2-инстансами и синхронизировать presence.
-- 🗃️ **Оптимизированные MongoDB индексы и пул** — новые индексы для сообщений/серверов и параметры `MONGO_MAX_POOL_SIZE`/`MONGO_MIN_POOL_SIZE` уменьшают задержки при больших чатах.
-- 🚦 **API rate limiting** — переменные `RATE_LIMIT_WINDOW_MS` и `RATE_LIMIT_MAX` защищают API от нагрузочных всплесков.
-- 🧠 **Кэширование** — backend кеширует список участников и серверные метаданные, frontend кеширует GET-запросы с автоинвалидацией.
-- 📦 **Быстрые деплои** — скрипты обновления используют `npm install --prefer-offline --no-audit --no-fund`, снижая сетевой шум и ускоряя rollout.
-- 📡 **Оптимизированный Socket.IO клиент** — WebSocket по умолчанию, короче таймауты переподключения и расширенный лог.
-
-## 🎨 Фичи
-
-- ✅ Регистрация и вход с JWT
-- ✅ Профили пользователей с аватарами
-- ✅ Создание серверов и каналов
-- ✅ Текстовые каналы с реал-тайм сообщениями
-- ✅ Голосовые каналы с WebRTC
-- ✅ Демонстрация экрана (Screen Sharing)
-- ✅ Шумоподавление и настройки микрофона
-- ✅ Индикаторы говорящих пользователей
-- ✅ Реакции на сообщения с emoji 🎉
-- ✅ Личные сообщения (Direct Messages)
-- ✅ Загрузка файлов и изображений
-- ✅ Редактирование и удаление сообщений
-- ✅ Роли и система прав доступа
-- ✅ Инвайты на серверы
-- ✅ Discord-подобный UI
-- ✅ Graceful deployment с минимальным downtime
-
-## 📚 Документация
-
-- 📝 [MESSAGE_PERMISSIONS.md](./MESSAGE_PERMISSIONS.md) - Система прав для управления сообщениями
-- 📺 [SCREEN_SHARING.md](./SCREEN_SHARING.md) - Демонстрация экрана
-- 🎉 [REACTIONS.md](./REACTIONS.md) - Реакции на сообщения
-
-## 🌐 Поддерживаемые браузеры
-
-Голосовой чат и все функции работают в современных браузерах:
-- ✅ **Google Chrome** - рекомендуется
-- ✅ **Mozilla Firefox**
-- ✅ **Microsoft Edge**
-- ✅ **Safari** (macOS/iOS)
-- ✅ **Яндекс Браузер**
-- ✅ **Arc Browser**

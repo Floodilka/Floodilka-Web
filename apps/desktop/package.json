@@ -1,0 +1,13 @@
+{
+  "name": "@app/desktop",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "echo \"TODO: implement Electron dev server\"",
+    "build": "echo \"TODO: implement Electron build\"",
+    "lint": "eslint src --ext .ts",
+    "format": "prettier --write \"src/**/*.{ts,tsx}\"",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "extends": "./tsconfig.base.json",
+  "files": [],
+  "references": [
+    { "path": "apps/desktop" },
+    { "path": "apps/web" },
+    { "path": "packages/renderer" },
+    { "path": "packages/shared" }
+  ]
+}
