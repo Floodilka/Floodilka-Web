@@ -1,0 +1,70 @@
+/*
+ * Copyright (C) 2026 Fluxer Contributors
+ *
+ * This file is part of Fluxer.
+ *
+ * Fluxer is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Fluxer is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with Fluxer. If not, see <https://www.gnu.org/licenses/>.
+ */
+
+.dmLayoutContainer {
+	display: grid;
+	grid-template-columns: var(--layout-sidebar-width) 1fr;
+	grid-template-rows: 1fr;
+	height: 100%;
+	min-height: 0;
+	width: 100%;
+	min-width: 0;
+	background-color: var(--background-global-color);
+	padding: 0 12px 12px 0;
+	column-gap: 12px;
+	box-sizing: border-box;
+}
+
+.dmLayoutContainerMobile {
+	composes: dmLayoutContainer;
+	grid-template-columns: 1fr;
+	padding: 0;
+	column-gap: 0;
+}
+
+.dmListColumn {
+	display: flex;
+	height: 100%;
+	min-height: 0;
+	width: 100%;
+	min-width: 0;
+	flex-direction: column;
+	background-color: var(--background-color);
+	border-radius: 0 24px 24px 0;
+	overflow: hidden;
+}
+
+.contentColumn {
+	display: grid;
+	height: 100%;
+	min-height: 0;
+	width: 100%;
+	min-width: 0;
+	background-color: var(--background-global-color);
+}
+
+.contentInner {
+	height: 100%;
+	min-height: 0;
+	width: 100%;
+	min-width: 0;
+	background-color: var(--background-color);
+	border-radius: 24px;
+	overflow: hidden;
+}

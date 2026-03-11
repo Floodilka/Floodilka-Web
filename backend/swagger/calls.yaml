@@ -1,0 +1,242 @@
+# Calls API Documentation
+
+paths:
+  /api/calls/history:
+    get:
+      tags:
+        - Calls
+      summary: Получить историю звонков
+      description: Возвращает историю входящих и исходящих звонков пользователя
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+            minimum: 1
+            maximum: 100
+          description: Количество записей
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+          description: Смещение для пагинации
+      responses:
+        '200':
+          description: История звонков
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  calls:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Call'
+                  hasMore:
+                    type: boolean
+
+  /api/calls/{callId}:
+    get:
+      tags:
+        - Calls
+      summary: Получить информацию о звонке
+      description: Возвращает детальную информацию о конкретном звонке
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      parameters:
+        - name: callId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID звонка
+      responses:
+        '200':
+          description: Информация о звонке
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  call:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                      type:
+                        type: string
+                        enum: [audio, video]
+                      status:
+                        type: string
+                        enum: [pending, ringing, connecting, active, ended, missed, rejected, busy, failed]
+                      duration:
+                        type: integer
+                        description: Длительность в секундах
+                      isOutgoing:
+                        type: boolean
+                      caller:
+                        $ref: '#/components/schemas/UserPublic'
+                      callee:
+                        $ref: '#/components/schemas/UserPublic'
+                      createdAt:
+                        type: string
+                        format: date-time
+                      startedAt:
+                        type: string
+                        format: date-time
+                        nullable: true
+                      endedAt:
+                        type: string
+                        format: date-time
+                        nullable: true
+                      endReason:
+                        type: string
+                        nullable: true
+                      quality:
+                        type: object
+                        nullable: true
+        '403':
+          description: Нет доступа к этому звонку
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      tags:
+        - Calls
+      summary: Удалить звонок из истории
+      description: Удаляет запись о звонке из истории пользователя
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+        - csrfToken: []
+      parameters:
+        - name: callId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Звонок удален из истории
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Звонок удален из истории
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/calls/user/active:
+    get:
+      tags:
+        - Calls
+      summary: Получить активный звонок
+      description: Проверяет, есть ли у пользователя активный звонок в данный момент
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Информация об активном звонке
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  hasActiveCall:
+                    type: boolean
+                  call:
+                    type: object
+                    nullable: true
+                    properties:
+                      id:
+                        type: string
+                      type:
+                        type: string
+                        enum: [audio, video]
+                      status:
+                        type: string
+                      callerId:
+                        type: string
+                      calleeId:
+                        type: string
+                      startedAt:
+                        type: string
+                        format: date-time
+
+  /api/calls/missed/count:
+    get:
+      tags:
+        - Calls
+      summary: Получить количество пропущенных звонков
+      description: Возвращает количество пропущенных звонков
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Количество пропущенных звонков
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  count:
+                    type: integer
+                    example: 3
+
+  /api/calls/history/clear:
+    delete:
+      tags:
+        - Calls
+      summary: Очистить историю звонков
+      description: Удаляет все завершенные звонки из истории
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+        - csrfToken: []
+      responses:
+        '200':
+          description: История очищена
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: История звонков очищена

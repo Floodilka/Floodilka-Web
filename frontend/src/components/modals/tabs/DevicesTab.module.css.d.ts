@@ -1,0 +1,34 @@
+declare const styles: {
+  readonly "actionButton": string;
+  readonly "actionIcon": string;
+  readonly "actionsContainer": string;
+  readonly "authSession": string;
+  readonly "authSessionActions": string;
+  readonly "authSessionContent": string;
+  readonly "authSessionInfo": string;
+  readonly "authSessionLocation": string;
+  readonly "authSessionSelectable": string;
+  readonly "authSessionTitle": string;
+  readonly "checkIcon": string;
+  readonly "checkbox": string;
+  readonly "checkboxChecked": string;
+  readonly "checkboxUnchecked": string;
+  readonly "deviceGroup": string;
+  readonly "deviceGroupHeader": string;
+  readonly "deviceGroupTitle": string;
+  readonly "devicesGrid": string;
+  readonly "devicesSection": string;
+  readonly "icon": string;
+  readonly "iconContainer": string;
+  readonly "lastUsed": string;
+  readonly "loadingContainer": string;
+  readonly "locationSeparator": string;
+  readonly "locationText": string;
+  readonly "logoutDescription": string;
+  readonly "logoutSection": string;
+  readonly "revokeButton": string;
+  readonly "revokeIcon": string;
+  readonly "statusDot": string;
+};
+export = styles;
+

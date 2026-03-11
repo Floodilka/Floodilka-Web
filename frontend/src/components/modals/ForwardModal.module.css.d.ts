@@ -1,0 +1,33 @@
+declare const styles: {
+  readonly "avatar": string;
+  readonly "channelButton": string;
+  readonly "channelButtonContent": string;
+  readonly "channelButtonDisabled": string;
+  readonly "channelButtonSelected": string;
+  readonly "channelDetails": string;
+  readonly "channelIcon": string;
+  readonly "channelInfo": string;
+  readonly "channelList": string;
+  readonly "channelListContainer": string;
+  readonly "channelName": string;
+  readonly "checkboxContainer": string;
+  readonly "emojiIcon": string;
+  readonly "emojiPickerButton": string;
+  readonly "emojiPickerButtonActive": string;
+  readonly "footerButton": string;
+  readonly "headerSearch": string;
+  readonly "headerSearchInput": string;
+  readonly "inputAreaContainer": string;
+  readonly "messageInput": string;
+  readonly "messageInputActions": string;
+  readonly "messageInputBase": string;
+  readonly "messageInputContainer": string;
+  readonly "modalContent": string;
+  readonly "modalFooter": string;
+  readonly "noChannelsContainer": string;
+  readonly "scrollerFullHeight": string;
+  readonly "searchIcon": string;
+  readonly "searchInput": string;
+};
+export = styles;
+

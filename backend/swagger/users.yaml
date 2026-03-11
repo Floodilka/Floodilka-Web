@@ -1,0 +1,259 @@
+# Users API Documentation
+
+paths:
+  /api/users/blocks:
+    get:
+      tags:
+        - Users
+      summary: Получить список заблокированных
+      description: Возвращает список пользователей, заблокированных текущим пользователем
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Список заблокированных
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  blockedUsers:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        user:
+                          $ref: '#/components/schemas/UserPublic'
+                        reason:
+                          type: string
+                          nullable: true
+                        blockedAt:
+                          type: string
+                          format: date-time
+
+  /api/users/blocks/status/{userId}:
+    get:
+      tags:
+        - Users
+      summary: Проверить статус блокировки
+      description: Проверяет взаимную блокировку между текущим пользователем и указанным
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID проверяемого пользователя
+      responses:
+        '200':
+          description: Статус блокировки
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  isBlocked:
+                    type: boolean
+                    description: Заблокирован ли пользователь вами
+                  isBlockedBy:
+                    type: boolean
+                    description: Заблокированы ли вы этим пользователем
+
+  /api/users/blocks/{userId}:
+    post:
+      tags:
+        - Users
+      summary: Заблокировать пользователя
+      description: |
+        Блокирует указанного пользователя.
+        Заблокированный пользователь не сможет:
+        - Отправлять вам личные сообщения
+        - Отправлять заявки в друзья
+        - Звонить вам
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+        - csrfToken: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason:
+                  type: string
+                  maxLength: 200
+                  description: Причина блокировки (необязательно)
+      responses:
+        '200':
+          description: Пользователь заблокирован
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Пользователь заблокирован
+        '400':
+          description: Нельзя заблокировать себя или уже заблокирован
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    delete:
+      tags:
+        - Users
+      summary: Разблокировать пользователя
+      description: Снимает блокировку с указанного пользователя
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+        - csrfToken: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Пользователь разблокирован
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Пользователь разблокирован
+        '400':
+          description: Пользователь не был заблокирован
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/users/check-personal-servers:
+    get:
+      tags:
+        - Users
+      summary: Проверить наличие личных серверов
+      description: |
+        Проверяет, есть ли у пользователя серверы, которыми он владеет.
+        Используется перед удалением аккаунта.
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Результат проверки
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  hasPersonalServers:
+                    type: boolean
+                    description: true если есть серверы, которыми владеет пользователь
+                  serverCount:
+                    type: integer
+                    description: Количество собственных серверов
+                  servers:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                        name:
+                          type: string
+
+  /api/users/account:
+    delete:
+      tags:
+        - Users
+      summary: Удалить аккаунт
+      description: |
+        Полностью удаляет аккаунт пользователя.
+
+        **Важно:**
+        - Перед удалением необходимо удалить или передать все серверы, которыми владеете
+        - Это действие необратимо
+        - Все данные (сообщения, друзья, настройки) будут удалены
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+        - csrfToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - password
+              properties:
+                password:
+                  type: string
+                  format: password
+                  description: Текущий пароль для подтверждения
+      responses:
+        '200':
+          description: Аккаунт удален
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Аккаунт успешно удален
+        '400':
+          description: Есть серверы во владении
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  error:
+                    type: string
+                    example: Сначала удалите или передайте серверы
+        '401':
+          description: Неверный пароль
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'

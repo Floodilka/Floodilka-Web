@@ -1,0 +1,30 @@
+declare const styles: {
+  readonly "audioProcessing": string;
+  readonly "audioProcessingCard": string;
+  readonly "audioProcessingDescription": string;
+  readonly "audioProcessingLabel": string;
+  readonly "audioProcessingOptions": string;
+  readonly "deviceNotice": string;
+  readonly "deviceNoticeDescription": string;
+  readonly "deviceNoticeText": string;
+  readonly "deviceNoticeTitle": string;
+  readonly "inputModeCard": string;
+  readonly "inputModeLabel": string;
+  readonly "inputModeSection": string;
+  readonly "label": string;
+  readonly "pttDelayValue": string;
+  readonly "pttDescription": string;
+  readonly "pttKeybindRow": string;
+  readonly "pttLatchingRow": string;
+  readonly "pttLatchingText": string;
+  readonly "pttRow": string;
+  readonly "pttSettingDescription": string;
+  readonly "pttSettingLabel": string;
+  readonly "pttSettingRow": string;
+  readonly "pttSettings": string;
+  readonly "sliderLabel": string;
+  readonly "toggleRow": string;
+  readonly "toggleText": string;
+};
+export = styles;
+

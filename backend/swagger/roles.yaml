@@ -1,0 +1,351 @@
+# Roles API Documentation
+
+paths:
+  /api/servers/{serverId}/roles:
+    get:
+      tags:
+        - Roles
+      summary: Получить роли сервера
+      description: Возвращает список всех ролей сервера, отсортированных по позиции
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      parameters:
+        - name: serverId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID сервера
+      responses:
+        '200':
+          description: Список ролей
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  roles:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Role'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+    post:
+      tags:
+        - Roles
+      summary: Создать роль
+      description: |
+        Создает новую роль на сервере.
+        Требуется быть владельцем сервера или администратором.
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+        - csrfToken: []
+      parameters:
+        - name: serverId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateRole'
+      responses:
+        '201':
+          description: Роль создана
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  role:
+                    $ref: '#/components/schemas/Role'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/servers/{serverId}/roles/reorder:
+    patch:
+      tags:
+        - Roles
+      summary: Переупорядочить роли
+      description: |
+        Изменяет порядок (позиции) ролей на сервере.
+        Позиция влияет на приоритет прав: роли с более высокой позицией имеют приоритет.
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+        - csrfToken: []
+      parameters:
+        - name: serverId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - roles
+              properties:
+                roles:
+                  type: array
+                  items:
+                    type: object
+                    required:
+                      - id
+                      - position
+                    properties:
+                      id:
+                        type: string
+                        description: ID роли
+                      position:
+                        type: integer
+                        description: Новая позиция
+                  example:
+                    - id: "507f1f77bcf86cd799439011"
+                      position: 2
+                    - id: "507f1f77bcf86cd799439012"
+                      position: 1
+      responses:
+        '200':
+          description: Порядок обновлен
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  roles:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Role'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/servers/{serverId}/roles/{roleId}:
+    patch:
+      tags:
+        - Roles
+      summary: Обновить роль
+      description: Обновляет настройки роли (название, цвет, права)
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+        - csrfToken: []
+      parameters:
+        - name: serverId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: roleId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID роли
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  example: Senior Moderator
+                color:
+                  type: string
+                  example: "#e74c3c"
+                permissions:
+                  type: string
+                  description: Битовая маска прав
+                  example: "2048"
+      responses:
+        '200':
+          description: Роль обновлена
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  role:
+                    $ref: '#/components/schemas/Role'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      tags:
+        - Roles
+      summary: Удалить роль
+      description: |
+        Удаляет роль с сервера.
+        Все участники с этой ролью потеряют её.
+        Нельзя удалить роль @everyone.
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+        - csrfToken: []
+      parameters:
+        - name: serverId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: roleId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Роль удалена
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+        '400':
+          description: Нельзя удалить роль @everyone
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/servers/{serverId}/roles/{roleId}/assign:
+    post:
+      tags:
+        - Roles
+      summary: Назначить роль участнику
+      description: Назначает указанную роль участнику сервера
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+        - csrfToken: []
+      parameters:
+        - name: serverId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: roleId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - memberId
+              properties:
+                memberId:
+                  type: string
+                  description: ID участника (Member)
+      responses:
+        '200':
+          description: Роль назначена
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  member:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                      roles:
+                        type: array
+                        items:
+                          type: string
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/servers/{serverId}/roles/{roleId}/remove:
+    post:
+      tags:
+        - Roles
+      summary: Снять роль с участника
+      description: Снимает указанную роль с участника сервера
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+        - csrfToken: []
+      parameters:
+        - name: serverId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: roleId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - memberId
+              properties:
+                memberId:
+                  type: string
+                  description: ID участника (Member)
+      responses:
+        '200':
+          description: Роль снята
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  member:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                      roles:
+                        type: array
+                        items:
+                          type: string
+        '403':
+          $ref: '#/components/responses/Forbidden'

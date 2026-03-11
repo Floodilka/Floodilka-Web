@@ -1,0 +1,14 @@
+{
+	email noreply@floodilka.com
+}
+
+stage.floodilka.com {
+	encode zstd gzip
+
+	# Frontend static files
+	handle {
+		root * /srv/frontend
+		try_files {path} /index.html
+		file_server
+	}
+}

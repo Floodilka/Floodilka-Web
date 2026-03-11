@@ -1,0 +1,33 @@
+declare const styles: {
+  readonly "additionalContent": string;
+  readonly "backButton": string;
+  readonly "backButtonIcon": string;
+  readonly "categoryContainer": string;
+  readonly "categoryHeader": string;
+  readonly "categoryTabs": string;
+  readonly "dangerButton": string;
+  readonly "dangerButtonPressed": string;
+  readonly "dangerContent": string;
+  readonly "dangerIcon": string;
+  readonly "dangerLabel": string;
+  readonly "footer": string;
+  readonly "header": string;
+  readonly "headerContent": string;
+  readonly "headerSpacer": string;
+  readonly "headerTitle": string;
+  readonly "sectionNavContainer": string;
+  readonly "sectionNavContent": string;
+  readonly "sectionNavItem": string;
+  readonly "sectionNavItemActive": string;
+  readonly "sectionNavScroller": string;
+  readonly "settingsList": string;
+  readonly "tabArrow": string;
+  readonly "tabButton": string;
+  readonly "tabButtonPressed": string;
+  readonly "tabContent": string;
+  readonly "tabDivider": string;
+  readonly "tabIcon": string;
+  readonly "tabLabel": string;
+};
+export = styles;
+

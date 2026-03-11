@@ -1,0 +1,30 @@
+declare const styles: {
+  readonly "actionButton": string;
+  readonly "actionRow": string;
+  readonly "breadcrumbActive": string;
+  readonly "breadcrumbLabel": string;
+  readonly "breadcrumbNumber": string;
+  readonly "breadcrumbPlaceholder": string;
+  readonly "breadcrumbSeparator": string;
+  readonly "breadcrumbShell": string;
+  readonly "breadcrumbStep": string;
+  readonly "breadcrumbs": string;
+  readonly "card": string;
+  readonly "cardBody": string;
+  readonly "cardHeader": string;
+  readonly "description": string;
+  readonly "errorBox": string;
+  readonly "eyebrow": string;
+  readonly "footerLinks": string;
+  readonly "form": string;
+  readonly "helperText": string;
+  readonly "link": string;
+  readonly "linkButton": string;
+  readonly "linkRow": string;
+  readonly "linkSeparator": string;
+  readonly "mainColumn": string;
+  readonly "page": string;
+  readonly "title": string;
+};
+export = styles;
+

@@ -1,0 +1,93 @@
+# Dependencies
+**/node_modules
+**/.pnpm-store
+**/package-lock.json
+**/yarn.lock
+**/pnpm-lock.yaml
+
+# Build artifacts
+**/build
+!frontend/scripts/build/
+**/dist
+**/dist-electron
+**/out
+**/target
+**/_build
+**/_checkouts
+**/ebin
+**/generated
+
+# Caches & editor metadata
+**/.cache
+**/.*cache
+**/.swc
+**/.DS_Store
+**/Thumbs.db
+**/.idea
+**/.vscode
+
+# Environment and credentials
+**/.env
+**/.env.local
+**/.env.*.local
+.env.release
+firebase-service-account.json
+backend/firebase-service-account.json
+backend/AuthKey_*.p8
+
+# Logs
+**/*.log
+**/logs
+**/npm-debug.log*
+**/pnpm-debug.log*
+**/yarn-debug.log*
+**/yarn-error.log*
+
+# Erlang/OTP
+**/*.beam
+**/*.plt
+**/rebar3.crashdump
+**/erl_crash.dump
+**/.erlang.cookie
+**/.eunit
+**/.rebar
+**/.rebar3
+
+# Temp files
+**/*.dump
+**/*.swo
+**/*.swp
+**/*.tmp
+**/*~
+
+# Testing
+**/coverage
+
+# Framework & tooling
+**/.next
+**/.vercel
+**/.pnp
+**/.pnp.js
+*.tsbuildinfo
+
+# Docker local overrides
+docker-compose.override.yml
+
+# Uploads
+backend/uploads/
+
+# Production PM2 configs
+backend/ecosystem.config.js
+backend/ecosystem-cluster.config.js
+
+# Maintenance page
+maintenance/
+
+# Old/Experimental
+Floodilka_New/
+frontend/examples/
+
+# Project-specific
+livekit.yaml
+gateway/config/sys.config
+gateway/config/vm.args

@@ -1,0 +1,265 @@
+# Messages API Documentation
+
+paths:
+  /api/messages/channels/{channelId}:
+    get:
+      tags:
+        - Messages
+      summary: Получить сообщения канала
+      description: |
+        Возвращает историю сообщений указанного канала с пагинацией.
+        Сообщения отсортированы по времени создания (новые первые).
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      parameters:
+        - name: channelId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID канала
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+            minimum: 1
+            maximum: 100
+          description: Количество сообщений
+        - name: before
+          in: query
+          schema:
+            type: string
+          description: ID сообщения для загрузки более старых
+        - name: after
+          in: query
+          schema:
+            type: string
+          description: ID сообщения для загрузки более новых
+      responses:
+        '200':
+          description: Список сообщений
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  messages:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Message'
+                  hasMore:
+                    type: boolean
+                    description: Есть ли еще сообщения
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/messages/upload:
+    post:
+      tags:
+        - Messages
+      summary: Загрузить файлы для сообщения
+      description: |
+        Загружает файлы для последующей отправки в сообщении.
+
+        **Поддерживаемые форматы:**
+        - Изображения: JPEG, PNG, GIF, WebP
+        - Документы: PDF, DOC, DOCX, XLS, XLSX
+        - Архивы: ZIP, RAR
+        - Видео: MP4, MOV, AVI
+
+        **Лимиты:**
+        - Максимум 10 файлов за раз
+        - Максимальный размер файла: 25 MB
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+        - csrfToken: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                files:
+                  type: array
+                  items:
+                    type: string
+                    format: binary
+                  maxItems: 10
+      responses:
+        '200':
+          description: Файлы загружены
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  attachments:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Attachment'
+        '400':
+          description: Неверный формат или превышен размер
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/messages/{messageId}:
+    put:
+      tags:
+        - Messages
+      summary: Редактировать сообщение
+      description: |
+        Редактирует текст сообщения. Можно редактировать только свои сообщения.
+        Администраторы сервера не могут редактировать чужие сообщения.
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+        - csrfToken: []
+      parameters:
+        - name: messageId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID сообщения
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - content
+              properties:
+                content:
+                  type: string
+                  maxLength: 2000
+                  description: Новый текст сообщения
+      responses:
+        '200':
+          description: Сообщение отредактировано
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    $ref: '#/components/schemas/Message'
+        '403':
+          description: Нельзя редактировать чужое сообщение
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      tags:
+        - Messages
+      summary: Удалить сообщение
+      description: |
+        Удаляет сообщение. Можно удалять:
+        - Свои сообщения
+        - Любые сообщения администраторам сервера
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+        - csrfToken: []
+      parameters:
+        - name: messageId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Сообщение удалено
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/messages/{messageId}/report:
+    post:
+      tags:
+        - Messages
+      summary: Пожаловаться на сообщение
+      description: Отправляет жалобу на сообщение модераторам
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+        - csrfToken: []
+      parameters:
+        - name: messageId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - reason
+              properties:
+                reason:
+                  type: string
+                  enum:
+                    - spam
+                    - harassment
+                    - hate_speech
+                    - violence
+                    - nsfw
+                    - other
+                  description: Причина жалобы
+                details:
+                  type: string
+                  maxLength: 500
+                  description: Дополнительные детали
+      responses:
+        '200':
+          description: Жалоба отправлена
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Жалоба отправлена на рассмотрение
+        '400':
+          description: Нельзя пожаловаться на свое сообщение
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'

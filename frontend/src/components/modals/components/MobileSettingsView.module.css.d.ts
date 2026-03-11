@@ -1,0 +1,32 @@
+declare const styles: {
+  readonly "backButton": string;
+  readonly "bannerActions": string;
+  readonly "bannerText": string;
+  readonly "bannerTextContainer": string;
+  readonly "bannerTextPrimary": string;
+  readonly "bannerTextWhite": string;
+  readonly "categoryList": string;
+  readonly "categorySection": string;
+  readonly "categoryTitle": string;
+  readonly "clientInfoContainer": string;
+  readonly "contentContainer": string;
+  readonly "divider": string;
+  readonly "header": string;
+  readonly "headerContent": string;
+  readonly "headerContentRelative": string;
+  readonly "headerSpacer": string;
+  readonly "headerTitle": string;
+  readonly "icon5": string;
+  readonly "scrollerContainer": string;
+  readonly "scrollerFlex": string;
+  readonly "settingsItem": string;
+  readonly "settingsItemArrow": string;
+  readonly "settingsItemContent": string;
+  readonly "settingsItemIcon": string;
+  readonly "settingsItemLabel": string;
+  readonly "settingsItemLabelContainer": string;
+  readonly "settingsItemPressed": string;
+  readonly "settingsItemSpinner": string;
+};
+export = styles;
+

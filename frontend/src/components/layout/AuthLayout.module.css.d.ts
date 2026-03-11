@@ -1,0 +1,30 @@
+declare const styles: {
+  readonly "alignLeft": string;
+  readonly "alignRight": string;
+  readonly "authWindowControls": string;
+  readonly "card": string;
+  readonly "cardContainer": string;
+  readonly "cardSingle": string;
+  readonly "characterBackground": string;
+  readonly "container": string;
+  readonly "formSide": string;
+  readonly "formSideSingle": string;
+  readonly "leftSplit": string;
+  readonly "leftSplitAnimated": string;
+  readonly "leftSplitWrapper": string;
+  readonly "logo": string;
+  readonly "logoSide": string;
+  readonly "mobileContainer": string;
+  readonly "mobileContent": string;
+  readonly "mobileLogoContainer": string;
+  readonly "mobileWordmark": string;
+  readonly "patternHost": string;
+  readonly "rightSplit": string;
+  readonly "scrollerWrapper": string;
+  readonly "splashImage": string;
+  readonly "splashOverlay": string;
+  readonly "topDragRegion": string;
+  readonly "wordmark": string;
+};
+export = styles;
+

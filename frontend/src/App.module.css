@@ -1,0 +1,109 @@
+/*
+ * Copyright (C) 2026 Fluxer Contributors
+ *
+ * This file is part of Fluxer.
+ *
+ * Fluxer is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Fluxer is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with Fluxer. If not, see <https://www.gnu.org/licenses/>.
+ */
+
+:global(html:not(.auth-page)) :local(.appContainer) {
+	height: 100svh;
+	min-height: 100svh;
+	box-sizing: border-box;
+	background: var(--background-global-color);
+	padding-top: 0;
+	padding-right: env(safe-area-inset-right);
+	padding-left: env(safe-area-inset-left);
+	overflow: hidden;
+	position: relative;
+	display: flex;
+	flex-direction: column;
+}
+
+:global(html.is-standalone:not(.auth-page)) :local(.appContainer) {
+	padding-top: env(safe-area-inset-top);
+}
+
+:global(html) :local(.overlayScope) {
+	position: fixed;
+	inset: 0;
+	z-index: var(--z-index-overlay);
+	pointer-events: none;
+}
+
+:global(html.platform-native:not(.platform-macos)) :local(.overlayScope) {
+	top: var(--native-titlebar-height);
+}
+
+:global(html) :local(.overlayScope) > :not([data-overlay-pass-through]) {
+	pointer-events: auto;
+}
+
+.workspaceHeader {
+	display: none;
+}
+
+:global(html.platform-native) .workspaceHeader {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	height: 36px;
+	min-height: 36px;
+	padding: 12px 0 0 0;
+	box-sizing: content-box;
+	background-color: transparent;
+	margin: 0 12px;
+	color: #f2f3f5;
+	position: relative;
+	z-index: 2;
+	-webkit-app-region: drag;
+	user-select: none;
+	flex-shrink: 0;
+}
+
+:global(html.platform-native) .workspaceHeaderInner {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 100%;
+	height: 36px;
+	background-color: #140f16;
+	border-radius: 12px;
+	position: relative;
+}
+
+.workspaceHeaderTitle {
+	font-size: 12px;
+	font-weight: 600;
+	line-height: 1.25;
+	text-align: center;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	pointer-events: none;
+}
+
+.standaloneWindowControls {
+	position: fixed;
+	top: 0;
+	right: 0;
+	height: 36px;
+	z-index: var(--z-index-titlebar);
+}
+
+.quickSwitcherPortal {
+	position: fixed;
+	inset: 0;
+	pointer-events: none;
+}

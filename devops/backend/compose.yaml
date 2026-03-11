@@ -1,0 +1,58 @@
+services:
+  api:
+    image: floodilka-backend:latest
+    hostname: api
+    command: ['npx', 'tsx', 'src/App.ts']
+    env_file:
+      - /var/www/floodilka/.env
+    networks:
+      - floodilka-shared
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: any
+        delay: 10s
+        max_attempts: 10
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+      labels:
+        caddy: stage.floodilka.com
+        caddy.handle_path: /api/*
+        caddy.handle_path.reverse_proxy: '{{upstreams 8080}}'
+    healthcheck:
+      test: ['CMD-SHELL', 'curl -fs http://localhost:8080/_health > /dev/null || exit 1']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  worker:
+    image: floodilka-backend:latest
+    hostname: worker
+    command: ['npx', 'tsx', 'src/worker/Worker.ts']
+    env_file:
+      - /var/www/floodilka/.env
+    networks:
+      - floodilka-shared
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: any
+        delay: 10s
+        max_attempts: 10
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+
+networks:
+  floodilka-shared:
+    external: true

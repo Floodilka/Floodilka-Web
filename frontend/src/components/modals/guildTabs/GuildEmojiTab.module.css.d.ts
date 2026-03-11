@@ -1,0 +1,37 @@
+declare const styles: {
+  readonly "container": string;
+  readonly "controls": string;
+  readonly "emojiGrid": string;
+  readonly "emojiItemsList": string;
+  readonly "emojiSection": string;
+  readonly "emojiSectionTitle": string;
+  readonly "emojiSections": string;
+  readonly "emojiSectionsGrid": string;
+  readonly "errorContainer": string;
+  readonly "errorDetails": string;
+  readonly "errorImage": string;
+  readonly "errorIntro": string;
+  readonly "errorItem": string;
+  readonly "errorMessage": string;
+  readonly "errorName": string;
+  readonly "header": string;
+  readonly "hiddenInput": string;
+  readonly "layoutControls": string;
+  readonly "layoutToggleButton": string;
+  readonly "layoutToggleButtonActive": string;
+  readonly "modalErrorContainer": string;
+  readonly "modalErrorDetails": string;
+  readonly "modalErrorImage": string;
+  readonly "modalErrorIntro": string;
+  readonly "modalErrorItem": string;
+  readonly "modalErrorMessage": string;
+  readonly "modalErrorName": string;
+  readonly "notice": string;
+  readonly "noticeText": string;
+  readonly "searchInput": string;
+  readonly "spinnerContainer": string;
+  readonly "subtitle": string;
+  readonly "title": string;
+};
+export = styles;
+

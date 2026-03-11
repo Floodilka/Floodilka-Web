@@ -1,0 +1,33 @@
+declare const styles: {
+  readonly "body": string;
+  readonly "content": string;
+  readonly "divider": string;
+  readonly "grid": string;
+  readonly "header": string;
+  readonly "helpText": string;
+  readonly "iconCircleDisabled": string;
+  readonly "iconError": string;
+  readonly "iconSlot": string;
+  readonly "pulse": string;
+  readonly "skeleton": string;
+  readonly "skeletonButton": string;
+  readonly "skeletonCircle": string;
+  readonly "skeletonDot": string;
+  readonly "skeletonIcon": string;
+  readonly "skeletonStat": string;
+  readonly "skeletonStatLong": string;
+  readonly "skeletonStatShort": string;
+  readonly "skeletonSubtitle": string;
+  readonly "skeletonTitle": string;
+  readonly "splash": string;
+  readonly "splashWrapper": string;
+  readonly "subtitle": string;
+  readonly "title": string;
+  readonly "titleButton": string;
+  readonly "titleDanger": string;
+  readonly "titlePrimary": string;
+  readonly "titleRow": string;
+  readonly "wrapper": string;
+};
+export = styles;
+

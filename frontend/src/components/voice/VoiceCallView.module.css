@@ -1,0 +1,657 @@
+/*
+ * Copyright (C) 2026 Fluxer Contributors
+ *
+ * This file is part of Fluxer.
+ *
+ * Fluxer is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Fluxer is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with Fluxer. If not, see <https://www.gnu.org/licenses/>.
+ */
+
+/* Flex-wrap grid for participant tiles */
+:global(.voice-grid) {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 10px;
+	justify-content: flex-start;
+	padding: 4px;
+	width: 100%;
+}
+
+:global(.voice-grid) > * {
+	flex: 0 0 calc(50% - 5px);
+	max-width: calc(50% - 5px);
+}
+
+/* Horizontal mode when stream is active */
+:global(.voice-grid--horizontal) {
+	flex-wrap: nowrap;
+	overflow-x: auto;
+	overflow-y: visible;
+	padding: 4px;
+	flex: 0 0 auto;
+	align-items: flex-start;
+}
+
+:global(.voice-grid--horizontal) > * {
+	flex: 0 0 120px;
+	width: 120px !important;
+	height: 120px !important;
+	max-width: 120px !important;
+}
+
+:global(.voice-grid--horizontal::-webkit-scrollbar) {
+	height: 4px;
+}
+
+:global(.voice-grid--horizontal::-webkit-scrollbar-track) {
+	background: rgba(255, 255, 255, 0.1);
+	border-radius: 2px;
+}
+
+:global(.voice-grid--horizontal::-webkit-scrollbar-thumb) {
+	background: rgba(255, 255, 255, 0.3);
+	border-radius: 2px;
+}
+
+@media (min-width: 800px) {
+	:global(.voice-grid) > * {
+		flex: 0 0 calc(33.333% - 7px);
+		max-width: calc(33.333% - 7px);
+	}
+}
+
+@media (min-width: 1200px) {
+	:global(.voice-grid) > * {
+		flex: 0 0 calc(25% - 8px);
+		max-width: calc(25% - 8px);
+	}
+}
+
+.lkParticipantTile {
+	--speaking-indicator-width: 2.5px;
+	position: relative;
+	display: flex;
+	flex-direction: column;
+	border-radius: 16px;
+	background-color: var(--background-tertiary);
+	width: 100%;
+	aspect-ratio: 1;
+	max-width: 100%;
+	overflow: hidden;
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+	cursor: pointer;
+}
+
+.lkParticipantTile::after {
+	content: '';
+	position: absolute;
+	inset: 0;
+	border-radius: inherit;
+	border: 3px solid transparent;
+	pointer-events: none;
+	z-index: 20;
+	transition: border-color 0.2s;
+}
+
+.lkParticipantTile[data-speaking='true']::after {
+	border-color: rgb(67, 181, 130);
+}
+
+.lkParticipantTile video {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+	border-radius: inherit;
+}
+
+.lkParticipantTile[data-source='screen_share'] video {
+	object-fit: contain;
+}
+
+.lkParticipantPlaceholder {
+	position: absolute;
+	inset: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background-color: var(--background-tertiary);
+	opacity: 0;
+	transition: opacity 0.2s ease-in-out;
+	pointer-events: none;
+	border-radius: inherit;
+	overflow: hidden;
+}
+
+.lkParticipantTile[data-video-muted='true'] .lkParticipantPlaceholder {
+	opacity: 1;
+}
+
+.lkParticipantPlaceholder .avatar {
+	font-size: 3rem;
+	font-weight: 600;
+	color: var(--text-primary);
+}
+
+.lkParticipantMetadata {
+	position: absolute;
+	right: 0.5rem;
+	bottom: 0.5rem;
+	left: 0.5rem;
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.5rem;
+	line-height: 1;
+	z-index: 10;
+	min-width: 0;
+	opacity: 1;
+}
+
+.participantName,
+.participantConn {
+	display: inline-block;
+	overflow: hidden;
+	white-space: nowrap;
+	opacity: 0;
+	max-width: 0;
+	margin-left: 0;
+}
+
+:global(.window-focused) .voiceRoot:hover .participantName,
+:global(.window-focused) .voiceRoot:focus-within .participantName {
+	opacity: 1;
+	max-width: 24ch;
+	margin-left: 0.375rem;
+}
+
+.voiceRoot.contextMenuActive .participantName {
+	opacity: 1;
+	max-width: 24ch;
+	margin-left: 0.375rem;
+}
+
+.voiceRoot.keyboardModeActive .participantName {
+	opacity: 1;
+	max-width: 24ch;
+	margin-left: 0.375rem;
+}
+
+:global(.window-focused) .voiceRoot:hover .participantConn,
+:global(.window-focused) .voiceRoot:focus-within .participantConn {
+	opacity: 1;
+	max-width: 10ch;
+	margin-left: 0.25rem;
+}
+
+.voiceRoot.contextMenuActive .participantConn {
+	opacity: 1;
+	max-width: 10ch;
+	margin-left: 0.25rem;
+}
+
+.voiceRoot.keyboardModeActive .participantConn {
+	opacity: 1;
+	max-width: 10ch;
+	margin-left: 0.25rem;
+}
+
+.lkParticipantMetadataItem {
+	display: inline-flex;
+	align-items: center;
+	gap: 0;
+	padding: 0.375rem 0.5rem;
+	background-color: rgba(0, 0, 0, 0.7);
+	border-radius: var(--radius-md);
+	color: white;
+	font-size: 0.875rem;
+	font-weight: 500;
+	min-width: 0;
+}
+
+.lkParticipantIcons {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.375rem;
+}
+
+.lkParticipantMetadataItem > span {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	min-width: 0;
+}
+
+.lkParticipantMetadataItem:first-child {
+	flex: 0 1 auto;
+	min-width: 0;
+}
+
+.lkParticipantMetadataItem:last-child {
+	flex-shrink: 0;
+	padding: 0.375rem;
+	aspect-ratio: 1;
+}
+
+.lkParticipantTile .lkParticipantMetadataItem:last-child {
+	opacity: 0;
+}
+
+.lkParticipantTile:hover .lkParticipantMetadataItem:last-child {
+	opacity: 1;
+}
+
+.tileContextMenuActive .lkParticipantMetadataItem:last-child {
+	opacity: 1 !important;
+}
+
+.voiceRoot.keyboardModeActive .lkParticipantTile .lkParticipantMetadataItem:last-child {
+	opacity: 1;
+}
+
+.lkFocusToggle {
+	position: absolute;
+	top: 0.5rem;
+	right: 0.5rem;
+	padding: 0.375rem;
+	background-color: rgba(0, 0, 0, 0.7);
+	border-radius: var(--radius-md);
+	color: white;
+	opacity: 0;
+	border: none;
+	cursor: pointer;
+	z-index: 10;
+}
+
+.lkFocusToggle:hover {
+	background-color: rgba(0, 0, 0, 0.9);
+}
+
+.lkParticipantTile:hover .lkFocusToggle,
+.lkParticipantTile:focus-within .lkFocusToggle {
+	opacity: 1;
+}
+
+.gridLayoutWrapper {
+	display: flex;
+	flex-direction: column;
+	width: 100%;
+	height: 100%;
+	overflow-y: auto;
+	padding: 24px 16px 16px;
+	min-height: 0;
+}
+
+.gridLayoutWrapperStream {
+	display: flex;
+	flex-direction: column;
+	width: 100%;
+	height: 100%;
+	overflow: hidden;
+	padding: 0 16px 16px;
+	min-height: 0;
+}
+
+/* Stream player - shown at top when watching a stream */
+.streamPlayer {
+	position: relative;
+	width: 100%;
+	flex: 1 1 0;
+	min-height: 0;
+	max-height: calc(100% - 140px);
+	background: #000;
+	border-radius: 16px;
+	overflow: hidden;
+	margin-bottom: 12px;
+}
+
+.streamPlayer .lkParticipantTile {
+	position: absolute;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+	border-radius: 16px;
+	aspect-ratio: unset;
+}
+
+.streamPlayer .lkParticipantTile video {
+	border-radius: 16px;
+	object-fit: contain;
+	width: 100%;
+	height: 100%;
+}
+
+.streamPlayer .lkParticipantPlaceholder {
+	border-radius: 16px;
+}
+
+.voiceRoot {
+	position: relative;
+}
+
+.voiceChrome {
+	opacity: 0;
+	pointer-events: none;
+}
+
+.voiceHeader {
+	background: transparent !important;
+	border-bottom: none !important;
+	box-shadow: none !important;
+}
+
+:global(.window-focused) .voiceRoot:hover .voiceChrome {
+	opacity: 1;
+	pointer-events: auto;
+}
+
+:global(.window-focused) .voiceRoot:focus-within .voiceChrome {
+	opacity: 1;
+	pointer-events: auto;
+}
+
+.voiceRoot.contextMenuActive .voiceChrome {
+	opacity: 1;
+	pointer-events: auto;
+}
+
+.voiceRoot.keyboardModeActive .voiceChrome {
+	opacity: 1;
+	pointer-events: auto;
+}
+
+@media (max-width: 768px) {
+	.mainContent {
+		padding-left: 1rem;
+		padding-right: 1rem;
+		justify-content: flex-start;
+		align-items: stretch;
+		gap: 0.5rem;
+	}
+
+	.gridLayoutWrapper {
+		padding-top: 0;
+		padding-bottom: 0;
+	}
+
+	.voiceChrome {
+		opacity: 1;
+		pointer-events: auto;
+	}
+
+	.controlBarContainer {
+		--voice-control-horizontal-padding: 1rem;
+		--voice-control-top-padding: 1rem;
+		--voice-control-bottom-padding: calc(0.75rem + env(safe-area-inset-bottom, 0px));
+	}
+}
+
+.root {
+	display: grid;
+	grid-template-rows: auto minmax(0, 1fr) auto;
+	grid-template-areas:
+		'header'
+		'main'
+		'footer';
+	height: 100%;
+	width: 100%;
+	background-color: var(--background-global-color);
+}
+
+.chrome {
+	grid-area: header;
+	position: relative;
+	z-index: 20;
+	display: flex;
+	height: 64px;
+	align-items: center;
+	justify-content: space-between;
+	background: var(--background-secondary);
+	padding-left: 1rem;
+	padding-right: 1rem;
+	border-top: none;
+	box-shadow: none;
+}
+
+.chromeMobile {
+	height: 56px;
+}
+
+.channelInfoContainer {
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+}
+
+.backButton {
+	display: flex;
+	height: 32px;
+	width: 32px;
+	flex-shrink: 0;
+	align-items: center;
+	justify-content: center;
+	border-radius: 6px;
+	background-color: var(--background-modifier-hover);
+	color: var(--text-primary);
+	transition-duration: 150ms;
+	transition-property: color, background-color, border-color, text-decoration-color, fill, stroke;
+	cursor: pointer;
+}
+
+.backButton:hover {
+	background-color: var(--background-modifier-selected);
+}
+
+.backButtonMobileOnly {
+	display: none;
+}
+
+@media (max-width: 768px) {
+	.backButtonDesktopOnly {
+		display: none;
+	}
+
+	.backButtonMobileOnly {
+		display: flex;
+	}
+}
+
+.channelIconContainer {
+	display: flex;
+	height: 32px;
+	width: 32px;
+	align-items: center;
+	justify-content: center;
+}
+
+.channelTextContainer {
+	display: flex;
+	flex-direction: column;
+}
+
+.channelName {
+	font-weight: 600;
+	color: var(--text-primary);
+}
+
+.participantCount {
+	color: var(--text-secondary);
+	font-size: 0.75rem;
+	line-height: 1rem;
+}
+
+.controlsContainer {
+	display: flex;
+	align-items: center;
+	gap: 0.25rem;
+}
+
+.connectionStatusContainer {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	border-radius: 6px;
+	padding-left: 0.75rem;
+	padding-right: 0.75rem;
+	padding-top: 0.25rem;
+	padding-bottom: 0.25rem;
+	font-weight: 600;
+	font-size: 0.75rem;
+	line-height: 1rem;
+}
+
+.statusConnecting {
+	background-color: rgb(234 179 8 / 0.2);
+	color: rgb(245 158 11);
+}
+
+.statusReconnecting {
+	background-color: rgb(234 179 8 / 0.2);
+	color: rgb(245 158 11);
+}
+
+.statusDisconnected {
+	background-color: rgb(239 68 68 / 0.2);
+	color: rgb(239 68 68);
+}
+
+.statusConnected {
+	background-color: rgb(34 197 94 / 0.2);
+	color: rgb(34 197 94);
+}
+
+.connectionStatusDot {
+	height: 8px;
+	width: 8px;
+	border-radius: 9999px;
+	background-color: currentColor;
+	animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse {
+	0%,
+	100% {
+		opacity: 1;
+	}
+	50% {
+		opacity: 0.5;
+	}
+}
+
+.headerButton {
+	display: flex;
+	height: 32px;
+	width: 32px;
+	align-items: center;
+	justify-content: center;
+	border-radius: 6px;
+	color: var(--text-primary);
+	transition-duration: 150ms;
+	transition-property: color, background-color, border-color, text-decoration-color, fill, stroke;
+	cursor: pointer;
+}
+
+.headerButton:hover {
+	background-color: var(--background-modifier-selected);
+}
+
+.headerButtonActive {
+	background-color: var(--background-modifier-selected);
+}
+
+.mainContent {
+	grid-area: main;
+	position: relative;
+	display: flex;
+	flex-direction: column;
+	justify-content: flex-start;
+	align-items: stretch;
+	height: 100%;
+	overflow: hidden;
+	min-height: 0;
+	min-width: 0;
+}
+
+.controlBarContainer {
+	grid-area: footer;
+	position: relative;
+	z-index: 30;
+	display: flex;
+	justify-content: center;
+	background: var(--background-global-color);
+	--voice-control-horizontal-padding: 1.5rem;
+	--voice-control-top-padding: 1.5rem;
+	--voice-control-bottom-padding: calc(1rem + env(safe-area-inset-bottom, 0px));
+	padding-left: var(--voice-control-horizontal-padding);
+	padding-right: var(--voice-control-horizontal-padding);
+	padding-top: var(--voice-control-top-padding);
+	padding-bottom: var(--voice-control-bottom-padding);
+	pointer-events: none;
+}
+
+.controlBarContainer::before {
+	content: '';
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	height: 30px;
+	background: linear-gradient(to top, var(--background-global-color) 0%, transparent 100%);
+	pointer-events: none;
+	transform: translateY(-100%);
+}
+
+.controlBarContainer > * {
+	pointer-events: auto;
+}
+
+.srOnly {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	padding: 0;
+	margin: -1px;
+	overflow: hidden;
+	clip: rect(0, 0, 0, 0);
+	white-space: nowrap;
+	border-width: 0;
+}
+
+.iconMedium {
+	height: 20px;
+	width: 20px;
+}
+
+.iconLarge {
+	height: 24px;
+	width: 24px;
+}
+
+.channelIconStyling {
+	height: 20px;
+	width: 20px;
+	color: var(--text-primary);
+}
+
+.voiceCallSheetContent {
+	display: flex;
+	flex-direction: column;
+	gap: 1rem;
+}
+
+.voiceCallSheetCompact {
+	width: 100%;
+	min-height: 0;
+	border-radius: var(--radius-lg);
+	overflow: hidden;
+}

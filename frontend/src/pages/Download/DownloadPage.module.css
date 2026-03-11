@@ -1,0 +1,307 @@
+.main {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 64px 0 0;
+  gap: 88px;
+  width: 100%;
+  min-height: 100vh;
+}
+
+
+.hero {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding-top: 80px;
+  gap: 32px;
+  width: 100%;
+  max-width: 922px;
+  text-align: center;
+}
+
+.heroTitle {
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  font-size: 64px;
+  line-height: 77px;
+  text-align: center;
+  margin: 0;
+  background: linear-gradient(90deg, #6DA9F6 0%, #E6AFFF 48.56%, #2AE8BD 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* === CARDS CONTAINER === */
+.cards {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 88px;
+  width: 100%;
+  max-width: 1240px;
+  padding: 0 16px;
+  box-sizing: border-box;
+}
+
+/* === CARD === */
+.card {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  gap: 48px;
+  width: 100%;
+  height: 540px;
+  background: #180E20;
+  border-radius: 32px;
+  overflow: hidden;
+}
+
+.cardReverse {
+  flex-direction: row-reverse;
+}
+
+/* === CARD MEDIA === */
+.cardMedia {
+  position: relative;
+  flex-shrink: 0;
+  width: 516px;
+  height: 540px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.cardMediaDesktop {
+  width: 587px;
+}
+
+.phoneImage {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: auto;
+  height: 500px;
+  max-width: none;
+  display: block;
+  object-fit: contain;
+}
+
+.desktopImage {
+  position: absolute;
+  left: 0;
+  top: 60px;
+  width: 180%;
+  max-width: none;
+  height: auto;
+  display: block;
+  border-radius: 16px;
+}
+
+/* === CARD CONTENT === */
+.cardContent {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 0 64px;
+  gap: 32px;
+  flex: 1;
+  min-width: 0;
+}
+
+.cardTitle {
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  font-size: 36px;
+  line-height: 44px;
+  color: #FFFFFF;
+  margin: 0;
+}
+
+/* === BUTTONS === */
+.buttons {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 10px;
+  width: 100%;
+}
+
+.storeBtn {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  padding: 12px 16px;
+  gap: 16px;
+  background: #0F0616;
+  border-radius: 16px;
+  border: none;
+  color: #FFFFFF;
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  font-size: 16px;
+  line-height: 19px;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  white-space: nowrap;
+}
+
+.storeBtn:hover {
+  background: #241530;
+}
+
+.storeBtn svg {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+}
+
+/* === QR BLOCK === */
+.qrBlock {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  padding: 16px;
+  gap: 32px;
+  background: #0F0616;
+  border-radius: 16px;
+}
+
+.qrCode {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.qrCode canvas {
+  width: 110px !important;
+  height: 110px !important;
+  border-radius: 12px !important;
+}
+
+.qrText {
+  margin: 0;
+  font-family: 'Inter', sans-serif;
+  font-weight: 400;
+  font-size: 18px;
+  line-height: 22px;
+  color: #C2C2C2;
+}
+
+/* === RESPONSIVE === */
+@media (max-width: 1024px) {
+  .main {
+    gap: 80px;
+  }
+
+  .card {
+    height: auto;
+    flex-direction: column;
+    padding: 32px;
+  }
+
+  .cardReverse {
+    flex-direction: column;
+  }
+
+  .cardMedia {
+    width: 100%;
+    height: 400px;
+  }
+
+  .cardMediaDesktop {
+    width: 100%;
+    height: 350px;
+  }
+
+  .desktopImage {
+    width: 120%;
+    top: 40px;
+  }
+
+  .cardContent {
+    padding: 0;
+  }
+
+  .cardTitle {
+    font-size: 36px;
+    line-height: 44px;
+  }
+}
+
+@media (max-width: 768px) {
+  .main {
+    gap: 60px;
+    padding-top: 32px;
+  }
+
+  .hero {
+    padding-top: 80px;
+  }
+
+  .heroTitle {
+    font-size: 36px;
+    line-height: 44px;
+  }
+
+  .cards {
+    gap: 48px;
+  }
+
+  .card {
+    padding: 24px;
+    gap: 32px;
+  }
+
+  .cardMedia {
+    height: 320px;
+  }
+
+  .cardMediaDesktop {
+    height: 280px;
+  }
+
+  .cardTitle {
+    font-size: 28px;
+    line-height: 34px;
+  }
+
+  .buttons {
+    flex-direction: column;
+  }
+
+  .qrBlock {
+    flex-direction: column;
+    text-align: center;
+    gap: 16px;
+  }
+
+}
+
+@media (max-width: 480px) {
+  .heroTitle {
+    font-size: 28px;
+    line-height: 34px;
+  }
+
+  .cardTitle {
+    font-size: 24px;
+    line-height: 29px;
+  }
+
+  .cardMedia {
+    height: 260px;
+  }
+
+  .desktopImage {
+    width: 150%;
+  }
+}

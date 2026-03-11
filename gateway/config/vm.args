@@ -1,0 +1,11 @@
+-name floodilka_gateway@gateway
++K true
++A30
+-env ERL_MAX_PORTS 4096
+-env ERL_PROCESSES 262144
++P 262144
++Q 65536
++S 4:4
++zdbbl 32768
+-kernel logger_level debug
+-kernel inet_backend socket

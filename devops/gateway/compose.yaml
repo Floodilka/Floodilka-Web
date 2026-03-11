@@ -1,0 +1,42 @@
+services:
+  gateway:
+    image: floodilka-gateway:latest
+    hostname: gateway
+    environment:
+      - RELEASE_NODE=floodilka_gateway@gateway
+      - CLUSTER_NAME=floodilka_gateway
+      - CLUSTER_DISCOVERY_DNS=gateway
+      - NODE_COOKIE=floodilka_prod_cookie
+      - LOGGER_LEVEL=info
+      - FLUXER_API_HOST=api:8080
+      - MEDIA_PROXY_ENDPOINT=https://stage.floodilka.com/media
+    env_file:
+      - /var/www/floodilka/.env
+    networks:
+      - floodilka-shared
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: any
+        delay: 10s
+        max_attempts: 10
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+      labels:
+        caddy_gw: gateway.stage.floodilka.com
+        caddy_gw.reverse_proxy: '{{upstreams 8080}}'
+    healthcheck:
+      test: ['CMD-SHELL', 'curl -fs http://localhost:8080/_health > /dev/null || exit 1']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+networks:
+  floodilka-shared:
+    external: true

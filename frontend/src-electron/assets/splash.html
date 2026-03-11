@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Floodilka</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0F0C10;
+      color: #fff;
+      overflow: hidden;
+      user-select: none;
+      -webkit-app-region: drag;
+    }
+
+    .container {
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 40px;
+    }
+
+    .loading-content {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 24px;
+      margin-bottom: 32px;
+    }
+
+    .spinner-container {
+      position: relative;
+      width: 100px;
+      height: 100px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .spinner-ring {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      border: 4px solid rgba(88, 101, 242, 0.15);
+      border-top-color: #5865F2;
+      border-right-color: #5865F2;
+      border-radius: 50%;
+      animation: spin 1.5s cubic-bezier(0.68, -0.55, 0.265, 1.55) infinite;
+      box-shadow: 0 0 20px rgba(88, 101, 242, 0.3);
+    }
+
+    .spinner-logo {
+      position: relative;
+      width: 50px;
+      height: 50px;
+      z-index: 1;
+      animation: logoFloat 3s ease-in-out infinite;
+    }
+
+    .spinner-logo img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      filter: drop-shadow(0 0 15px rgba(88, 101, 242, 0.5));
+      animation: logoGlow 2s ease-in-out infinite;
+    }
+
+    @keyframes logoFloat {
+      0%, 100% { transform: translateY(0px) scale(1); }
+      50% { transform: translateY(-5px) scale(1.02); }
+    }
+
+    @keyframes logoGlow {
+      0%, 100% { filter: drop-shadow(0 0 15px rgba(88, 101, 242, 0.5)); }
+      50% { filter: drop-shadow(0 0 25px rgba(88, 101, 242, 0.7)); }
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .status-container {
+      width: 100%;
+      max-width: 280px;
+    }
+
+    .status-text {
+      font-size: 12px;
+      color: #b5bac1;
+      margin-bottom: 12px;
+      text-align: center;
+      min-height: 16px;
+    }
+
+    .progress-container {
+      width: 100%;
+      height: 4px;
+      background: #1a1520;
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    .progress-bar {
+      height: 100%;
+      background: linear-gradient(90deg, #5865f2, #7289da);
+      border-radius: 2px;
+      width: 30%;
+      animation: indeterminate 1.5s ease-in-out infinite;
+      transition: width 0.3s ease;
+    }
+
+    .progress-bar.determinate {
+      animation: none;
+      transform: none;
+    }
+
+    @keyframes indeterminate {
+      0% { transform: translateX(-100%); }
+      100% { transform: translateX(400%); }
+    }
+
+    .version {
+      position: absolute;
+      bottom: 16px;
+      left: 0;
+      right: 0;
+      text-align: center;
+      font-size: 11px;
+      color: #4f545c;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="loading-content">
+      <div class="spinner-container">
+        <div class="spinner-ring"></div>
+        <div class="spinner-logo">
+          <img src="logo_nobg.png" alt="Floodilka" />
+        </div>
+      </div>
+    </div>
+
+    <div class="status-container">
+      <div class="status-text" id="statusText"></div>
+      <div class="progress-container">
+        <div class="progress-bar" id="progressBar"></div>
+      </div>
+    </div>
+
+    <div class="version" id="version"></div>
+  </div>
+</body>
+</html>

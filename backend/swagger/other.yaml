@@ -1,0 +1,329 @@
+# Mentions, Moderation & System API Documentation
+
+paths:
+  # ============ MENTIONS ============
+  /api/mentions:
+    get:
+      tags:
+        - Mentions
+      summary: Получить непрочитанные упоминания
+      description: |
+        Возвращает список непрочитанных упоминаний текущего пользователя.
+        Включает упоминания @username и @everyone.
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Список упоминаний
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  mentions:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                        channelId:
+                          type: string
+                        channelName:
+                          type: string
+                        serverId:
+                          type: string
+                        serverName:
+                          type: string
+                        messageId:
+                          type: string
+                        messagePreview:
+                          type: string
+                        author:
+                          $ref: '#/components/schemas/UserPublic'
+                        type:
+                          type: string
+                          enum: [user, everyone]
+                        createdAt:
+                          type: string
+                          format: date-time
+                  count:
+                    type: integer
+                    description: Общее количество непрочитанных
+
+  /api/mentions/channel/{channelId}:
+    delete:
+      tags:
+        - Mentions
+      summary: Отметить упоминания в канале как прочитанные
+      description: Отмечает все упоминания в указанном канале как прочитанные
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      parameters:
+        - name: channelId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID канала
+      responses:
+        '200':
+          description: Упоминания отмечены как прочитанные
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  deletedCount:
+                    type: integer
+                    description: Количество отмеченных упоминаний
+
+  # ============ MODERATION ============
+  /api/moderation/reports:
+    get:
+      tags:
+        - Moderation
+      summary: Получить жалобы
+      description: |
+        Возвращает список жалоб на сообщения.
+        **Только для администраторов.**
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, resolved, dismissed]
+          description: Фильтр по статусу
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: Список жалоб
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  reports:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Report'
+                  total:
+                    type: integer
+                  hasMore:
+                    type: boolean
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/moderation/reports/{reportId}/resolve:
+    post:
+      tags:
+        - Moderation
+      summary: Разрешить жалобу
+      description: |
+        Обрабатывает жалобу и выполняет указанное действие.
+        **Только для администраторов.**
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+        - csrfToken: []
+      parameters:
+        - name: reportId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID жалобы
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - action
+              properties:
+                action:
+                  type: string
+                  enum:
+                    - dismiss
+                    - delete_message
+                    - warn_user
+                    - ban_user
+                  description: |
+                    Действие:
+                    - dismiss - отклонить жалобу
+                    - delete_message - удалить сообщение
+                    - warn_user - предупредить пользователя
+                    - ban_user - забанить пользователя
+                note:
+                  type: string
+                  maxLength: 500
+                  description: Заметка модератора
+      responses:
+        '200':
+          description: Жалоба обработана
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Жалоба обработана
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ============ SYSTEM ============
+  /api/system/stats:
+    get:
+      tags:
+        - System
+      summary: Получить системную статистику
+      description: |
+        Возвращает статистику системы: количество пользователей, серверов, сообщений и т.д.
+        **Только для администраторов.**
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Системная статистика
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  stats:
+                    type: object
+                    properties:
+                      users:
+                        type: object
+                        properties:
+                          total:
+                            type: integer
+                            example: 10000
+                          online:
+                            type: integer
+                            example: 1500
+                          verified:
+                            type: integer
+                            example: 8500
+                          banned:
+                            type: integer
+                            example: 50
+                      servers:
+                        type: object
+                        properties:
+                          total:
+                            type: integer
+                            example: 2000
+                      channels:
+                        type: object
+                        properties:
+                          text:
+                            type: integer
+                            example: 5000
+                          voice:
+                            type: integer
+                            example: 1000
+                      messages:
+                        type: object
+                        properties:
+                          total:
+                            type: integer
+                            example: 500000
+                          today:
+                            type: integer
+                            example: 5000
+                      calls:
+                        type: object
+                        properties:
+                          active:
+                            type: integer
+                            example: 50
+                          total:
+                            type: integer
+                            example: 10000
+                      reports:
+                        type: object
+                        properties:
+                          pending:
+                            type: integer
+                            example: 10
+                          total:
+                            type: integer
+                            example: 100
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  # ============ HEALTH ============
+  /health:
+    get:
+      tags:
+        - System
+      summary: Проверка здоровья сервиса
+      description: |
+        Возвращает статус сервиса и подключенных компонентов.
+        Не требует аутентификации.
+      responses:
+        '200':
+          description: Сервис работает
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+                  timestamp:
+                    type: string
+                    format: date-time
+                  environment:
+                    type: string
+                    example: production
+                  services:
+                    type: object
+                    properties:
+                      redis:
+                        type: object
+                        properties:
+                          healthy:
+                            type: boolean
+                          latency:
+                            type: integer
+                            description: Задержка в мс
+                      scalingMode:
+                        type: string
+                        enum: [multi-instance, single-instance]

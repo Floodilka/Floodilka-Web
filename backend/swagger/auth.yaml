@@ -1,0 +1,775 @@
+# Auth API Documentation
+
+paths:
+  /api/auth/check-email:
+    post:
+      tags:
+        - Auth
+      summary: Проверка доступности email
+      description: Проверяет, занят ли указанный email адрес
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: user@example.com
+      responses:
+        '200':
+          description: Результат проверки
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  available:
+                    type: boolean
+                    example: true
+                    description: true - email свободен, false - занят
+        '400':
+          description: Неверный формат email
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/auth/check-username:
+    post:
+      tags:
+        - Auth
+      summary: Проверка доступности username
+      description: Проверяет, занято ли указанное имя пользователя
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - username
+              properties:
+                username:
+                  type: string
+                  minLength: 3
+                  maxLength: 20
+                  example: john_doe
+      responses:
+        '200':
+          description: Результат проверки
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  available:
+                    type: boolean
+                    example: true
+
+  /api/auth/register:
+    post:
+      tags:
+        - Auth
+      summary: Регистрация нового пользователя
+      description: |
+        Создает новый аккаунт. После регистрации на email будет отправлено письмо для подтверждения.
+
+        **Требования к паролю:**
+        - Минимум 6 символов
+
+        **Требования к username:**
+        - От 3 до 20 символов
+        - Только буквы, цифры и подчеркивания
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - username
+                - email
+                - password
+              properties:
+                username:
+                  type: string
+                  minLength: 3
+                  maxLength: 20
+                  example: john_doe
+                email:
+                  type: string
+                  format: email
+                  example: john@example.com
+                password:
+                  type: string
+                  format: password
+                  minLength: 6
+                  example: securePassword123
+      responses:
+        '201':
+          description: Пользователь успешно создан
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Регистрация успешна. Проверьте email для подтверждения.
+                  user:
+                    $ref: '#/components/schemas/User'
+        '400':
+          description: Ошибка валидации или email/username уже заняты
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/auth/login:
+    post:
+      tags:
+        - Auth
+      summary: Вход в систему
+      description: |
+        Аутентификация пользователя по email и паролю.
+        При успешном входе устанавливается cookie `accessToken` с JWT токеном.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: john@example.com
+                password:
+                  type: string
+                  format: password
+                  example: securePassword123
+      responses:
+        '200':
+          description: Успешный вход
+          headers:
+            Set-Cookie:
+              schema:
+                type: string
+                example: accessToken=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...; HttpOnly; Secure; SameSite=Strict
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  user:
+                    $ref: '#/components/schemas/User'
+                  token:
+                    type: string
+                    description: JWT токен (также устанавливается в cookie)
+        '401':
+          description: Неверный email или пароль
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Аккаунт заблокирован или email не подтвержден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/auth/me:
+    get:
+      tags:
+        - Auth
+      summary: Получить текущего пользователя
+      description: Возвращает информацию о текущем авторизованном пользователе
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Информация о пользователе
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  user:
+                    $ref: '#/components/schemas/User'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/auth/csrf-token:
+    get:
+      tags:
+        - Auth
+      summary: Получить CSRF токен
+      description: |
+        Возвращает CSRF токен для защищенных запросов.
+        Токен должен передаваться в заголовке `X-CSRF-Token` для POST/PUT/PATCH/DELETE запросов.
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      responses:
+        '200':
+          description: CSRF токен
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  csrfToken:
+                    type: string
+                    example: abc123def456...
+
+  /api/auth/logout:
+    post:
+      tags:
+        - Auth
+      summary: Выход из системы
+      description: Завершает сессию и удаляет cookie с токеном
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+        - csrfToken: []
+      responses:
+        '200':
+          description: Успешный выход
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Выход выполнен успешно
+
+  /api/auth/user/{userId}:
+    get:
+      tags:
+        - Auth
+      summary: Получить пользователя по ID
+      description: Возвращает публичную информацию о пользователе
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID пользователя
+          example: 507f1f77bcf86cd799439011
+      responses:
+        '200':
+          description: Информация о пользователе
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  user:
+                    $ref: '#/components/schemas/UserPublic'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/auth/avatar:
+    post:
+      tags:
+        - Auth
+      summary: Загрузить аватар
+      description: |
+        Загружает новый аватар для текущего пользователя.
+
+        **Поддерживаемые форматы:** JPEG, PNG, GIF, WebP
+        **Максимальный размер:** 5 MB
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+        - csrfToken: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                avatar:
+                  type: string
+                  format: binary
+                  description: Файл изображения
+      responses:
+        '200':
+          description: Аватар успешно загружен
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  avatar:
+                    type: string
+                    example: https://storage.floodilka.com/avatars/123.jpg
+        '400':
+          description: Неверный формат файла или превышен размер
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/auth/displayname:
+    patch:
+      tags:
+        - Auth
+      summary: Обновить отображаемое имя
+      description: Изменяет displayName текущего пользователя
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+        - csrfToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - displayName
+              properties:
+                displayName:
+                  type: string
+                  maxLength: 32
+                  example: John Doe
+      responses:
+        '200':
+          description: Имя успешно обновлено
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  displayName:
+                    type: string
+                    example: John Doe
+
+  /api/auth/assign-badge:
+    post:
+      tags:
+        - Auth
+      summary: Назначить бейдж пользователю
+      description: |
+        Назначает бейдж (тег) указанному пользователю.
+        **Только для администраторов.**
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+        - csrfToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - userId
+                - badge
+              properties:
+                userId:
+                  type: string
+                  example: 507f1f77bcf86cd799439011
+                badge:
+                  type: string
+                  example: VIP
+                badgeTooltip:
+                  type: string
+                  example: VIP пользователь
+      responses:
+        '200':
+          description: Бейдж успешно назначен
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/auth/verify-email-code:
+    post:
+      tags:
+        - Auth
+      summary: Подтвердить email по коду
+      description: Подтверждает email адрес с помощью кода, отправленного на почту
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - code
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: john@example.com
+                code:
+                  type: string
+                  example: "123456"
+      responses:
+        '200':
+          description: Email успешно подтвержден
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Email успешно подтвержден
+        '400':
+          description: Неверный или истекший код
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/auth/verify-email:
+    get:
+      tags:
+        - Auth
+      summary: Подтвердить email по ссылке
+      description: Подтверждает email адрес по токену из ссылки в письме
+      parameters:
+        - name: token
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Токен подтверждения из письма
+      responses:
+        '200':
+          description: Email успешно подтвержден
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Email успешно подтвержден
+
+  /api/auth/forgot-password:
+    post:
+      tags:
+        - Auth
+      summary: Запросить восстановление пароля
+      description: |
+        Отправляет код восстановления пароля на email.
+
+        **Rate limit:** 3 запроса в час
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: john@example.com
+      responses:
+        '200':
+          description: Код отправлен на email
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Код восстановления отправлен на email
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /api/auth/verify-reset-code:
+    post:
+      tags:
+        - Auth
+      summary: Проверить код восстановления
+      description: |
+        Проверяет код восстановления пароля.
+
+        **Rate limit:** 5 попыток за 15 минут
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - code
+              properties:
+                email:
+                  type: string
+                  format: email
+                code:
+                  type: string
+                  example: "123456"
+      responses:
+        '200':
+          description: Код верный
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  resetToken:
+                    type: string
+                    description: Токен для сброса пароля
+        '400':
+          description: Неверный код
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /api/auth/reset-password:
+    post:
+      tags:
+        - Auth
+      summary: Сбросить пароль
+      description: Устанавливает новый пароль с помощью токена восстановления
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - token
+                - password
+              properties:
+                token:
+                  type: string
+                  description: Токен из verify-reset-code
+                password:
+                  type: string
+                  format: password
+                  minLength: 6
+                  example: newSecurePassword123
+      responses:
+        '200':
+          description: Пароль успешно изменен
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Пароль успешно изменен
+
+  /api/auth/resend-verification:
+    post:
+      tags:
+        - Auth
+      summary: Повторно отправить письмо верификации
+      description: Отправляет новое письмо для подтверждения email
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: john@example.com
+      responses:
+        '200':
+          description: Письмо отправлено
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Письмо верификации отправлено
+
+  /api/auth/voip-token:
+    post:
+      tags:
+        - Auth
+      summary: Зарегистрировать VoIP push токен
+      description: Регистрирует токен для VoIP push уведомлений (iOS)
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+        - csrfToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - token
+              properties:
+                token:
+                  type: string
+                  description: APNs VoIP токен
+      responses:
+        '200':
+          description: Токен зарегистрирован
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+    delete:
+      tags:
+        - Auth
+      summary: Удалить VoIP push токен
+      description: Удаляет зарегистрированный VoIP push токен
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+        - csrfToken: []
+      responses:
+        '200':
+          description: Токен удален
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+
+  /api/auth/push-token:
+    post:
+      tags:
+        - Auth
+      summary: Зарегистрировать push токен
+      description: Регистрирует токен для push уведомлений о сообщениях
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+        - csrfToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - token
+              properties:
+                token:
+                  type: string
+                  description: APNs push токен
+      responses:
+        '200':
+          description: Токен зарегистрирован
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+    delete:
+      tags:
+        - Auth
+      summary: Удалить push токен
+      description: Удаляет зарегистрированный push токен
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+        - csrfToken: []
+      responses:
+        '200':
+          description: Токен удален
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true

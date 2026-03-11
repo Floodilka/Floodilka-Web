@@ -1,0 +1,30 @@
+declare const styles: {
+  readonly "bottomSheetContent": string;
+  readonly "checkIcon": string;
+  readonly "checkbox": string;
+  readonly "checkboxContainer": string;
+  readonly "checked": string;
+  readonly "danger": string;
+  readonly "disabled": string;
+  readonly "divider": string;
+  readonly "groupContainer": string;
+  readonly "groupSpacer": string;
+  readonly "groupStack": string;
+  readonly "groupStackWithHeader": string;
+  readonly "headerSlot": string;
+  readonly "iconContainer": string;
+  readonly "label": string;
+  readonly "labelColumn": string;
+  readonly "menuItem": string;
+  readonly "pressed": string;
+  readonly "pressedDanger": string;
+  readonly "radio": string;
+  readonly "radioContainer": string;
+  readonly "radioInner": string;
+  readonly "radioSelected": string;
+  readonly "sliderContainer": string;
+  readonly "sliderLabel": string;
+  readonly "subtext": string;
+};
+export = styles;
+

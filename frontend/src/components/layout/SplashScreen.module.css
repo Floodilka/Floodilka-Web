@@ -1,0 +1,170 @@
+/*
+ * Copyright (C) 2026 Fluxer Contributors
+ *
+ * This file is part of Fluxer.
+ *
+ * Fluxer is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Fluxer is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with Fluxer. If not, see <https://www.gnu.org/licenses/>.
+ */
+
+.splashOverlay {
+	position: fixed;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	width: 100%;
+	height: 100%;
+	background-color: #0f0c10;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	z-index: var(--z-index-overlay);
+}
+
+:global(html.platform-native:not(.platform-macos)) .splashOverlay {
+	top: 0;
+}
+
+.topDragRegion {
+	position: fixed;
+	top: 0;
+	left: 0;
+	right: 0;
+	height: var(--layout-header-height);
+	z-index: 100;
+	pointer-events: none;
+}
+
+:global(html.platform-native.platform-macos) .topDragRegion {
+	pointer-events: auto;
+}
+
+.splashContent {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 24px;
+}
+
+.spinnerContainer {
+	position: relative;
+	width: 120px;
+	height: 120px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.spinner {
+	position: relative;
+	width: 100%;
+	height: 100%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.spinnerRing {
+	position: absolute;
+	width: 100%;
+	height: 100%;
+	border: 4px solid rgba(88, 101, 242, 0.15);
+	border-top-color: #5865f2;
+	border-right-color: #5865f2;
+	border-radius: 50%;
+	animation: spin 1.5s cubic-bezier(0.68, -0.55, 0.265, 1.55) infinite;
+	box-shadow: 0 0 20px rgba(88, 101, 242, 0.3);
+}
+
+.spinnerLogo {
+	position: relative;
+	width: 60px;
+	height: 60px;
+	z-index: 1;
+	animation: logoFloat 3s ease-in-out infinite;
+}
+
+.spinnerLogo img {
+	width: 100%;
+	height: 100%;
+	object-fit: contain;
+	filter: drop-shadow(0 0 15px rgba(88, 101, 242, 0.5));
+	animation: logoGlow 2s ease-in-out infinite;
+}
+
+@keyframes logoFloat {
+	0%,
+	100% {
+		transform: translateY(0px) scale(1);
+	}
+	50% {
+		transform: translateY(-5px) scale(1.02);
+	}
+}
+
+@keyframes logoGlow {
+	0%,
+	100% {
+		filter: drop-shadow(0 0 15px rgba(88, 101, 242, 0.5));
+	}
+	50% {
+		filter: drop-shadow(0 0 25px rgba(88, 101, 242, 0.7));
+	}
+}
+
+@keyframes spin {
+	0% {
+		transform: rotate(0deg);
+	}
+	100% {
+		transform: rotate(360deg);
+	}
+}
+
+.loadingText {
+	color: #b5bac1;
+	font-size: 14px;
+	font-weight: 500;
+	letter-spacing: 0.5px;
+	min-height: 20px;
+	text-align: center;
+	animation: textFadeIn 0.5s ease-in;
+}
+
+@keyframes textFadeIn {
+	from {
+		opacity: 0;
+		transform: translateY(5px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+@media (max-width: 768px) {
+	.spinnerContainer {
+		width: 100px;
+		height: 100px;
+	}
+
+	.spinnerLogo {
+		width: 50px;
+		height: 50px;
+	}
+
+	.loadingText {
+		font-size: 13px;
+	}
+}

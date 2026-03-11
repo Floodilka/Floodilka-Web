@@ -1,0 +1,191 @@
+# Friends API Documentation
+
+paths:
+  /api/friends:
+    get:
+      tags:
+        - Friends
+      summary: Получить список друзей
+      description: |
+        Возвращает список друзей и входящих/исходящих заявок в друзья.
+        Включает информацию о статусе онлайн каждого друга.
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Список друзей и заявок
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  friends:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/UserPublic'
+                    description: Список друзей
+                  incoming:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/FriendRequest'
+                    description: Входящие заявки
+                  outgoing:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/FriendRequest'
+                    description: Исходящие заявки
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/friends/request:
+    post:
+      tags:
+        - Friends
+      summary: Отправить заявку в друзья
+      description: |
+        Отправляет заявку в друзья указанному пользователю.
+        Если у получателя уже есть исходящая заявка к отправителю, они сразу становятся друзьями.
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+        - csrfToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - username
+              properties:
+                username:
+                  type: string
+                  description: Username пользователя
+                  example: john_doe
+      responses:
+        '200':
+          description: Заявка отправлена или дружба установлена
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Заявка в друзья отправлена
+                  status:
+                    type: string
+                    enum: [pending, accepted]
+                    description: pending - заявка отправлена, accepted - уже друзья
+        '400':
+          description: |
+            Возможные ошибки:
+            - Нельзя добавить себя в друзья
+            - Пользователь уже в друзьях
+            - Заявка уже отправлена
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Пользователь не найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/friends/respond:
+    post:
+      tags:
+        - Friends
+      summary: Ответить на заявку в друзья
+      description: Принять или отклонить входящую заявку в друзья
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+        - csrfToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - requestId
+                - action
+              properties:
+                requestId:
+                  type: string
+                  description: ID заявки
+                action:
+                  type: string
+                  enum: [accept, reject]
+                  description: Действие
+      responses:
+        '200':
+          description: Заявка обработана
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Заявка принята
+                  friend:
+                    $ref: '#/components/schemas/UserPublic'
+                    description: Информация о друге (при accept)
+        '404':
+          description: Заявка не найдена
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/friends/{friendId}:
+    delete:
+      tags:
+        - Friends
+      summary: Удалить из друзей
+      description: Удаляет пользователя из списка друзей
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+        - csrfToken: []
+      parameters:
+        - name: friendId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID друга
+      responses:
+        '200':
+          description: Друг удален
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Пользователь удален из друзей
+        '400':
+          description: Пользователь не в друзьях
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'

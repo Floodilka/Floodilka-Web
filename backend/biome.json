@@ -1,0 +1,87 @@
+{
+	"$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
+	"formatter": {
+		"enabled": true,
+		"formatWithErrors": false,
+		"indentStyle": "tab",
+		"lineWidth": 120,
+		"lineEnding": "lf",
+		"bracketSpacing": false
+	},
+	"javascript": {
+		"formatter": {
+			"quoteStyle": "single",
+			"jsxQuoteStyle": "double",
+			"quoteProperties": "asNeeded",
+			"trailingCommas": "all",
+			"semicolons": "always",
+			"arrowParentheses": "always",
+			"bracketSpacing": false,
+			"bracketSameLine": false
+		}
+	},
+	"json": {
+		"formatter": {
+			"enabled": true,
+			"indentStyle": "tab",
+			"lineWidth": 120
+		},
+		"parser": {
+			"allowComments": true,
+			"allowTrailingCommas": true
+		}
+	},
+	"linter": {
+		"enabled": true,
+		"rules": {
+			"recommended": true,
+			"complexity": {
+				"noForEach": "off"
+			},
+			"correctness": {
+				"noUndeclaredVariables": "error",
+				"noUnusedVariables": "error",
+				"noInvalidUseBeforeDeclaration": "off",
+				"useExhaustiveDependencies": "off"
+			},
+			"suspicious": {
+				"noArrayIndexKey": "off",
+				"noAssignInExpressions": "off",
+				"noExplicitAny": "off",
+				"noDoubleEquals": {
+					"level": "error",
+					"options": {
+						"ignoreNull": true
+					}
+				},
+				"noVar": "error",
+				"useAdjacentOverloadSignatures": "off",
+				"useIterableCallbackReturn": "off"
+			},
+			"style": {
+				"useConsistentArrayType": {
+					"level": "error",
+					"options": {
+						"syntax": "generic"
+					}
+				},
+				"useConst": "error",
+				"noNonNullAssertion": "off",
+				"noParameterAssign": "off"
+			}
+		}
+	},
+	"assist": {"actions": {"source": {"organizeImports": "on"}}},
+	"vcs": {
+		"enabled": true,
+		"clientKind": "git",
+		"useIgnoreFile": true
+	},
+	"files": {
+		"includes": [
+			"src/**",
+			"*.json"
+		],
+		"ignoreUnknown": true
+	}
+}

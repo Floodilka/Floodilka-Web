@@ -1,0 +1,34 @@
+declare const styles: {
+  readonly "actions": string;
+  readonly "avatarButton": string;
+  readonly "badgesWrapper": string;
+  readonly "banner": string;
+  readonly "bannerDefault": string;
+  readonly "bannerImage": string;
+  readonly "container": string;
+  readonly "content": string;
+  readonly "customStatusRow": string;
+  readonly "customStatusText": string;
+  readonly "editButton": string;
+  readonly "editIcon": string;
+  readonly "editLabel": string;
+  readonly "fullTag": string;
+  readonly "noteButton": string;
+  readonly "noteIcon": string;
+  readonly "noteIconWrapper": string;
+  readonly "noteLabel": string;
+  readonly "noteSubtext": string;
+  readonly "noteText": string;
+  readonly "profile": string;
+  readonly "section": string;
+  readonly "sectionHeader": string;
+  readonly "sectionTitle": string;
+  readonly "settingsButton": string;
+  readonly "settingsIcon": string;
+  readonly "tagBadgeRow": string;
+  readonly "userInfo": string;
+  readonly "username": string;
+  readonly "usernameRow": string;
+};
+export = styles;
+

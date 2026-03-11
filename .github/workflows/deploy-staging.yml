@@ -1,0 +1,244 @@
+name: Deploy to Staging
+
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: 'What to deploy'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - backend
+          - frontend
+
+concurrency:
+  group: deploy-staging
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  IMAGE_PREFIX: ghcr.io/floodilka
+
+jobs:
+  build-frontend:
+    name: Build Frontend
+    if: inputs.target == 'all' || inputs.target == 'frontend'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: frontend/crates/libfluxcore
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+          cache-dependency-path: frontend/scripts/go.sum
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.26.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Get pnpm store path
+        id: pnpm-store
+        run: echo "path=$(pnpm store path --silent)" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/cache@v4
+        with:
+          path: ${{ steps.pnpm-store.outputs.path }}
+          key: pnpm-${{ hashFiles('frontend/pnpm-lock.yaml') }}
+          restore-keys: pnpm-
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Build
+        working-directory: frontend
+        env:
+          PUBLIC_PROJECT_ENV: stable
+          PUBLIC_BUILD_SHA: ${{ github.sha }}
+          PUBLIC_BUILD_NUMBER: ${{ github.run_number }}
+        run: |
+          export PUBLIC_BUILD_TIMESTAMP=$(date +%s)
+          pnpm wasm:codegen
+          pnpm generate:colors
+          pnpm generate:masks
+          pnpm generate:css-types
+          npx tsc --noEmit
+          npx lingui compile
+          rm -rf dist
+          npx rspack build --mode production
+          npx tsx scripts/build-sw.mjs
+          echo "{\"sha\":\"$PUBLIC_BUILD_SHA\",\"buildNumber\":$PUBLIC_BUILD_NUMBER,\"buildTimestamp\":\"$PUBLIC_BUILD_TIMESTAMP\"}" > dist/version.json
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend/dist/
+          retention-days: 7
+
+  build-images:
+    name: Build ${{ matrix.service }}
+    if: inputs.target == 'all' || inputs.target == 'backend'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - service: backend
+            context: backend
+            dockerfile: backend/Dockerfile
+            image: floodilka-backend
+          - service: gateway
+            context: gateway
+            dockerfile: gateway/Dockerfile
+            image: floodilka-gateway
+          - service: media-proxy
+            context: media-proxy
+            dockerfile: media-proxy/Dockerfile
+            image: floodilka-media-proxy
+          - service: admin
+            context: admin
+            dockerfile: admin/Dockerfile
+            image: floodilka-admin
+          - service: metrics
+            context: metrics
+            dockerfile: metrics/Dockerfile
+            image: floodilka-metrics
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set build timestamp
+        id: meta
+        run: echo "timestamp=$(date +%s)" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.dockerfile }}
+          push: true
+          tags: |
+            ${{ env.IMAGE_PREFIX }}/${{ matrix.image }}:latest
+            ${{ env.IMAGE_PREFIX }}/${{ matrix.image }}:${{ github.sha }}
+          build-args: ${{ matrix.service == 'admin' && format('BUILD_TIMESTAMP={0}', steps.meta.outputs.timestamp) || '' }}
+          cache-from: type=gha,scope=${{ matrix.service }}
+          cache-to: type=gha,scope=${{ matrix.service }},mode=max
+
+  deploy-staging:
+    name: Deploy to Staging
+    needs: [build-frontend, build-images]
+    if: always() && !failure() && !cancelled()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        if: inputs.target == 'all' || inputs.target == 'frontend'
+        with:
+          name: frontend-dist
+          path: frontend-dist/
+
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.STAGING_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H ${{ secrets.STAGING_HOST }} >> ~/.ssh/known_hosts 2>/dev/null
+          cat > ~/.ssh/config <<EOF
+          Host staging
+            HostName ${{ secrets.STAGING_HOST }}
+            User ${{ secrets.STAGING_USER }}
+            IdentityFile ~/.ssh/deploy_key
+            ControlMaster auto
+            ControlPath /tmp/ssh-deploy-%C
+            ControlPersist 5m
+          EOF
+
+      - name: Sync frontend dist
+        if: inputs.target == 'all' || inputs.target == 'frontend'
+        run: rsync -az --delete --exclude='desktop/' frontend-dist/ staging:/srv/frontend/
+
+      - name: Sync devops configs
+        run: rsync -az devops/ staging:/var/www/floodilka/devops/
+
+      - name: Deploy frontend stack
+        if: inputs.target == 'all' || inputs.target == 'frontend'
+        run: ssh staging "docker stack deploy -c /var/www/floodilka/devops/frontend/compose.yaml frontend"
+
+      - name: Pull images and deploy backend
+        if: inputs.target == 'all' || inputs.target == 'backend'
+        env:
+          SHA: ${{ github.sha }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "$GITHUB_TOKEN" | ssh staging "docker login ghcr.io -u github-actions --password-stdin"
+
+          for image in floodilka-backend floodilka-gateway floodilka-media-proxy floodilka-admin floodilka-metrics; do
+            ssh staging "docker pull ghcr.io/floodilka/${image}:${SHA} && docker tag ghcr.io/floodilka/${image}:${SHA} ${image}:latest"
+          done
+
+          ssh staging "
+            docker stack deploy -c /var/www/floodilka/devops/backend/compose.yaml backend &&
+            docker stack deploy -c /var/www/floodilka/devops/gateway/compose.yaml gateway &&
+            docker stack deploy -c /var/www/floodilka/devops/media-proxy/compose.yaml media &&
+            docker stack deploy -c /var/www/floodilka/devops/admin/compose.yaml admin &&
+            docker stack deploy -c /var/www/floodilka/devops/metrics/compose.yaml metrics
+          "
+
+          ssh staging "
+            docker service update --force --detach backend_api &&
+            docker service update --force --detach backend_worker &&
+            docker service update --force --detach gateway_gateway &&
+            docker service update --force --detach media_media &&
+            docker service update --force --detach admin_admin &&
+            docker service update --force --detach metrics_metrics
+          "
+
+          ssh staging "docker container prune -f && docker image prune -f" || true
+
+      - name: Health checks
+        run: |
+          echo "Waiting for services to start..."
+          sleep 30
+
+          if [[ "${{ inputs.target }}" == "all" || "${{ inputs.target }}" == "backend" ]]; then
+            echo "Checking API health..."
+            curl -sf --retry 5 --retry-delay 10 --retry-all-errors https://stage.floodilka.com/api/_health
+
+            echo "Checking Media Proxy health..."
+            curl -sf --retry 5 --retry-delay 10 --retry-all-errors https://stage.floodilka.com/media/_health
+
+            echo "Checking Gateway health..."
+            curl -sf --retry 5 --retry-delay 10 --retry-all-errors https://gateway.stage.floodilka.com/_health
+          fi
+
+          if [[ "${{ inputs.target }}" == "all" || "${{ inputs.target }}" == "frontend" ]]; then
+            echo "Checking Frontend..."
+            curl -sf --retry 5 --retry-delay 10 --retry-all-errors https://stage.floodilka.com/
+          fi
+
+          echo ""
+          echo "All health checks passed!"

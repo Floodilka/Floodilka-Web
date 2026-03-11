@@ -1,0 +1,14 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.floodilka.android",
+      "sha256_cert_fingerprints": [
+        "46:1F:F5:DB:50:58:2C:8D:D5:23:7F:DD:21:B7:6A:F2:2F:44:FE:74:B5:EE:81:D9:BF:CD:17:0D:EB:75:B0:DF",
+        "94:FF:75:15:99:E8:B4:53:D5:2C:34:A0:6F:C5:17:E2:4C:36:68:D9:2D:CD:C1:E8:CD:92:36:4D:2A:E9:6A:ED",
+        "2D:24:F8:F3:D7:05:81:32:4C:76:67:D6:D8:C0:29:CC:00:D3:02:A5:1D:7C:9B:ED:4E:02:3A:B7:2E:BE:6D:A3"
+      ]
+    }
+  }
+]

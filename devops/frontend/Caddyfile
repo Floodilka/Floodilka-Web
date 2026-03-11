@@ -1,0 +1,13 @@
+:8080 {
+	root * /srv/frontend
+	encode zstd gzip
+
+	@versionJson path /version.json
+	handle @versionJson {
+		header Cache-Control "no-cache, no-store"
+		file_server
+	}
+
+	try_files {path} /index.html
+	file_server
+}

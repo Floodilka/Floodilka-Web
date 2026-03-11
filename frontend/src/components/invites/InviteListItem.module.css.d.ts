@@ -1,0 +1,35 @@
+declare const styles: {
+  readonly "avatar": string;
+  readonly "categoryName": string;
+  readonly "channel": string;
+  readonly "channelIcon": string;
+  readonly "channelInfo": string;
+  readonly "channelName": string;
+  readonly "code": string;
+  readonly "copyButton": string;
+  readonly "copyButtonHidden": string;
+  readonly "copyIcon": string;
+  readonly "date": string;
+  readonly "dateText": string;
+  readonly "dateTextMonospace": string;
+  readonly "header": string;
+  readonly "headerColumn": string;
+  readonly "headerWithoutChannel": string;
+  readonly "inviteCode": string;
+  readonly "inviter": string;
+  readonly "item": string;
+  readonly "itemWithChannel": string;
+  readonly "itemWithoutChannel": string;
+  readonly "label": string;
+  readonly "mobileItem": string;
+  readonly "revokeButton": string;
+  readonly "revokeButtonHidden": string;
+  readonly "revokeIcon": string;
+  readonly "row": string;
+  readonly "username": string;
+  readonly "usernameUnknown": string;
+  readonly "uses": string;
+  readonly "usesText": string;
+};
+export = styles;
+

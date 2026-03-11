@@ -1,0 +1,209 @@
+# Channels API Documentation
+
+paths:
+  /api/channels/{channelId}/permissions/user:
+    get:
+      tags:
+        - Channels
+      summary: Получить права пользователя в канале
+      description: |
+        Возвращает вычисленные права текущего пользователя для указанного канала.
+        Учитывает права сервера, роли и переопределения канала.
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      parameters:
+        - name: channelId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID канала
+      responses:
+        '200':
+          description: Права пользователя
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  permissions:
+                    type: object
+                    properties:
+                      viewChannel:
+                        type: boolean
+                      sendMessages:
+                        type: boolean
+                      manageChannel:
+                        type: boolean
+                      connect:
+                        type: boolean
+                        description: Для голосовых каналов
+                      speak:
+                        type: boolean
+                        description: Для голосовых каналов
+                      computed:
+                        type: string
+                        description: Битовая маска всех прав
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/channels/{channelId}/permissions:
+    get:
+      tags:
+        - Channels
+      summary: Получить все переопределения прав канала
+      description: |
+        Возвращает все переопределения прав для ролей и участников канала.
+        Требуется право MANAGE_CHANNEL.
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      parameters:
+        - name: channelId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Переопределения прав
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  roleOverwrites:
+                    type: object
+                    additionalProperties:
+                      type: object
+                      properties:
+                        allow:
+                          type: string
+                          description: Битовая маска разрешенных прав
+                        deny:
+                          type: string
+                          description: Битовая маска запрещенных прав
+                  memberOverwrites:
+                    type: object
+                    additionalProperties:
+                      type: object
+                      properties:
+                        allow:
+                          type: string
+                        deny:
+                          type: string
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/channels/{channelId}/permissions/roles/{roleId}:
+    put:
+      tags:
+        - Channels
+      summary: Установить права роли в канале
+      description: |
+        Устанавливает переопределение прав для указанной роли в канале.
+        Используется формат allow/deny битовых масок.
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+        - csrfToken: []
+      parameters:
+        - name: channelId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: roleId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID роли
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                allow:
+                  type: string
+                  description: Битовая маска разрешенных прав
+                  example: "1024"
+                deny:
+                  type: string
+                  description: Битовая маска запрещенных прав
+                  example: "0"
+      responses:
+        '200':
+          description: Права обновлены
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/channels/{channelId}/permissions/members/{memberId}:
+    put:
+      tags:
+        - Channels
+      summary: Установить права участника в канале
+      description: |
+        Устанавливает персональное переопределение прав для участника в канале.
+        Имеет приоритет над правами ролей.
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+        - csrfToken: []
+      parameters:
+        - name: channelId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: memberId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID участника (Member)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                allow:
+                  type: string
+                  description: Битовая маска разрешенных прав
+                deny:
+                  type: string
+                  description: Битовая маска запрещенных прав
+      responses:
+        '200':
+          description: Права обновлены
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+        '403':
+          $ref: '#/components/responses/Forbidden'

@@ -1,0 +1,729 @@
+# Servers API Documentation
+
+paths:
+  /api/servers:
+    get:
+      tags:
+        - Servers
+      summary: Получить серверы пользователя
+      description: Возвращает список всех серверов, в которых состоит текущий пользователь
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Список серверов
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  servers:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Server'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    post:
+      tags:
+        - Servers
+      summary: Создать новый сервер
+      description: |
+        Создает новый сервер. Пользователь автоматически становится владельцем.
+        Создается системный канал "общий" по умолчанию.
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+        - csrfToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateServer'
+      responses:
+        '201':
+          description: Сервер успешно создан
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  server:
+                    $ref: '#/components/schemas/Server'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+
+  /api/servers/order:
+    put:
+      tags:
+        - Servers
+      summary: Обновить порядок серверов
+      description: Устанавливает пользовательский порядок серверов в списке
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+        - csrfToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - serverOrder
+              properties:
+                serverOrder:
+                  type: array
+                  items:
+                    type: string
+                  description: Массив ID серверов в нужном порядке
+                  example: ["507f1f77bcf86cd799439011", "507f1f77bcf86cd799439012"]
+      responses:
+        '200':
+          description: Порядок обновлен
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+
+  /api/servers/join/{code}/preview:
+    get:
+      tags:
+        - Servers
+      summary: Предпросмотр приглашения
+      description: Получает информацию о сервере по коду приглашения без вступления
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      parameters:
+        - name: code
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Код приглашения
+          example: abc123
+      responses:
+        '200':
+          description: Информация о приглашении
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  invite:
+                    $ref: '#/components/schemas/InvitePreview'
+        '404':
+          description: Приглашение не найдено или истекло
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/servers/join/{code}:
+    post:
+      tags:
+        - Servers
+      summary: Вступить на сервер по приглашению
+      description: Присоединяет пользователя к серверу по коду приглашения
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+        - csrfToken: []
+      parameters:
+        - name: code
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Код приглашения
+          example: abc123
+      responses:
+        '200':
+          description: Успешно вступил на сервер
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  server:
+                    $ref: '#/components/schemas/Server'
+        '400':
+          description: Уже состоит на сервере
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Забанен на сервере
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Приглашение не найдено
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/servers/{serverId}/leave:
+    post:
+      tags:
+        - Servers
+      summary: Покинуть сервер
+      description: Удаляет текущего пользователя из участников сервера. Владелец не может покинуть свой сервер.
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+        - csrfToken: []
+      parameters:
+        - name: serverId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID сервера
+      responses:
+        '200':
+          description: Успешно покинул сервер
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Вы покинули сервер
+        '400':
+          description: Владелец не может покинуть сервер
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/servers/{serverId}:
+    put:
+      tags:
+        - Servers
+      summary: Обновить настройки сервера
+      description: Обновляет название и/или иконку сервера. Только для владельца или администраторов.
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+        - csrfToken: []
+      parameters:
+        - name: serverId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  maxLength: 50
+                  example: My Awesome Server
+                icon:
+                  type: string
+                  description: URL иконки или base64
+      responses:
+        '200':
+          description: Сервер обновлен
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  server:
+                    $ref: '#/components/schemas/Server'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+    patch:
+      tags:
+        - Servers
+      summary: Частичное обновление сервера
+      description: Обновляет указанные поля сервера
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+        - csrfToken: []
+      parameters:
+        - name: serverId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                icon:
+                  type: string
+      responses:
+        '200':
+          description: Сервер обновлен
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  server:
+                    $ref: '#/components/schemas/Server'
+
+    delete:
+      tags:
+        - Servers
+      summary: Удалить сервер
+      description: Полностью удаляет сервер со всеми каналами и сообщениями. Только для владельца.
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+        - csrfToken: []
+      parameters:
+        - name: serverId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Сервер удален
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Сервер успешно удален
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/servers/{serverId}/channels:
+    get:
+      tags:
+        - Servers
+      summary: Получить каналы сервера
+      description: Возвращает список всех каналов сервера, доступных пользователю
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      parameters:
+        - name: serverId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Список каналов
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  channels:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Channel'
+
+    post:
+      tags:
+        - Servers
+      summary: Создать канал
+      description: Создает новый канал на сервере. Требуется право MANAGE_CHANNELS.
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+        - csrfToken: []
+      parameters:
+        - name: serverId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateChannel'
+      responses:
+        '201':
+          description: Канал создан
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  channel:
+                    $ref: '#/components/schemas/Channel'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/servers/{serverId}/channels/{channelId}:
+    put:
+      tags:
+        - Servers
+      summary: Обновить канал
+      description: Обновляет настройки канала
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+        - csrfToken: []
+      parameters:
+        - name: serverId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: channelId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  maxLength: 30
+                topic:
+                  type: string
+                  maxLength: 1024
+                slowMode:
+                  type: string
+                  enum: ['off', '5', '10', '15', '30', '60', '120', '300', '600']
+                nsfw:
+                  type: boolean
+                userLimit:
+                  type: integer
+                  minimum: 0
+                  maximum: 1000
+                bitrate:
+                  type: integer
+                  minimum: 16000
+                  maximum: 512000
+      responses:
+        '200':
+          description: Канал обновлен
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  channel:
+                    $ref: '#/components/schemas/Channel'
+
+    delete:
+      tags:
+        - Servers
+      summary: Удалить канал
+      description: Удаляет канал и все его сообщения
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+        - csrfToken: []
+      parameters:
+        - name: serverId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: channelId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Канал удален
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+
+  /api/servers/{serverId}/members:
+    get:
+      tags:
+        - Servers
+      summary: Получить участников сервера
+      description: Возвращает список всех участников сервера с их ролями
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      parameters:
+        - name: serverId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Список участников
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  members:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                        user:
+                          $ref: '#/components/schemas/UserPublic'
+                        roles:
+                          type: array
+                          items:
+                            type: string
+                        joinedAt:
+                          type: string
+                          format: date-time
+
+  /api/servers/{serverId}/bans:
+    get:
+      tags:
+        - Servers
+      summary: Получить список банов
+      description: Возвращает список забаненных пользователей. Требуется право BAN_MEMBERS.
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      parameters:
+        - name: serverId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Список банов
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  bans:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Ban'
+
+    post:
+      tags:
+        - Servers
+      summary: Забанить пользователя
+      description: Банит пользователя на сервере
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+        - csrfToken: []
+      parameters:
+        - name: serverId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - userId
+              properties:
+                userId:
+                  type: string
+                  description: ID пользователя для бана
+                reason:
+                  type: string
+                  maxLength: 200
+                  description: Причина бана
+      responses:
+        '200':
+          description: Пользователь забанен
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/servers/{serverId}/bans/{userId}:
+    delete:
+      tags:
+        - Servers
+      summary: Разбанить пользователя
+      description: Снимает бан с пользователя
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+        - csrfToken: []
+      parameters:
+        - name: serverId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID забаненного пользователя
+      responses:
+        '200':
+          description: Бан снят
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+
+  /api/servers/{serverId}/invites:
+    get:
+      tags:
+        - Servers
+      summary: Получить приглашения сервера
+      description: Возвращает все активные приглашения на сервер
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      parameters:
+        - name: serverId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Список приглашений
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  invites:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Invite'
+
+    post:
+      tags:
+        - Servers
+      summary: Создать приглашение
+      description: Создает новое приглашение на сервер
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+        - csrfToken: []
+      parameters:
+        - name: serverId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                maxUses:
+                  type: integer
+                  minimum: 0
+                  description: Максимум использований (0 = без лимита)
+                expiresIn:
+                  type: integer
+                  description: Время жизни в секундах (0 = бессрочно)
+      responses:
+        '201':
+          description: Приглашение создано
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  invite:
+                    $ref: '#/components/schemas/Invite'

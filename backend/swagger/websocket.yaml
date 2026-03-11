@@ -1,0 +1,486 @@
+# WebSocket Events Documentation
+# Это документация для Socket.IO событий - не OpenAPI, а справочный материал
+
+x-websocket-events:
+  description: |
+    # WebSocket API (Socket.IO)
+
+    Floodilka использует Socket.IO для real-time коммуникации.
+
+    ## Подключение
+
+    ```javascript
+    const socket = io('https://api.floodilka.com', {
+      auth: {
+        token: 'your-jwt-token'
+      },
+      transports: ['websocket', 'polling']
+    });
+    ```
+
+    ## Аутентификация
+
+    Токен передается при подключении. При истечении токена соединение будет разорвано.
+
+    ---
+
+    ## События чата
+
+    ### message:send
+    **Клиент → Сервер**
+
+    Отправляет сообщение в канал.
+
+    ```javascript
+    socket.emit('message:send', {
+      channelId: '507f1f77bcf86cd799439011',
+      content: 'Hello, world!',
+      attachments: [], // опционально
+      replyTo: '507f1f77bcf86cd799439012' // опционально, ID сообщения
+    });
+    ```
+
+    ### message:new
+    **Сервер → Клиент**
+
+    Новое сообщение в канале.
+
+    ```javascript
+    socket.on('message:new', (data) => {
+      // data.message - объект Message
+      // data.channelId - ID канала
+    });
+    ```
+
+    ### message:edit
+    **Клиент → Сервер**
+
+    Редактирование сообщения.
+
+    ```javascript
+    socket.emit('message:edit', {
+      messageId: '507f1f77bcf86cd799439011',
+      content: 'Updated content'
+    });
+    ```
+
+    ### message:edited
+    **Сервер → Клиент**
+
+    Сообщение было отредактировано.
+
+    ```javascript
+    socket.on('message:edited', (data) => {
+      // data.messageId
+      // data.content
+      // data.editedAt
+    });
+    ```
+
+    ### message:delete
+    **Клиент → Сервер**
+
+    Удаление сообщения.
+
+    ```javascript
+    socket.emit('message:delete', {
+      messageId: '507f1f77bcf86cd799439011'
+    });
+    ```
+
+    ### message:deleted
+    **Сервер → Клиент**
+
+    Сообщение было удалено.
+
+    ```javascript
+    socket.on('message:deleted', (data) => {
+      // data.messageId
+      // data.channelId
+    });
+    ```
+
+    ---
+
+    ## Реакции
+
+    ### reaction:add
+    **Клиент → Сервер**
+
+    Добавление реакции.
+
+    ```javascript
+    socket.emit('reaction:add', {
+      messageId: '507f1f77bcf86cd799439011',
+      emoji: '👍'
+    });
+    ```
+
+    ### reaction:added
+    **Сервер → Клиент**
+
+    Реакция добавлена.
+
+    ```javascript
+    socket.on('reaction:added', (data) => {
+      // data.messageId
+      // data.emoji
+      // data.userId
+      // data.username
+    });
+    ```
+
+    ### reaction:remove
+    **Клиент → Сервер**
+
+    Удаление реакции.
+
+    ```javascript
+    socket.emit('reaction:remove', {
+      messageId: '507f1f77bcf86cd799439011',
+      emoji: '👍'
+    });
+    ```
+
+    ### reaction:removed
+    **Сервер → Клиент**
+
+    Реакция удалена.
+
+    ---
+
+    ## Прямые сообщения
+
+    ### direct-message:send
+    **Клиент → Сервер**
+
+    Отправка личного сообщения.
+
+    ```javascript
+    socket.emit('direct-message:send', {
+      receiverId: '507f1f77bcf86cd799439011',
+      content: 'Private message',
+      attachments: [] // опционально
+    });
+    ```
+
+    ### direct-message:new
+    **Сервер → Клиент**
+
+    Новое личное сообщение.
+
+    ```javascript
+    socket.on('direct-message:new', (data) => {
+      // data.message
+      // data.senderId
+    });
+    ```
+
+    ---
+
+    ## Серверы и каналы
+
+    ### server:join
+    **Клиент → Сервер**
+
+    Подписка на события сервера.
+
+    ```javascript
+    socket.emit('server:join', {
+      serverId: '507f1f77bcf86cd799439011'
+    });
+    ```
+
+    ### channel:join
+    **Клиент → Сервер**
+
+    Вход в текстовый канал для получения сообщений.
+
+    ```javascript
+    socket.emit('channel:join', {
+      channelId: '507f1f77bcf86cd799439011'
+    });
+    ```
+
+    ### channel:created
+    **Сервер → Клиент**
+
+    Создан новый канал.
+
+    ### channel:updated
+    **Сервер → Клиент**
+
+    Канал обновлен.
+
+    ### channel:deleted
+    **Сервер → Клиент**
+
+    Канал удален.
+
+    ### server:member-joined
+    **Сервер → Клиент**
+
+    Новый участник присоединился к серверу.
+
+    ### server:member-left
+    **Сервер → Клиент**
+
+    Участник покинул сервер.
+
+    ### server:member-banned
+    **Сервер → Клиент**
+
+    Участник забанен.
+
+    ### server:deleted
+    **Сервер → Клиент**
+
+    Сервер удален.
+
+    ---
+
+    ## Голосовые каналы
+
+    ### voice:join
+    **Клиент → Сервер**
+
+    Вход в голосовой канал.
+
+    ```javascript
+    socket.emit('voice:join', {
+      channelId: '507f1f77bcf86cd799439011',
+      serverId: '507f1f77bcf86cd799439012'
+    });
+    ```
+
+    **Ответ:** `voice:joined`
+    ```javascript
+    socket.on('voice:joined', (data) => {
+      // data.channelId
+      // data.routerRtpCapabilities - для mediasoup
+      // data.users - список пользователей в канале
+    });
+    ```
+
+    ### voice:leave
+    **Клиент → Сервер**
+
+    Выход из голосового канала.
+
+    ```javascript
+    socket.emit('voice:leave', {
+      channelId: '507f1f77bcf86cd799439011'
+    });
+    ```
+
+    ### voice:user-joined
+    **Сервер → Клиент**
+
+    Пользователь присоединился к голосовому каналу.
+
+    ### voice:user-left
+    **Сервер → Клиент**
+
+    Пользователь покинул голосовой канал.
+
+    ### voice:mute / voice:unmute
+    **Клиент ↔ Сервер**
+
+    Переключение микрофона.
+
+    ### voice:deafen / voice:undeafen
+    **Клиент ↔ Сервер**
+
+    Переключение звука.
+
+    ### voice:produce
+    **Клиент → Сервер**
+
+    Начало вещания аудио/видео.
+
+    ```javascript
+    socket.emit('voice:produce', {
+      channelId: '507f1f77bcf86cd799439011',
+      kind: 'audio', // или 'video'
+      rtpParameters: { ... } // параметры mediasoup
+    });
+    ```
+
+    ### voice:consume
+    **Клиент → Сервер**
+
+    Запрос на получение потока другого пользователя.
+
+    ### voice:user-speaking / voice:user-stopped-speaking
+    **Сервер → Клиент**
+
+    Индикатор говорящего пользователя.
+
+    ---
+
+    ## Звонки (1-на-1)
+
+    ### call:initiate
+    **Клиент → Сервер**
+
+    Начать звонок.
+
+    ```javascript
+    socket.emit('call:initiate', {
+      calleeId: '507f1f77bcf86cd799439011',
+      type: 'audio' // или 'video'
+    });
+    ```
+
+    ### call:incoming
+    **Сервер → Клиент**
+
+    Входящий звонок.
+
+    ```javascript
+    socket.on('call:incoming', (data) => {
+      // data.callId
+      // data.caller - информация о звонящем
+      // data.type - 'audio' или 'video'
+    });
+    ```
+
+    ### call:accept
+    **Клиент → Сервер**
+
+    Принять звонок.
+
+    ```javascript
+    socket.emit('call:accept', {
+      callId: '507f1f77bcf86cd799439011'
+    });
+    ```
+
+    ### call:accepted
+    **Сервер → Клиент**
+
+    Звонок принят.
+
+    ### call:decline
+    **Клиент → Сервер**
+
+    Отклонить звонок.
+
+    ### call:end
+    **Клиент → Сервер**
+
+    Завершить звонок.
+
+    ### call:ended
+    **Сервер → Клиент**
+
+    Звонок завершен.
+
+    ```javascript
+    socket.on('call:ended', (data) => {
+      // data.callId
+      // data.reason - причина завершения
+      // data.duration - длительность в секундах
+    });
+    ```
+
+    ### call:missed
+    **Сервер → Клиент**
+
+    Пропущенный звонок.
+
+    ### call:ice-candidate
+    **Клиент ↔ Сервер**
+
+    Обмен ICE кандидатами для WebRTC.
+
+    ---
+
+    ## Друзья
+
+    ### friend:request-created
+    **Сервер → Клиент**
+
+    Новая заявка в друзья.
+
+    ### friend:request-updated
+    **Сервер → Клиент**
+
+    Статус заявки изменен.
+
+    ### friend:added
+    **Сервер → Клиент**
+
+    Новый друг добавлен.
+
+    ### friend:removed
+    **Сервер → Клиент**
+
+    Друг удален.
+
+    ---
+
+    ## Присутствие и статус
+
+    ### presence:update
+    **Клиент → Сервер**
+
+    Обновить статус.
+
+    ```javascript
+    socket.emit('presence:update', {
+      status: 'online' // 'online', 'idle', 'dnd', 'offline'
+    });
+    ```
+
+    ### user:status-changed
+    **Сервер → Клиент**
+
+    Статус пользователя изменился.
+
+    ```javascript
+    socket.on('user:status-changed', (data) => {
+      // data.userId
+      // data.status
+    });
+    ```
+
+    ---
+
+    ## Системные события
+
+    ### connect
+    Подключение установлено.
+
+    ### disconnect
+    Соединение разорвано.
+
+    ### error
+    Ошибка.
+
+    ```javascript
+    socket.on('error', (error) => {
+      // error.code
+      // error.message
+    });
+    ```
+
+    ### server:shutting-down
+    Сервер перезапускается, следует переподключиться.
+
+    ---
+
+    ## Коды ошибок
+
+    | Код | Описание |
+    |-----|----------|
+    | AUTH_REQUIRED | Требуется аутентификация |
+    | AUTH_INVALID | Неверный токен |
+    | AUTH_EXPIRED | Токен истек |
+    | PERMISSION_DENIED | Недостаточно прав |
+    | NOT_FOUND | Ресурс не найден |
+    | RATE_LIMITED | Слишком много запросов |
+    | ALREADY_IN_CHANNEL | Уже в голосовом канале |
+    | CALL_IN_PROGRESS | Уже идет звонок |
+    | USER_BUSY | Пользователь занят |
+    | USER_BLOCKED | Пользователь заблокирован |

@@ -1,0 +1,32 @@
+declare const styles: {
+  readonly "avatar": string;
+  readonly "container": string;
+  readonly "emptyState": string;
+  readonly "emptyStateHint": string;
+  readonly "emptyStateTitle": string;
+  readonly "friendsContent": string;
+  readonly "friendsPanel": string;
+  readonly "guildIcon": string;
+  readonly "option": string;
+  readonly "optionContent": string;
+  readonly "optionDescription": string;
+  readonly "optionHighlight": string;
+  readonly "optionIcon": string;
+  readonly "optionIconHighlight": string;
+  readonly "optionText": string;
+  readonly "optionTitle": string;
+  readonly "panelHidden": string;
+  readonly "panels": string;
+  readonly "scrollContent": string;
+  readonly "scroller": string;
+  readonly "searchClearButton": string;
+  readonly "searchContainer": string;
+  readonly "searchInput": string;
+  readonly "searchPanel": string;
+  readonly "section": string;
+  readonly "sectionHeader": string;
+  readonly "sectionList": string;
+  readonly "tabsContainer": string;
+};
+export = styles;
+

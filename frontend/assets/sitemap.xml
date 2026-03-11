@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"
+        xmlns:xhtml="http://www.w3.org/1999/xhtml"
+        xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9
+                           http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd">
+
+  <!-- Главная страница -->
+  <url>
+    <loc>https://floodilka.com/</loc>
+    <lastmod>2025-12-17</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>1.0</priority>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://floodilka.com/" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://floodilka.com/?lang=en" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://floodilka.com/" />
+    <image:image>
+      <image:loc>https://floodilka.com/icons/logo.png</image:loc>
+      <image:title>Флудилка — Голосовой чат для геймеров</image:title>
+      <image:caption>Бесплатный голосовой чат с качественной связью и низким пингом</image:caption>
+    </image:image>
+    <image:image>
+      <image:loc>https://floodilka.com/icons/og-image.png</image:loc>
+      <image:title>Флудилка — превью</image:title>
+      <image:caption>Современная платформа для голосового и текстового общения геймеров</image:caption>
+    </image:image>
+  </url>
+
+  <!-- Условия использования -->
+  <url>
+    <loc>https://floodilka.com/terms</loc>
+    <lastmod>2025-11-15</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://floodilka.com/terms" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://floodilka.com/terms" />
+  </url>
+
+  <!-- Политика конфиденциальности -->
+  <url>
+    <loc>https://floodilka.com/privacy</loc>
+    <lastmod>2025-11-15</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://floodilka.com/privacy" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://floodilka.com/privacy" />
+  </url>
+
+  <!-- Правила сообщества -->
+  <url>
+    <loc>https://floodilka.com/guidelines</loc>
+    <lastmod>2026-03-01</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://floodilka.com/guidelines" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://floodilka.com/guidelines" />
+  </url>
+
+  <!-- Поддержка -->
+  <url>
+    <loc>https://floodilka.com/support</loc>
+    <lastmod>2025-12-17</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://floodilka.com/support" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://floodilka.com/support" />
+  </url>
+
+</urlset>
