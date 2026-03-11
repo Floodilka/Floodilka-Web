@@ -108,6 +108,7 @@ class ParticipantVolumeStore {
 				}
 
 				const shouldDisable = locallyMuted || selfDeaf;
+				pub.setSubscribed(!selfDeaf);
 				pub.setEnabled(!shouldDisable);
 			} catch (error) {
 				logger.warn(`Failed to apply settings to participant ${userId}`, {error});
