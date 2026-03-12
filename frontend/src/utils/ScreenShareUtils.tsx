@@ -39,6 +39,20 @@ function getScreenSharePreset(resolution: ScreenShareResolution, frameRate: numb
 	return new VideoPreset(res.width, res.height, bitrate, frameRate);
 }
 
+function getScreenShareSimulcastLayers(resolution: ScreenShareResolution, frameRate: number): VideoPreset[] {
+	const layers: VideoPreset[] = [];
+	const resolutionOrder: ScreenShareResolution[] = ['low', 'medium', 'high'];
+	const targetIndex = resolutionOrder.indexOf(resolution);
+
+	for (let i = 0; i < targetIndex; i++) {
+		const res = SCREEN_SHARE_RESOLUTIONS[resolutionOrder[i]];
+		const fps = Math.min(frameRate, 30);
+		layers.push(new VideoPreset(res.width, res.height, res.baseBitrate, fps));
+	}
+
+	return layers;
+}
+
 export function getScreenShareOptions(
 	resolution: ScreenShareResolution,
 	frameRate: number,
@@ -61,6 +75,9 @@ export function getScreenShareOptions(
 		publishOptions: {
 			videoCodec: 'h264' as const,
 			screenShareEncoding: preset.encoding,
+			...(resolution !== 'low' && {
+				screenShareSimulcastLayers: getScreenShareSimulcastLayers(resolution, frameRate),
+			}),
 		},
 	};
 }
