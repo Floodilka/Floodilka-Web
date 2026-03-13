@@ -205,6 +205,7 @@ export class RNNoiseProcessor implements TrackProcessor<Track.Kind.Audio, AudioP
 	private async ensureGraph(track: MediaStreamTrack): Promise<void> {
 		console.log('[RNNoise] Initializing audio graph...');
 		this.audioContext = new AudioContext({sampleRate: RNNOISE_SAMPLE_RATE});
+		console.log('[RNNoise] AudioContext state after creation:', this.audioContext.state);
 
 		// Register worklet
 		const blob = new Blob([workletCode], {type: 'application/javascript'});
