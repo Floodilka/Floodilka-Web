@@ -137,9 +137,6 @@ export class UserAccountSecurityService {
 	}
 
 	private async hashNewPassword(newPassword: string): Promise<string> {
-		if (await this.deps.authService.isPasswordPwned(newPassword)) {
-			throw InputValidationError.create('new_password', 'Password is too common');
-		}
 		return await this.deps.authService.hashPassword(newPassword);
 	}
 

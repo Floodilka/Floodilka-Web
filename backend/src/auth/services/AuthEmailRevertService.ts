@@ -48,7 +48,6 @@ export class AuthEmailRevertService {
 		private readonly emailService: IEmailService,
 		private readonly gatewayService: IGatewayService,
 		private readonly hashPassword: (password: string) => Promise<string>,
-		private readonly isPasswordPwned: (password: string) => Promise<boolean>,
 		private readonly handleBanStatus: (user: User) => Promise<User>,
 		private readonly assertNonBotUser: (user: User) => void,
 		private readonly generateSecureToken: () => Promise<string>,
@@ -88,10 +87,6 @@ export class AuthEmailRevertService {
 
 		this.assertNonBotUser(user);
 		await this.handleBanStatus(user);
-
-		if (await this.isPasswordPwned(password)) {
-			throw InputValidationError.create('password', 'Password is too common');
-		}
 
 		const passwordHash = await this.hashPassword(password);
 		const now = new Date();

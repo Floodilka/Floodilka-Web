@@ -20,7 +20,7 @@
 import crypto from 'node:crypto';
 import type {ForgotPasswordRequest, ResetPasswordRequest, VerifyResetCodeRequest} from '~/auth/AuthModel';
 import {createPasswordResetToken, createUserID} from '~/BrandedTypes';
-import {FLOODILKA_USER_AGENT, UserFlags} from '~/Constants';
+import {UserFlags} from '~/Constants';
 import {InputValidationError, RateLimitError, UnauthorizedError} from '~/Errors';
 import type {ICacheService} from '~/infrastructure/ICacheService';
 import type {IEmailService} from '~/infrastructure/IEmailService';
@@ -80,40 +80,6 @@ export class AuthPasswordService {
 
 	async verifyPassword({password, passwordHash}: VerifyPasswordParams): Promise<boolean> {
 		return verifyPasswordUtil({password, passwordHash});
-	}
-
-	async isPasswordPwned(password: string): Promise<boolean> {
-		try {
-			const hashed = crypto.createHash('sha1').update(password).digest('hex').toUpperCase();
-			const hashPrefix = hashed.slice(0, 5);
-			const hashSuffix = hashed.slice(5);
-
-			const response = await fetch(`https://api.pwnedpasswords.com/range/${hashPrefix}`, {
-				headers: {
-					'User-Agent': FLOODILKA_USER_AGENT,
-					'Add-Padding': 'true',
-				},
-			});
-
-			if (!response.ok) {
-				return false;
-			}
-
-			const body = await response.text();
-			const lines = body.split('\n');
-
-			for (const line of lines) {
-				const [hashSuffixLine, count] = line.split(':', 2);
-				if (hashSuffixLine === hashSuffix && Number.parseInt(count, 10) > 0) {
-					return true;
-				}
-			}
-
-			return false;
-		} catch (error) {
-			Logger.error({error}, 'Failed to check password against Pwned Passwords API');
-			return false;
-		}
 	}
 
 	async forgotPassword({data, request}: ForgotPasswordParams): Promise<void> {
@@ -235,10 +201,6 @@ export class AuthPasswordService {
 		}
 
 		await this.handleBanStatus(user);
-
-		if (await this.isPasswordPwned(data.password)) {
-			throw InputValidationError.create('password', 'Password is too common');
-		}
 
 		const newPasswordHash = await this.hashPassword(data.password);
 		const updatedUser = await this.repository.patchUpsert(user.id, {

@@ -209,7 +209,6 @@ export class AuthService implements IAuthService {
 			redisActivityTracker,
 			cacheService,
 			this.passwordService.hashPassword.bind(this.passwordService),
-			this.passwordService.isPasswordPwned.bind(this.passwordService),
 			this.utilityService.validateAge.bind(this.utilityService),
 			this.sessionService.createAuthSession.bind(this.sessionService),
 		);
@@ -243,7 +242,6 @@ export class AuthService implements IAuthService {
 			emailServiceDep,
 			gatewayService,
 			this.passwordService.hashPassword.bind(this.passwordService),
-			this.passwordService.isPasswordPwned.bind(this.passwordService),
 			this.utilityService.handleBanStatus.bind(this.utilityService),
 			this.utilityService.assertNonBotUser.bind(this.utilityService),
 			this.utilityService.generateSecureToken.bind(this.utilityService),
@@ -363,10 +361,6 @@ export class AuthService implements IAuthService {
 
 	async verifyPassword({password, passwordHash}: VerifyPasswordParams): Promise<boolean> {
 		return this.passwordService.verifyPassword({password, passwordHash});
-	}
-
-	async isPasswordPwned(password: string): Promise<boolean> {
-		return this.passwordService.isPasswordPwned(password);
 	}
 
 	async verifyEmail(data: VerifyEmailRequest): Promise<boolean> {

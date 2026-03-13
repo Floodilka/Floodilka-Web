@@ -168,7 +168,6 @@ export class AuthRegistrationService {
 		private redisActivityTracker: RedisActivityTracker,
 		private cacheService: ICacheService,
 		private hashPassword: (password: string) => Promise<string>,
-		private isPasswordPwned: (password: string) => Promise<boolean>,
 		private validateAge: (params: {dateOfBirth: string; minAge: number}) => boolean,
 		private createAuthSession: (params: {user: User; request: Request}) => Promise<[string, AuthSession]>,
 	) {}
@@ -191,10 +190,6 @@ export class AuthRegistrationService {
 				'date_of_birth',
 				`You must be at least ${minAge} years old to create an account`,
 			);
-		}
-
-		if (data.password && (await this.isPasswordPwned(data.password))) {
-			throw InputValidationError.create('password', 'Password is too common');
 		}
 
 		const rawEmail = data.email ?? null;
