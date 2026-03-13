@@ -28,9 +28,9 @@ import {ScreenRecordingPermissionDeniedError} from '~/utils/errors/ScreenRecordi
 export type ScreenShareResolution = 'low' | 'medium' | 'high';
 
 const SCREEN_SHARE_RESOLUTIONS = {
-	low: {width: 640, height: 360, baseBitrate: 500_000},
-	medium: {width: 1280, height: 720, baseBitrate: 2_000_000},
-	high: {width: 1920, height: 1080, baseBitrate: 5_000_000},
+	low: {width: 640, height: 360, baseBitrate: 1_000_000},
+	medium: {width: 1280, height: 720, baseBitrate: 4_000_000},
+	high: {width: 1920, height: 1080, baseBitrate: 8_000_000},
 } as const;
 
 function getScreenSharePreset(resolution: ScreenShareResolution, frameRate: number): VideoPreset {
@@ -75,6 +75,7 @@ export function getScreenShareOptions(
 		publishOptions: {
 			videoCodec: 'h264' as const,
 			screenShareEncoding: preset.encoding,
+			degradationPreference: 'maintain-framerate' as const,
 			...(resolution !== 'low' && {
 				screenShareSimulcastLayers: getScreenShareSimulcastLayers(resolution, frameRate),
 			}),
