@@ -217,7 +217,7 @@ jobs:
             docker service update --force --detach metrics_metrics
           "
 
-          ssh staging "docker container prune -f && docker image prune -f" || true
+          ssh staging "docker container prune -f && docker image prune -af" || true
 
       - name: Health checks
         run: |
