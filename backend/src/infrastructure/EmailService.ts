@@ -352,22 +352,28 @@ export class EmailService implements IEmailService {
 			return false;
 		}
 
-		try {
-			await this.transporter!.sendMail({
-				from: {
-					name: Config.email.fromName,
-					address: Config.email.fromEmail,
-				},
-				to,
-				subject,
-				text: textBody,
-				html: renderEmailHtml(subject, textBody),
-			});
-			Logger.debug({to}, 'Email sent successfully via SMTP');
-			return true;
-		} catch (error) {
-			Logger.error({error}, 'Error sending email via SMTP');
-			return false;
+		const maxAttempts = 2;
+		for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+			try {
+				await this.transporter!.sendMail({
+					from: {
+						name: Config.email.fromName,
+						address: Config.email.fromEmail,
+					},
+					to,
+					subject,
+					text: textBody,
+					html: renderEmailHtml(subject, textBody),
+				});
+				Logger.info({to, attempt}, 'Email sent successfully via SMTP');
+				return true;
+			} catch (error) {
+				Logger.error({error, to, attempt, maxAttempts}, 'Error sending email via SMTP');
+				if (attempt < maxAttempts) {
+					await new Promise((resolve) => setTimeout(resolve, 2000));
+				}
+			}
 		}
+		return false;
 	}
 }
