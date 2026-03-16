@@ -155,7 +155,7 @@ export const PremiumContent: React.FC<{defaultGiftMode?: boolean}> = observer(({
 
 			<div className={styles.header}>
 				<div className={styles.iconContainer}>
-					<CrownIcon className={styles.icon} weight="fill" />
+					<img src="/badges/premium.svg" alt="" className={styles.icon} />
 				</div>
 				<h1 className={styles.title}>
 					<Trans>Floodilka Premium</Trans>
