@@ -258,8 +258,9 @@ handle_dm_connect_or_update(
                     NewChannelIdBin = integer_to_binary(ChannelIdValue),
                     NeedsToken = OldChannelId =/= NewChannelIdBin,
 
+                    SessionPid = maps:get(session_pid, State),
                     maybe_spawn_join_call(
-                        NeedsToken, ChannelIdValue, UserId, UpdatedVoiceState, SessionId
+                        NeedsToken, ChannelIdValue, UserId, UpdatedVoiceState, SessionId, SessionPid
                     ),
 
                     {reply, #{success => true, needs_token => NeedsToken}, NewState}
@@ -316,12 +317,12 @@ resolve_effective_session_id(ExistingSessionId, RequestSessionId) ->
         _ -> ExistingNormalized
     end.
 
-maybe_spawn_join_call(false, _ChannelId, _UserId, _VoiceState, _SessionId) ->
+maybe_spawn_join_call(false, _ChannelId, _UserId, _VoiceState, _SessionId, _SessionPid) ->
     ok;
-maybe_spawn_join_call(true, ChannelId, UserId, VoiceState, SessionId) ->
+maybe_spawn_join_call(true, ChannelId, UserId, VoiceState, SessionId, SessionPid) ->
     spawn(fun() ->
         try
-            join_or_create_call(ChannelId, UserId, VoiceState, SessionId, self())
+            join_or_create_call(ChannelId, UserId, VoiceState, SessionId, SessionPid)
         catch
             _:_ -> ok
         end

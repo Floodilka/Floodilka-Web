@@ -58,6 +58,73 @@ export class CallService {
 		});
 	}
 
+	private async evaluateRecipientRingability({
+		callerId,
+		recipientId,
+	}: {
+		callerId: UserID;
+		recipientId: UserID;
+	}): Promise<{shouldRing: boolean; silent: boolean}> {
+		const recipientSettings = await this.userRepository.findSettings(recipientId);
+		if (!recipientSettings) {
+			return {shouldRing: true, silent: false};
+		}
+
+		const incomingCallFlags = recipientSettings.incomingCallFlags;
+
+		if ((incomingCallFlags & IncomingCallFlags.NOBODY) === IncomingCallFlags.NOBODY) {
+			return {shouldRing: false, silent: false};
+		}
+
+		const friendship = await this.userRepository.getRelationship(callerId, recipientId, RelationshipTypes.FRIEND);
+		const areFriends = friendship !== null;
+
+		if ((incomingCallFlags & IncomingCallFlags.FRIENDS_ONLY) === IncomingCallFlags.FRIENDS_ONLY) {
+			return {shouldRing: areFriends, silent: false};
+		}
+
+		if (areFriends) {
+			return {shouldRing: true, silent: false};
+		}
+
+		const shouldBeSilent =
+			(incomingCallFlags & IncomingCallFlags.SILENT_EVERYONE) === IncomingCallFlags.SILENT_EVERYONE;
+
+		if ((incomingCallFlags & IncomingCallFlags.FRIENDS_OF_FRIENDS) === IncomingCallFlags.FRIENDS_OF_FRIENDS) {
+			const callerRelationships = await this.userRepository.listRelationships(callerId);
+			const recipientRelationships = await this.userRepository.listRelationships(recipientId);
+
+			const callerFriendIds = new Set(
+				callerRelationships.filter((r) => r.type === RelationshipTypes.FRIEND).map((r) => r.targetUserId.toString()),
+			);
+			const hasMutualFriends = recipientRelationships
+				.filter((r) => r.type === RelationshipTypes.FRIEND)
+				.some((r) => callerFriendIds.has(r.targetUserId.toString()));
+
+			if (hasMutualFriends) {
+				return {shouldRing: true, silent: shouldBeSilent};
+			}
+		}
+
+		if ((incomingCallFlags & IncomingCallFlags.GUILD_MEMBERS) === IncomingCallFlags.GUILD_MEMBERS) {
+			const callerGuildIds = new Set(
+				(await this.userRepository.getUserGuildIds(callerId)).map((guildId) => guildId.toString()),
+			);
+			const recipientGuildIds = await this.userRepository.getUserGuildIds(recipientId);
+			const hasMutualGuilds = recipientGuildIds.some((guildId) => callerGuildIds.has(guildId.toString()));
+
+			if (hasMutualGuilds) {
+				return {shouldRing: true, silent: shouldBeSilent};
+			}
+		}
+
+		if ((incomingCallFlags & IncomingCallFlags.EVERYONE) === IncomingCallFlags.EVERYONE) {
+			return {shouldRing: true, silent: shouldBeSilent};
+		}
+
+		return {shouldRing: false, silent: false};
+	}
+
 	async checkCallEligibility({
 		userId,
 		channelId,
@@ -97,64 +164,8 @@ export class CallService {
 				return {ringable: false};
 			}
 
-			const recipientSettings = await this.userRepository.findSettings(recipientId);
-			if (!recipientSettings) {
-				return {ringable: true};
-			}
-
-			const incomingCallFlags = recipientSettings.incomingCallFlags;
-
-			if ((incomingCallFlags & IncomingCallFlags.NOBODY) === IncomingCallFlags.NOBODY) {
-				return {ringable: false};
-			}
-
-			const friendship = await this.userRepository.getRelationship(userId, recipientId, RelationshipTypes.FRIEND);
-			const areFriends = friendship !== null;
-
-			if ((incomingCallFlags & IncomingCallFlags.FRIENDS_ONLY) === IncomingCallFlags.FRIENDS_ONLY) {
-				return {ringable: areFriends};
-			}
-
-			if (areFriends) {
-				return {ringable: true};
-			}
-
-			const shouldBeSilent =
-				(incomingCallFlags & IncomingCallFlags.SILENT_EVERYONE) === IncomingCallFlags.SILENT_EVERYONE;
-
-			if ((incomingCallFlags & IncomingCallFlags.FRIENDS_OF_FRIENDS) === IncomingCallFlags.FRIENDS_OF_FRIENDS) {
-				const callerRelationships = await this.userRepository.listRelationships(userId);
-				const recipientRelationships = await this.userRepository.listRelationships(recipientId);
-
-				const callerFriendIds = new Set(
-					callerRelationships.filter((r) => r.type === RelationshipTypes.FRIEND).map((r) => r.targetUserId.toString()),
-				);
-				const hasMutualFriends = recipientRelationships
-					.filter((r) => r.type === RelationshipTypes.FRIEND)
-					.some((r) => callerFriendIds.has(r.targetUserId.toString()));
-
-				if (hasMutualFriends) {
-					return {ringable: true, silent: shouldBeSilent};
-				}
-			}
-
-			if ((incomingCallFlags & IncomingCallFlags.GUILD_MEMBERS) === IncomingCallFlags.GUILD_MEMBERS) {
-				const callerGuildIds = new Set(
-					(await this.userRepository.getUserGuildIds(userId)).map((guildId) => guildId.toString()),
-				);
-				const recipientGuildIds = await this.userRepository.getUserGuildIds(recipientId);
-				const hasMutualGuilds = recipientGuildIds.some((guildId) => callerGuildIds.has(guildId.toString()));
-
-				if (hasMutualGuilds) {
-					return {ringable: true, silent: shouldBeSilent};
-				}
-			}
-
-			if ((incomingCallFlags & IncomingCallFlags.EVERYONE) === IncomingCallFlags.EVERYONE) {
-				return {ringable: true, silent: shouldBeSilent};
-			}
-
-			return {ringable: false};
+			const {shouldRing, silent} = await this.evaluateRecipientRingability({callerId: userId, recipientId});
+			return {ringable: shouldRing, silent: silent || undefined};
 		}
 
 		return {ringable: true};
@@ -357,39 +368,15 @@ export class CallService {
 		if (channel.type === ChannelTypes.DM) {
 			const recipientId = Array.from(channel.recipientIds).find((id) => id !== userId);
 			if (recipientId) {
-				const recipientSettings = await this.userRepository.findSettings(recipientId);
-				if (recipientSettings) {
-					const incomingCallFlags = recipientSettings.incomingCallFlags;
-					const friendship = await this.userRepository.getRelationship(userId, recipientId, RelationshipTypes.FRIEND);
-					const areFriends = friendship !== null;
-
-					const shouldBeSilent =
-						!areFriends &&
-						(incomingCallFlags & IncomingCallFlags.SILENT_EVERYONE) === IncomingCallFlags.SILENT_EVERYONE;
-
-					if (!shouldBeSilent) {
-						recipientsToRing.push(recipientId);
-					}
-				} else {
+				const {shouldRing} = await this.evaluateRecipientRingability({callerId: userId, recipientId});
+				if (shouldRing) {
 					recipientsToRing.push(recipientId);
 				}
 			}
 		} else {
 			for (const recipientId of recipientsToNotify) {
-				const recipientSettings = await this.userRepository.findSettings(recipientId);
-				if (recipientSettings) {
-					const incomingCallFlags = recipientSettings.incomingCallFlags;
-					const friendship = await this.userRepository.getRelationship(userId, recipientId, RelationshipTypes.FRIEND);
-					const areFriends = friendship !== null;
-
-					const shouldBeSilent =
-						!areFriends &&
-						(incomingCallFlags & IncomingCallFlags.SILENT_EVERYONE) === IncomingCallFlags.SILENT_EVERYONE;
-
-					if (!shouldBeSilent) {
-						recipientsToRing.push(recipientId);
-					}
-				} else {
+				const {shouldRing} = await this.evaluateRecipientRingability({callerId: userId, recipientId});
+				if (shouldRing) {
 					recipientsToRing.push(recipientId);
 				}
 			}
