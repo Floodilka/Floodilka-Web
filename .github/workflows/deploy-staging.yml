@@ -209,20 +209,18 @@ jobs:
           "
 
           ssh staging "
-            docker service update --force --detach backend_api &&
-            docker service update --force --detach backend_worker &&
-            docker service update --force --detach gateway_gateway &&
-            docker service update --force --detach media_media &&
-            docker service update --force --detach admin_admin &&
-            docker service update --force --detach metrics_metrics
+            docker service update --force backend_api &&
+            docker service update --force backend_worker &&
+            docker service update --force gateway_gateway &&
+            docker service update --force media_media &&
+            docker service update --force admin_admin &&
+            docker service update --force metrics_metrics
           "
-
-          ssh staging "docker container prune -f && docker image prune -af" || true
 
       - name: Health checks
         run: |
-          echo "Waiting for services to start..."
-          sleep 30
+          echo "Waiting for services to stabilize..."
+          sleep 10
 
           if [[ "${{ inputs.target }}" == "all" || "${{ inputs.target }}" == "backend" ]]; then
             echo "Checking API health..."
@@ -242,3 +240,7 @@ jobs:
 
           echo ""
           echo "All health checks passed!"
+
+      - name: Cleanup old images
+        if: always()
+        run: ssh staging "docker container prune -f && docker image prune -af" || true
