@@ -5,6 +5,9 @@ services:
     command: ['npx', 'tsx', 'src/App.ts']
     env_file:
       - /var/www/floodilka/.env
+    volumes:
+      - /var/www/secrets:/var/www/secrets:ro
+      - /var/www/floodilka/backend/firebase-service-account.json:/var/www/floodilka/backend/firebase-service-account.json:ro
     networks:
       - floodilka-shared
     deploy:
