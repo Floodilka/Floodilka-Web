@@ -195,6 +195,9 @@ code_change(_OldVsn, State, _Extra) ->
 
 handle_message_create(Params) ->
     PushEnabled = fluxer_gateway_env:get(push_enabled),
+    UserIds = maps:get(user_ids, Params, []),
+    GuildId = maps:get(guild_id, Params, -1),
+    logger:info("[push] handle_message_create called, enabled=~p, users=~p, guild=~p", [PushEnabled, UserIds, GuildId]),
 
     case PushEnabled of
         true -> gen_server:cast(?MODULE, {handle_message_create, Params});
@@ -230,9 +233,9 @@ run_eligibility_and_dispatch(Params, State) ->
     GuildDefaultNotifications = maps:get(guild_default_notifications, Params, 0),
     GuildName = maps:get(guild_name, Params, undefined),
     ChannelName = maps:get(channel_name, Params, undefined),
-    logger:debug(
-        "[push] Processing message ~p in channel ~p, guild ~p for users ~p (author ~p, defaults ~p)",
-        [MessageId, ChannelId, GuildId, UserIds, AuthorId, GuildDefaultNotifications]
+    logger:info(
+        "[push] Processing message ~p in channel ~p, guild ~p for users ~p (author ~p)",
+        [MessageId, ChannelId, GuildId, UserIds, AuthorId]
     ),
     EligibleUsers = lists:filter(
         fun(UserId) ->
@@ -246,12 +249,12 @@ run_eligibility_and_dispatch(Params, State) ->
                 UserRolesMap,
                 State
             ),
-            logger:debug("[push] User ~p eligible: ~p", [UserId, Eligible]),
+            logger:info("[push] User ~p eligible: ~p", [UserId, Eligible]),
             Eligible
         end,
         UserIds
     ),
-    logger:debug("[push] Eligible users: ~p", [EligibleUsers]),
+    logger:info("[push] Eligible users: ~p", [EligibleUsers]),
     case EligibleUsers of
         [] ->
             ok;
