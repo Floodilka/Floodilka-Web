@@ -370,8 +370,8 @@ send_mobile_notifications(
                                     <<"messageId">> => integer_to_binary(MessageId),
                                     <<"messageContent">> => ContentPreview,
                                     <<"serverId">> => case GuildId of 0 -> <<"">>; _ -> integer_to_binary(GuildId) end,
-                                    <<"serverName">> => case GuildName of undefined -> <<"">>; V2 -> V2 end,
-                                    <<"channelName">> => case ChannelName of undefined -> <<"">>; V3 -> V3 end
+                                    <<"serverName">> => case GuildName of undefined -> <<"">>; null -> <<"">>; V2 -> V2 end,
+                                    <<"channelName">> => case ChannelName of undefined -> <<"">>; null -> <<"">>; V3 -> V3 end
                                 }
                             }
                         end,
