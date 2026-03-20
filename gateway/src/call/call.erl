@@ -382,7 +382,14 @@ disconnect_user_after_pending_timeout(ConnectionId, UserId, SessionId, State) ->
             {noreply, NewState}
     end.
 
-terminate(_Reason, _State) ->
+terminate(_Reason, State) ->
+    %% Ensure clients receive CALL_DELETE and backend gets call_ended
+    %% even when process is stopped externally (e.g. call.delete RPC).
+    case State#state.recipients of
+        [] -> ok;
+        _ ->
+            catch dispatch_call_delete(State)
+    end,
     ok.
 
 code_change(_OldVsn, State, _Extra) ->
