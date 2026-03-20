@@ -651,6 +651,8 @@ execute_method(<<"guild.confirm_voice_connection_from_livekit">>, Params) ->
                     #{<<"success">> => true};
                 #{success := false, error := Error} ->
                     #{<<"success">> => false, <<"error">> => Error};
+                {error, _Category, Reason} ->
+                    #{<<"success">> => false, <<"error">> => atom_to_binary(Reason)};
                 #{error := Error} ->
                     throw({error, Error})
             end;
