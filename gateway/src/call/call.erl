@@ -607,8 +607,21 @@ handle_join_internal(UserId, VoiceState, SessionId, SessionPid, ConnectionId, St
     BaseState = remove_users_from_ringing([UserId], CleanState),
     NewVoiceStates = maps:put(UserId, VoiceState, BaseState#state.voice_states),
 
+    %% Clean up any existing session for this UserId (reconnect with new session).
+    %% Without this, the old session's DOWN message would kick the user out.
+    CleanedSessions = maps:fold(
+        fun(OldSid, {OldUid, _OldPid, OldRef}, Acc) when OldUid =:= UserId, OldSid =/= SessionId ->
+                demonitor(OldRef, [flush]),
+                maps:remove(OldSid, Acc);
+           (_, _, Acc) ->
+                Acc
+        end,
+        BaseState#state.sessions,
+        BaseState#state.sessions
+    ),
+
     SessionRef = monitor(process, SessionPid),
-    NewSessions = maps:put(SessionId, {UserId, SessionPid, SessionRef}, BaseState#state.sessions),
+    NewSessions = maps:put(SessionId, {UserId, SessionPid, SessionRef}, CleanedSessions),
     NewParticipantsHistory = sets:add_element(UserId, BaseState#state.participants_history),
 
     NewPending =
