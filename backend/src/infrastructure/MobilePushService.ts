@@ -17,7 +17,9 @@
  * along with Fluxer. If not, see <https://www.gnu.org/licenses/>.
  */
 
+import crypto from 'node:crypto';
 import fs from 'node:fs';
+import http2 from 'node:http2';
 import {createRequire} from 'node:module';
 import path from 'node:path';
 import {Config} from '~/Config';
@@ -26,18 +28,11 @@ import {Logger as logger} from '~/Logger';
 const require = createRequire(import.meta.url);
 
 let firebaseAdmin: typeof import('firebase-admin') | null = null;
-let apn: typeof import('@parse/node-apn') | null = null;
 
 try {
 	firebaseAdmin = require('firebase-admin');
 } catch {
 	// firebase-admin not installed
-}
-
-try {
-	apn = require('@parse/node-apn');
-} catch {
-	// @parse/node-apn not installed
 }
 
 export interface MobilePushNotification {
@@ -64,8 +59,14 @@ export interface MobilePushResult {
 
 class MobilePushServiceImpl {
 	private fcmInitialized = false;
-	private apnProvider: InstanceType<typeof import('@parse/node-apn').Provider> | null = null;
+	private apnsInitialized = false;
 	private apnsBundleId: string = 'com.floodilka.floodilka';
+	private apnsProduction = false;
+	private apnsKeyContent: string | null = null;
+	private apnsKeyId: string | null = null;
+	private apnsTeamId: string | null = null;
+	private apnsJwt: string | null = null;
+	private apnsJwtGeneratedAt = 0;
 
 	initialize(): void {
 		const config = Config.mobilePush;
@@ -76,10 +77,8 @@ class MobilePushServiceImpl {
 			logger.warn('[MobilePush] FCM enabled but firebase-admin not installed');
 		}
 
-		if (config.apnsEnabled && apn) {
+		if (config.apnsEnabled) {
 			this.initializeApns(config);
-		} else if (config.apnsEnabled) {
-			logger.warn('[MobilePush] APNs enabled but @parse/node-apn not installed');
 		}
 	}
 
@@ -113,8 +112,6 @@ class MobilePushServiceImpl {
 	}
 
 	private initializeApns(config: typeof Config.mobilePush): void {
-		if (!apn) return;
-
 		try {
 			const keyPath = config.apnsKeyPath
 				? path.isAbsolute(config.apnsKeyPath)
@@ -132,28 +129,43 @@ class MobilePushServiceImpl {
 				return;
 			}
 
-			const keyContent = fs.readFileSync(keyPath, 'utf8');
-
-			this.apnProvider = new apn.Provider({
-				token: {
-					key: keyContent,
-					keyId: config.apnsKeyId,
-					teamId: config.apnsTeamId,
-				},
-				production: config.apnsProduction,
-			});
-
+			this.apnsKeyContent = fs.readFileSync(keyPath, 'utf8');
+			this.apnsKeyId = config.apnsKeyId;
+			this.apnsTeamId = config.apnsTeamId;
+			this.apnsProduction = config.apnsProduction;
 			this.apnsBundleId = config.apnsBundleId;
+			this.apnsInitialized = true;
 			logger.info('[MobilePush] APNs initialized (production: %s)', config.apnsProduction);
 		} catch (error) {
 			logger.error('[MobilePush] APNs initialization failed: %s', error);
 		}
 	}
 
+	private getApnsJwt(): string {
+		const now = Math.floor(Date.now() / 1000);
+		// Refresh JWT every 50 minutes (Apple requires refresh within 60 min)
+		if (this.apnsJwt && now - this.apnsJwtGeneratedAt < 3000) {
+			return this.apnsJwt;
+		}
+
+		const header = Buffer.from(JSON.stringify({alg: 'ES256', kid: this.apnsKeyId})).toString('base64url');
+		const payload = Buffer.from(JSON.stringify({iss: this.apnsTeamId, iat: now})).toString('base64url');
+		const signature = crypto
+			.sign('sha256', Buffer.from(`${header}.${payload}`), {
+				key: this.apnsKeyContent!,
+				dsaEncoding: 'ieee-p1363',
+			})
+			.toString('base64url');
+
+		this.apnsJwt = `${header}.${payload}.${signature}`;
+		this.apnsJwtGeneratedAt = now;
+		return this.apnsJwt;
+	}
+
 	get isConfigured(): {fcm: boolean; apns: boolean} {
 		return {
 			fcm: this.fcmInitialized,
-			apns: this.apnProvider !== null,
+			apns: this.apnsInitialized,
 		};
 	}
 
@@ -227,54 +239,148 @@ class MobilePushServiceImpl {
 	}
 
 	private async sendApnsBatch(notifications: Array<MobilePushNotification>): Promise<MobilePushResult> {
-		if (!this.apnProvider || !apn || notifications.length === 0) {
+		if (!this.apnsInitialized || notifications.length === 0) {
 			return {sent: 0, failedTokens: []};
 		}
 
 		const failedTokens: Array<FailedToken> = [];
 		let sent = 0;
 
-		await Promise.allSettled(
-			notifications.map(async (notification) => {
-				try {
-					const apnNotification = new apn!.Notification({
-						topic: this.apnsBundleId,
-						alert: {
-							title: notification.title,
-							body: notification.body,
-						},
-						sound: 'default',
-						badge: notification.badgeCount,
-						mutableContent: true,
-						pushType: 'alert',
-						priority: 10,
-						expiration: Math.floor(Date.now() / 1000) + 86400,
-						payload: notification.data,
-					});
+		const host = this.apnsProduction ? 'api.push.apple.com' : 'api.sandbox.push.apple.com';
 
-					const tokenHex = notification.token.replace(/\s+/g, '').trim();
-					const result = await this.apnProvider!.send(apnNotification, tokenHex);
+		let client: http2.ClientHttp2Session;
+		try {
+			client = await this.connectHttp2(host);
+		} catch (error: any) {
+			logger.error('[MobilePush] APNs connection failed: %s', error?.message);
+			return {sent: 0, failedTokens: []};
+		}
 
-					if (result.sent && result.sent.length > 0) {
-						sent++;
-					} else if (result.failed && result.failed.length > 0) {
-						const reason = result.failed[0]?.response?.reason;
-						if (reason === 'BadDeviceToken' || reason === 'Unregistered') {
-							failedTokens.push({userId: notification.userId, tokenId: notification.tokenId});
+		try {
+			const jwt = this.getApnsJwt();
+
+			await Promise.allSettled(
+				notifications.map(async (notification) => {
+					try {
+						const tokenHex = notification.token.replace(/\s+/g, '').trim();
+						const body = JSON.stringify({
+							aps: {
+								alert: {
+									title: notification.title,
+									body: notification.body,
+								},
+								sound: 'default',
+								badge: notification.badgeCount,
+								'mutable-content': 1,
+							},
+							...notification.data,
+						});
+
+						const result = await this.sendApnsRequest(client, jwt, tokenHex, body);
+
+						if (result.status === 200) {
+							sent++;
+						} else {
+							const reason = result.reason;
+							if (reason === 'BadDeviceToken' || reason === 'Unregistered') {
+								failedTokens.push({userId: notification.userId, tokenId: notification.tokenId});
+							}
+							logger.info(
+								'[MobilePush] APNs send failed for user %s: %d %s',
+								notification.userId,
+								result.status,
+								reason,
+							);
 						}
-						logger.info('[MobilePush] APNs send failed for user %s: %s', notification.userId, reason);
+					} catch (error: any) {
+						logger.info(
+							'[MobilePush] APNs send error for user %s: %s',
+							notification.userId,
+							error?.message,
+						);
 					}
-				} catch (error: any) {
-					logger.info('[MobilePush] APNs send error for user %s: %s', notification.userId, error?.message);
-				}
-			}),
-		);
+				}),
+			);
+		} finally {
+			client.close();
+		}
 
 		if (sent > 0) {
 			logger.info('[MobilePush] APNs: sent %d/%d notifications', sent, notifications.length);
 		}
 
 		return {sent, failedTokens};
+	}
+
+	private connectHttp2(host: string): Promise<http2.ClientHttp2Session> {
+		return new Promise((resolve, reject) => {
+			const client = http2.connect(`https://${host}`, {settings: {enablePush: false}});
+			const timeout = setTimeout(() => {
+				client.destroy();
+				reject(new Error('HTTP/2 connection timeout'));
+			}, 10000);
+			client.on('connect', () => {
+				clearTimeout(timeout);
+				resolve(client);
+			});
+			client.on('error', (err) => {
+				clearTimeout(timeout);
+				reject(err);
+			});
+		});
+	}
+
+	private sendApnsRequest(
+		client: http2.ClientHttp2Session,
+		jwt: string,
+		deviceToken: string,
+		body: string,
+	): Promise<{status: number; reason?: string}> {
+		return new Promise((resolve, reject) => {
+			const req = client.request({
+				':method': 'POST',
+				':path': `/3/device/${deviceToken}`,
+				authorization: `bearer ${jwt}`,
+				'apns-topic': this.apnsBundleId,
+				'apns-push-type': 'alert',
+				'apns-priority': '10',
+				'apns-expiration': String(Math.floor(Date.now() / 1000) + 86400),
+			});
+
+			const timeout = setTimeout(() => {
+				req.close();
+				reject(new Error('APNs request timeout'));
+			}, 10000);
+
+			let responseData = '';
+			let status = 0;
+
+			req.on('response', (headers) => {
+				status = Number(headers[':status']);
+			});
+			req.on('data', (chunk) => {
+				responseData += chunk;
+			});
+			req.on('end', () => {
+				clearTimeout(timeout);
+				if (status === 200) {
+					resolve({status: 200});
+				} else {
+					try {
+						const parsed = JSON.parse(responseData);
+						resolve({status, reason: parsed.reason});
+					} catch {
+						resolve({status, reason: responseData || 'unknown'});
+					}
+				}
+			});
+			req.on('error', (err) => {
+				clearTimeout(timeout);
+				reject(err);
+			});
+
+			req.end(body);
+		});
 	}
 
 	private getFcmChannelId(type: string): string {
@@ -289,10 +395,7 @@ class MobilePushServiceImpl {
 	}
 
 	async shutdown(): Promise<void> {
-		if (this.apnProvider) {
-			this.apnProvider.shutdown();
-			this.apnProvider = null;
-		}
+		// No persistent connections to clean up
 	}
 }
 
