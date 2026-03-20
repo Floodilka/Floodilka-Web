@@ -119,14 +119,14 @@ export class VoiceService {
 		const isUnclaimed = user.isUnclaimedAccount();
 		if (isUnclaimed) {
 			if (channel.type === ChannelTypes.DM) {
-				throw new UnclaimedAccountRestrictedError('join 1:1 voice calls');
+				throw new UnclaimedAccountRestrictedError('присоединяться к голосовым звонкам');
 			}
 
 			if (channel.type === ChannelTypes.GUILD_VOICE) {
 				const guild = guildId ? await this.guildRepository.findUnique(guildId) : null;
 				const isOwner = guild?.ownerId === userId;
 				if (!isOwner) {
-					throw new UnclaimedAccountRestrictedError('join voice channels you do not own');
+					throw new UnclaimedAccountRestrictedError('присоединяться к чужим голосовым каналам');
 				}
 			}
 		}

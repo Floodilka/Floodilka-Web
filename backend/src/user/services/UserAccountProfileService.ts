@@ -131,12 +131,12 @@ export class UserAccountProfileService {
 				const minutes = Math.ceil((bioRateLimit.retryAfter || 0) / 60);
 				throw InputValidationError.create(
 					'bio',
-					`You've changed your bio too many times recently. Please try again in ${minutes} minutes.`,
+					`Вы слишком часто меняли описание. Попробуйте снова через ${minutes} мин.`,
 				);
 			}
 
 			if (bio && bio.length > 160 && !user.isPremium()) {
-				throw InputValidationError.create('bio', 'Bio longer than 160 characters requires premium');
+				throw InputValidationError.create('bio', 'Описание длиннее 160 символов требует премиума');
 			}
 
 			let sanitizedBio = bio;
@@ -188,7 +188,7 @@ export class UserAccountProfileService {
 			const minutes = Math.ceil((avatarRateLimit.retryAfter || 0) / 60);
 			throw InputValidationError.create(
 				'avatar',
-				`You've changed your avatar too many times recently. Please try again in ${minutes} minutes.`,
+				`Вы слишком часто меняли аватар. Попробуйте снова через ${minutes} мин.`,
 			);
 		}
 
@@ -203,7 +203,7 @@ export class UserAccountProfileService {
 
 		if (prepared.isAnimated && !user.isPremium()) {
 			await this.deps.entityAssetService.rollbackAssetUpload(prepared);
-			throw InputValidationError.create('avatar', 'Animated avatars require premium');
+			throw InputValidationError.create('avatar', 'Анимированные аватары требуют премиума');
 		}
 
 		if (prepared.imageBuffer) {
@@ -233,7 +233,7 @@ export class UserAccountProfileService {
 		}
 
 		if (banner && !user.isPremium()) {
-			throw InputValidationError.create('banner', 'Banners require premium');
+			throw InputValidationError.create('banner', 'Баннеры требуют премиума');
 		}
 
 		const bannerRateLimit = await this.deps.rateLimitService.checkLimit({
@@ -246,7 +246,7 @@ export class UserAccountProfileService {
 			const minutes = Math.ceil((bannerRateLimit.retryAfter || 0) / 60);
 			throw InputValidationError.create(
 				'banner',
-				`You've changed your banner too many times recently. Please try again in ${minutes} minutes.`,
+				`Вы слишком часто меняли баннер. Попробуйте снова через ${minutes} мин.`,
 			);
 		}
 

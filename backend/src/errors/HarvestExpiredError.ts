@@ -24,7 +24,7 @@ export class HarvestExpiredError extends BadRequestError {
 	constructor() {
 		super({
 			code: APIErrorCodes.HARVEST_EXPIRED,
-			message: 'Data harvest has expired and is no longer available for download',
+			message: 'Архив данных истёк и больше недоступен для скачивания',
 		});
 	}
 }

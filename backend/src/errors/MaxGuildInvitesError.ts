@@ -24,7 +24,7 @@ export class MaxGuildInvitesError extends BadRequestError {
 	constructor() {
 		super({
 			code: APIErrorCodes.MAX_INVITES,
-			message: `Maximum number of guild invites reached (${MAX_GUILD_INVITES}).`,
+			message: `Достигнуто максимальное количество приглашений на сервере (${MAX_GUILD_INVITES}).`,
 		});
 	}
 }

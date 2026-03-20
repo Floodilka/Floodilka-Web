@@ -55,7 +55,7 @@ export class GiftService {
 			throw new GiftCodeAlreadyRedeemedError();
 		}
 		if (await this.cacheService.get<boolean>(inflightKey)) {
-			throw new PaymentError('Gift code redemption in progress. Please try again in a moment.');
+			throw new PaymentError('Подарочный код активируется. Попробуйте через несколько секунд.');
 		}
 		await this.cacheService.set(inflightKey, 60);
 

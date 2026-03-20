@@ -24,7 +24,7 @@ export class FriendRequestBlockedError extends BadRequestError {
 	constructor() {
 		super({
 			code: APIErrorCodes.FRIEND_REQUEST_BLOCKED,
-			message: 'This user is not accepting friend requests from you',
+			message: 'Этот пользователь не принимает от вас запросы в друзья',
 		});
 	}
 }

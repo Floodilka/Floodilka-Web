@@ -24,7 +24,7 @@ export class InvalidDsaTicketError extends BadRequestError {
 	constructor() {
 		super({
 			code: APIErrorCodes.INVALID_DSA_TICKET,
-			message: 'Invalid or expired ticket. Please verify your email again before submitting the report.',
+			message: 'Недействительный или просроченный тикет. Подтвердите email повторно перед отправкой жалобы.',
 		});
 	}
 }

@@ -24,7 +24,7 @@ export class MaxUsersPerMessageReactionError extends BadRequestError {
 	constructor() {
 		super({
 			code: APIErrorCodes.MAX_REACTIONS,
-			message: `Maximum number of users per message reaction reached (${MAX_USERS_PER_MESSAGE_REACTION}).`,
+			message: `Достигнуто максимальное количество пользователей на одну реакцию (${MAX_USERS_PER_MESSAGE_REACTION}).`,
 		});
 	}
 }

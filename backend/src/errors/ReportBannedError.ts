@@ -24,7 +24,7 @@ export class ReportBannedError extends ForbiddenError {
 	constructor() {
 		super({
 			code: APIErrorCodes.REPORT_BANNED,
-			message: 'You have been banned from submitting reports',
+			message: 'Вам запрещено отправлять жалобы',
 		});
 	}
 }

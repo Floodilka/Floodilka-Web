@@ -330,11 +330,11 @@ export class GuildRoleService {
 
 			for (const update of updates) {
 				if (update.roleId === everyoneRoleId) {
-					throw InputValidationError.create('id', 'Cannot set hoist position for the @everyone role');
+					throw InputValidationError.create('id', 'Нельзя изменить позицию роли @everyone');
 				}
 				const role = roleMap.get(update.roleId);
 				if (!role) {
-					throw InputValidationError.create('id', `Invalid role ID: ${update.roleId}`);
+					throw InputValidationError.create('id', `Неверный ID роли: ${update.roleId}`);
 				}
 				if (!canManageRole(role)) {
 					throw new MissingPermissionsError();
@@ -506,10 +506,10 @@ export class GuildRoleService {
 
 		for (const update of updates) {
 			if (update.roleId === guildIdToRoleId(guildId)) {
-				throw InputValidationError.create('id', 'Cannot reorder the @everyone role');
+				throw InputValidationError.create('id', 'Нельзя менять порядок роли @everyone');
 			}
 			if (!roleMap.has(update.roleId)) {
-				throw InputValidationError.create('id', `Invalid role ID: ${update.roleId}`);
+				throw InputValidationError.create('id', `Неверный ID роли: ${update.roleId}`);
 			}
 		}
 
@@ -590,23 +590,23 @@ export class GuildRoleService {
 
 		const targetRole = roleMap.get(operation.roleId);
 		if (!targetRole) {
-			throw InputValidationError.create('role_id', `Invalid role ID: ${operation.roleId}`);
+			throw InputValidationError.create('role_id', `Неверный ID роли: ${operation.roleId}`);
 		}
 
 		const everyoneRoleId = guildIdToRoleId(guildId);
 		if (targetRole.id === everyoneRoleId) {
-			throw InputValidationError.create('role_id', 'Cannot reorder the @everyone role');
+			throw InputValidationError.create('role_id', 'Нельзя менять порядок роли @everyone');
 		}
 
 		let precedingRole: GuildRole | null = null;
 		if (!customOrder) {
 			if (operation.precedingRoleId) {
 				if (operation.precedingRoleId === targetRole.id) {
-					throw InputValidationError.create('preceding_role_id', 'Cannot use the same role as a preceding role');
+					throw InputValidationError.create('preceding_role_id', 'Нельзя использовать ту же роль как предшествующую');
 				}
 				precedingRole = roleMap.get(operation.precedingRoleId) ?? null;
 				if (!precedingRole) {
-					throw InputValidationError.create('preceding_role_id', `Invalid role ID: ${operation.precedingRoleId}`);
+					throw InputValidationError.create('preceding_role_id', `Неверный ID роли: ${operation.precedingRoleId}`);
 				}
 			}
 		}
@@ -630,7 +630,7 @@ export class GuildRoleService {
 			if (precedingRole) {
 				const precedingIndex = baseList.findIndex((role) => role.id === precedingRole!.id);
 				if (precedingIndex === -1) {
-					throw InputValidationError.create('preceding_role_id', 'Preceding role is not present in the guild');
+					throw InputValidationError.create('preceding_role_id', 'Предшествующая роль отсутствует на сервере');
 				}
 				insertIndex = precedingIndex + 1;
 			}

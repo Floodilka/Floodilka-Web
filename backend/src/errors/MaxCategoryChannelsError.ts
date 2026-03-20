@@ -24,7 +24,7 @@ export class MaxCategoryChannelsError extends BadRequestError {
 	constructor() {
 		super({
 			code: APIErrorCodes.MAX_CATEGORY_CHANNELS,
-			message: `Maximum number of channels in this category reached (${MAX_CHANNELS_PER_CATEGORY}).`,
+			message: `Достигнуто максимальное количество каналов в категории (${MAX_CHANNELS_PER_CATEGORY}).`,
 		});
 	}
 }

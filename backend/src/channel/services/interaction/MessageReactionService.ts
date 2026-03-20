@@ -399,11 +399,11 @@ export class MessageReactionService extends MessageInteractionBase {
 
 			const emoji = await this.guildRepository.getEmojiById(emojiIdBigInt);
 			if (!emoji) {
-				throw InputValidationError.create('emoji', 'Custom emoji not found');
+				throw InputValidationError.create('emoji', 'Пользовательский эмодзи не найден');
 			}
 
 			if (!isPremium && emoji.guildId.toString() !== guildId) {
-				throw InputValidationError.create('emoji', 'Cannot use custom emojis outside of source guilds without premium');
+				throw InputValidationError.create('emoji', 'Нельзя использовать пользовательские эмодзи за пределами их сервера без премиума');
 			}
 
 			if (hasPermission) {
@@ -422,7 +422,7 @@ export class MessageReactionService extends MessageInteractionBase {
 
 		const isValidUnicodeEmoji = emojiRegex().test(decodedEmoji);
 		if (!isValidUnicodeEmoji) {
-			throw InputValidationError.create('emoji', 'Not a valid Unicode emoji');
+			throw InputValidationError.create('emoji', 'Недопустимый Unicode-эмодзи');
 		}
 
 		return {name: decodedEmoji};

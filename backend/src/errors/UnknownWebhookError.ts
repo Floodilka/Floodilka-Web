@@ -22,6 +22,6 @@ import {NotFoundError} from './NotFoundError';
 
 export class UnknownWebhookError extends NotFoundError {
 	constructor() {
-		super({code: APIErrorCodes.UNKNOWN_WEBHOOK, message: 'Unknown Webhook'});
+		super({code: APIErrorCodes.UNKNOWN_WEBHOOK, message: 'Вебхук не найден'});
 	}
 }

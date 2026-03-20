@@ -24,7 +24,7 @@ export class PremiumPurchaseBlockedError extends ForbiddenError {
 	constructor() {
 		super({
 			code: APIErrorCodes.PREMIUM_PURCHASE_BLOCKED,
-			message: 'You are not allowed to purchase premium at this time',
+			message: 'Покупка премиума сейчас недоступна',
 		});
 	}
 }

@@ -24,7 +24,7 @@ export class NsfwContentRequiresAgeVerificationError extends ForbiddenError {
 	constructor() {
 		super({
 			code: APIErrorCodes.NSFW_CONTENT_AGE_RESTRICTED,
-			message: 'You must be 18 or older to access NSFW content',
+			message: 'Для доступа к NSFW-контенту необходимо быть старше 18 лет',
 		});
 	}
 }

@@ -25,7 +25,7 @@ export class MaxFavoriteMemesError extends BadRequestError {
 		const limit = isPremium ? MAX_FAVORITE_MEMES_PREMIUM : MAX_FAVORITE_MEMES_NON_PREMIUM;
 		super({
 			code: APIErrorCodes.MAX_FAVORITE_MEMES,
-			message: `Maximum number of favorite memes reached (${limit}).`,
+			message: `Достигнуто максимальное количество избранных мемов (${limit}).`,
 			data: {
 				max_favorite_memes: limit,
 				is_premium: isPremium,

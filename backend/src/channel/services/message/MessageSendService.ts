@@ -116,7 +116,7 @@ export class MessageSendService {
 		});
 
 		if (!(user.flags & UserFlags.HAS_SESSION_STARTED)) {
-			throw InputValidationError.create('content', 'You must start a session before sending messages');
+			throw InputValidationError.create('content', 'Необходимо начать сессию перед отправкой сообщений');
 		}
 
 		if (isPersonalNotesChannel({userId: user.id, channelId})) {
@@ -173,7 +173,7 @@ export class MessageSendService {
 		if (data.message_reference && referencedMessage && !isForwardMessage) {
 			const replyableTypes: ReadonlySet<Message['type']> = new Set([MessageTypes.DEFAULT, MessageTypes.REPLY]);
 			if (!replyableTypes.has(referencedMessage.type)) {
-				throw InputValidationError.create('message_reference', 'Cannot reply to system message');
+				throw InputValidationError.create('message_reference', 'Нельзя ответить на системное сообщение');
 			}
 		}
 
@@ -244,7 +244,7 @@ export class MessageSendService {
 		if (data.message_reference && referencedMessage && !isForwardMessage) {
 			const replyableTypes: ReadonlySet<Message['type']> = new Set([MessageTypes.DEFAULT, MessageTypes.REPLY]);
 			if (!replyableTypes.has(referencedMessage.type)) {
-				throw InputValidationError.create('message_reference', 'Cannot reply to system message');
+				throw InputValidationError.create('message_reference', 'Нельзя ответить на системное сообщение');
 			}
 		}
 
@@ -326,7 +326,7 @@ export class MessageSendService {
 			if (!metadata) {
 				throw InputValidationError.create(
 					`attachments.${index}.upload_filename`,
-					`Uploaded attachment ${attachment.filename} was not found`,
+					`Загруженное вложение ${attachment.filename} не найдено`,
 				);
 			}
 		}
@@ -339,7 +339,7 @@ export class MessageSendService {
 			if (!data.message_reference?.channel_id || !data.message_reference?.message_id) {
 				throw InputValidationError.create(
 					'message_reference',
-					'Forward message reference must include channel_id and message_id',
+					'Пересылаемое сообщение должно содержать channel_id и message_id',
 				);
 			}
 
@@ -351,7 +351,7 @@ export class MessageSendService {
 			) {
 				throw InputValidationError.create(
 					'message_reference',
-					'Forward messages cannot contain content, embeds, attachments, or stickers',
+					'Пересылаемые сообщения не могут содержать текст, вставки, вложения или стикеры',
 				);
 			}
 		} else {
@@ -432,7 +432,7 @@ export class MessageSendService {
 		if (providedGuildId !== referencedChannelGuildId) {
 			throw InputValidationError.create(
 				'message_reference.guild_id',
-				'Guild id must match the channel the referenced message was fetched from',
+				'ID сервера должен совпадать с каналом, из которого было получено сообщение',
 			);
 		}
 	}
@@ -522,7 +522,7 @@ export class MessageSendService {
 			});
 
 			if (!(user.flags & UserFlags.HAS_SESSION_STARTED)) {
-				throw InputValidationError.create('content', 'You must start a session before sending messages');
+				throw InputValidationError.create('content', 'Необходимо начать сессию перед отправкой сообщений');
 			}
 
 			if (isPersonalNotesChannel({userId: user.id, channelId})) {
@@ -612,7 +612,7 @@ export class MessageSendService {
 			if (data.message_reference && referencedMessage && !isForwardMessage) {
 				const replyableTypes: ReadonlySet<Message['type']> = new Set([MessageTypes.DEFAULT, MessageTypes.REPLY]);
 				if (!replyableTypes.has(referencedMessage.type)) {
-					throw InputValidationError.create('message_reference', 'Cannot reply to system message');
+					throw InputValidationError.create('message_reference', 'Нельзя ответить на системное сообщение');
 				}
 			}
 

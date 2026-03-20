@@ -24,7 +24,7 @@ export class WebhookVerificationError extends FluxerAPIError {
 	constructor() {
 		super({
 			code: APIErrorCodes.WEBHOOK_VERIFICATION_ERROR,
-			message: 'Invalid webhook signature',
+			message: 'Неверная подпись вебхука',
 			status: 401,
 		});
 	}

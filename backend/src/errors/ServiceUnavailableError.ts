@@ -22,6 +22,6 @@ import {FluxerAPIError} from './FluxerAPIError';
 
 export class ServiceUnavailableError extends FluxerAPIError {
 	constructor({code = APIErrorCodes.SERVICE_UNAVAILABLE, message}: {code?: string; message?: string} = {}) {
-		super({code, message: message ?? 'Service Unavailable', status: 503});
+		super({code, message: message ?? 'Сервис недоступен', status: 503});
 	}
 }

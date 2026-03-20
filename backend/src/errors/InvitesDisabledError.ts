@@ -22,6 +22,6 @@ import {ForbiddenError} from './ForbiddenError';
 
 export class InvitesDisabledError extends ForbiddenError {
 	constructor() {
-		super({code: APIErrorCodes.INVITES_DISABLED, message: 'Invites are disabled for this community'});
+		super({code: APIErrorCodes.INVITES_DISABLED, message: 'Приглашения отключены для этого сообщества'});
 	}
 }

@@ -24,7 +24,7 @@ export class SudoModeRequiredError extends ForbiddenError {
 	constructor(hasMfa: boolean) {
 		super({
 			code: APIErrorCodes.SUDO_MODE_REQUIRED,
-			message: 'Password or MFA verification required for this action',
+			message: 'Для этого действия требуется подтверждение паролем или двухфакторной аутентификацией',
 			data: {
 				has_mfa: hasMfa,
 			},

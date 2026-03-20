@@ -70,12 +70,12 @@ export async function parseScheduledMessageInput({
 		})) as MessageRequest;
 
 		if (!parsedPayload) {
-			throw InputValidationError.create('scheduled_message', 'Failed to parse multipart payload');
+			throw InputValidationError.create('scheduled_message', 'Не удалось разобрать составные данные');
 		}
 
 		const validation = ScheduledMessageSchema.safeParse(parsedPayload);
 		if (!validation.success) {
-			throw InputValidationError.create('scheduled_message', 'Invalid scheduled message payload');
+			throw InputValidationError.create('scheduled_message', 'Некорректные данные отложенного сообщения');
 		}
 
 		const {scheduled_local_at, timezone} = extractScheduleFields(validation.data);
@@ -85,7 +85,7 @@ export async function parseScheduledMessageInput({
 	const body: unknown = await ctx.req.json();
 	const validation = ScheduledMessageSchema.safeParse(body);
 	if (!validation.success) {
-		throw InputValidationError.create('scheduled_message', 'Invalid scheduled message payload');
+		throw InputValidationError.create('scheduled_message', 'Некорректные данные отложенного сообщения');
 	}
 
 	const {scheduled_local_at, timezone, message} = extractScheduleFields(validation.data);

@@ -258,7 +258,7 @@ export class GuildMemberOperationsService {
 				data.communication_disabled_until !== null ? new Date(data.communication_disabled_until) : null;
 
 			if (parsedTimeout !== null && Number.isNaN(parsedTimeout.getTime())) {
-				throw InputValidationError.create('communication_disabled_until', 'Invalid timeout value');
+				throw InputValidationError.create('communication_disabled_until', 'Неверное значение тайм-аута');
 			}
 
 			if (parsedTimeout !== null) {
@@ -266,7 +266,7 @@ export class GuildMemberOperationsService {
 				if (diffMs > MAX_TIMEOUT_DURATION_MS) {
 					throw InputValidationError.create(
 						'communication_disabled_until',
-						'Timeout cannot be longer than 365 days from now.',
+						'Тайм-аут не может превышать 365 дней.',
 					);
 				}
 			}
@@ -552,7 +552,7 @@ export class GuildMemberOperationsService {
 			if (guildData.owner_id === userId.toString()) {
 				throw InputValidationError.create(
 					'guild_id',
-					'Cannot leave guild as owner. Transfer ownership or delete the guild instead.',
+					'Нельзя покинуть сервер, будучи владельцем. Передайте права или удалите сервер.',
 				);
 			}
 
@@ -634,7 +634,7 @@ export class GuildMemberOperationsService {
 				const minutes = Math.ceil((avatarRateLimit.retryAfter || 0) / 60);
 				throw InputValidationError.create(
 					'avatar',
-					`You've changed your avatar too many times recently. Please try again in ${minutes} minutes.`,
+					`Вы слишком часто меняли аватар. Попробуйте снова через ${minutes} мин.`,
 				);
 			}
 
@@ -665,7 +665,7 @@ export class GuildMemberOperationsService {
 				const minutes = Math.ceil((bannerRateLimit.retryAfter || 0) / 60);
 				throw InputValidationError.create(
 					'banner',
-					`You've changed your banner too many times recently. Please try again in ${minutes} minutes.`,
+					`Вы слишком часто меняли баннер. Попробуйте снова через ${minutes} мин.`,
 				);
 			}
 
@@ -697,7 +697,7 @@ export class GuildMemberOperationsService {
 					const minutes = Math.ceil((bioRateLimit.retryAfter || 0) / 60);
 					throw InputValidationError.create(
 						'bio',
-						`You've changed your bio too many times recently. Please try again in ${minutes} minutes.`,
+						`Вы слишком часто меняли описание. Попробуйте снова через ${minutes} мин.`,
 					);
 				}
 
@@ -746,9 +746,9 @@ export class GuildMemberOperationsService {
 						case 'user_not_in_voice':
 							throw new UserNotInVoiceError();
 						case 'channel_not_found':
-							throw InputValidationError.create('channel_id', 'Channel does not exist');
+							throw InputValidationError.create('channel_id', 'Канал не существует');
 						case 'channel_not_voice':
-							throw InputValidationError.create('channel_id', 'Channel must be a voice channel');
+							throw InputValidationError.create('channel_id', 'Канал должен быть голосовым');
 						case 'moderator_missing_connect':
 							throw new MissingPermissionsError();
 						case 'target_missing_connect':

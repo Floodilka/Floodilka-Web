@@ -24,7 +24,7 @@ export class CannotSendFriendRequestToBlockedUserError extends BadRequestError {
 	constructor() {
 		super({
 			code: APIErrorCodes.CANNOT_SEND_FRIEND_REQUEST_TO_BLOCKED_USER,
-			message: 'You must unblock this user before sending a friend request',
+			message: 'Сначала разблокируйте пользователя, чтобы отправить запрос в друзья',
 		});
 	}
 }

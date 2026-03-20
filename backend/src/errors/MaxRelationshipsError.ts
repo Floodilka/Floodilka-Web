@@ -24,7 +24,7 @@ export class MaxRelationshipsError extends BadRequestError {
 	constructor() {
 		super({
 			code: APIErrorCodes.MAX_FRIENDS,
-			message: `Maximum number of relationships reached (${MAX_RELATIONSHIPS}).`,
+			message: `Достигнуто максимальное количество связей (${MAX_RELATIONSHIPS}).`,
 		});
 	}
 }

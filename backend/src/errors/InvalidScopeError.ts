@@ -20,7 +20,7 @@
 import {OAuth2Error} from './OAuth2Error';
 
 export class InvalidScopeError extends OAuth2Error {
-	constructor(message = 'The requested scope is invalid or unsupported') {
+	constructor(message = 'Запрошенная область доступа недействительна или не поддерживается') {
 		super({error: 'invalid_scope', errorDescription: message, status: 400});
 	}
 }

@@ -127,7 +127,7 @@ export const SearchController = (app: HonoApp) => {
 							requestCache,
 						});
 					} else {
-						throw InputValidationError.create('context', 'Context channel or guild ID is required');
+						throw InputValidationError.create('context', 'Требуется ID канала или сервера');
 					}
 					break;
 			}

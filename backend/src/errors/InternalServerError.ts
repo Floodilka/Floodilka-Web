@@ -22,7 +22,7 @@ import {FluxerAPIError, type FluxerErrorData} from './FluxerAPIError';
 export class InternalServerError extends FluxerAPIError {
 	constructor({
 		code,
-		message = 'Internal Server Error',
+		message = 'Внутренняя ошибка сервера',
 		headers,
 		data,
 	}: {

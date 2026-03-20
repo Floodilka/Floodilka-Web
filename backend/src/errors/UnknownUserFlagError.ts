@@ -22,6 +22,6 @@ import {BadRequestError} from './BadRequestError';
 
 export class UnknownUserFlagError extends BadRequestError {
 	constructor() {
-		super({code: APIErrorCodes.UNKNOWN_USER_FLAG, message: 'Unknown user flag name supplied'});
+		super({code: APIErrorCodes.UNKNOWN_USER_FLAG, message: 'Указан неизвестный пользовательский флаг'});
 	}
 }

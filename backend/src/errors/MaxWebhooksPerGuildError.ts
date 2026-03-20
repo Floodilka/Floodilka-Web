@@ -24,7 +24,7 @@ export class MaxWebhooksPerGuildError extends BadRequestError {
 	constructor() {
 		super({
 			code: APIErrorCodes.MAX_WEBHOOKS_PER_GUILD,
-			message: `Maximum number of webhooks per guild reached (${MAX_WEBHOOKS_PER_GUILD}).`,
+			message: `Достигнуто максимальное количество вебхуков на сервере (${MAX_WEBHOOKS_PER_GUILD}).`,
 		});
 	}
 }

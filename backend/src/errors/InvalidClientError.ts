@@ -20,7 +20,7 @@
 import {OAuth2Error} from './OAuth2Error';
 
 export class InvalidClientError extends OAuth2Error {
-	constructor(message = 'Invalid client credentials') {
+	constructor(message = 'Недействительные учётные данные клиента') {
 		super({error: 'invalid_client', errorDescription: message, status: 401});
 	}
 }

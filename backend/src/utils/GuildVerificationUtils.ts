@@ -52,12 +52,12 @@ function checkGuildVerification(params: VerificationParams): void {
 	}
 
 	if (!user.email) {
-		throw new GuildVerificationRequiredError('You need to claim your account to send messages in this guild.');
+		throw new GuildVerificationRequiredError('Подтвердите аккаунт, чтобы отправлять сообщения на этом сервере.');
 	}
 
 	if (verificationLevel >= GuildVerificationLevel.LOW) {
 		if (!user.emailVerified) {
-			throw new GuildVerificationRequiredError('You need to verify your email to send messages in this guild.');
+			throw new GuildVerificationRequiredError('Подтвердите email, чтобы отправлять сообщения на этом сервере.');
 		}
 	}
 
@@ -66,7 +66,7 @@ function checkGuildVerification(params: VerificationParams): void {
 		const accountAge = Date.now() - createdAt;
 		const FIVE_MINUTES_MS = 5 * 60 * 1000;
 		if (accountAge < FIVE_MINUTES_MS) {
-			throw new GuildVerificationRequiredError('Your account is too new to send messages in this guild.');
+			throw new GuildVerificationRequiredError('Ваш аккаунт слишком новый для отправки сообщений на этом сервере.');
 		}
 	}
 
@@ -78,7 +78,7 @@ function checkGuildVerification(params: VerificationParams): void {
 			const TEN_MINUTES_MS = 10 * 60 * 1000;
 			if (membershipDuration < TEN_MINUTES_MS) {
 				throw new GuildVerificationRequiredError(
-					"You haven't been a member of this guild long enough to send messages.",
+					'Вы состоите на этом сервере недостаточно долго для отправки сообщений.',
 				);
 			}
 		}
@@ -86,7 +86,7 @@ function checkGuildVerification(params: VerificationParams): void {
 
 	if (verificationLevel >= GuildVerificationLevel.VERY_HIGH) {
 		if (!user.phone) {
-			throw new GuildVerificationRequiredError('You need to add a phone number to send messages in this guild.');
+			throw new GuildVerificationRequiredError('Добавьте номер телефона, чтобы отправлять сообщения на этом сервере.');
 		}
 	}
 }

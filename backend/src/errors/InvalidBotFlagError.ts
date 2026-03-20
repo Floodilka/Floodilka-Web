@@ -22,6 +22,6 @@ import {BadRequestError} from './BadRequestError';
 
 export class InvalidBotFlagError extends BadRequestError {
 	constructor() {
-		super({code: APIErrorCodes.INVALID_BOT_FLAG, message: 'is_bot must be a boolean'});
+		super({code: APIErrorCodes.INVALID_BOT_FLAG, message: 'is_bot должен быть булевым значением'});
 	}
 }

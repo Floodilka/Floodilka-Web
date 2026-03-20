@@ -24,7 +24,7 @@ export class CallAlreadyExistsError extends BadRequestError {
 	constructor() {
 		super({
 			code: APIErrorCodes.CALL_ALREADY_EXISTS,
-			message: 'A call already exists in this channel',
+			message: 'Звонок уже существует в этом канале',
 		});
 	}
 }

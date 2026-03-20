@@ -22,6 +22,6 @@ import {NotFoundError} from './NotFoundError';
 
 export class UnknownPackError extends NotFoundError {
 	constructor() {
-		super({code: APIErrorCodes.UNKNOWN_PACK, message: 'Pack not found'});
+		super({code: APIErrorCodes.UNKNOWN_PACK, message: 'Пак не найден'});
 	}
 }

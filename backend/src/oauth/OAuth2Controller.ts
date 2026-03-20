@@ -130,7 +130,7 @@ const handleRevoke = async (ctx: FormContext<z.infer<typeof RevokeRequestForm>>)
 		body.client_secret,
 	);
 	if (!secret) {
-		throw new InvalidClientError('Missing client_secret');
+		throw new InvalidClientError('Отсутствует client_secret');
 	}
 	await ctx.get('oauth2Service').revoke(body.token, body.token_type_hint ?? undefined, {
 		clientId: createApplicationID(BigInt(clientIdStr)),
@@ -147,7 +147,7 @@ const handleIntrospect = async (ctx: FormContext<z.infer<typeof IntrospectReques
 		body.client_secret,
 	);
 	if (!secret) {
-		throw new InvalidClientError('Missing client_secret');
+		throw new InvalidClientError('Отсутствует client_secret');
 	}
 	const result = await ctx.get('oauth2Service').introspect(body.token, {
 		clientId: createApplicationID(BigInt(clientIdStr)),

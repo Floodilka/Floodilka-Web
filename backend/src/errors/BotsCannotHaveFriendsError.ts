@@ -24,7 +24,7 @@ export class BotsCannotHaveFriendsError extends BadRequestError {
 	constructor() {
 		super({
 			code: APIErrorCodes.BOTS_CANNOT_HAVE_FRIENDS,
-			message: 'Bots cannot have friends',
+			message: 'Боты не могут иметь друзей',
 		});
 	}
 }

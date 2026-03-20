@@ -22,6 +22,6 @@ import {NotFoundError} from './NotFoundError';
 
 export class UnknownGuildEmojiError extends NotFoundError {
 	constructor() {
-		super({code: APIErrorCodes.UNKNOWN_EMOJI, message: 'Unknown Guild Emoji'});
+		super({code: APIErrorCodes.UNKNOWN_EMOJI, message: 'Эмодзи сервера не найден'});
 	}
 }

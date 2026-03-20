@@ -22,6 +22,6 @@ import {NotFoundError} from './NotFoundError';
 
 export class UnknownChannelError extends NotFoundError {
 	constructor() {
-		super({code: APIErrorCodes.UNKNOWN_CHANNEL, message: 'Unknown Channel'});
+		super({code: APIErrorCodes.UNKNOWN_CHANNEL, message: 'Канал не найден'});
 	}
 }

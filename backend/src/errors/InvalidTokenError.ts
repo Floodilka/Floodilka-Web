@@ -21,7 +21,7 @@ import {APIErrorCodes} from '~/Constants';
 import {FluxerAPIError} from './FluxerAPIError';
 
 export class InvalidTokenError extends FluxerAPIError {
-	constructor(message = 'Invalid token') {
+	constructor(message = 'Недействительный токен') {
 		super({code: APIErrorCodes.INVALID_TOKEN, message, status: 401});
 	}
 }

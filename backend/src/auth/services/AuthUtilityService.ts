@@ -115,7 +115,7 @@ export class AuthUtilityService {
 
 	assertNonBotUser(user: User): void {
 		if (user.isBot) {
-			throw new AccessDeniedError('Bot users cannot use auth endpoints');
+			throw new AccessDeniedError('Боты не могут использовать эндпоинты авторизации');
 		}
 	}
 

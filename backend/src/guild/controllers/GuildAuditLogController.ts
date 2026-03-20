@@ -52,7 +52,7 @@ export const GuildAuditLogController = (app: HonoApp) => {
 			const query = ctx.req.valid('query');
 
 			if (query.before !== undefined && query.after !== undefined) {
-				throw InputValidationError.create('before', 'Cannot specify both before and after');
+				throw InputValidationError.create('before', 'Нельзя указать одновременно before и after');
 			}
 
 			const requestCache = ctx.get('requestCache');

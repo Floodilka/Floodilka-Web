@@ -22,6 +22,6 @@ import {NotFoundError} from './NotFoundError';
 
 export class UnknownUserError extends NotFoundError {
 	constructor() {
-		super({code: APIErrorCodes.UNKNOWN_USER, message: 'Unknown User'});
+		super({code: APIErrorCodes.UNKNOWN_USER, message: 'Пользователь не найден'});
 	}
 }

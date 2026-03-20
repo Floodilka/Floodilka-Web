@@ -24,7 +24,7 @@ export class MaxPackExpressionsError extends BadRequestError {
 	constructor(maxExpressions: number) {
 		super({
 			code: APIErrorCodes.MAX_PACK_EXPRESSIONS,
-			message: `Pack may contain at most ${maxExpressions} expressions`,
+			message: `Пак может содержать не более ${maxExpressions} выражений`,
 			data: {
 				max_expressions: maxExpressions,
 			},

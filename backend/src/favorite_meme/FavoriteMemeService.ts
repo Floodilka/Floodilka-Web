@@ -93,7 +93,7 @@ export class FavoriteMemeService {
 
 		const media = this.findMediaInMessage(message, attachmentId, embedIndex);
 		if (!media) {
-			throw InputValidationError.create('media', 'No valid media found in message');
+			throw InputValidationError.create('media', 'В сообщении не найдено допустимых медиафайлов');
 		}
 
 		const existingMemes = await this.favoriteMemeRepository.findByUserId(user.id);
@@ -111,7 +111,7 @@ export class FavoriteMemeService {
 				'Favorite meme duplicate check (pre-metadata)',
 			);
 			if (duplicate) {
-				throw InputValidationError.create('media', 'This media is already in your favorite memes');
+				throw InputValidationError.create('media', 'Это медиа уже есть в ваших избранных мемах');
 			}
 		}
 
@@ -162,7 +162,7 @@ export class FavoriteMemeService {
 
 		const duplicate = existingMemes.find((meme) => meme.contentHash === contentHash);
 		if (duplicate) {
-			throw InputValidationError.create('media', 'This media is already in your favorite memes');
+			throw InputValidationError.create('media', 'Это медиа уже есть в ваших избранных мемах');
 		}
 
 		const memeId = createMemeID(this.snowflakeService.generate());
@@ -261,7 +261,7 @@ export class FavoriteMemeService {
 		const existingMemes = await this.favoriteMemeRepository.findByUserId(user.id);
 		const duplicate = existingMemes.find((meme) => meme.contentHash === contentHash);
 		if (duplicate) {
-			throw InputValidationError.create('media', 'This media is already in your favorite memes');
+			throw InputValidationError.create('media', 'Это медиа уже есть в ваших избранных мемах');
 		}
 
 		const filename = this.buildFilenameFromUrl(url, metadata.content_type);
@@ -410,7 +410,7 @@ export class FavoriteMemeService {
 		const finalName = candidate.slice(0, 100);
 
 		if (finalName.length === 0) {
-			throw InputValidationError.create('name', 'Favorite meme name is required');
+			throw InputValidationError.create('name', 'Название избранного мема обязательно');
 		}
 
 		return finalName;
@@ -438,7 +438,7 @@ export class FavoriteMemeService {
 			if (preferredEmbedIndex < 0 || preferredEmbedIndex >= message.embeds.length) {
 				throw InputValidationError.create(
 					'embed_index',
-					`Embed index ${preferredEmbedIndex} is out of bounds (message has ${message.embeds.length} embed(s))`,
+					`Индекс вставки ${preferredEmbedIndex} выходит за пределы (в сообщении ${message.embeds.length} вставок)`,
 				);
 			}
 			const embed = message.embeds[preferredEmbedIndex];
@@ -477,7 +477,7 @@ export class FavoriteMemeService {
 				if (!attachment) {
 					throw InputValidationError.create(
 						'preferred_attachment_id',
-						`Attachment with ID ${preferredAttachmentId} not found in message`,
+						`Вложение с ID ${preferredAttachmentId} не найдено в сообщении`,
 					);
 				}
 			} else {

@@ -67,7 +67,7 @@ export class AdminMessageShredService {
 		auditLogReason: string | null,
 	): Promise<{success: true; job_id: string; requested: number}> {
 		if (data.entries.length === 0) {
-			throw InputValidationError.create('entries', 'At least one entry is required');
+			throw InputValidationError.create('entries', 'Требуется хотя бы одна запись');
 		}
 
 		const jobId = this.deps.snowflakeService.generate().toString();

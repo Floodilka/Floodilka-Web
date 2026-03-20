@@ -24,7 +24,7 @@ export class MaxWebhooksPerChannelError extends BadRequestError {
 	constructor() {
 		super({
 			code: APIErrorCodes.MAX_WEBHOOKS,
-			message: `Maximum number of webhooks per channel reached (${MAX_WEBHOOKS_PER_CHANNEL}).`,
+			message: `Достигнуто максимальное количество вебхуков на канал (${MAX_WEBHOOKS_PER_CHANNEL}).`,
 		});
 	}
 }

@@ -24,7 +24,7 @@ export class MaxGuildChannelsError extends BadRequestError {
 	constructor() {
 		super({
 			code: APIErrorCodes.MAX_GUILD_CHANNELS,
-			message: `Maximum number of guild channels reached (${MAX_GUILD_CHANNELS}).`,
+			message: `Достигнуто максимальное количество каналов на сервере (${MAX_GUILD_CHANNELS}).`,
 		});
 	}
 }

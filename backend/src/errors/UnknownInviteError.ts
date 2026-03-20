@@ -22,6 +22,6 @@ import {NotFoundError} from './NotFoundError';
 
 export class UnknownInviteError extends NotFoundError {
 	constructor() {
-		super({code: APIErrorCodes.UNKNOWN_INVITE, message: 'Unknown Invite'});
+		super({code: APIErrorCodes.UNKNOWN_INVITE, message: 'Приглашение не найдено'});
 	}
 }

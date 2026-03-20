@@ -22,6 +22,6 @@ import {BadRequestError} from './BadRequestError';
 
 export class CannotEditSystemMessageError extends BadRequestError {
 	constructor() {
-		super({code: APIErrorCodes.CANNOT_MODIFY_SYSTEM_WEBHOOK, message: 'Cannot edit system message.'});
+		super({code: APIErrorCodes.CANNOT_MODIFY_SYSTEM_WEBHOOK, message: 'Нельзя редактировать системное сообщение.'});
 	}
 }

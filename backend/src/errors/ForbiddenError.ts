@@ -22,7 +22,7 @@ import {FluxerAPIError, type FluxerErrorData} from './FluxerAPIError';
 export class ForbiddenError extends FluxerAPIError {
 	constructor({
 		code,
-		message = 'Forbidden',
+		message = 'Запрещено',
 		headers,
 		data,
 	}: {

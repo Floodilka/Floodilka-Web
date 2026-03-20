@@ -22,6 +22,6 @@ import {ForbiddenError} from './ForbiddenError';
 
 export class MissingPermissionsError extends ForbiddenError {
 	constructor() {
-		super({code: APIErrorCodes.MISSING_PERMISSIONS, message: 'Missing Permissions'});
+		super({code: APIErrorCodes.MISSING_PERMISSIONS, message: 'Недостаточно прав'});
 	}
 }

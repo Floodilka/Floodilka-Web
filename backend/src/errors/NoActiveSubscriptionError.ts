@@ -22,6 +22,6 @@ import {BadRequestError} from './BadRequestError';
 
 export class NoActiveSubscriptionError extends BadRequestError {
 	constructor() {
-		super({code: APIErrorCodes.NO_ACTIVE_SUBSCRIPTION, message: 'No active subscription found'});
+		super({code: APIErrorCodes.NO_ACTIVE_SUBSCRIPTION, message: 'Активная подписка не найдена'});
 	}
 }

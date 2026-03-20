@@ -22,6 +22,6 @@ import {NotFoundError} from './NotFoundError';
 
 export class UnknownGuildStickerError extends NotFoundError {
 	constructor() {
-		super({code: APIErrorCodes.UNKNOWN_STICKER, message: 'Unknown Guild Sticker'});
+		super({code: APIErrorCodes.UNKNOWN_STICKER, message: 'Стикер сервера не найден'});
 	}
 }

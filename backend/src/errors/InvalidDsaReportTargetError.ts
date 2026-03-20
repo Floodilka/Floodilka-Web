@@ -24,7 +24,7 @@ export class InvalidDsaReportTargetError extends BadRequestError {
 	constructor() {
 		super({
 			code: APIErrorCodes.INVALID_DSA_REPORT_TARGET,
-			message: 'The report target provided for this DSA report is invalid.',
+			message: 'Указана неверная цель для DSA-жалобы.',
 		});
 	}
 }

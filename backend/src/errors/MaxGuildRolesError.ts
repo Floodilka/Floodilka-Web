@@ -24,7 +24,7 @@ export class MaxGuildRolesError extends BadRequestError {
 	constructor() {
 		super({
 			code: APIErrorCodes.MAX_GUILD_ROLES,
-			message: `Maximum number of guild roles reached (${MAX_GUILD_ROLES}).`,
+			message: `Достигнуто максимальное количество ролей на сервере (${MAX_GUILD_ROLES}).`,
 		});
 	}
 }

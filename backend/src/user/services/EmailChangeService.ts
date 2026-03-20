@@ -65,7 +65,7 @@ export class EmailChangeService {
 		const isUnclaimed = user.isUnclaimedAccount();
 		const hasEmail = !!user.email;
 		if (!hasEmail && !isUnclaimed) {
-			throw InputValidationError.create('email', 'You must have an email to change it.');
+			throw InputValidationError.create('email', 'Для смены email необходимо иметь привязанный email.');
 		}
 
 		const ticket = this.generateTicket();
@@ -120,10 +120,10 @@ export class EmailChangeService {
 	async resendOriginal(user: User, ticket: string): Promise<void> {
 		const row = await this.getTicketForUser(ticket, user.id);
 		if (!row.require_original || row.original_verified) {
-			throw InputValidationError.create('ticket', 'Original email already verified.');
+			throw InputValidationError.create('ticket', 'Оригинальный email уже подтверждён.');
 		}
 		if (!row.original_email) {
-			throw InputValidationError.create('ticket', 'No original email on record.');
+			throw InputValidationError.create('ticket', 'Оригинальный email не найден.');
 		}
 
 		this.assertCooldown(row.original_code_sent_at);
@@ -147,19 +147,19 @@ export class EmailChangeService {
 	async verifyOriginal(user: User, ticket: string, code: string): Promise<VerifyOriginalResult> {
 		const row = await this.getTicketForUser(ticket, user.id);
 		if (!row.require_original) {
-			throw InputValidationError.create('ticket', 'Original verification not required for this flow.');
+			throw InputValidationError.create('ticket', 'Подтверждение оригинального email не требуется для этого процесса.');
 		}
 		if (row.original_verified && row.original_proof) {
 			return {original_proof: row.original_proof};
 		}
 		if (!row.original_code || !row.original_code_expires_at) {
-			throw InputValidationError.create('code', 'Verification code not issued.');
+			throw InputValidationError.create('code', 'Код подтверждения не был выдан.');
 		}
 		if (row.original_code_expires_at.getTime() < Date.now()) {
-			throw InputValidationError.create('code', 'Verification code expired.');
+			throw InputValidationError.create('code', 'Код подтверждения истёк.');
 		}
 		if (row.original_code !== code.trim()) {
-			throw InputValidationError.create('code', 'Invalid verification code.');
+			throw InputValidationError.create('code', 'Неверный код подтверждения.');
 		}
 
 		const now = new Date();
@@ -181,25 +181,25 @@ export class EmailChangeService {
 	): Promise<RequestNewEmailResult> {
 		const row = await this.getTicketForUser(ticket, user.id);
 		if (!row.original_verified || !row.original_proof) {
-			throw InputValidationError.create('ticket', 'Original email must be verified first.');
+			throw InputValidationError.create('ticket', 'Сначала необходимо подтвердить оригинальный email.');
 		}
 		if (row.original_proof !== originalProof) {
-			throw InputValidationError.create('original_proof', 'Invalid proof token.');
+			throw InputValidationError.create('original_proof', 'Недействительный токен подтверждения.');
 		}
 		const trimmedEmail = newEmail.trim();
 		if (!trimmedEmail) {
-			throw InputValidationError.create('new_email', 'Email is required.');
+			throw InputValidationError.create('new_email', 'Email обязателен.');
 		}
 		if (row.original_email && trimmedEmail.toLowerCase() === row.original_email.toLowerCase()) {
-			throw InputValidationError.create('new_email', 'New email must be different.');
+			throw InputValidationError.create('new_email', 'Новый email должен отличаться.');
 		}
 		const hasValidDns = await this.emailDnsValidationService.hasValidDnsRecords(trimmedEmail);
 		if (!hasValidDns) {
-			throw InputValidationError.create('new_email', 'Invalid email address');
+			throw InputValidationError.create('new_email', 'Недействительный адрес электронной почты');
 		}
 		const existing = await this.userAccountRepository.findByEmail(trimmedEmail.toLowerCase());
 		if (existing && existing.id !== user.id) {
-			throw InputValidationError.create('new_email', 'Email already in use.');
+			throw InputValidationError.create('new_email', 'Этот email уже используется.');
 		}
 
 		this.assertCooldown(row.new_code_sent_at);
@@ -232,7 +232,7 @@ export class EmailChangeService {
 	async resendNew(user: User, ticket: string): Promise<void> {
 		const row = await this.getTicketForUser(ticket, user.id);
 		if (!row.new_email) {
-			throw InputValidationError.create('ticket', 'No new email requested.');
+			throw InputValidationError.create('ticket', 'Новый email не был запрошен.');
 		}
 		this.assertCooldown(row.new_code_sent_at);
 		await this.ensureRateLimit(`email_change:new:${user.id}`, 5, 15 * 60 * 1000);
@@ -255,19 +255,19 @@ export class EmailChangeService {
 	async verifyNew(user: User, ticket: string, code: string, originalProof: string): Promise<string> {
 		const row = await this.getTicketForUser(ticket, user.id);
 		if (!row.original_verified || !row.original_proof) {
-			throw InputValidationError.create('ticket', 'Original email must be verified first.');
+			throw InputValidationError.create('ticket', 'Сначала необходимо подтвердить оригинальный email.');
 		}
 		if (row.original_proof !== originalProof) {
-			throw InputValidationError.create('original_proof', 'Invalid proof token.');
+			throw InputValidationError.create('original_proof', 'Недействительный токен подтверждения.');
 		}
 		if (!row.new_email || !row.new_code || !row.new_code_expires_at) {
-			throw InputValidationError.create('code', 'Verification code not issued.');
+			throw InputValidationError.create('code', 'Код подтверждения не был выдан.');
 		}
 		if (row.new_code_expires_at.getTime() < Date.now()) {
-			throw InputValidationError.create('code', 'Verification code expired.');
+			throw InputValidationError.create('code', 'Код подтверждения истёк.');
 		}
 		if (row.new_code !== code.trim()) {
-			throw InputValidationError.create('code', 'Invalid verification code.');
+			throw InputValidationError.create('code', 'Неверный код подтверждения.');
 		}
 
 		const now = new Date();
@@ -291,11 +291,11 @@ export class EmailChangeService {
 	async consumeToken(userId: bigint, token: string): Promise<string> {
 		const row = await this.repo.findToken(token);
 		if (!row || row.user_id !== userId) {
-			throw InputValidationError.create('email_token', 'Invalid email token.');
+			throw InputValidationError.create('email_token', 'Недействительный токен email.');
 		}
 		if (row.expires_at.getTime() < Date.now()) {
 			await this.repo.deleteToken(token).catch((error) => Logger.warn({error}, 'Failed to delete expired email token'));
-			throw InputValidationError.create('email_token', 'Email token expired.');
+			throw InputValidationError.create('email_token', 'Токен email истёк.');
 		}
 		await this.repo.deleteToken(token);
 		return row.new_email;
@@ -304,10 +304,10 @@ export class EmailChangeService {
 	private async getTicketForUser(ticket: string, userId: bigint) {
 		const row = await this.repo.findTicket(ticket);
 		if (!row || row.user_id !== userId) {
-			throw InputValidationError.create('ticket', 'Invalid or expired ticket.');
+			throw InputValidationError.create('ticket', 'Недействительный или просроченный тикет.');
 		}
 		if (row.status === 'completed') {
-			throw InputValidationError.create('ticket', 'Ticket already completed.');
+			throw InputValidationError.create('ticket', 'Тикет уже завершён.');
 		}
 		return row;
 	}

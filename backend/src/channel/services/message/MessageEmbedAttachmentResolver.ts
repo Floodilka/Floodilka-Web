@@ -69,7 +69,7 @@ export class MessageEmbedAttachmentResolver {
 		if (!availableFilenames || availableFilenames.size === 0) {
 			for (const embed of params.embeds) {
 				if (embed.image?.url?.startsWith('attachment://') || embed.thumbnail?.url?.startsWith('attachment://')) {
-					throw InputValidationError.create('embeds', 'Cannot reference attachments when no attachments are provided');
+					throw InputValidationError.create('embeds', 'Нельзя ссылаться на вложения, если вложения не указаны');
 				}
 			}
 			return;
@@ -79,7 +79,7 @@ export class MessageEmbedAttachmentResolver {
 			if (!availableFilenames.has(filename)) {
 				throw InputValidationError.create(
 					`embeds[${embedIndex}].${field}`,
-					`Referenced attachment "${filename}" not found in message attachments`,
+					`Вложение "${filename}" не найдено среди вложений сообщения`,
 				);
 			}
 
@@ -87,7 +87,7 @@ export class MessageEmbedAttachmentResolver {
 			if (!extension || !SUPPORTED_IMAGE_EXTENSIONS.has(extension)) {
 				throw InputValidationError.create(
 					`embeds[${embedIndex}].${field}`,
-					`Attachment "${filename}" must be an image file (png, jpg, jpeg, webp, or gif)`,
+					`Вложение "${filename}" должно быть изображением (png, jpg, jpeg, webp или gif)`,
 				);
 			}
 		};
@@ -127,7 +127,7 @@ export class MessageEmbedAttachmentResolver {
 			if (!attachmentData) {
 				throw InputValidationError.create(
 					field,
-					`Referenced attachment "${filename}" not found in message attachments`,
+					`Вложение "${filename}" не найдено среди вложений сообщения`,
 				);
 			}
 
@@ -135,7 +135,7 @@ export class MessageEmbedAttachmentResolver {
 			if (!extension || !SUPPORTED_IMAGE_EXTENSIONS.has(extension)) {
 				throw InputValidationError.create(
 					field,
-					`Attachment "${filename}" must be an image file (png, jpg, jpeg, webp, or gif)`,
+					`Вложение "${filename}" должно быть изображением (png, jpg, jpeg, webp или gif)`,
 				);
 			}
 

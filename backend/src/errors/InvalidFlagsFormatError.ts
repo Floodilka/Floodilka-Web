@@ -22,6 +22,6 @@ import {BadRequestError} from './BadRequestError';
 
 export class InvalidFlagsFormatError extends BadRequestError {
 	constructor() {
-		super({code: APIErrorCodes.INVALID_FLAGS_FORMAT, message: 'Flags must be a string or number'});
+		super({code: APIErrorCodes.INVALID_FLAGS_FORMAT, message: 'Флаги должны быть строкой или числом'});
 	}
 }

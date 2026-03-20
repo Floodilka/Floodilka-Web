@@ -70,11 +70,11 @@ export class GuildVanityService {
 		const previousSnapshot = this.helpers.serializeGuildForAudit(guild);
 
 		if (code && !guild.features.has(GuildFeatures.VANITY_URL)) {
-			throw InputValidationError.create('code', 'Vanity URL requires VANITY_URL feature');
+			throw InputValidationError.create('code', 'Для короткой ссылки требуется функция VANITY_URL');
 		}
 
 		if (code && /floodilka|fludilka/i.test(code)) {
-			throw InputValidationError.create('code', 'Vanity URL code cannot contain reserved words');
+			throw InputValidationError.create('code', 'Код короткой ссылки не может содержать зарезервированные слова');
 		}
 
 		if (code != null && guild.vanityUrlCode === code) {
@@ -105,7 +105,7 @@ export class GuildVanityService {
 
 		const existingInvite = await this.inviteRepository.findUnique(createInviteCode(code));
 		if (existingInvite != null) {
-			throw InputValidationError.create('code', 'Vanity URL code is already taken');
+			throw InputValidationError.create('code', 'Этот код короткой ссылки уже занят');
 		}
 
 		if (guild.vanityUrlCode != null) {

@@ -21,7 +21,7 @@ import {APIErrorCodes} from '~/Constants';
 import {FluxerAPIError} from './FluxerAPIError';
 
 export class PaymentError extends FluxerAPIError {
-	constructor(message: string = 'A payment processing error occurred') {
+	constructor(message: string = 'Произошла ошибка обработки платежа') {
 		super({
 			code: APIErrorCodes.PAYMENT_ERROR,
 			message,

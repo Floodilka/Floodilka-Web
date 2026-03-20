@@ -153,12 +153,12 @@ export class ScheduledMessageService {
 		const zone = timezone?.trim() || DEFAULT_TIMEZONE;
 
 		if (!IANAZone.isValidZone(zone)) {
-			throw InputValidationError.create('timezone', 'Invalid timezone identifier');
+			throw InputValidationError.create('timezone', 'Недопустимый идентификатор часового пояса');
 		}
 
 		const dt = DateTime.fromISO(local, {zone});
 		if (!dt.isValid) {
-			throw InputValidationError.create('scheduled_local_at', 'Invalid date/time for scheduled send');
+			throw InputValidationError.create('scheduled_local_at', 'Недопустимая дата/время для отложенной отправки');
 		}
 
 		const scheduledAt = dt.toJSDate();
@@ -166,13 +166,13 @@ export class ScheduledMessageService {
 
 		const diffMs = scheduledAt.getTime() - now;
 		if (diffMs <= 0) {
-			throw InputValidationError.create('scheduled_local_at', 'Scheduled time must be in the future');
+			throw InputValidationError.create('scheduled_local_at', 'Время отправки должно быть в будущем');
 		}
 
 		if (diffMs > MAX_SCHEDULE_DELAY_MS) {
 			throw InputValidationError.create(
 				'scheduled_local_at',
-				'Scheduled messages can be at most 30 days in the future',
+				'Отложенные сообщения могут быть запланированы не более чем на 30 дней вперёд',
 			);
 		}
 

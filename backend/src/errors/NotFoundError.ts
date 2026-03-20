@@ -22,7 +22,7 @@ import {FluxerAPIError, type FluxerErrorData} from './FluxerAPIError';
 export class NotFoundError extends FluxerAPIError {
 	constructor({
 		code,
-		message = 'Not Found',
+		message = 'Не найдено',
 		headers,
 		data,
 	}: {

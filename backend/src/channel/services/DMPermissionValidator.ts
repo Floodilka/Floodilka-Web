@@ -36,7 +36,7 @@ export class DMPermissionValidator {
 	async validate({recipients, userId}: {recipients: Array<User>; userId: UserID}): Promise<void> {
 		const senderUser = await this.deps.userRepository.findUnique(userId);
 		if (senderUser && senderUser.isUnclaimedAccount()) {
-			throw new UnclaimedAccountRestrictedError('send direct messages');
+			throw new UnclaimedAccountRestrictedError('отправлять личные сообщения');
 		}
 
 		const targetUser = recipients.find((recipient) => recipient.id !== userId);

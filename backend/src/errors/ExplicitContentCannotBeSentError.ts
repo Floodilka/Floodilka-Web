@@ -24,7 +24,7 @@ export class ExplicitContentCannotBeSentError extends BadRequestError {
 	constructor(probability: number, predictions: Record<string, number>) {
 		super({
 			code: APIErrorCodes.EXPLICIT_CONTENT_CANNOT_BE_SENT,
-			message: `Explicit content cannot be sent in this context (${(probability * 100).toFixed(1)}% probability)`,
+			message: `Откровенный контент не может быть отправлен в данном контексте (вероятность ${(probability * 100).toFixed(1)}%)`,
 			data: {probability, predictions},
 		});
 	}

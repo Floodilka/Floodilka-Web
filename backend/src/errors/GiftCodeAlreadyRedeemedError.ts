@@ -24,7 +24,7 @@ export class GiftCodeAlreadyRedeemedError extends BadRequestError {
 	constructor() {
 		super({
 			code: APIErrorCodes.GIFT_CODE_ALREADY_REDEEMED,
-			message: 'This gift code has already been redeemed',
+			message: 'Этот подарочный код уже был использован',
 		});
 	}
 }

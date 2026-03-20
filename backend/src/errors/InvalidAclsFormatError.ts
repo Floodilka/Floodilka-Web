@@ -22,6 +22,6 @@ import {BadRequestError} from './BadRequestError';
 
 export class InvalidAclsFormatError extends BadRequestError {
 	constructor() {
-		super({code: APIErrorCodes.INVALID_ACLS_FORMAT, message: 'ACLs must be null or an array of strings'});
+		super({code: APIErrorCodes.INVALID_ACLS_FORMAT, message: 'ACL должны быть null или массивом строк'});
 	}
 }

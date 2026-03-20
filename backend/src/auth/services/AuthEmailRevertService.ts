@@ -77,12 +77,12 @@ export class AuthEmailRevertService {
 		const {token, password, request} = params;
 		const tokenData = await this.repository.getEmailRevertToken(token);
 		if (!tokenData) {
-			throw InputValidationError.create('token', 'Invalid or expired revert token');
+			throw InputValidationError.create('token', 'Недействительный или просроченный токен отмены');
 		}
 
 		const user = await this.repository.findUnique(tokenData.userId);
 		if (!user) {
-			throw InputValidationError.create('token', 'Invalid or expired revert token');
+			throw InputValidationError.create('token', 'Недействительный или просроченный токен отмены');
 		}
 
 		this.assertNonBotUser(user);

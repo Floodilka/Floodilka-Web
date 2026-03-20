@@ -22,6 +22,6 @@ import {BadRequestError} from './BadRequestError';
 
 export class InvalidSystemFlagError extends BadRequestError {
 	constructor() {
-		super({code: APIErrorCodes.INVALID_SYSTEM_FLAG, message: 'is_system must be a boolean'});
+		super({code: APIErrorCodes.INVALID_SYSTEM_FLAG, message: 'is_system должен быть булевым значением'});
 	}
 }

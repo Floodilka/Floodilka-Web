@@ -22,6 +22,6 @@ import {BadRequestError} from './BadRequestError';
 
 export class HarvestFailedError extends BadRequestError {
 	constructor() {
-		super({code: APIErrorCodes.HARVEST_FAILED, message: 'Data harvest failed'});
+		super({code: APIErrorCodes.HARVEST_FAILED, message: 'Ошибка сбора данных'});
 	}
 }

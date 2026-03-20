@@ -22,6 +22,6 @@ import {NotFoundError} from './NotFoundError';
 
 export class UnknownGuildError extends NotFoundError {
 	constructor() {
-		super({code: APIErrorCodes.UNKNOWN_GUILD, message: 'Unknown Guild'});
+		super({code: APIErrorCodes.UNKNOWN_GUILD, message: 'Сервер не найден'});
 	}
 }

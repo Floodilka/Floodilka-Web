@@ -24,7 +24,7 @@ export class ReportAlreadyResolvedError extends BadRequestError {
 	constructor() {
 		super({
 			code: APIErrorCodes.REPORT_ALREADY_RESOLVED,
-			message: 'This report has already been resolved',
+			message: 'Эта жалоба уже рассмотрена',
 		});
 	}
 }

@@ -24,7 +24,7 @@ export class MaxGuildStickersStaticError extends BadRequestError {
 	constructor(maxStickers: number) {
 		super({
 			code: APIErrorCodes.MAX_STICKERS,
-			message: `Maximum number of guild stickers reached (${maxStickers}).`,
+			message: `Достигнуто максимальное количество стикеров (${maxStickers}).`,
 		});
 	}
 }

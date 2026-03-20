@@ -22,6 +22,6 @@ import {ForbiddenError} from './ForbiddenError';
 
 export class TestHarnessForbiddenError extends ForbiddenError {
 	constructor() {
-		super({code: APIErrorCodes.TEST_HARNESS_FORBIDDEN, message: 'Forbidden'});
+		super({code: APIErrorCodes.TEST_HARNESS_FORBIDDEN, message: 'Запрещено'});
 	}
 }

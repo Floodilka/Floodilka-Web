@@ -24,7 +24,7 @@ export class InvalidChannelTypeError extends BadRequestError {
 	constructor() {
 		super({
 			code: APIErrorCodes.INVALID_CHANNEL_TYPE,
-			message: 'Invalid channel type for this operation',
+			message: 'Неверный тип канала для этой операции',
 		});
 	}
 }

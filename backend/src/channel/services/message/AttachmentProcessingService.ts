@@ -166,7 +166,7 @@ export class AttachmentProcessingService {
 		);
 
 		if (!uploadedFile) {
-			throw InputValidationError.create(`attachments.${index}.upload_filename`, 'File not found');
+			throw InputValidationError.create(`attachments.${index}.upload_filename`, 'Файл не найден');
 		}
 
 		const attachmentId = createAttachmentID(this.snowflakeService.generate());
@@ -277,7 +277,7 @@ export class AttachmentProcessingService {
 		const fileData = await this.storageService.readObject(Config.s3.buckets.uploads, attachment.upload_filename);
 
 		if (!fileData) {
-			throw InputValidationError.create('attachment', 'File not found for scanning');
+			throw InputValidationError.create('attachment', 'Файл для сканирования не найден');
 		}
 
 		const fileBuffer = Buffer.from(fileData);

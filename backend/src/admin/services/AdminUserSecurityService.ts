@@ -145,7 +145,7 @@ export class AdminUserSecurityService {
 		}
 
 		if (!user.email) {
-			throw InputValidationError.create('email', 'User does not have an email address');
+			throw InputValidationError.create('email', 'У пользователя нет адреса электронной почты');
 		}
 
 		const token = createPasswordResetToken(await authService.generateSecureToken());

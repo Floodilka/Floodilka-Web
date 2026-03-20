@@ -362,7 +362,7 @@ export class InviteService {
 
 			const user = await this.userRepository.findUnique(userId);
 			if (user && user.isUnclaimedAccount()) {
-				throw new UnclaimedAccountRestrictedError('join group DMs');
+				throw new UnclaimedAccountRestrictedError('присоединяться к групповым чатам');
 			}
 
 			const channel = await this.channelService.getChannelSystem(invite.channelId);

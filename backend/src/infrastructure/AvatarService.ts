@@ -64,11 +64,11 @@ export class AvatarService {
 		try {
 			imageBuffer = new Uint8Array(Buffer.from(base64Data, 'base64'));
 		} catch {
-			throw InputValidationError.create(errorPath, 'Invalid image data');
+			throw InputValidationError.create(errorPath, 'Некорректные данные изображения');
 		}
 
 		if (imageBuffer.length > AVATAR_MAX_SIZE) {
-			throw InputValidationError.create(errorPath, `Image size exceeds ${AVATAR_MAX_SIZE} bytes`);
+			throw InputValidationError.create(errorPath, `Размер изображения превышает ${AVATAR_MAX_SIZE} байт`);
 		}
 
 		const metadata = await this.mediaService.getMetadata({
@@ -80,7 +80,7 @@ export class AvatarService {
 		if (metadata == null || !AVATAR_EXTENSIONS.has(metadata.format)) {
 			throw InputValidationError.create(
 				errorPath,
-				`Invalid image format. Supported extensions: ${[...AVATAR_EXTENSIONS].join(', ')}`,
+				`Неподдерживаемый формат. Допустимые расширения: ${[...AVATAR_EXTENSIONS].join(', ')}`,
 			);
 		}
 
@@ -121,11 +121,11 @@ export class AvatarService {
 		try {
 			imageBuffer = new Uint8Array(Buffer.from(base64Data, 'base64'));
 		} catch {
-			throw InputValidationError.create(errorPath, 'Invalid image data');
+			throw InputValidationError.create(errorPath, 'Некорректные данные изображения');
 		}
 
 		if (imageBuffer.length > AVATAR_MAX_SIZE) {
-			throw InputValidationError.create(errorPath, `Image size exceeds ${AVATAR_MAX_SIZE} bytes`);
+			throw InputValidationError.create(errorPath, `Размер изображения превышает ${AVATAR_MAX_SIZE} байт`);
 		}
 
 		const metadata = await this.mediaService.getMetadata({
@@ -137,7 +137,7 @@ export class AvatarService {
 		if (metadata == null || !AVATAR_EXTENSIONS.has(metadata.format)) {
 			throw InputValidationError.create(
 				errorPath,
-				`Invalid image format. Supported extensions: ${[...AVATAR_EXTENSIONS].join(', ')}`,
+				`Неподдерживаемый формат. Допустимые расширения: ${[...AVATAR_EXTENSIONS].join(', ')}`,
 			);
 		}
 
@@ -170,11 +170,11 @@ export class AvatarService {
 		try {
 			imageBuffer = new Uint8Array(Buffer.from(base64Data, 'base64'));
 		} catch {
-			throw InputValidationError.create(errorPath, 'Invalid image data');
+			throw InputValidationError.create(errorPath, 'Некорректные данные изображения');
 		}
 
 		if (imageBuffer.length > EMOJI_MAX_SIZE) {
-			throw InputValidationError.create(errorPath, `Image size exceeds ${EMOJI_MAX_SIZE} bytes`);
+			throw InputValidationError.create(errorPath, `Размер изображения превышает ${EMOJI_MAX_SIZE} байт`);
 		}
 
 		const metadata = await this.mediaService.getMetadata({
@@ -186,7 +186,7 @@ export class AvatarService {
 		if (metadata == null || !EMOJI_EXTENSIONS.has(metadata.format)) {
 			throw InputValidationError.create(
 				errorPath,
-				`Invalid image format. Supported extensions: ${[...EMOJI_EXTENSIONS].join(', ')}`,
+				`Неподдерживаемый формат. Допустимые расширения: ${[...EMOJI_EXTENSIONS].join(', ')}`,
 			);
 		}
 
@@ -210,11 +210,11 @@ export class AvatarService {
 		try {
 			imageBuffer = new Uint8Array(Buffer.from(base64Data, 'base64'));
 		} catch {
-			throw InputValidationError.create(errorPath, 'Invalid image data');
+			throw InputValidationError.create(errorPath, 'Некорректные данные изображения');
 		}
 
 		if (imageBuffer.length > STICKER_MAX_SIZE) {
-			throw InputValidationError.create(errorPath, `Image size exceeds ${STICKER_MAX_SIZE} bytes`);
+			throw InputValidationError.create(errorPath, `Размер изображения превышает ${STICKER_MAX_SIZE} байт`);
 		}
 
 		const metadata = await this.mediaService.getMetadata({
@@ -226,7 +226,7 @@ export class AvatarService {
 		if (metadata == null || !EMOJI_EXTENSIONS.has(metadata.format)) {
 			throw InputValidationError.create(
 				errorPath,
-				`Invalid image format. Supported extensions: ${[...STICKER_EXTENSIONS].join(', ')}`,
+				`Неподдерживаемый формат. Допустимые расширения: ${[...STICKER_EXTENSIONS].join(', ')}`,
 			);
 		}
 
@@ -242,7 +242,7 @@ export class AvatarService {
 				break;
 			}
 			default: {
-				throw InputValidationError.create(errorPath, 'Unknown image format.');
+				throw InputValidationError.create(errorPath, 'Неизвестный формат изображения.');
 			}
 		}
 

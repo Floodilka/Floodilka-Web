@@ -22,7 +22,7 @@ import type {FluxerErrorData} from './FluxerAPIError';
 
 export class NotABotApplicationError extends BadRequestError {
 	constructor({
-		message = 'Application is not a bot',
+		message = 'Приложение не является ботом',
 		headers,
 		data,
 	}: {

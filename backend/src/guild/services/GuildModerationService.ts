@@ -168,7 +168,7 @@ export class GuildModerationService {
 
 		const ban = await this.guildRepository.getBan(guildId, targetId);
 		if (!ban) {
-			throw InputValidationError.create('user_id', 'User is not banned');
+			throw InputValidationError.create('user_id', 'Пользователь не заблокирован');
 		}
 
 		await this.guildRepository.deleteBan(guildId, targetId);

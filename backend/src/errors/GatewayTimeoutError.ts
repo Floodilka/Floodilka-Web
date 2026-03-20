@@ -22,6 +22,6 @@ import {FluxerAPIError} from './FluxerAPIError';
 
 export class GatewayTimeoutError extends FluxerAPIError {
 	constructor({code = APIErrorCodes.GATEWAY_TIMEOUT, message}: {code?: string; message?: string} = {}) {
-		super({code, message: message ?? 'Gateway Timeout', status: 504});
+		super({code, message: message ?? 'Таймаут шлюза', status: 504});
 	}
 }

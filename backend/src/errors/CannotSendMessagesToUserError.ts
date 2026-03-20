@@ -22,6 +22,6 @@ import {BadRequestError} from './BadRequestError';
 
 export class CannotSendMessagesToUserError extends BadRequestError {
 	constructor() {
-		super({code: APIErrorCodes.CANNOT_SEND_MESSAGES_TO_USER, message: 'Cannot send messages to this user'});
+		super({code: APIErrorCodes.CANNOT_SEND_MESSAGES_TO_USER, message: 'Невозможно отправить сообщение этому пользователю'});
 	}
 }

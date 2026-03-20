@@ -24,7 +24,7 @@ export class CannotReportYourselfError extends BadRequestError {
 	constructor() {
 		super({
 			code: APIErrorCodes.CANNOT_REPORT_YOURSELF,
-			message: 'Cannot report yourself',
+			message: 'Нельзя пожаловаться на себя',
 		});
 	}
 }

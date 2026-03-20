@@ -22,6 +22,6 @@ import {NotFoundError} from './NotFoundError';
 
 export class UnknownFavoriteMemeError extends NotFoundError {
 	constructor() {
-		super({code: APIErrorCodes.UNKNOWN_FAVORITE_MEME, message: 'Unknown Favorite Meme'});
+		super({code: APIErrorCodes.UNKNOWN_FAVORITE_MEME, message: 'Избранный мем не найден'});
 	}
 }

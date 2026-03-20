@@ -543,7 +543,7 @@ export const TestHarnessController = (app: HonoApp) => {
 			if (typeof value !== 'number' || !Number.isInteger(value) || value < 0 || value > MAX_TEST_PRIVATE_CHANNELS) {
 				throw InputValidationError.create(
 					name,
-					`The value for ${name} must be an integer between 0 and ${MAX_TEST_PRIVATE_CHANNELS}.`,
+					`Значение ${name} должно быть целым числом от 0 до ${MAX_TEST_PRIVATE_CHANNELS}.`,
 				);
 			}
 			return value;
@@ -553,21 +553,21 @@ export const TestHarnessController = (app: HonoApp) => {
 		const groupDmCount = parseCount(body.group_dm_count, 'group_dm_count');
 		const recipientsInput = Array.isArray(body.recipients) ? body.recipients : [];
 		if ((dmCount > 0 || groupDmCount > 0) && recipientsInput.length === 0) {
-			throw InputValidationError.create('recipients', 'At least one recipient is required to seed private channels.');
+			throw InputValidationError.create('recipients', 'Для создания приватных каналов требуется хотя бы один получатель.');
 		}
 
 		const recipients = recipientsInput.map((raw) => {
 			if (typeof raw !== 'string') {
-				throw InputValidationError.create('recipients', 'Recipient IDs must be strings.');
+				throw InputValidationError.create('recipients', 'ID получателей должны быть строками.');
 			}
 			const trimmed = raw.trim();
 			if (trimmed === '') {
-				throw InputValidationError.create('recipients', 'Recipient IDs cannot be empty.');
+				throw InputValidationError.create('recipients', 'ID получателей не могут быть пустыми.');
 			}
 			try {
 				return createUserID(BigInt(trimmed));
 			} catch {
-				throw InputValidationError.create('recipients', 'Recipient IDs must be valid snowflakes.');
+				throw InputValidationError.create('recipients', 'ID получателей должны быть корректными snowflake.');
 			}
 		});
 
@@ -1348,7 +1348,7 @@ export const TestHarnessController = (app: HonoApp) => {
 		};
 
 		if (!payload.rows || payload.rows.length === 0) {
-			throw InputValidationError.create('rows', 'rows is required');
+			throw InputValidationError.create('rows', 'rows обязателен');
 		}
 
 		const repo = new AttachmentDecayRepository();
@@ -1358,7 +1358,7 @@ export const TestHarnessController = (app: HonoApp) => {
 			if (!row.attachment_id || !row.channel_id || !row.message_id || !row.expires_at) {
 				throw InputValidationError.create(
 					'attachment_id',
-					'attachment_id, channel_id, message_id, and expires_at are required',
+					'attachment_id, channel_id, message_id и expires_at обязательны',
 				);
 			}
 
@@ -1373,7 +1373,7 @@ export const TestHarnessController = (app: HonoApp) => {
 			} catch {
 				throw InputValidationError.create(
 					'attachment_id',
-					'attachment_id, channel_id, and message_id must be valid integers',
+					'attachment_id, channel_id и message_id должны быть корректными числами',
 				);
 			}
 
@@ -1393,7 +1393,7 @@ export const TestHarnessController = (app: HonoApp) => {
 			try {
 				sizeBytes = typeof sizeInput === 'number' ? BigInt(sizeInput) : BigInt(sizeInput);
 			} catch {
-				throw InputValidationError.create('size_bytes', 'size_bytes must be a valid integer');
+				throw InputValidationError.create('size_bytes', 'size_bytes должен быть корректным числом');
 			}
 
 			await repo.upsert({
@@ -1438,7 +1438,7 @@ export const TestHarnessController = (app: HonoApp) => {
 
 		const bucketValue = payload.bucket ? Number(payload.bucket) : undefined;
 		if (!bucketValue) {
-			throw InputValidationError.create('bucket', 'bucket is required');
+			throw InputValidationError.create('bucket', 'bucket обязателен');
 		}
 
 		const currentTime = payload.current_time ? new Date(payload.current_time) : new Date();
@@ -1573,7 +1573,7 @@ export const TestHarnessController = (app: HonoApp) => {
 		const {timestamp} = body as {timestamp?: string};
 
 		if (!timestamp) {
-			throw new InvalidTimestampError('Timestamp is required');
+			throw new InvalidTimestampError('Требуется метка времени');
 		}
 
 		let date: Date;
@@ -1820,11 +1820,11 @@ export const TestHarnessController = (app: HonoApp) => {
 		const body = (await ctx.req.json()) as SeedMessagesRequest;
 
 		if (!body.channel_id) {
-			throw InputValidationError.create('channel_id', 'channel_id is required');
+			throw InputValidationError.create('channel_id', 'channel_id обязателен');
 		}
 
 		if (!body.messages || !Array.isArray(body.messages) || body.messages.length === 0) {
-			throw InputValidationError.create('messages', 'messages array is required and must not be empty');
+			throw InputValidationError.create('messages', 'Массив messages обязателен и не может быть пустым');
 		}
 
 		const channelId = createChannelID(BigInt(body.channel_id));

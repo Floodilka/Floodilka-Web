@@ -22,6 +22,6 @@ import {NotFoundError} from './NotFoundError';
 
 export class UnknownHarvestError extends NotFoundError {
 	constructor() {
-		super({code: APIErrorCodes.UNKNOWN_HARVEST, message: 'Unknown Harvest'});
+		super({code: APIErrorCodes.UNKNOWN_HARVEST, message: 'Архив данных не найден'});
 	}
 }

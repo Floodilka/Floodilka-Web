@@ -20,7 +20,7 @@
 import {OAuth2Error} from './OAuth2Error';
 
 export class UnsupportedGrantTypeError extends OAuth2Error {
-	constructor(message = 'The authorization grant type is not supported') {
+	constructor(message = 'Тип разрешения на авторизацию не поддерживается') {
 		super({error: 'unsupported_grant_type', errorDescription: message, status: 400});
 	}
 }

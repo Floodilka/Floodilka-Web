@@ -68,7 +68,7 @@ export class WebhookService {
 
 	async handleWebhook({type, body, signature, parsedBody}: HandleWebhookParams): Promise<{code: number}> {
 		if (!Config.cloudpayments.apiSecret) {
-			throw new PaymentError('Webhook processing is not available');
+			throw new PaymentError('Обработка вебхуков недоступна');
 		}
 
 		if (!verifyCloudPaymentsWebhook(body, signature, Config.cloudpayments.apiSecret)) {

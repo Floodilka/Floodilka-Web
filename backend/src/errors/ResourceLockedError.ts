@@ -21,7 +21,7 @@ import {APIErrorCodes} from '~/Constants';
 import {LockedError} from './LockedError';
 
 export class ResourceLockedError extends LockedError {
-	constructor(message: string = 'The resource is currently locked. Please try again.') {
+	constructor(message: string = 'Ресурс сейчас заблокирован. Попробуйте позже.') {
 		super({
 			code: APIErrorCodes.GENERAL_ERROR,
 			message,

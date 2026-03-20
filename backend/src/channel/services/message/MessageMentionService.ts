@@ -150,7 +150,7 @@ export class MessageMentionService {
 		if (hasExplicitParse && parse.length > 0 && (users.length > 0 || roles.length > 0)) {
 			throw InputValidationError.create(
 				'allowed_mentions',
-				'"parse" and ("users" or "roles") cannot be used together.',
+				'"parse" и ("users" или "roles") нельзя использовать одновременно.',
 			);
 		}
 

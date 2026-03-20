@@ -24,7 +24,7 @@ export class CannotReportOwnMessageError extends BadRequestError {
 	constructor() {
 		super({
 			code: APIErrorCodes.CANNOT_REPORT_OWN_MESSAGE,
-			message: 'Cannot report your own message',
+			message: 'Нельзя пожаловаться на своё сообщение',
 		});
 	}
 }

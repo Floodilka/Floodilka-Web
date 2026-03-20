@@ -22,6 +22,6 @@ import {BadRequestError} from './BadRequestError';
 
 export class CannotSendEmptyMessageError extends BadRequestError {
 	constructor() {
-		super({code: APIErrorCodes.CANNOT_SEND_EMPTY_MESSAGE, message: 'Cannot send empty message.'});
+		super({code: APIErrorCodes.CANNOT_SEND_EMPTY_MESSAGE, message: 'Нельзя отправить пустое сообщение.'});
 	}
 }

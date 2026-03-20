@@ -22,7 +22,7 @@ import {FluxerAPIError, type FluxerErrorData} from './FluxerAPIError';
 export class LockedError extends FluxerAPIError {
 	constructor({
 		code,
-		message = 'Resource Locked',
+		message = 'Ресурс сейчас заблокирован. Попробуйте позже.',
 		headers,
 		data,
 	}: {

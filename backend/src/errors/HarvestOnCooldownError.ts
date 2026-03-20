@@ -25,7 +25,7 @@ export class HarvestOnCooldownError extends FluxerAPIError {
 		const retryAfterSeconds = Math.ceil((retryAfter.getTime() - Date.now()) / 1000);
 		super({
 			code: APIErrorCodes.HARVEST_ON_COOLDOWN,
-			message: 'You can only request a data package once every 7 days.',
+			message: 'Запрашивать архив данных можно только раз в 7 дней.',
 			status: 429,
 			data: {
 				retry_after: retryAfterSeconds,

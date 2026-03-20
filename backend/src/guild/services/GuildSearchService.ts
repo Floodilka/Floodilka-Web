@@ -80,7 +80,7 @@ export class GuildSearchService {
 		for (const channelId of channelIds) {
 			const channel = await this.channelRepository.findUnique(channelId);
 			if (!channel || channel.guildId !== guildId) {
-				throw InputValidationError.create('channel_ids', 'All channels must belong to this guild');
+				throw InputValidationError.create('channel_ids', 'Все каналы должны принадлежать этому серверу');
 			}
 
 			const canSearch = await this.gatewayService.checkPermission({

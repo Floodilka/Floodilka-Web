@@ -126,11 +126,11 @@ export class OAuth2Service {
 		const requireRedirect = !isBotOnly;
 
 		if (!redirectUri && requireRedirect) {
-			throw new InvalidRequestError('Missing redirect_uri');
+			throw new InvalidRequestError('Отсутствует redirect_uri');
 		}
 
 		if (redirectUri && !this.validateRedirectUri(application, redirectUri)) {
-			throw new InvalidRequestError('Invalid redirect_uri');
+			throw new InvalidRequestError('Неверный redirect_uri');
 		}
 
 		const resolvedRedirectUri = redirectUri ?? Config.endpoints.webApp;
@@ -139,7 +139,7 @@ export class OAuth2Service {
 		try {
 			loc = new URL(resolvedRedirectUri);
 		} catch {
-			throw new InvalidRequestError('Invalid redirect_uri');
+			throw new InvalidRequestError('Неверный redirect_uri');
 		}
 
 		const codeRow: OAuth2AuthorizationCodeRow = {
@@ -267,7 +267,7 @@ export class OAuth2Service {
 				{application_id: application.applicationId.toString()},
 				'OAuth2 tokenExchange: missing client_secret',
 			);
-			throw new InvalidClientError('Missing client_secret');
+			throw new InvalidClientError('Отсутствует client_secret');
 		}
 
 		if (application.clientSecretHash) {
@@ -277,7 +277,7 @@ export class OAuth2Service {
 					{application_id: application.applicationId.toString()},
 					'OAuth2 tokenExchange: client_secret verification failed',
 				);
-				throw new InvalidClientError('Invalid client_secret');
+				throw new InvalidClientError('Неверный client_secret');
 			}
 		}
 
@@ -428,7 +428,7 @@ export class OAuth2Service {
 		if (application.clientSecretHash) {
 			const valid = auth.clientSecret ? await argon2.verify(application.clientSecretHash, auth.clientSecret) : false;
 			if (!valid) {
-				throw new InvalidClientError('Invalid client_secret');
+				throw new InvalidClientError('Неверный client_secret');
 			}
 		}
 

@@ -24,7 +24,7 @@ export class NotFriendsWithUserError extends BadRequestError {
 	constructor() {
 		super({
 			code: APIErrorCodes.NOT_FRIENDS_WITH_USER,
-			message: 'You must be friends with the user to add them to a group DM.',
+			message: 'Вы должны быть в друзьях, чтобы добавить пользователя в групповой чат.',
 		});
 	}
 }

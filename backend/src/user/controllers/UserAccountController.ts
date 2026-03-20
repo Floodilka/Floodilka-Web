@@ -71,7 +71,7 @@ const UserUpdateWithVerificationRequest = UserUpdateRequest.merge(
 		if (data.email !== undefined) {
 			ctx.addIssue({
 				code: z.ZodIssueCode.custom,
-				message: 'Email must be changed via email_token',
+				message: 'Email можно изменить только через email_token',
 				path: ['email'],
 			});
 		}
@@ -195,7 +195,7 @@ export const UserAccountController = (app: HonoApp) => {
 			} = rawBody;
 			let userUpdateData: UserUpdatePayload = userUpdateDataRest;
 			if (userUpdateData.email !== undefined) {
-				throw InputValidationError.create('email', 'Email must be changed via email_token');
+				throw InputValidationError.create('email', 'Email можно изменить только через email_token');
 			}
 			const emailTokenProvided = emailToken !== undefined;
 			const isUnclaimed = user.isUnclaimedAccount();
@@ -207,7 +207,7 @@ export const UserAccountController = (app: HonoApp) => {
 				if (disallowedField) {
 					throw InputValidationError.create(
 						disallowedField,
-						'Unclaimed accounts can only set a new email via email_token and a new password',
+						'Неподтверждённые аккаунты могут только указать email через email_token и задать новый пароль',
 					);
 				}
 			}

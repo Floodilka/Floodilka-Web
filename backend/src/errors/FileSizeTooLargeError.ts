@@ -24,7 +24,7 @@ export class FileSizeTooLargeError extends BadRequestError {
 	constructor() {
 		super({
 			code: APIErrorCodes.FILE_SIZE_TOO_LARGE,
-			message: 'File size too large',
+			message: 'Размер файла слишком большой',
 		});
 	}
 }

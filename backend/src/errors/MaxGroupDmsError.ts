@@ -24,7 +24,7 @@ export class MaxGroupDmsError extends BadRequestError {
 	constructor() {
 		super({
 			code: APIErrorCodes.MAX_GROUP_DMS,
-			message: `You can be a member of at most ${MAX_GROUP_DMS_PER_USER} group DMs.`,
+			message: `Вы можете состоять максимум в ${MAX_GROUP_DMS_PER_USER} групповых чатах.`,
 			data: {
 				max_group_dms: MAX_GROUP_DMS_PER_USER,
 			},

@@ -21,7 +21,7 @@ import {APIErrorCodes} from '~/Constants';
 import {ForbiddenError} from './ForbiddenError';
 
 export class PremiumRequiredError extends ForbiddenError {
-	constructor(message = 'Premium required to access this feature') {
+	constructor(message = 'Требуется премиум-подписка') {
 		super({code: APIErrorCodes.PREMIUM_REQUIRED, message});
 	}
 }

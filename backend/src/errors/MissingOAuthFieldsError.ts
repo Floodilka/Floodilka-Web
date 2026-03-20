@@ -22,6 +22,6 @@ import {BadRequestError} from './BadRequestError';
 
 export class MissingOAuthFieldsError extends BadRequestError {
 	constructor() {
-		super({code: APIErrorCodes.MISSING_OAUTH_FIELDS, message: 'user_id, name, redirect_uris, and scopes are required'});
+		super({code: APIErrorCodes.MISSING_OAUTH_FIELDS, message: 'Необходимы поля: user_id, name, redirect_uris и scopes'});
 	}
 }

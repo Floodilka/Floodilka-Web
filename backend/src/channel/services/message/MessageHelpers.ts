@@ -69,7 +69,7 @@ export function getContentType(filename: string): string {
 export function validateAttachmentIds(attachments: Array<{id: bigint}>): void {
 	const ids = new Set(attachments.map((a) => a.id));
 	if (ids.size !== attachments.length) {
-		throw InputValidationError.create('attachments', 'Duplicate attachment ids are not allowed');
+		throw InputValidationError.create('attachments', 'Дублирование ID вложений не допускается');
 	}
 }
 

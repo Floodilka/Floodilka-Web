@@ -22,6 +22,6 @@ import {FluxerAPIError} from './FluxerAPIError';
 
 export class BadGatewayError extends FluxerAPIError {
 	constructor({code = APIErrorCodes.BAD_GATEWAY, message}: {code?: string; message?: string} = {}) {
-		super({code, message: message ?? 'Bad Gateway', status: 502});
+		super({code, message: message ?? 'Ошибка шлюза', status: 502});
 	}
 }

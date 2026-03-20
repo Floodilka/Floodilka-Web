@@ -22,6 +22,6 @@ import {NotFoundError} from './NotFoundError';
 
 export class UnknownVoiceRegionError extends NotFoundError {
 	constructor() {
-		super({code: APIErrorCodes.UNKNOWN_VOICE_REGION, message: 'Unknown voice region'});
+		super({code: APIErrorCodes.UNKNOWN_VOICE_REGION, message: 'Неизвестный голосовой регион'});
 	}
 }

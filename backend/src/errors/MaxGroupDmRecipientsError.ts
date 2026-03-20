@@ -24,7 +24,7 @@ export class MaxGroupDmRecipientsError extends BadRequestError {
 	constructor() {
 		super({
 			code: APIErrorCodes.MAX_GROUP_DM_RECIPIENTS,
-			message: `Group DMs can have a maximum of ${MAX_GROUP_DM_RECIPIENTS} recipients.`,
+			message: `Максимальное количество участников группового чата — ${MAX_GROUP_DM_RECIPIENTS}.`,
 			data: {
 				max_recipients: MAX_GROUP_DM_RECIPIENTS,
 			},

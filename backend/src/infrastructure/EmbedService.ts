@@ -235,7 +235,7 @@ export class EmbedService {
 		if (totalChars > this.MAX_EMBED_CHARACTERS) {
 			throw InputValidationError.create(
 				'embeds',
-				`Embeds must not exceed ${this.MAX_EMBED_CHARACTERS} characters in total`,
+				`Общий объём вставок не должен превышать ${this.MAX_EMBED_CHARACTERS} символов`,
 			);
 		}
 	}
@@ -295,7 +295,7 @@ export class EmbedService {
 		if (request.url.startsWith('attachment://')) {
 			throw InputValidationError.create(
 				'embeds',
-				'Unresolved attachment:// URL detected. This should have been resolved before reaching embed processing.',
+				'Обнаружена неразрешённая ссылка attachment://. Она должна быть обработана до формирования вставок.',
 			);
 		}
 

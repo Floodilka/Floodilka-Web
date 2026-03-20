@@ -22,6 +22,6 @@ import {BadRequestError} from './BadRequestError';
 
 export class UnknownSuspiciousFlagError extends BadRequestError {
 	constructor() {
-		super({code: APIErrorCodes.UNKNOWN_SUSPICIOUS_FLAG, message: 'Unknown suspicious flag name supplied'});
+		super({code: APIErrorCodes.UNKNOWN_SUSPICIOUS_FLAG, message: 'Указан неизвестный флаг подозрительной активности'});
 	}
 }

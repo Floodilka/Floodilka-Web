@@ -55,17 +55,17 @@ export class MessageStickerService {
 			stickerIds.map(async (stickerId) => {
 				if (!guildId) {
 					if (!isPremium) {
-						throw InputValidationError.create('sticker', 'Cannot use custom stickers in DMs without premium');
+						throw InputValidationError.create('sticker', 'Нельзя использовать пользовательские стикеры в ЛС без премиума');
 					}
 
 					const stickerFromAnyGuild = await this.guildRepository.getStickerById(stickerId);
 					if (!stickerFromAnyGuild) {
-						throw InputValidationError.create('sticker', 'Custom sticker not found');
+						throw InputValidationError.create('sticker', 'Пользовательский стикер не найден');
 					}
 
 					const packAccess = await packResolver.resolve(stickerFromAnyGuild.guildId);
 					if (packAccess === 'not-accessible') {
-						throw InputValidationError.create('sticker', 'Custom sticker not found');
+						throw InputValidationError.create('sticker', 'Пользовательский стикер не найден');
 					}
 
 					return {
@@ -86,13 +86,13 @@ export class MessageStickerService {
 
 				const stickerFromOtherGuild = await this.guildRepository.getStickerById(stickerId);
 				if (!stickerFromOtherGuild) {
-					throw InputValidationError.create('sticker', 'Custom sticker not found');
+					throw InputValidationError.create('sticker', 'Пользовательский стикер не найден');
 				}
 
 				if (!isPremium) {
 					throw InputValidationError.create(
 						'sticker',
-						'Cannot use custom stickers outside of source guilds without premium',
+						'Нельзя использовать пользовательские стикеры за пределами их сервера без премиума',
 					);
 				}
 
@@ -105,7 +105,7 @@ export class MessageStickerService {
 
 				const packAccess = await packResolver.resolve(stickerFromOtherGuild.guildId);
 				if (packAccess === 'not-accessible') {
-					throw InputValidationError.create('sticker', 'Custom sticker not found');
+					throw InputValidationError.create('sticker', 'Пользовательский стикер не найден');
 				}
 
 				return {

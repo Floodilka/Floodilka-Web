@@ -24,7 +24,7 @@ export class CannotSendMessageToNonTextChannelError extends BadRequestError {
 	constructor() {
 		super({
 			code: APIErrorCodes.CANNOT_SEND_MESSAGES_IN_NON_TEXT_CHANNEL,
-			message: 'Cannot send message to non-text channel.',
+			message: 'Нельзя отправить сообщение в нетекстовый канал.',
 		});
 	}
 }

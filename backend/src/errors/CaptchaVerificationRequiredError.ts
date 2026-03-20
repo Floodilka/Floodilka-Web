@@ -21,7 +21,7 @@ import {APIErrorCodes} from '~/Constants';
 import {BadRequestError} from './BadRequestError';
 
 export class CaptchaVerificationRequiredError extends BadRequestError {
-	constructor(message: string = 'Captcha verification required') {
+	constructor(message: string = 'Требуется проверка капчи') {
 		super({
 			code: APIErrorCodes.CAPTCHA_REQUIRED,
 			message,

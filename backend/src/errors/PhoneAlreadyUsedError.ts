@@ -24,7 +24,7 @@ export class PhoneAlreadyUsedError extends BadRequestError {
 	constructor() {
 		super({
 			code: APIErrorCodes.PHONE_ALREADY_USED,
-			message: 'This phone number is already associated with another account',
+			message: 'Этот номер телефона уже привязан к другому аккаунту',
 		});
 	}
 }

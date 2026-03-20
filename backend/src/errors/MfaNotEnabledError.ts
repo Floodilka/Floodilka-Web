@@ -22,6 +22,6 @@ import {BadRequestError} from './BadRequestError';
 
 export class MfaNotEnabledError extends BadRequestError {
 	constructor() {
-		super({code: APIErrorCodes.TWO_FACTOR_REQUIRED, message: 'You must enable MFA to perform this action.'});
+		super({code: APIErrorCodes.TWO_FACTOR_REQUIRED, message: 'Для выполнения этого действия необходимо включить двухфакторную аутентификацию.'});
 	}
 }

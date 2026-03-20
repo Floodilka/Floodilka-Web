@@ -24,7 +24,7 @@ export class NoActiveCallError extends NotFoundError {
 	constructor() {
 		super({
 			code: APIErrorCodes.NO_ACTIVE_CALL,
-			message: 'No active call in this channel',
+			message: 'В этом канале нет активного звонка',
 		});
 	}
 }

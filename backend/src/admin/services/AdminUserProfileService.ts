@@ -145,7 +145,7 @@ export class AdminUserProfileService {
 		}
 
 		if (data.system && !user.isBot) {
-			throw InputValidationError.create('system', 'User must be a bot to be marked as a system user');
+			throw InputValidationError.create('system', 'Пользователь должен быть ботом, чтобы быть отмечен как системный');
 		}
 
 		const updatedUser = await userRepository.patchUpsert(userId, {system: data.system});

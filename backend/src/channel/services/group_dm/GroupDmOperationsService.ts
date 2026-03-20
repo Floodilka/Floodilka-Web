@@ -220,7 +220,7 @@ export class GroupDmOperationsService {
 		}
 
 		if (!channel.recipientIds.has(recipientId)) {
-			throw InputValidationError.create('user_id', 'User is not in this channel');
+			throw InputValidationError.create('user_id', 'Пользователь не в этом канале');
 		}
 
 		if (recipientId !== userId && channel.ownerId !== userId) {

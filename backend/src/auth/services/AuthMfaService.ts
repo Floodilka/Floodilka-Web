@@ -185,7 +185,7 @@ export class AuthMfaService {
 	async sendSmsMfaCodeForTicket(ticket: string): Promise<void> {
 		const userId = await this.cacheService.get<string>(`mfa-ticket:${ticket}`);
 		if (!userId) {
-			throw InputValidationError.create('ticket', 'Session timeout. Please refresh the page and log in again.');
+			throw InputValidationError.create('ticket', 'Сессия истекла. Обновите страницу и войдите снова.');
 		}
 		await this.sendSmsMfaCode(createUserID(BigInt(userId)));
 	}
@@ -436,7 +436,7 @@ export class AuthMfaService {
 	async generateWebAuthnAuthenticationOptionsForMfa(ticket: string) {
 		const userId = await this.cacheService.get<string>(`mfa-ticket:${ticket}`);
 		if (!userId) {
-			throw InputValidationError.create('ticket', 'Session timeout. Please refresh the page and log in again.');
+			throw InputValidationError.create('ticket', 'Сессия истекла. Обновите страницу и войдите снова.');
 		}
 
 		const credentials = await this.repository.listWebAuthnCredentials(createUserID(BigInt(userId)));

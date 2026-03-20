@@ -22,10 +22,11 @@ import {BadRequestError} from './BadRequestError';
 
 export class MaxPackLimitError extends BadRequestError {
 	constructor(packType: 'emoji' | 'sticker', limit: number, action: 'create' | 'install') {
-		const actionLabel = action === 'create' ? 'create' : 'install';
+		const actionLabel = action === 'create' ? 'создать' : 'установить';
+		const packTypeLabel = packType === 'emoji' ? 'эмодзи' : 'стикеров';
 		super({
 			code: APIErrorCodes.MAX_PACKS,
-			message: `You can only ${actionLabel} up to ${limit} ${packType} packs`,
+			message: `Вы можете ${actionLabel} не более ${limit} паков ${packTypeLabel}`,
 			data: {
 				pack_type: packType,
 				limit,

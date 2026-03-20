@@ -85,7 +85,7 @@ export class UserChannelService {
 
 		const recipientId = createUserID(data.recipient_id!);
 		if (userId === recipientId) {
-			throw InputValidationError.create('recipient_id', 'Cannot DM yourself');
+			throw InputValidationError.create('recipient_id', 'Нельзя отправить сообщение самому себе');
 		}
 		const targetUser = await this.userAccountRepository.findUnique(recipientId);
 		if (!targetUser) throw new UnknownUserError();
@@ -108,7 +108,7 @@ export class UserChannelService {
 	async pinDmChannel({userId, channelId}: {userId: UserID; channelId: ChannelID}): Promise<void> {
 		const channel = await this.channelService.getChannel({userId, channelId});
 		if (channel.type !== ChannelTypes.DM && channel.type !== ChannelTypes.GROUP_DM) {
-			throw InputValidationError.create('channel_id', 'Channel must be a DM or group DM');
+			throw InputValidationError.create('channel_id', 'Канал должен быть личным или групповым');
 		}
 		if (!channel.recipientIds.has(userId)) {
 			throw new MissingAccessError();
@@ -124,7 +124,7 @@ export class UserChannelService {
 	async unpinDmChannel({userId, channelId}: {userId: UserID; channelId: ChannelID}): Promise<void> {
 		const channel = await this.channelService.getChannel({userId, channelId});
 		if (channel.type !== ChannelTypes.DM && channel.type !== ChannelTypes.GROUP_DM) {
-			throw InputValidationError.create('channel_id', 'Channel must be a DM or group DM');
+			throw InputValidationError.create('channel_id', 'Канал должен быть личным или групповым');
 		}
 		if (!channel.recipientIds.has(userId)) {
 			throw new MissingAccessError();
@@ -143,7 +143,7 @@ export class UserChannelService {
 	}): Promise<Record<string, Message | null>> {
 		const {userId, channelIds} = params;
 		if (channelIds.length > 100) {
-			throw InputValidationError.create('channels', 'Cannot preload more than 100 channels at once');
+			throw InputValidationError.create('channels', 'Нельзя предзагрузить более 100 каналов за раз');
 		}
 
 		const results: Record<string, Message | null> = {};
@@ -314,11 +314,11 @@ export class UserChannelService {
 		const recipientIds = recipients.map(createUserID);
 		const uniqueRecipientIds = new Set(recipientIds);
 		if (uniqueRecipientIds.size !== recipientIds.length) {
-			throw InputValidationError.create('recipients', 'Duplicate recipients are not allowed');
+			throw InputValidationError.create('recipients', 'Дублирование получателей не допускается');
 		}
 
 		if (uniqueRecipientIds.has(userId)) {
-			throw InputValidationError.create('recipients', 'Cannot add yourself to a group DM');
+			throw InputValidationError.create('recipients', 'Нельзя добавить себя в групповой чат');
 		}
 
 		const usersToCheck = new Set<UserID>([userId, ...recipientIds]);
@@ -488,7 +488,7 @@ export class UserChannelService {
 	private async validateDmPermission(userId: UserID, recipientId: UserID, _recipientUser?: User | null): Promise<void> {
 		const senderUser = await this.userAccountRepository.findUnique(userId);
 		if (senderUser && senderUser.isUnclaimedAccount()) {
-			throw new UnclaimedAccountRestrictedError('send direct messages');
+			throw new UnclaimedAccountRestrictedError('отправлять личные сообщения');
 		}
 
 		const userBlockedRecipient = await this.userRelationshipRepository.getRelationship(

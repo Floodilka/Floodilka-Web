@@ -23,7 +23,7 @@ import type {ValidationError} from './ValidationError';
 
 export class InputValidationError extends BadRequestError {
 	constructor(errors: Array<ValidationError>) {
-		super({code: APIErrorCodes.INVALID_FORM_BODY, message: 'Input Validation Error', data: {errors}});
+		super({code: APIErrorCodes.INVALID_FORM_BODY, message: 'Ошибка валидации', data: {errors}});
 	}
 
 	static create(path: string, message: string): InputValidationError {

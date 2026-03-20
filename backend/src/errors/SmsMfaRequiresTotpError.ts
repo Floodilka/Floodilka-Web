@@ -24,7 +24,7 @@ export class SmsMfaRequiresTotpError extends BadRequestError {
 	constructor() {
 		super({
 			code: APIErrorCodes.SMS_MFA_REQUIRES_TOTP,
-			message: 'You must enable TOTP authentication before enabling SMS backup authentication',
+			message: 'Необходимо включить TOTP-аутентификацию перед включением SMS-аутентификации',
 		});
 	}
 }

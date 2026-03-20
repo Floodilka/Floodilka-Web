@@ -22,7 +22,7 @@ import {NotFoundError} from './NotFoundError';
 
 export class UnknownApplicationError extends NotFoundError {
 	constructor({
-		message = 'Unknown application',
+		message = 'Неизвестное приложение',
 		headers,
 		data,
 	}: {

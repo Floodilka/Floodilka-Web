@@ -360,7 +360,7 @@ export class MessagePersistenceService {
 		const {message, messageId, data, channel, guild, member} = params;
 
 		if (message.messageSnapshots && message.messageSnapshots.length > 0) {
-			throw InputValidationError.create('message', 'Messages with snapshots cannot be edited');
+			throw InputValidationError.create('message', 'Сообщения со снимками нельзя редактировать');
 		}
 
 		const isNSFWAllowed = this.contentService.isNSFWContentAllowed({

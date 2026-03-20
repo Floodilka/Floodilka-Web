@@ -24,7 +24,7 @@ export class TemporaryInviteRequiresPresenceError extends BadRequestError {
 	constructor() {
 		super({
 			code: APIErrorCodes.TEMPORARY_INVITE_REQUIRES_PRESENCE,
-			message: 'You must be online to accept a temporary invite',
+			message: 'Вы должны быть онлайн, чтобы принять временное приглашение',
 		});
 	}
 }

@@ -101,13 +101,13 @@ export class CheckoutService {
 				created_at: new Date(),
 			});
 			Logger.error({userId, message: result.Message}, 'CloudPayments charge failed');
-			throw new PaymentError(result.Message || 'Payment declined');
+			throw new PaymentError(result.Message || 'Платёж отклонён');
 		}
 
 		const token = result.Model.Token;
 		if (!token) {
 			Logger.error({userId, transactionId: result.Model.TransactionId}, 'No token returned from charge');
-			throw new PaymentError('Payment processed but card token not received');
+			throw new PaymentError('Платёж обработан, но токен карты не получен');
 		}
 
 		await this.userRepository.updatePayment({
@@ -150,7 +150,7 @@ export class CheckoutService {
 
 		const product = getProductForGift(durationMonths);
 		if (!product) {
-			throw new PaymentError('Invalid gift duration');
+			throw new PaymentError('Неверный срок подарка');
 		}
 
 		const paymentId = crypto.randomUUID();
@@ -189,7 +189,7 @@ export class CheckoutService {
 				created_at: new Date(),
 			});
 			Logger.error({userId, message: result.Message}, 'CloudPayments gift charge failed');
-			throw new PaymentError(result.Message || 'Payment declined');
+			throw new PaymentError(result.Message || 'Платёж отклонён');
 		}
 
 		await this.userRepository.updatePayment({
@@ -219,7 +219,7 @@ export class CheckoutService {
 
 	validateUserCanPurchase(user: User): void {
 		if (user.isUnclaimedAccount()) {
-			throw new UnclaimedAccountRestrictedError('make purchases');
+			throw new UnclaimedAccountRestrictedError('совершать покупки');
 		}
 
 		if (user.flags & UserFlags.PREMIUM_PURCHASE_DISABLED) {

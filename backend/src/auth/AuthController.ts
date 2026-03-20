@@ -176,7 +176,7 @@ export const AuthController = (app: HonoApp) => {
 			const data = ctx.req.valid('json');
 			const success = await ctx.get('authService').verifyEmail(data);
 			if (!success) {
-				throw InputValidationError.create('token', 'Invalid or expired verification token');
+				throw InputValidationError.create('token', 'Недействительный или просроченный токен подтверждения');
 			}
 			return ctx.body(null, 204);
 		},

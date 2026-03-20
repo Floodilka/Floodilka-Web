@@ -89,11 +89,11 @@ export class SubscriptionService {
 		}
 
 		if (!user.cloudpaymentsSubscriptionId) {
-			throw new PaymentError('No active subscription found');
+			throw new PaymentError('Активная подписка не найдена');
 		}
 
 		if (user.premiumWillCancel) {
-			throw new PaymentError('Subscription is already set to cancel at period end');
+			throw new PaymentError('Подписка уже настроена на отмену в конце периода');
 		}
 
 		try {
@@ -129,15 +129,15 @@ export class SubscriptionService {
 		}
 
 		if (!user.premiumWillCancel) {
-			throw new PaymentError('Subscription is not set to cancel');
+			throw new PaymentError('Подписка не настроена на отмену');
 		}
 
 		if (!user.cloudpaymentsToken) {
-			throw new PaymentError('No saved payment method. Please subscribe again.');
+			throw new PaymentError('Сохранённый способ оплаты не найден. Оформите подписку заново.');
 		}
 
 		if (!user.premiumBillingCycle) {
-			throw new PaymentError('No billing cycle found');
+			throw new PaymentError('Платёжный цикл не найден');
 		}
 
 		try {

@@ -22,6 +22,6 @@ import {BadRequestError} from './BadRequestError';
 
 export class NoPendingDeletionError extends BadRequestError {
 	constructor() {
-		super({code: APIErrorCodes.NO_PENDING_DELETION, message: 'User has no pending deletion'});
+		super({code: APIErrorCodes.NO_PENDING_DELETION, message: 'У пользователя нет ожидающего удаления'});
 	}
 }

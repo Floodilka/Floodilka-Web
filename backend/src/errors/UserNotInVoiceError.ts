@@ -24,7 +24,7 @@ export class UserNotInVoiceError extends BadRequestError {
 	constructor() {
 		super({
 			code: APIErrorCodes.USER_NOT_IN_VOICE,
-			message: 'User is not connected to voice in this guild.',
+			message: 'Пользователь не подключён к голосовому каналу на этом сервере.',
 		});
 	}
 }

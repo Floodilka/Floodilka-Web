@@ -24,7 +24,7 @@ export class CommunicationDisabledError extends ForbiddenError {
 	constructor() {
 		super({
 			code: APIErrorCodes.COMMUNICATION_DISABLED,
-			message: 'Communication disabled while timed out',
+			message: 'Общение отключено на время тайм-аута',
 		});
 	}
 }

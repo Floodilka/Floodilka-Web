@@ -140,11 +140,11 @@ export class MessageDeleteService {
 		messageIds: Array<MessageID>;
 	}): Promise<void> {
 		if (messageIds.length === 0) {
-			throw InputValidationError.create('message_ids', 'message_ids cannot be empty');
+			throw InputValidationError.create('message_ids', 'message_ids не может быть пустым');
 		}
 
 		if (messageIds.length > 100) {
-			throw InputValidationError.create('message_ids', 'Cannot delete more than 100 messages at once');
+			throw InputValidationError.create('message_ids', 'Нельзя удалить более 100 сообщений за раз');
 		}
 
 		const {channel, guild, checkPermission} = await this.deps.channelAuthService.getChannelAuthenticated({

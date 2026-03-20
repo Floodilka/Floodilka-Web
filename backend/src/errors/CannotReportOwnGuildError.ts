@@ -24,7 +24,7 @@ export class CannotReportOwnGuildError extends BadRequestError {
 	constructor() {
 		super({
 			code: APIErrorCodes.CANNOT_REPORT_OWN_GUILD,
-			message: 'Cannot report your own guild',
+			message: 'Нельзя пожаловаться на свой сервер',
 		});
 	}
 }

@@ -24,7 +24,7 @@ export class MaxGuildMembersError extends BadRequestError {
 	constructor(maxMembers: number) {
 		super({
 			code: APIErrorCodes.MAX_GUILD_MEMBERS,
-			message: `Maximum number of guild members reached (${maxMembers}).`,
+			message: `Достигнуто максимальное количество участников сервера (${maxMembers}).`,
 		});
 	}
 }

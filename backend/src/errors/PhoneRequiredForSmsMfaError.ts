@@ -24,7 +24,7 @@ export class PhoneRequiredForSmsMfaError extends BadRequestError {
 	constructor() {
 		super({
 			code: APIErrorCodes.PHONE_REQUIRED_FOR_SMS_MFA,
-			message: 'You must add a phone number before enabling SMS backup authentication',
+			message: 'Необходимо добавить номер телефона перед включением SMS-аутентификации',
 		});
 	}
 }

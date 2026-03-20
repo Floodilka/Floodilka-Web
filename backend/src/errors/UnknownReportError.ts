@@ -22,6 +22,6 @@ import {NotFoundError} from './NotFoundError';
 
 export class UnknownReportError extends NotFoundError {
 	constructor() {
-		super({code: APIErrorCodes.UNKNOWN_REPORT, message: 'Unknown report'});
+		super({code: APIErrorCodes.UNKNOWN_REPORT, message: 'Жалоба не найдена'});
 	}
 }

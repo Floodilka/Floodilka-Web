@@ -24,7 +24,7 @@ export class InvalidPhoneVerificationCodeError extends BadRequestError {
 	constructor() {
 		super({
 			code: APIErrorCodes.INVALID_PHONE_VERIFICATION_CODE,
-			message: 'Invalid verification code',
+			message: 'Неверный код подтверждения',
 		});
 	}
 }

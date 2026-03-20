@@ -30,7 +30,7 @@ export const AuditLogMiddleware = createMiddleware<HonoEnv>(async (ctx, next) =>
 		if (!result.success) {
 			throw InputValidationError.create(
 				'X-Audit-Log-Reason',
-				result.error.issues[0]?.message ?? 'Invalid audit log reason',
+				result.error.issues[0]?.message ?? 'Некорректная причина в журнале аудита',
 			);
 		}
 		ctx.set('auditLogReason', result.data);

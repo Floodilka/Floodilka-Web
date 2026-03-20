@@ -231,7 +231,7 @@ export class ChannelOperationsService {
 	}): Promise<void> {
 		const channel = await this.channelRepository.findUnique(params.channelId);
 		if (!channel || !channel.guildId) {
-			throw InputValidationError.create('channel_id', 'Invalid channel');
+			throw InputValidationError.create('channel_id', 'Недопустимый канал');
 		}
 		const guildId = channel.guildId;
 		const hasManageRoles = await this.gatewayService.checkPermission({
@@ -293,7 +293,7 @@ export class ChannelOperationsService {
 	}): Promise<void> {
 		const channel = await this.channelRepository.findUnique(params.channelId);
 		if (!channel || !channel.guildId) {
-			throw InputValidationError.create('channel_id', 'Invalid channel');
+			throw InputValidationError.create('channel_id', 'Недопустимый канал');
 		}
 		const guildId = channel.guildId;
 		const hasManageRoles = await this.gatewayService.checkPermission({
@@ -384,7 +384,7 @@ export class ChannelOperationsService {
 					throw new MissingPermissionsError();
 				}
 				if (update.precedingSiblingId && !channelMap.has(update.precedingSiblingId)) {
-					throw InputValidationError.create('preceding_sibling_id', 'Invalid channel ID');
+					throw InputValidationError.create('preceding_sibling_id', 'Недопустимый ID канала');
 				}
 				if (update.precedingSiblingId && !viewable.has(update.precedingSiblingId)) {
 					throw new MissingPermissionsError();
@@ -415,21 +415,21 @@ export class ChannelOperationsService {
 		const channelMap = new Map(allChannels.map((ch) => [ch.id, ch]));
 		const target = channelMap.get(update.channelId);
 		if (!target) {
-			throw InputValidationError.create('id', 'Channel not found');
+			throw InputValidationError.create('id', 'Канал не найден');
 		}
 
 		const desiredParent = update.parentId === undefined ? (target.parentId ?? null) : update.parentId;
 		if (desiredParent && !channelMap.has(desiredParent)) {
-			throw InputValidationError.create('parent_id', 'Invalid parent channel');
+			throw InputValidationError.create('parent_id', 'Недопустимый родительский канал');
 		}
 		if (desiredParent) {
 			const parentChannel = channelMap.get(desiredParent)!;
 			if (parentChannel.type !== ChannelTypes.GUILD_CATEGORY) {
-				throw InputValidationError.create('parent_id', 'Parent must be a category');
+				throw InputValidationError.create('parent_id', 'Родитель должен быть категорией');
 			}
 		}
 		if (target.type === ChannelTypes.GUILD_CATEGORY && desiredParent) {
-			throw InputValidationError.create('parent_id', 'Categories cannot have parents');
+			throw InputValidationError.create('parent_id', 'Категории не могут иметь родителя');
 		}
 
 		const siblings = allChannels
@@ -513,7 +513,7 @@ export class ChannelOperationsService {
 
 		const targetChannel = channelMap.get(operation.channelId);
 		if (!targetChannel) {
-			throw InputValidationError.create('channel_id', `Invalid channel ID: ${operation.channelId}`);
+			throw InputValidationError.create('channel_id', `Недопустимый ID канала: ${operation.channelId}`);
 		}
 
 		const requestedParentId = operation.parentId;
@@ -525,13 +525,13 @@ export class ChannelOperationsService {
 					: (targetChannel.parentId ?? null);
 
 		if (targetChannel.type === ChannelTypes.GUILD_CATEGORY && operation.parentId) {
-			throw InputValidationError.create('parent_id', 'Categories cannot have a parent channel');
+			throw InputValidationError.create('parent_id', 'Категории не могут иметь родительский канал');
 		}
 
 		if (desiredParentId) {
 			const parentChannel = channelMap.get(desiredParentId);
 			if (!parentChannel || parentChannel.type !== ChannelTypes.GUILD_CATEGORY) {
-				throw InputValidationError.create('parent_id', 'Invalid parent channel');
+				throw InputValidationError.create('parent_id', 'Недопустимый родительский канал');
 			}
 		}
 
@@ -542,7 +542,7 @@ export class ChannelOperationsService {
 
 		const precedingId: ChannelID | null = operation.precedingSiblingId ?? null;
 		if (precedingId && !channelMap.has(precedingId)) {
-			throw InputValidationError.create('preceding_sibling_id', `Invalid channel ID: ${precedingId}`);
+			throw InputValidationError.create('preceding_sibling_id', `Недопустимый ID канала: ${precedingId}`);
 		}
 
 		const blockIds = new Set<ChannelID>();
@@ -560,7 +560,7 @@ export class ChannelOperationsService {
 		if (precedingId && blockIds.has(precedingId)) {
 			throw InputValidationError.create(
 				'preceding_sibling_id',
-				'Cannot position a channel relative to itself or its descendants',
+				'Нельзя позиционировать канал относительно себя или своих потомков',
 			);
 		}
 
@@ -579,7 +579,7 @@ export class ChannelOperationsService {
 			if (precedingParent !== expectedParent) {
 				throw InputValidationError.create(
 					'preceding_sibling_id',
-					'Preceding channel must share the same parent as the moved channel',
+					'Предшествующий канал должен иметь того же родителя, что и перемещаемый',
 				);
 			}
 		}
@@ -598,7 +598,7 @@ export class ChannelOperationsService {
 		if (precedingId) {
 			const precedingIndex = remainingChannels.findIndex((ch) => ch.id === precedingId);
 			if (precedingIndex === -1) {
-				throw InputValidationError.create('preceding_sibling_id', 'Preceding channel is not present in the guild');
+				throw InputValidationError.create('preceding_sibling_id', 'Предшествующий канал отсутствует на сервере');
 			}
 			const precedingChannel = channelMap.get(precedingId)!;
 			if (precedingChannel.type === ChannelTypes.GUILD_CATEGORY) {
@@ -610,7 +610,7 @@ export class ChannelOperationsService {
 		} else if (desiredParentId) {
 			const parentIndex = remainingChannels.findIndex((ch) => ch.id === desiredParentId);
 			if (parentIndex === -1) {
-				throw InputValidationError.create('parent_id', 'Parent channel is not present in the guild');
+				throw InputValidationError.create('parent_id', 'Родительский канал отсутствует на сервере');
 			}
 			insertIndex = parentIndex + 1;
 		} else {

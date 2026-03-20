@@ -20,7 +20,7 @@
 import {OAuth2Error} from './OAuth2Error';
 
 export class InvalidRequestError extends OAuth2Error {
-	constructor(message = 'The request is missing a required parameter or is otherwise malformed') {
+	constructor(message = 'В запросе отсутствует обязательный параметр или он имеет неверный формат') {
 		super({error: 'invalid_request', errorDescription: message, status: 400});
 	}
 }

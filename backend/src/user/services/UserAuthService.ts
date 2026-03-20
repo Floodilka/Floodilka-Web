@@ -50,7 +50,7 @@ export class UserAuthService {
 
 		const userId = user.id;
 		if (!(await this.authService.verifyMfaCode({userId: user.id, mfaSecret: secret, code}))) {
-			throw InputValidationError.create('code', 'Invalid code');
+			throw InputValidationError.create('code', 'Неверный код');
 		}
 
 		const authenticatorTypes = user.authenticatorTypes || new Set<number>();
@@ -90,7 +90,7 @@ export class UserAuthService {
 					allowBackup: true,
 				}))
 			) {
-				throw InputValidationError.create('code', 'Invalid code');
+				throw InputValidationError.create('code', 'Неверный код');
 			}
 		}
 

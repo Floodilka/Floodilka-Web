@@ -24,7 +24,7 @@ export class MediaMetadataError extends BadRequestError {
 	constructor(source: string) {
 		super({
 			code: APIErrorCodes.MEDIA_METADATA_ERROR,
-			message: `Failed to get media metadata from ${source}`,
+			message: `Не удалось получить метаданные медиа от ${source}`,
 		});
 	}
 }

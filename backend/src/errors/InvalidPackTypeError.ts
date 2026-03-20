@@ -24,7 +24,7 @@ export class InvalidPackTypeError extends BadRequestError {
 	constructor(expectedType: 'emoji' | 'sticker') {
 		super({
 			code: APIErrorCodes.INVALID_PACK_TYPE,
-			message: `Pack is not ${expectedType === 'emoji' ? 'an emoji' : 'a sticker'} pack`,
+			message: `Пак не является паком ${expectedType === 'emoji' ? 'эмодзи' : 'стикеров'}`,
 		});
 	}
 }

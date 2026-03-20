@@ -24,7 +24,7 @@ export class CannotShrinkReservedSlotsError extends BadRequestError {
 	constructor(reservedSlotIndices: Array<number>) {
 		super({
 			code: APIErrorCodes.CANNOT_SHRINK_RESERVED_SLOTS,
-			message: `Cannot shrink slots: ${reservedSlotIndices.length} slot(s) at indices [${reservedSlotIndices.join(', ')}] are currently reserved`,
+			message: `Невозможно уменьшить слоты: ${reservedSlotIndices.length} слот(ов) с индексами [${reservedSlotIndices.join(', ')}] сейчас зарезервированы`,
 		});
 	}
 }

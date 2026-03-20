@@ -24,7 +24,7 @@ export class MaxGuildEmojisAnimatedError extends BadRequestError {
 	constructor() {
 		super({
 			code: APIErrorCodes.MAX_ANIMATED_EMOJIS,
-			message: `Maximum number of animated guild emojis reached (${MAX_GUILD_EMOJIS_ANIMATED}).`,
+			message: `Достигнуто максимальное количество анимированных эмодзи (${MAX_GUILD_EMOJIS_ANIMATED}).`,
 		});
 	}
 }

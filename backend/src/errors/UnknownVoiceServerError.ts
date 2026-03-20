@@ -22,6 +22,6 @@ import {NotFoundError} from './NotFoundError';
 
 export class UnknownVoiceServerError extends NotFoundError {
 	constructor() {
-		super({code: APIErrorCodes.UNKNOWN_VOICE_SERVER, message: 'Unknown voice server'});
+		super({code: APIErrorCodes.UNKNOWN_VOICE_SERVER, message: 'Неизвестный голосовой сервер'});
 	}
 }

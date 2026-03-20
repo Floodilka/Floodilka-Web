@@ -88,7 +88,7 @@ export class MessageOperationsHelpers {
 		const favoriteMeme = await this.deps.favoriteMemeRepository.findById(user.id, memeId);
 
 		if (!favoriteMeme) {
-			throw InputValidationError.create('favorite_meme_id', 'Favorite meme not found');
+			throw InputValidationError.create('favorite_meme_id', 'Избранный мем не найден');
 		}
 
 		const memeAttachmentId = createAttachmentID(this.deps.snowflakeService.generate());

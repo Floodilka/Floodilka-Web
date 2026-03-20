@@ -24,7 +24,7 @@ export class GuildDisallowsUnclaimedAccountsError extends BadRequestError {
 	constructor() {
 		super({
 			code: APIErrorCodes.GUILD_DISALLOWS_UNCLAIMED_ACCOUNTS,
-			message: 'This community does not allow unclaimed accounts to join',
+			message: 'Это сообщество не принимает неподтверждённые аккаунты',
 		});
 	}
 }

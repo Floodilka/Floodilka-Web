@@ -22,6 +22,6 @@ import {BadRequestError} from './BadRequestError';
 
 export class CannotExecuteOnDmError extends BadRequestError {
 	constructor() {
-		super({code: APIErrorCodes.CANNOT_EXECUTE_ON_DM, message: 'Cannot execute this action on a DM channel.'});
+		super({code: APIErrorCodes.CANNOT_EXECUTE_ON_DM, message: 'Нельзя выполнить это действие в личных сообщениях.'});
 	}
 }

@@ -144,7 +144,7 @@ function parseDobLocalDate(dateOfBirth: string): types.LocalDate {
 	try {
 		return types.LocalDate.fromString(dateOfBirth);
 	} catch {
-		throw InputValidationError.create('date_of_birth', 'Invalid date of birth format');
+		throw InputValidationError.create('date_of_birth', 'Неверный формат даты рождения');
 	}
 }
 
@@ -177,7 +177,7 @@ export class AuthRegistrationService {
 		request,
 	}: Omit<RegisterParams, 'requestCache'>): Promise<{ticket: string}> {
 		if (!data.consent) {
-			throw InputValidationError.create('consent', 'You must agree to the Terms of Service and Privacy Policy');
+			throw InputValidationError.create('consent', 'Необходимо согласиться с Условиями использования и Политикой конфиденциальности');
 		}
 
 		const clientIp = IpUtils.requireClientIp(request);
@@ -188,7 +188,7 @@ export class AuthRegistrationService {
 		if (!this.validateAge({dateOfBirth: data.date_of_birth, minAge})) {
 			throw InputValidationError.create(
 				'date_of_birth',
-				`You must be at least ${minAge} years old to create an account`,
+				`Для создания аккаунта вам должно быть не менее ${minAge} лет`,
 			);
 		}
 
@@ -201,11 +201,11 @@ export class AuthRegistrationService {
 		if (rawEmail) {
 			const hasValidDns = await this.emailDnsValidationService.hasValidDnsRecords(rawEmail);
 			if (!hasValidDns) {
-				throw InputValidationError.create('email', 'Invalid email address');
+				throw InputValidationError.create('email', 'Недействительный адрес электронной почты');
 			}
 
 			const emailTaken = await this.repository.findByEmail(rawEmail);
-			if (emailTaken) throw InputValidationError.create('email', 'Email already in use');
+			if (emailTaken) throw InputValidationError.create('email', 'Этот email уже используется');
 		}
 
 		let usernameCandidate: string | undefined = data.username ?? undefined;
@@ -226,7 +226,7 @@ export class AuthRegistrationService {
 
 		const existing = await this.repository.findByUsername(usernameCandidate);
 		if (existing) {
-			throw InputValidationError.create('username', 'Username is already taken');
+			throw InputValidationError.create('username', 'Имя пользователя уже занято');
 		}
 
 		const username = usernameCandidate;

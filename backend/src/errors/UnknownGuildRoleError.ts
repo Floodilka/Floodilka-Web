@@ -22,6 +22,6 @@ import {NotFoundError} from './NotFoundError';
 
 export class UnknownGuildRoleError extends NotFoundError {
 	constructor() {
-		super({code: APIErrorCodes.UNKNOWN_ROLE, message: 'Unknown Guild Role'});
+		super({code: APIErrorCodes.UNKNOWN_ROLE, message: 'Роль сервера не найдена'});
 	}
 }

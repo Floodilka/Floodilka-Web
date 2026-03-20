@@ -22,6 +22,6 @@ import {BadRequestError} from './BadRequestError';
 
 export class HarvestNotReadyError extends BadRequestError {
 	constructor() {
-		super({code: APIErrorCodes.HARVEST_NOT_READY, message: 'Data harvest is not yet complete'});
+		super({code: APIErrorCodes.HARVEST_NOT_READY, message: 'Сбор данных ещё не завершён'});
 	}
 }

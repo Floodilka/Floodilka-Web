@@ -22,6 +22,6 @@ import {ForbiddenError} from './ForbiddenError';
 
 export class PackAccessDeniedError extends ForbiddenError {
 	constructor() {
-		super({code: APIErrorCodes.PACK_ACCESS_DENIED, message: 'You do not have permission to manage this pack'});
+		super({code: APIErrorCodes.PACK_ACCESS_DENIED, message: 'У вас нет прав для управления этим паком'});
 	}
 }

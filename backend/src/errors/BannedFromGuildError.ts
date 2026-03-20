@@ -22,6 +22,6 @@ import {ForbiddenError} from './ForbiddenError';
 
 export class BannedFromGuildError extends ForbiddenError {
 	constructor() {
-		super({code: APIErrorCodes.USER_BANNED_FROM_GUILD, message: 'You are banned from this guild.'});
+		super({code: APIErrorCodes.USER_BANNED_FROM_GUILD, message: 'Вы заблокированы на этом сервере.'});
 	}
 }

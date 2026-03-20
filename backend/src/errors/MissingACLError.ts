@@ -24,7 +24,7 @@ export class MissingACLError extends ForbiddenError {
 	constructor(requiredACL: string) {
 		super({
 			code: APIErrorCodes.MISSING_PERMISSIONS,
-			message: `Missing required ACL permission: ${requiredACL}. Contact an administrator to request access.`,
+			message: `Отсутствует необходимое разрешение ACL: ${requiredACL}. Обратитесь к администратору.`,
 		});
 	}
 }

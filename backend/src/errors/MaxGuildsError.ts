@@ -24,7 +24,7 @@ export class MaxGuildsError extends BadRequestError {
 	constructor(limit: number) {
 		super({
 			code: APIErrorCodes.MAX_GUILDS,
-			message: `Maximum number of guilds reached (${limit}).`,
+			message: `Достигнуто максимальное количество серверов (${limit}).`,
 		});
 	}
 }

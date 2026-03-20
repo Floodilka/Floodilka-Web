@@ -138,7 +138,7 @@ export class EntityAssetService {
 				{newS3Key, assetType, entityType},
 				'Asset upload verification failed - object does not exist after upload with retries',
 			);
-			throw InputValidationError.create(errorPath, 'Failed to upload image. Please try again.');
+			throw InputValidationError.create(errorPath, 'Не удалось загрузить изображение. Попробуйте снова.');
 		}
 
 		return {
@@ -315,11 +315,11 @@ export class EntityAssetService {
 		try {
 			imageBuffer = new Uint8Array(Buffer.from(base64Data, 'base64'));
 		} catch {
-			throw InputValidationError.create(errorPath, 'Invalid image data');
+			throw InputValidationError.create(errorPath, 'Некорректные данные изображения');
 		}
 
 		if (imageBuffer.length > AVATAR_MAX_SIZE) {
-			throw InputValidationError.create(errorPath, `Image size exceeds ${AVATAR_MAX_SIZE} bytes`);
+			throw InputValidationError.create(errorPath, `Размер изображения превышает ${AVATAR_MAX_SIZE} байт`);
 		}
 
 		const metadata = await this.mediaService.getMetadata({
@@ -331,7 +331,7 @@ export class EntityAssetService {
 		if (metadata == null || !AVATAR_EXTENSIONS.has(metadata.format)) {
 			throw InputValidationError.create(
 				errorPath,
-				`Invalid image format. Supported extensions: ${[...AVATAR_EXTENSIONS].join(', ')}`,
+				`Неподдерживаемый формат изображения. Допустимые расширения: ${[...AVATAR_EXTENSIONS].join(', ')}`,
 			);
 		}
 

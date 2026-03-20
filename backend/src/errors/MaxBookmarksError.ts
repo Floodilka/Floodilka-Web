@@ -25,7 +25,7 @@ export class MaxBookmarksError extends BadRequestError {
 		const limit = isPremium ? MAX_BOOKMARKS_PREMIUM : MAX_BOOKMARKS_NON_PREMIUM;
 		super({
 			code: APIErrorCodes.MAX_BOOKMARKS,
-			message: `Maximum number of bookmarks reached (${limit}).`,
+			message: `Достигнуто максимальное количество закладок (${limit}).`,
 			data: {
 				max_bookmarks: limit,
 				is_premium: isPremium,

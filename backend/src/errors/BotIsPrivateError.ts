@@ -22,7 +22,7 @@ import {ForbiddenError} from './ForbiddenError';
 
 export class BotIsPrivateError extends ForbiddenError {
 	constructor({
-		message = 'This bot is private and can only be invited by the owner',
+		message = 'Этот бот является приватным',
 		headers,
 		data,
 	}: {

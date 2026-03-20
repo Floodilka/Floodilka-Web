@@ -22,6 +22,6 @@ import {NotFoundError} from './NotFoundError';
 
 export class TestHarnessDisabledError extends NotFoundError {
 	constructor() {
-		super({code: APIErrorCodes.TEST_HARNESS_DISABLED, message: 'Test harness disabled'});
+		super({code: APIErrorCodes.TEST_HARNESS_DISABLED, message: 'Тестовый режим отключён'});
 	}
 }

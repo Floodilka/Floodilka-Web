@@ -360,7 +360,7 @@ export class GuildOperationsService {
 				if (owner.authenticatorTypes.size === 0) {
 					throw InputValidationError.create(
 						'mfa_level',
-						'You must enable 2FA on your account before requiring it for moderators',
+						'Необходимо включить 2ФА на своём аккаунте, прежде чем требовать её от модераторов',
 					);
 				}
 			}
@@ -387,7 +387,7 @@ export class GuildOperationsService {
 		if (data.banner !== undefined) {
 			if (data.banner && !currentGuild.features.has(GuildFeatures.BANNER)) {
 				await this.rollbackPreparedAssets(preparedAssets);
-				throw InputValidationError.create('banner', 'Guild banner requires BANNER feature');
+				throw InputValidationError.create('banner', 'Баннер сервера требует функции BANNER');
 			}
 
 			try {
@@ -402,7 +402,7 @@ export class GuildOperationsService {
 
 				if (preparedAssets.banner.isAnimated && !currentGuild.features.has(GuildFeatures.ANIMATED_BANNER)) {
 					await this.rollbackPreparedAssets(preparedAssets);
-					throw InputValidationError.create('banner', 'Animated guild banner requires ANIMATED_BANNER feature');
+					throw InputValidationError.create('banner', 'Анимированный баннер сервера требует функции ANIMATED_BANNER');
 				}
 
 				bannerHash = preparedAssets.banner.newHash;
@@ -429,7 +429,7 @@ export class GuildOperationsService {
 		if (data.splash !== undefined) {
 			if (data.splash && !currentGuild.features.has(GuildFeatures.INVITE_SPLASH)) {
 				await this.rollbackPreparedAssets(preparedAssets);
-				throw InputValidationError.create('splash', 'Invite splash requires INVITE_SPLASH feature');
+				throw InputValidationError.create('splash', 'Заставка приглашения требует функции INVITE_SPLASH');
 			}
 
 			try {
@@ -466,7 +466,7 @@ export class GuildOperationsService {
 		if (data.embed_splash !== undefined) {
 			if (data.embed_splash && !currentGuild.features.has(GuildFeatures.INVITE_SPLASH)) {
 				await this.rollbackPreparedAssets(preparedAssets);
-				throw InputValidationError.create('embed_splash', 'Embed splash requires INVITE_SPLASH feature');
+				throw InputValidationError.create('embed_splash', 'Встроенная заставка требует функции INVITE_SPLASH');
 			}
 
 			try {
@@ -503,10 +503,10 @@ export class GuildOperationsService {
 				afkChannelId = createChannelID(data.afk_channel_id);
 				const afkChannel = await this.channelRepository.findUnique(afkChannelId);
 				if (!afkChannel || afkChannel.guildId !== guildId) {
-					throw InputValidationError.create('afk_channel_id', 'AFK channel must be in this guild');
+					throw InputValidationError.create('afk_channel_id', 'AFK-канал должен быть на этом сервере');
 				}
 				if (afkChannel.type !== ChannelTypes.GUILD_VOICE) {
-					throw InputValidationError.create('afk_channel_id', 'AFK channel must be a voice channel');
+					throw InputValidationError.create('afk_channel_id', 'AFK-канал должен быть голосовым');
 				}
 			} else {
 				afkChannelId = null;
@@ -519,10 +519,10 @@ export class GuildOperationsService {
 				systemChannelId = createChannelID(data.system_channel_id);
 				const systemChannel = await this.channelRepository.findUnique(systemChannelId);
 				if (!systemChannel || systemChannel.guildId !== guildId) {
-					throw InputValidationError.create('system_channel_id', 'System channel must be in this guild');
+					throw InputValidationError.create('system_channel_id', 'Системный канал должен быть на этом сервере');
 				}
 				if (systemChannel.type !== ChannelTypes.GUILD_TEXT) {
-					throw InputValidationError.create('system_channel_id', 'System channel must be a text channel');
+					throw InputValidationError.create('system_channel_id', 'Системный канал должен быть текстовым');
 				}
 			} else {
 				systemChannelId = null;

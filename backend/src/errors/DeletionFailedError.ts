@@ -21,7 +21,7 @@ import {APIErrorCodes} from '~/Constants';
 import {InternalServerError} from './InternalServerError';
 
 export class DeletionFailedError extends InternalServerError {
-	constructor(message: string) {
+	constructor(message: string = 'Ошибка удаления') {
 		super({code: APIErrorCodes.DELETION_FAILED, message});
 	}
 }

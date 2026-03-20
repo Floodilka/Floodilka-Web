@@ -24,7 +24,7 @@ export class AlreadyFriendsError extends BadRequestError {
 	constructor() {
 		super({
 			code: APIErrorCodes.ALREADY_FRIENDS,
-			message: 'You are already friends with this user',
+			message: 'Вы уже друзья с этим пользователем',
 		});
 	}
 }

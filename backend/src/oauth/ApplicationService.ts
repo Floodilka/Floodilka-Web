@@ -106,7 +106,7 @@ export class ApplicationService {
 			}
 		}
 
-		throw new BotUserGenerationError('Failed to generate unique username for bot after 100 attempts');
+		throw new BotUserGenerationError('Не удалось сгенерировать уникальное имя бота после 100 попыток');
 	}
 
 	async createApplication(args: {
@@ -125,7 +125,7 @@ export class ApplicationService {
 		const botIsPublic = args.botPublic ?? true;
 
 		if (owner.isUnclaimedAccount()) {
-			throw new UnclaimedAccountRestrictedError('create applications');
+			throw new UnclaimedAccountRestrictedError('создавать приложения');
 		}
 
 		const applicationId: ApplicationID = this.deps.snowflakeService.generate() as ApplicationID;

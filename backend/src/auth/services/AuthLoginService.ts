@@ -132,8 +132,8 @@ export class AuthLoginService {
 				dimensions: {reason: 'invalid_credentials'},
 			});
 			throw InputValidationError.createMultiple([
-				{field: 'email', message: 'Invalid email or password'},
-				{field: 'password', message: 'Invalid email or password'},
+				{field: 'email', message: 'Неверный email или пароль'},
+				{field: 'password', message: 'Неверный email или пароль'},
 			]);
 		}
 
@@ -150,8 +150,8 @@ export class AuthLoginService {
 				dimensions: {reason: 'invalid_credentials'},
 			});
 			throw InputValidationError.createMultiple([
-				{field: 'email', message: 'Invalid email or password'},
-				{field: 'password', message: 'Invalid email or password'},
+				{field: 'email', message: 'Неверный email или пароль'},
+				{field: 'password', message: 'Неверный email или пароль'},
 			]);
 		}
 
@@ -238,7 +238,7 @@ export class AuthLoginService {
 				name: 'auth.login.failure',
 				dimensions: {reason: 'mfa_ticket_expired'},
 			});
-			throw InputValidationError.create('code', 'Session timeout. Please refresh the page and log in again.');
+			throw InputValidationError.create('code', 'Сессия истекла. Обновите страницу и войдите снова.');
 		}
 
 		const user = await this.repository.findUnique(createUserID(BigInt(userId)));
@@ -269,7 +269,7 @@ export class AuthLoginService {
 				name: 'auth.login.failure',
 				dimensions: {reason: 'mfa_invalid'},
 			});
-			throw InputValidationError.create('code', 'Invalid code');
+			throw InputValidationError.create('code', 'Неверный код');
 		}
 
 		await this.cacheService.delete(`mfa-ticket:${ticket}`);
@@ -301,7 +301,7 @@ export class AuthLoginService {
 				name: 'auth.login.failure',
 				dimensions: {reason: 'mfa_ticket_expired'},
 			});
-			throw InputValidationError.create('code', 'Session timeout. Please refresh the page and log in again.');
+			throw InputValidationError.create('code', 'Сессия истекла. Обновите страницу и войдите снова.');
 		}
 
 		const user = await this.repository.findUnique(createUserID(BigInt(userId)));
@@ -317,7 +317,7 @@ export class AuthLoginService {
 				name: 'auth.login.failure',
 				dimensions: {reason: 'mfa_invalid'},
 			});
-			throw InputValidationError.create('code', 'Invalid code');
+			throw InputValidationError.create('code', 'Неверный код');
 		}
 
 		await this.cacheService.delete(`mfa-ticket:${ticket}`);
@@ -351,7 +351,7 @@ export class AuthLoginService {
 				name: 'auth.login.failure',
 				dimensions: {reason: 'mfa_ticket_expired'},
 			});
-			throw InputValidationError.create('ticket', 'Session timeout. Please refresh the page and log in again.');
+			throw InputValidationError.create('ticket', 'Сессия истекла. Обновите страницу и войдите снова.');
 		}
 
 		const user = await this.repository.findUnique(createUserID(BigInt(userId)));

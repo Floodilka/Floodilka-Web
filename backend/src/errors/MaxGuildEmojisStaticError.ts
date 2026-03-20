@@ -24,7 +24,7 @@ export class MaxGuildEmojisStaticError extends BadRequestError {
 	constructor() {
 		super({
 			code: APIErrorCodes.MAX_EMOJIS,
-			message: `Maximum number of static guild emojis reached (${MAX_GUILD_EMOJIS_STATIC}).`,
+			message: `Достигнуто максимальное количество статичных эмодзи (${MAX_GUILD_EMOJIS_STATIC}).`,
 		});
 	}
 }

@@ -24,7 +24,7 @@ export class AccountSuspiciousActivityError extends ForbiddenError {
 	constructor(suspiciousActivityFlags: number) {
 		super({
 			code: APIErrorCodes.ACCOUNT_SUSPICIOUS_ACTIVITY,
-			message: 'Your account has been flagged for suspicious activity. Please verify your identity to continue.',
+			message: 'Ваш аккаунт отмечен за подозрительную активность. Пожалуйста, подтвердите свою личность для продолжения.',
 			data: {
 				data: {
 					suspicious_activity_flags: suspiciousActivityFlags,

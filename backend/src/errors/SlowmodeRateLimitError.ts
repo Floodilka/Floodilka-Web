@@ -22,7 +22,7 @@ import {BadRequestError} from './BadRequestError';
 
 export class SlowmodeRateLimitError extends BadRequestError {
 	constructor({
-		message = 'You are sending messages too quickly. Please slow down.',
+		message = 'Вы отправляете сообщения слишком быстро. Подождите немного.',
 		retryAfter,
 		retryAfterDecimal,
 	}: {

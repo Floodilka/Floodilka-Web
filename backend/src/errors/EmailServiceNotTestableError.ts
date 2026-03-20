@@ -22,6 +22,6 @@ import {InternalServerError} from './InternalServerError';
 
 export class EmailServiceNotTestableError extends InternalServerError {
 	constructor() {
-		super({code: APIErrorCodes.EMAIL_SERVICE_NOT_TESTABLE, message: 'Email service does not support test inspection'});
+		super({code: APIErrorCodes.EMAIL_SERVICE_NOT_TESTABLE, message: 'Сервис электронной почты не поддерживает тестовую проверку'});
 	}
 }

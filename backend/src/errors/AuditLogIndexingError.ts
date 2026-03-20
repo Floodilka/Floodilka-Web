@@ -24,7 +24,7 @@ export class AuditLogIndexingError extends FluxerAPIError {
 	constructor() {
 		super({
 			code: APIErrorCodes.AUDIT_LOG_INDEXING,
-			message: 'Guild audit logs are being indexed. Please try again shortly.',
+			message: 'Журнал аудита сервера индексируется. Попробуйте позже.',
 			status: 202,
 		});
 	}

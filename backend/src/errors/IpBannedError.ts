@@ -22,6 +22,6 @@ import {ForbiddenError} from './ForbiddenError';
 
 export class IpBannedError extends ForbiddenError {
 	constructor() {
-		super({code: APIErrorCodes.IP_BANNED, message: 'Your IP address has been banned'});
+		super({code: APIErrorCodes.IP_BANNED, message: 'Ваш IP-адрес заблокирован'});
 	}
 }

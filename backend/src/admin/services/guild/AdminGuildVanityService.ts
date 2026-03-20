@@ -58,7 +58,7 @@ export class AdminGuildVanityService {
 			const inviteCode = createInviteCode(data.vanity_url_code);
 			const existingInvite = await inviteRepository.findUnique(inviteCode);
 			if (existingInvite) {
-				throw InputValidationError.create('vanity_url_code', 'This vanity URL is already taken');
+				throw InputValidationError.create('vanity_url_code', 'Эта короткая ссылка уже занята');
 			}
 
 			if (oldVanity) {

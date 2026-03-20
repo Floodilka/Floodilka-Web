@@ -21,7 +21,7 @@ import {APIErrorCodes} from '~/Constants';
 import {BadRequestError} from './BadRequestError';
 
 export class InvalidTimestampError extends BadRequestError {
-	constructor(message: string = 'Invalid timestamp format') {
+	constructor(message: string = 'Неверный формат метки времени') {
 		super({code: APIErrorCodes.INVALID_TIMESTAMP, message});
 	}
 }

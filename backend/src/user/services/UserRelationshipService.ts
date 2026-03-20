@@ -132,7 +132,7 @@ export class UserRelationshipService {
 	}): Promise<Relationship> {
 		const user = await this.userAccountRepository.findUnique(userId);
 		if (user && user.isUnclaimedAccount()) {
-			throw new UnclaimedAccountRestrictedError('accept friend requests');
+			throw new UnclaimedAccountRestrictedError('принимать запросы в друзья');
 		}
 
 		const incomingRequest = await this.userRelationshipRepository.getRelationship(
@@ -336,7 +336,7 @@ export class UserRelationshipService {
 
 		const requesterUser = await this.userAccountRepository.findUnique(userId);
 		if (requesterUser && requesterUser.isUnclaimedAccount()) {
-			throw new UnclaimedAccountRestrictedError('send friend requests');
+			throw new UnclaimedAccountRestrictedError('отправлять запросы в друзья');
 		}
 
 		const targetUser = await this.userAccountRepository.findUnique(targetId);

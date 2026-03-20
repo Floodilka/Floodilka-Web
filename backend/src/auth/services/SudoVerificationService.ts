@@ -88,7 +88,7 @@ async function verifySudoMode(
 		});
 
 		if (!result.success) {
-			throw InputValidationError.create('mfa_code', result.error ?? 'Invalid MFA code');
+			throw InputValidationError.create('mfa_code', result.error ?? 'Неверный код МФА');
 		}
 
 		const sudoModeService = getSudoModeService();
@@ -104,7 +104,7 @@ async function verifySudoMode(
 
 	if (body.password && !hasMfa) {
 		if (!user.passwordHash) {
-			throw InputValidationError.create('password', 'Password not set');
+			throw InputValidationError.create('password', 'Пароль не установлен');
 		}
 
 		const passwordValid = await authService.verifyPassword({
@@ -113,7 +113,7 @@ async function verifySudoMode(
 		});
 
 		if (!passwordValid) {
-			throw InputValidationError.create('password', 'Invalid password');
+			throw InputValidationError.create('password', 'Неверный пароль');
 		}
 
 		return {verified: true, method: 'password'};

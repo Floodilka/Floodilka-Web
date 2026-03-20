@@ -24,7 +24,7 @@ export class InvalidSuspiciousFlagsFormatError extends BadRequestError {
 	constructor() {
 		super({
 			code: APIErrorCodes.INVALID_SUSPICIOUS_FLAGS_FORMAT,
-			message: 'Suspicious activity flags must be a number or null',
+			message: 'Флаги подозрительной активности должны быть числом или null',
 		});
 	}
 }

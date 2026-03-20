@@ -22,6 +22,6 @@ import {ForbiddenError} from './ForbiddenError';
 
 export class FeatureTemporarilyDisabledError extends ForbiddenError {
 	constructor() {
-		super({code: APIErrorCodes.FEATURE_TEMPORARILY_DISABLED, message: 'This feature is temporarily disabled'});
+		super({code: APIErrorCodes.FEATURE_TEMPORARILY_DISABLED, message: 'Эта функция временно отключена'});
 	}
 }

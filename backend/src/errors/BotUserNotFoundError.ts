@@ -22,7 +22,7 @@ import {NotFoundError} from './NotFoundError';
 
 export class BotUserNotFoundError extends NotFoundError {
 	constructor({
-		message = 'Bot user not found',
+		message = 'Пользователь-бот не найден',
 		headers,
 		data,
 	}: {

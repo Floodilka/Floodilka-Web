@@ -104,7 +104,7 @@ export class UserAccountSecurityService {
 			if (normalizedEmail !== user.email?.toLowerCase()) {
 				const existing = await this.deps.userAccountRepository.findByEmail(normalizedEmail!);
 				if (existing && existing.id !== user.id) {
-					throw InputValidationError.create('email', 'Email already in use');
+					throw InputValidationError.create('email', 'Этот email уже используется');
 				}
 			}
 
@@ -161,13 +161,13 @@ export class UserAccountSecurityService {
 			const minutes = Math.ceil((rateLimit.retryAfter || 0) / 60);
 			throw InputValidationError.create(
 				'username',
-				`You've changed your username too many times recently. Please try again in ${minutes} minutes.`,
+				`Вы слишком часто меняли имя пользователя. Попробуйте снова через ${minutes} мин.`,
 			);
 		}
 
 		const existing = await this.deps.userAccountRepository.findByUsername(username);
 		if (existing && existing.id !== user.id) {
-			throw InputValidationError.create('username', 'Username is already taken');
+			throw InputValidationError.create('username', 'Имя пользователя уже занято');
 		}
 
 		return username;

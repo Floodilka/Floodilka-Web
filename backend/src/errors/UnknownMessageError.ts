@@ -22,6 +22,6 @@ import {NotFoundError} from './NotFoundError';
 
 export class UnknownMessageError extends NotFoundError {
 	constructor() {
-		super({code: APIErrorCodes.UNKNOWN_MESSAGE, message: 'Unknown Message'});
+		super({code: APIErrorCodes.UNKNOWN_MESSAGE, message: 'Сообщение не найдено'});
 	}
 }

@@ -59,25 +59,25 @@ export async function parseMultipartMessageData(
 	} catch (_error) {
 		throw InputValidationError.create(
 			'multipart_form',
-			'Failed to parse multipart form data. Please check that all field names and filenames are properly formatted.',
+			'Не удалось разобрать данные формы. Проверьте правильность имён полей и файлов.',
 		);
 	}
 
 	if (!body.payload_json || typeof body.payload_json !== 'string') {
-		throw InputValidationError.create('payload_json', 'payload_json field is required for multipart messages');
+		throw InputValidationError.create('payload_json', 'Поле payload_json обязательно для составных сообщений');
 	}
 
 	let jsonData: unknown;
 	try {
 		jsonData = JSON.parse(body.payload_json);
 	} catch (_error) {
-		throw InputValidationError.create('payload_json', 'Invalid JSON in payload_json');
+		throw InputValidationError.create('payload_json', 'Некорректный JSON в payload_json');
 	}
 
 	options?.onPayloadParsed?.(jsonData);
 	const validationResult = schema.safeParse(jsonData);
 	if (!validationResult.success) {
-		throw InputValidationError.create('message_data', 'Invalid message data');
+		throw InputValidationError.create('message_data', 'Некорректные данные сообщения');
 	}
 
 	const data = validationResult.data as Partial<MessageRequest> &
@@ -95,7 +95,7 @@ export async function parseMultipartMessageData(
 			if (!match) {
 				throw InputValidationError.create(
 					'files',
-					`Invalid file field name: ${key}. Expected format: files[N] where N is a number`,
+					`Неверное имя поля файла: ${key}. Ожидаемый формат: files[N], где N — число`,
 				);
 			}
 
@@ -104,12 +104,12 @@ export async function parseMultipartMessageData(
 			if (index >= MAX_ATTACHMENTS_PER_MESSAGE) {
 				throw InputValidationError.create(
 					'files',
-					`File index ${index} exceeds maximum allowed index of ${MAX_ATTACHMENTS_PER_MESSAGE - 1}`,
+					`Индекс файла ${index} превышает максимально допустимый ${MAX_ATTACHMENTS_PER_MESSAGE - 1}`,
 				);
 			}
 
 			if (seenIndices.has(index)) {
-				throw InputValidationError.create('files', `Duplicate file index: ${index}`);
+				throw InputValidationError.create('files', `Дублирующийся индекс файла: ${index}`);
 			}
 
 			const file = body[key];
@@ -119,19 +119,19 @@ export async function parseMultipartMessageData(
 			} else if (Array.isArray(file)) {
 				const validFiles = file.filter((f) => f instanceof File);
 				if (validFiles.length > 0) {
-					throw InputValidationError.create('files', `Multiple files for index ${index} not allowed`);
+					throw InputValidationError.create('files', `Несколько файлов для индекса ${index} не допускается`);
 				}
 			}
 		}
 	});
 
 	if (filesWithIndices.length > MAX_ATTACHMENTS_PER_MESSAGE) {
-		throw InputValidationError.create('files', `Too many files. Maximum ${MAX_ATTACHMENTS_PER_MESSAGE} files allowed`);
+		throw InputValidationError.create('files', `Слишком много файлов. Максимум ${MAX_ATTACHMENTS_PER_MESSAGE}`);
 	}
 
 	if (filesWithIndices.length > 0) {
 		if (!data.attachments || !Array.isArray(data.attachments) || data.attachments.length === 0) {
-			throw InputValidationError.create('attachments', 'Attachments metadata array is required when uploading files');
+			throw InputValidationError.create('attachments', 'Массив метаданных вложений обязателен при загрузке файлов');
 		}
 
 		type AttachmentMetadata = ClientAttachmentRequest | ClientAttachmentReferenceRequest;
@@ -149,13 +149,13 @@ export async function parseMultipartMessageData(
 
 		for (const fileId of fileIds) {
 			if (!metadataIds.has(fileId)) {
-				throw InputValidationError.create('attachments', `No metadata provided for file with ID ${fileId}`);
+				throw InputValidationError.create('attachments', `Нет метаданных для файла с ID ${fileId}`);
 			}
 		}
 
 		for (const att of newAttachments) {
 			if (!fileIds.has(att.id)) {
-				throw InputValidationError.create('attachments', `No file uploaded for attachment metadata with ID ${att.id}`);
+				throw InputValidationError.create('attachments', `Файл не загружен для метаданных вложения с ID ${att.id}`);
 			}
 		}
 
@@ -174,13 +174,13 @@ export async function parseMultipartMessageData(
 		const processedNewAttachments = newAttachments.map((clientData) => {
 			const uploaded = uploadedMap.get(clientData.id);
 			if (!uploaded) {
-				throw InputValidationError.create('attachments', `No file uploaded for attachment with ID ${clientData.id}`);
+				throw InputValidationError.create('attachments', `Файл не загружен для вложения с ID ${clientData.id}`);
 			}
 
 			if (clientData.filename !== uploaded.filename) {
 				throw InputValidationError.create(
 					'attachments',
-					`Filename mismatch for attachment ${clientData.id}: metadata specifies "${clientData.filename}" but this doesn't match`,
+					`Несоответствие имени файла для вложения ${clientData.id}: в метаданных указано "${clientData.filename}", но оно не совпадает`,
 				);
 			}
 
@@ -196,7 +196,7 @@ export async function parseMultipartMessageData(
 	) {
 		throw InputValidationError.create(
 			'attachments',
-			'Attachment metadata with filename provided but no files uploaded',
+			'Указаны метаданные вложения с именем файла, но файлы не загружены',
 		);
 	}
 
@@ -307,7 +307,7 @@ export const MessageController = (app: HonoApp) => {
 			const requestCache = ctx.get('requestCache');
 
 			if (user.isUnclaimedAccount() && !isPersonalNotesChannel({userId: user.id, channelId})) {
-				throw new UnclaimedAccountRestrictedError('send messages');
+				throw new UnclaimedAccountRestrictedError('отправлять сообщения');
 			}
 
 			const contentType = ctx.req.header('content-type');
@@ -317,7 +317,7 @@ export const MessageController = (app: HonoApp) => {
 						const data: unknown = await ctx.req.json();
 						const validationResult = MessageRequest.safeParse(data);
 						if (!validationResult.success) {
-							throw InputValidationError.create('message_data', 'Invalid message data');
+							throw InputValidationError.create('message_data', 'Некорректные данные сообщения');
 						}
 						return validationResult.data;
 					})();
@@ -363,7 +363,7 @@ export const MessageController = (app: HonoApp) => {
 						const data: unknown = await ctx.req.json();
 						const validationResult = MessageUpdateRequest.safeParse(data);
 						if (!validationResult.success) {
-							throw InputValidationError.create('message_data', 'Invalid message data');
+							throw InputValidationError.create('message_data', 'Некорректные данные сообщения');
 						}
 						return validationResult.data;
 					})();

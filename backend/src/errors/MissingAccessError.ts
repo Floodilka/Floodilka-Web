@@ -22,6 +22,6 @@ import {ForbiddenError} from './ForbiddenError';
 
 export class MissingAccessError extends ForbiddenError {
 	constructor() {
-		super({code: APIErrorCodes.MISSING_ACCESS, message: 'Missing Access'});
+		super({code: APIErrorCodes.MISSING_ACCESS, message: 'Нет доступа'});
 	}
 }

@@ -21,7 +21,7 @@ import {APIErrorCodes} from '~/Constants';
 import {InternalServerError} from './InternalServerError';
 
 export class CreationFailedError extends InternalServerError {
-	constructor(message: string) {
+	constructor(message: string = 'Ошибка создания') {
 		super({code: APIErrorCodes.CREATION_FAILED, message});
 	}
 }

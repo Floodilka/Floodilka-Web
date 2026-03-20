@@ -21,7 +21,7 @@ import {APIErrorCodes} from '~/Constants';
 import {ForbiddenError} from './ForbiddenError';
 
 export class GuildVerificationRequiredError extends ForbiddenError {
-	constructor(message: string) {
+	constructor(message: string = 'Требуется верификация для входа на сервер') {
 		super({code: APIErrorCodes.GUILD_VERIFICATION_REQUIRED, message});
 	}
 }

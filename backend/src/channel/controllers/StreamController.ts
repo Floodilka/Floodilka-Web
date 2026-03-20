@@ -69,7 +69,7 @@ export const StreamController = (app: HonoApp) => {
 		async (ctx) => {
 			const streamKey = ctx.req.valid('param').stream_key;
 			if (!parseStreamKey(streamKey)) {
-				throw new BadRequestError({code: APIErrorCodes.INVALID_REQUEST, message: 'Invalid stream key format'});
+				throw new BadRequestError({code: APIErrorCodes.INVALID_REQUEST, message: 'Неверный формат ключа трансляции'});
 			}
 			const preview = await ctx.get('streamPreviewService').getPreview(streamKey);
 			if (!preview) {
@@ -108,7 +108,7 @@ export const StreamController = (app: HonoApp) => {
 
 			const parsedKey = parseStreamKey(streamKey);
 			if (!parsedKey) {
-				throw new BadRequestError({code: APIErrorCodes.INVALID_REQUEST, message: 'Invalid stream key format'});
+				throw new BadRequestError({code: APIErrorCodes.INVALID_REQUEST, message: 'Неверный формат ключа трансляции'});
 			}
 
 			const channel = await ctx.get('channelService').getChannel({userId, channelId});
@@ -124,13 +124,13 @@ export const StreamController = (app: HonoApp) => {
 			}
 
 			if (channel.guildId && parsedKey.scope !== 'guild') {
-				throw new BadRequestError({code: APIErrorCodes.INVALID_REQUEST, message: 'Stream key scope mismatch'});
+				throw new BadRequestError({code: APIErrorCodes.INVALID_REQUEST, message: 'Несоответствие области ключа трансляции'});
 			}
 			if (!channel.guildId && parsedKey.scope !== 'dm') {
-				throw new BadRequestError({code: APIErrorCodes.INVALID_REQUEST, message: 'Stream key scope mismatch'});
+				throw new BadRequestError({code: APIErrorCodes.INVALID_REQUEST, message: 'Несоответствие области ключа трансляции'});
 			}
 			if (parsedKey.channelId !== channelId.toString()) {
-				throw new BadRequestError({code: APIErrorCodes.INVALID_REQUEST, message: 'Stream key channel mismatch'});
+				throw new BadRequestError({code: APIErrorCodes.INVALID_REQUEST, message: 'Несоответствие канала ключа трансляции'});
 			}
 
 			let body: Uint8Array;

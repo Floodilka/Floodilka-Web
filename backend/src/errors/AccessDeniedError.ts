@@ -21,7 +21,7 @@ import {APIErrorCodes} from '~/Constants';
 import {FluxerAPIError} from './FluxerAPIError';
 
 export class AccessDeniedError extends FluxerAPIError {
-	constructor(message = 'Access denied') {
+	constructor(message = 'Доступ запрещён') {
 		super({code: APIErrorCodes.ACCESS_DENIED, message, status: 403});
 	}
 }

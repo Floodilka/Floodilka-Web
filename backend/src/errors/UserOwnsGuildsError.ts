@@ -24,7 +24,7 @@ export class UserOwnsGuildsError extends BadRequestError {
 	constructor() {
 		super({
 			code: APIErrorCodes.USER_OWNS_GUILDS,
-			message: 'You cannot delete your account while you own guilds. Please transfer ownership first.',
+			message: 'Нельзя удалить аккаунт, пока вы владеете серверами. Сначала передайте права владельца.',
 		});
 	}
 }

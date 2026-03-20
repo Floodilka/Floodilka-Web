@@ -22,7 +22,7 @@ import type {FluxerErrorData} from './FluxerAPIError';
 
 export class BotAlreadyInGuildError extends BadRequestError {
 	constructor({
-		message = 'Bot is already in this guild',
+		message = 'Бот уже добавлен на этот сервер',
 		headers,
 		data,
 	}: {

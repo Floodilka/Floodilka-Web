@@ -24,7 +24,7 @@ export class SmsMfaNotEnabledError extends BadRequestError {
 	constructor() {
 		super({
 			code: APIErrorCodes.SMS_MFA_NOT_ENABLED,
-			message: 'SMS backup authentication is not enabled for this account',
+			message: 'SMS-аутентификация не включена для этого аккаунта',
 		});
 	}
 }

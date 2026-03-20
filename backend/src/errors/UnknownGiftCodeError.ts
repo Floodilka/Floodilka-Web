@@ -24,7 +24,7 @@ export class UnknownGiftCodeError extends NotFoundError {
 	constructor() {
 		super({
 			code: APIErrorCodes.UNKNOWN_GIFT_CODE,
-			message: 'Unknown gift code',
+			message: 'Подарочный код не найден',
 		});
 	}
 }

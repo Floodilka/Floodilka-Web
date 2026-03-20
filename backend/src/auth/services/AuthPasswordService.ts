@@ -116,7 +116,7 @@ export class AuthPasswordService {
 
 		const hasValidDns = await this.emailDnsValidationService.hasValidDnsRecords(data.email);
 		if (!hasValidDns) {
-			throw InputValidationError.create('email', 'Invalid email address');
+			throw InputValidationError.create('email', 'Недействительный адрес электронной почты');
 		}
 
 		const user = await this.repository.findByEmail(data.email);
@@ -146,19 +146,19 @@ export class AuthPasswordService {
 		const pending = await this.cacheService.get<PendingResetData>(cacheKey);
 
 		if (!pending) {
-			throw InputValidationError.create('code', 'Invalid or expired reset code');
+			throw InputValidationError.create('code', 'Недействительный или просроченный код сброса');
 		}
 
 		if (pending.attempts >= 5) {
 			await this.cacheService.delete(cacheKey);
-			throw InputValidationError.create('code', 'Too many attempts. Please request a new code.');
+			throw InputValidationError.create('code', 'Слишком много попыток. Запросите новый код.');
 		}
 
 		if (pending.code !== data.code) {
 			pending.attempts += 1;
 			const ttl = await this.cacheService.ttl(cacheKey);
 			await this.cacheService.set(cacheKey, pending, ttl > 0 ? ttl : 600);
-			throw InputValidationError.create('code', 'Invalid or expired reset code');
+			throw InputValidationError.create('code', 'Недействительный или просроченный код сброса');
 		}
 
 		const token = createPasswordResetToken(await this.generateSecureToken());
@@ -186,18 +186,18 @@ export class AuthPasswordService {
 	> {
 		const tokenData = await this.repository.getPasswordResetToken(data.token);
 		if (!tokenData) {
-			throw InputValidationError.create('token', 'Invalid or expired reset token');
+			throw InputValidationError.create('token', 'Недействительный или просроченный токен сброса');
 		}
 
 		const user = await this.repository.findUnique(tokenData.userId);
 		if (!user) {
-			throw InputValidationError.create('token', 'Invalid or expired reset token');
+			throw InputValidationError.create('token', 'Недействительный или просроченный токен сброса');
 		}
 
 		this.assertNonBotUser(user);
 
 		if (user.flags & UserFlags.DELETED) {
-			throw InputValidationError.create('token', 'Invalid or expired reset token');
+			throw InputValidationError.create('token', 'Недействительный или просроченный токен сброса');
 		}
 
 		await this.handleBanStatus(user);

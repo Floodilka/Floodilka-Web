@@ -22,6 +22,6 @@ import {BadRequestError} from './BadRequestError';
 
 export class AclsMustBeNonEmptyError extends BadRequestError {
 	constructor() {
-		super({code: APIErrorCodes.ACLS_MUST_BE_NON_EMPTY, message: 'ACLs must be non-empty strings'});
+		super({code: APIErrorCodes.ACLS_MUST_BE_NON_EMPTY, message: 'ACL не могут быть пустыми строками'});
 	}
 }

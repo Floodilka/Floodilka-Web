@@ -52,12 +52,12 @@ export class CustomStatusValidator {
 
 			const emoji = await this.guildRepository.getEmojiById(emojiId);
 			if (!emoji) {
-				throw InputValidationError.create('custom_status.emoji_id', 'Custom emoji not found');
+				throw InputValidationError.create('custom_status.emoji_id', 'Пользовательский эмодзи не найден');
 			}
 
 			const user = await this.userAccountRepository.findUnique(userId);
 			if (!user?.canUseGlobalExpressions()) {
-				throw InputValidationError.create('custom_status.emoji_id', 'Premium required to use custom emoji');
+				throw InputValidationError.create('custom_status.emoji_id', 'Для использования пользовательских эмодзи требуется премиум');
 			}
 
 			const guildMember = await this.guildRepository.getMember(emoji.guildId, userId);
@@ -75,7 +75,7 @@ export class CustomStatusValidator {
 			if (!hasAccess) {
 				throw InputValidationError.create(
 					'custom_status.emoji_id',
-					'Cannot use this emoji without access to its guild or installed pack',
+					'Нельзя использовать этот эмодзи без доступа к серверу или установленному набору',
 				);
 			}
 

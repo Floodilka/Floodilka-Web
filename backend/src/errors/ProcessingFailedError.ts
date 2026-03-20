@@ -21,7 +21,7 @@ import {APIErrorCodes} from '~/Constants';
 import {InternalServerError} from './InternalServerError';
 
 export class ProcessingFailedError extends InternalServerError {
-	constructor(message: string) {
+	constructor(message: string = 'Ошибка обработки') {
 		super({code: APIErrorCodes.PROCESSING_FAILED, message});
 	}
 }

@@ -24,7 +24,7 @@ export class CannotSendFriendRequestToSelfError extends BadRequestError {
 	constructor() {
 		super({
 			code: APIErrorCodes.CANNOT_SEND_FRIEND_REQUEST_TO_SELF,
-			message: 'Cannot send friend request to yourself',
+			message: 'Нельзя отправить запрос в друзья самому себе',
 		});
 	}
 }

@@ -24,7 +24,7 @@ export class CannotEditOtherUserMessageError extends ForbiddenError {
 	constructor() {
 		super({
 			code: APIErrorCodes.CANNOT_EDIT_OTHER_USER_MESSAGE,
-			message: 'Cannot edit message authored by other user.',
+			message: 'Нельзя редактировать сообщение другого пользователя.',
 		});
 	}
 }

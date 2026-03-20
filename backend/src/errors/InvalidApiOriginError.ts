@@ -23,7 +23,7 @@ export class InvalidApiOriginError extends FluxerAPIError {
 	constructor() {
 		super({
 			code: 'INVALID_API_ORIGIN',
-			message: 'This endpoint cannot be accessed from this origin. Please use the correct API endpoint for all API requests.',
+			message: 'Этот эндпоинт недоступен с данного источника. Используйте правильный API-эндпоинт.',
 			status: 403,
 		});
 	}

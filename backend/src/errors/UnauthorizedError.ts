@@ -22,7 +22,7 @@ import {FluxerAPIError, type FluxerErrorData} from './FluxerAPIError';
 
 export class UnauthorizedError extends FluxerAPIError {
 	constructor({
-		message = 'Unauthorized',
+		message = 'Не авторизован',
 		headers,
 		data,
 	}: {

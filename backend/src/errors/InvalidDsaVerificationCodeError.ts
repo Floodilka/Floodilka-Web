@@ -24,7 +24,7 @@ export class InvalidDsaVerificationCodeError extends BadRequestError {
 	constructor() {
 		super({
 			code: APIErrorCodes.INVALID_DSA_VERIFICATION_CODE,
-			message: 'Invalid or expired verification code. Please request a new email.',
+			message: 'Недействительный или просроченный код подтверждения. Запросите новое письмо.',
 		});
 	}
 }

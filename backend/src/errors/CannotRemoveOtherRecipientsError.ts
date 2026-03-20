@@ -22,6 +22,6 @@ import {ForbiddenError} from './ForbiddenError';
 
 export class CannotRemoveOtherRecipientsError extends ForbiddenError {
 	constructor() {
-		super({code: APIErrorCodes.MISSING_PERMISSIONS, message: 'Only the owner can remove other recipients'});
+		super({code: APIErrorCodes.MISSING_PERMISSIONS, message: 'Только владелец может удалять участников'});
 	}
 }

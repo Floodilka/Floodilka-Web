@@ -72,7 +72,7 @@ export class MessageValidationService {
 
 		const maxLength = user?.isPremium() ? MAX_MESSAGE_LENGTH_PREMIUM : MAX_MESSAGE_LENGTH_NON_PREMIUM;
 		if (content.length > maxLength) {
-			throw InputValidationError.create('content', `Content must not exceed ${maxLength} characters`);
+			throw InputValidationError.create('content', `Содержимое не должно превышать ${maxLength} символов`);
 		}
 	}
 

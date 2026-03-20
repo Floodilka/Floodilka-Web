@@ -556,7 +556,7 @@ export class CallService {
 		);
 		for (const recipientId of recipients) {
 			if (!allowedRecipientIds.has(recipientId)) {
-				throw InputValidationError.create('recipients', 'User is not in this channel');
+				throw InputValidationError.create('recipients', 'Пользователь не в этом канале');
 			}
 		}
 	}

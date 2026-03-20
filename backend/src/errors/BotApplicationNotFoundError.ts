@@ -22,7 +22,7 @@ import {NotFoundError} from './NotFoundError';
 
 export class BotApplicationNotFoundError extends NotFoundError {
 	constructor({
-		message = 'Bot application not found',
+		message = 'Приложение бота не найдено',
 		headers,
 		data,
 	}: {

@@ -48,14 +48,14 @@ export class AdminSnowflakeReservationService {
 		const emailLower = data.email.toLowerCase();
 
 		if (!emailLower) {
-			throw InputValidationError.create('email', 'Invalid email address');
+			throw InputValidationError.create('email', 'Недействительный адрес электронной почты');
 		}
 
 		let snowflakeValue: bigint;
 		try {
 			snowflakeValue = BigInt(data.snowflake);
 		} catch {
-			throw InputValidationError.create('snowflake', 'Invalid snowflake');
+			throw InputValidationError.create('snowflake', 'Недопустимый snowflake');
 		}
 
 		await repository.setReservation(emailLower, snowflakeValue);
@@ -79,7 +79,7 @@ export class AdminSnowflakeReservationService {
 		const emailLower = data.email.toLowerCase();
 
 		if (!emailLower) {
-			throw InputValidationError.create('email', 'Invalid email address');
+			throw InputValidationError.create('email', 'Недействительный адрес электронной почты');
 		}
 
 		await repository.deleteReservation(emailLower);

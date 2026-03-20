@@ -22,7 +22,7 @@ import {FluxerAPIError, type FluxerErrorData} from './FluxerAPIError';
 export class BadRequestError extends FluxerAPIError {
 	constructor({
 		code,
-		message = 'Bad Request',
+		message = 'Некорректный запрос',
 		headers,
 		data,
 	}: {

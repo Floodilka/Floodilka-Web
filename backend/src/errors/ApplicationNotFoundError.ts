@@ -22,7 +22,7 @@ import {NotFoundError} from './NotFoundError';
 
 export class ApplicationNotFoundError extends NotFoundError {
 	constructor({
-		message = 'Application not found',
+		message = 'Приложение не найдено',
 		headers,
 		data,
 	}: {

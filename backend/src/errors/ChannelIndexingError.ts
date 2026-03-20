@@ -24,7 +24,7 @@ export class ChannelIndexingError extends FluxerAPIError {
 	constructor() {
 		super({
 			code: APIErrorCodes.CHANNEL_INDEXING,
-			message: 'Channel is being indexed. Please try again later.',
+			message: 'Канал индексируется. Попробуйте позже.',
 			status: 202,
 		});
 	}

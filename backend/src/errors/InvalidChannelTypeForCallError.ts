@@ -24,7 +24,7 @@ export class InvalidChannelTypeForCallError extends BadRequestError {
 	constructor() {
 		super({
 			code: APIErrorCodes.INVALID_CHANNEL_TYPE_FOR_CALL,
-			message: 'Calls can only be created in DM or Group DM channels',
+			message: 'Звонки можно создавать только в личных сообщениях или групповых чатах',
 		});
 	}
 }

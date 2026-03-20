@@ -24,7 +24,7 @@ export class PhoneVerificationRequiredError extends BadRequestError {
 	constructor() {
 		super({
 			code: APIErrorCodes.PHONE_VERIFICATION_REQUIRED,
-			message: 'Invalid or expired phone token',
+			message: 'Недействительный или просроченный токен телефона',
 		});
 	}
 }

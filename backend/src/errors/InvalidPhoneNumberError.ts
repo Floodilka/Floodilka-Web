@@ -24,7 +24,7 @@ export class InvalidPhoneNumberError extends BadRequestError {
 	constructor() {
 		super({
 			code: APIErrorCodes.INVALID_PHONE_NUMBER,
-			message: 'Phone number must be in E.164 format (e.g., +1234567890)',
+			message: 'Номер телефона должен быть в формате E.164 (например, +1234567890)',
 		});
 	}
 }

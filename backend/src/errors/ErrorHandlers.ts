@@ -51,7 +51,7 @@ export const AppErrorHandler: ErrorHandler<HonoEnv> = (err) => {
 	Logger.error({err}, 'Unhandled error occurred');
 	const error = new FluxerAPIError({
 		code: APIErrorCodes.GENERAL_ERROR,
-		message: 'An internal server error occurred.',
+		message: 'Произошла внутренняя ошибка сервера.',
 		status: 500,
 	});
 	return error.getResponse();
@@ -60,7 +60,7 @@ export const AppErrorHandler: ErrorHandler<HonoEnv> = (err) => {
 export const AppNotFoundHandler: NotFoundHandler<HonoEnv> = () => {
 	const error = new FluxerAPIError({
 		code: APIErrorCodes.GENERAL_ERROR,
-		message: 'The requested endpoint does not exist.',
+		message: 'Запрашиваемый эндпоинт не существует.',
 		status: 404,
 	});
 	return error.getResponse();

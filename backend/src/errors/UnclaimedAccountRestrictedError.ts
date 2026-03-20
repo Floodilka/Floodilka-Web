@@ -24,7 +24,7 @@ export class UnclaimedAccountRestrictedError extends BadRequestError {
 	constructor(action: string) {
 		super({
 			code: APIErrorCodes.UNCLAIMED_ACCOUNT_RESTRICTED,
-			message: `Unclaimed accounts cannot ${action}. Please claim your account by setting an email and password.`,
+			message: `Неподтверждённые аккаунты не могут ${action}. Подтвердите аккаунт, указав email и пароль.`,
 		});
 	}
 }

@@ -22,7 +22,7 @@ import {FluxerAPIError} from './FluxerAPIError';
 
 export class RateLimitError extends FluxerAPIError {
 	constructor({
-		message = 'You are being rate limited.',
+		message = 'Слишком много запросов. Подождите.',
 		global = false,
 		retryAfter,
 		retryAfterDecimal,

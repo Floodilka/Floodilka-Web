@@ -208,7 +208,7 @@ export class CloudPaymentsClient {
 		} catch (error: unknown) {
 			if (error instanceof PaymentError) throw error;
 			Logger.error({error, path, requestId}, 'CloudPayments request failed');
-			throw new PaymentError('Payment service unavailable');
+			throw new PaymentError('Платёжный сервис недоступен');
 		}
 	}
 }

@@ -48,7 +48,7 @@ export class AuthSessionService {
 	) {}
 
 	async createAuthSession({user, request}: CreateAuthSessionParams): Promise<[token: string, AuthSession]> {
-		if (user.isBot) throw new AccessDeniedError('Bot users cannot create auth sessions');
+		if (user.isBot) throw new AccessDeniedError('Боты не могут создавать сессии авторизации');
 
 		const now = new Date();
 		const token = await this.generateAuthToken();

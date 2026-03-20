@@ -105,7 +105,7 @@ export class ChannelHelpers {
 				if (encounteredVoice && isText) {
 					throw InputValidationError.create(
 						'preceding_sibling_id',
-						'Voice channels cannot be positioned above text channels within the same category',
+						'Голосовые каналы не могут располагаться выше текстовых в той же категории',
 					);
 				}
 			}
