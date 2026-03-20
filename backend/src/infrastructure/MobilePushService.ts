@@ -158,11 +158,13 @@ class MobilePushServiceImpl {
 	}
 
 	async sendBatch(notifications: Array<MobilePushNotification>): Promise<MobilePushResult> {
+		logger.info('[MobilePush] sendBatch called with %d notifications', notifications.length);
 		const failedTokens: Array<FailedToken> = [];
 		let sent = 0;
 
 		const iosNotifications = notifications.filter((n) => n.platform === 'ios');
 		const androidNotifications = notifications.filter((n) => n.platform === 'android');
+		logger.info('[MobilePush] iOS: %d, Android: %d', iosNotifications.length, androidNotifications.length);
 
 		const [iosResults, androidResults] = await Promise.all([
 			this.sendApnsBatch(iosNotifications),
@@ -260,10 +262,10 @@ class MobilePushServiceImpl {
 						if (reason === 'BadDeviceToken' || reason === 'Unregistered') {
 							failedTokens.push({userId: notification.userId, tokenId: notification.tokenId});
 						}
-						logger.debug('[MobilePush] APNs send failed for user %s: %s', notification.userId, reason);
+						logger.info('[MobilePush] APNs send failed for user %s: %s', notification.userId, reason);
 					}
 				} catch (error: any) {
-					logger.debug('[MobilePush] APNs send error for user %s: %s', notification.userId, error?.message);
+					logger.info('[MobilePush] APNs send error for user %s: %s', notification.userId, error?.message);
 				}
 			}),
 		);
