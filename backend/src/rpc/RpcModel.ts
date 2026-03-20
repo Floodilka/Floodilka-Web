@@ -93,7 +93,7 @@ export const RpcRequest = z.discriminatedUnion('type', [
 				title: createStringType(),
 				body: createStringType(),
 				badge_count: z.number().int().min(0),
-				data: z.record(z.string(), z.string()),
+				data: z.record(z.string(), z.string().nullable().transform((v) => v ?? '')),
 			}),
 		),
 	}),
