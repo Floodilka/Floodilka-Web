@@ -78,6 +78,11 @@ function clearPendingRing(): void {
 function setupPendingRing(channelId: string, recipients: Array<string>): void {
 	clearPendingRing();
 
+	// Set pendingRing BEFORE creating reaction, because fireImmediately
+	// can trigger the callback synchronously before this function returns.
+	const noop = () => {};
+	pendingRing = {channelId, recipients, dispose: noop};
+
 	const dispose = reaction(
 		() => ({
 			connected: MediaEngineStore.connected,
@@ -94,7 +99,10 @@ function setupPendingRing(channelId: string, recipients: Array<string>): void {
 		{fireImmediately: true},
 	);
 
-	pendingRing = {channelId, recipients, dispose};
+	// If fireImmediately already triggered and cleared pendingRing, don't overwrite
+	if (pendingRing?.channelId === channelId) {
+		pendingRing.dispose = dispose;
+	}
 }
 
 export function startCall(channelId: string, silent = false): void {
