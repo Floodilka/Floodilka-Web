@@ -18,9 +18,12 @@
  */
 
 import fs from 'node:fs';
+import {createRequire} from 'node:module';
 import path from 'node:path';
 import {Config} from '~/Config';
 import {Logger as logger} from '~/Logger';
+
+const require = createRequire(import.meta.url);
 
 let firebaseAdmin: typeof import('firebase-admin') | null = null;
 let apn: typeof import('@parse/node-apn') | null = null;
