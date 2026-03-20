@@ -427,6 +427,22 @@ export const PUSH_SUBSCRIPTION_COLUMNS = [
 	'user_agent',
 ] as const satisfies ReadonlyArray<keyof PushSubscriptionRow>;
 
+export interface MobilePushTokenRow {
+	user_id: UserID;
+	token_id: string;
+	push_token: string;
+	platform: string;
+	created_at: Date;
+}
+
+export const MOBILE_PUSH_TOKEN_COLUMNS = [
+	'user_id',
+	'token_id',
+	'push_token',
+	'platform',
+	'created_at',
+] as const satisfies ReadonlyArray<keyof MobilePushTokenRow>;
+
 export interface UserContactChangeLogRow {
 	user_id: UserID;
 	event_id: types.TimeUuid;

@@ -41,6 +41,7 @@ import type {
 	GiftCode,
 	MfaBackupCode,
 	PasswordResetToken,
+	MobilePushToken,
 	Payment,
 	PushSubscription,
 	ReadState,
@@ -544,6 +545,26 @@ export class UserRepository implements IUserRepositoryAggregate {
 
 	async deleteAllPushSubscriptions(userId: UserID): Promise<void> {
 		return this.contentRepo.deleteAllPushSubscriptions(userId);
+	}
+
+	async upsertMobilePushToken(userId: UserID, token: string, platform: string): Promise<MobilePushToken> {
+		return this.contentRepo.upsertMobilePushToken(userId, token, platform);
+	}
+
+	async deleteMobilePushTokenByValue(userId: UserID, token: string): Promise<void> {
+		return this.contentRepo.deleteMobilePushTokenByValue(userId, token);
+	}
+
+	async deleteMobilePushToken(userId: UserID, tokenId: string): Promise<void> {
+		return this.contentRepo.deleteMobilePushToken(userId, tokenId);
+	}
+
+	async getBulkMobilePushTokens(userIds: Array<UserID>): Promise<Map<UserID, Array<MobilePushToken>>> {
+		return this.contentRepo.getBulkMobilePushTokens(userIds);
+	}
+
+	async deleteAllMobilePushTokens(userId: UserID): Promise<void> {
+		return this.contentRepo.deleteAllMobilePushTokens(userId);
 	}
 
 	async createPayment(data: {

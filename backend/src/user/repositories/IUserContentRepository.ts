@@ -24,7 +24,7 @@ import type {
 	PushSubscriptionRow,
 	RecentMentionRow,
 } from '~/database/CassandraTypes';
-import type {GiftCode, Payment, PushSubscription, RecentMention, SavedMessage} from '~/Models';
+import type {GiftCode, MobilePushToken, Payment, PushSubscription, RecentMention, SavedMessage} from '~/Models';
 
 export interface IUserContentRepository {
 	getRecentMention(userId: UserID, messageId: MessageID): Promise<RecentMention | null>;
@@ -58,6 +58,12 @@ export interface IUserContentRepository {
 	deletePushSubscription(userId: UserID, subscriptionId: string): Promise<void>;
 	getBulkPushSubscriptions(userIds: Array<UserID>): Promise<Map<UserID, Array<PushSubscription>>>;
 	deleteAllPushSubscriptions(userId: UserID): Promise<void>;
+
+	upsertMobilePushToken(userId: UserID, token: string, platform: string): Promise<MobilePushToken>;
+	deleteMobilePushTokenByValue(userId: UserID, token: string): Promise<void>;
+	deleteMobilePushToken(userId: UserID, tokenId: string): Promise<void>;
+	getBulkMobilePushTokens(userIds: Array<UserID>): Promise<Map<UserID, Array<MobilePushToken>>>;
+	deleteAllMobilePushTokens(userId: UserID): Promise<void>;
 
 	createPayment(data: {
 		payment_id: string;

@@ -307,13 +307,20 @@ export class RpcService {
 					},
 				};
 			}
-			case 'get_push_subscriptions':
+			case 'get_push_subscriptions': {
+				const userIds = request.user_ids.map(createUserID);
+				const [webData, mobileData] = await Promise.all([
+					this.getPushSubscriptions({userIds}),
+					this.getMobilePushTokens({userIds}),
+				]);
 				return {
-					type: 'get_push_subscriptions',
-					data: await this.getPushSubscriptions({
-						userIds: request.user_ids.map(createUserID),
-					}),
+					type: 'get_push_subscriptions' as const,
+					data: {
+						web: webData,
+						mobile: mobileData,
+					},
 				};
+			}
 			case 'get_badge_counts': {
 				const badgeCounts = await this.getBadgeCounts({
 					userIds: request.user_ids.map(createUserID),
@@ -343,6 +350,16 @@ export class RpcService {
 							subscriptionId: sub.subscription_id,
 						})),
 					}),
+				};
+			case 'send_mobile_push':
+				return {
+					type: 'send_mobile_push',
+					data: await this.sendMobilePush(request.notifications),
+				};
+			case 'delete_mobile_push_tokens':
+				return {
+					type: 'delete_mobile_push_tokens',
+					data: await this.deleteMobilePushTokens(request.tokens),
 				};
 			case 'get_user_blocked_ids':
 				return {
@@ -1013,6 +1030,80 @@ export class RpcService {
 			subscriptions.map((sub) => this.userRepository.deletePushSubscription(sub.userId, sub.subscriptionId)),
 		);
 
+		return {success: true};
+	}
+
+	private async getMobilePushTokens(params: {
+		userIds: Array<UserID>;
+	}): Promise<Record<string, Array<{token_id: string; token: string; platform: string}>>> {
+		const {userIds} = params;
+		const tokensMap = await this.userRepository.getBulkMobilePushTokens(userIds);
+
+		const result: Record<string, Array<{token_id: string; token: string; platform: string}>> = {};
+
+		for (const [userId, tokens] of tokensMap.entries()) {
+			result[userId.toString()] = tokens.map((t) => ({
+				token_id: t.tokenId,
+				token: t.token,
+				platform: t.platform,
+			}));
+		}
+
+		return result;
+	}
+
+	private async sendMobilePush(
+		notifications: Array<{
+			user_id: bigint;
+			token_id: string;
+			token: string;
+			platform: 'ios' | 'android';
+			type: string;
+			title: string;
+			body: string;
+			badge_count: number;
+			data: Record<string, string>;
+		}>,
+	): Promise<{sent: number; failed_tokens: Array<{user_id: string; token_id: string}>}> {
+		const {MobilePushService} = await import('~/infrastructure/MobilePushService');
+
+		const mapped = notifications.map((n) => ({
+			userId: n.user_id.toString(),
+			tokenId: n.token_id,
+			token: n.token,
+			platform: n.platform,
+			type: n.type,
+			title: n.title,
+			body: n.body,
+			badgeCount: n.badge_count,
+			data: n.data,
+		}));
+
+		const result = await MobilePushService.sendBatch(mapped);
+
+		if (result.failedTokens.length > 0) {
+			await Promise.all(
+				result.failedTokens.map((ft) =>
+					this.userRepository.deleteMobilePushToken(createUserID(BigInt(ft.userId)), ft.tokenId),
+				),
+			);
+		}
+
+		return {
+			sent: result.sent,
+			failed_tokens: result.failedTokens.map((ft) => ({
+				user_id: ft.userId,
+				token_id: ft.tokenId,
+			})),
+		};
+	}
+
+	private async deleteMobilePushTokens(
+		tokens: Array<{user_id: bigint; token_id: string}>,
+	): Promise<{success: boolean}> {
+		await Promise.all(
+			tokens.map((t) => this.userRepository.deleteMobilePushToken(createUserID(t.user_id), t.token_id)),
+		);
 		return {success: true};
 	}
 

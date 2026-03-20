@@ -421,6 +421,7 @@ export async function processUserDeletion(
 		userRepository.deleteAllMfaBackupCodes(userId),
 		userRepository.deleteAllWebAuthnCredentials(userId),
 		userRepository.deleteAllPushSubscriptions(userId),
+		userRepository.deleteAllMobilePushTokens(userId),
 		userRepository.deleteAllRecentMentions(userId),
 		userRepository.deletePinnedDmsByUserId(userId),
 	]);

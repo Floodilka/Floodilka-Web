@@ -48,6 +48,7 @@ export {MuteConfiguration} from './models/MuteConfiguration';
 export {PasswordResetToken} from './models/PasswordResetToken';
 export {Payment} from './models/Payment';
 export {PrivateChannel} from './models/PrivateChannel';
+export {MobilePushToken} from './models/MobilePushToken';
 export {PushSubscription} from './models/PushSubscription';
 export {ReadState} from './models/ReadState';
 export {RecentMention} from './models/RecentMention';

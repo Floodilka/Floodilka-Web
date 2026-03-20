@@ -24,9 +24,10 @@ import type {
 	PushSubscriptionRow,
 	RecentMentionRow,
 } from '~/database/CassandraTypes';
-import type {GiftCode, Payment, PushSubscription, RecentMention, SavedMessage} from '~/Models';
+import type {GiftCode, MobilePushToken, Payment, PushSubscription, RecentMention, SavedMessage} from '~/Models';
 import {GiftCodeRepository} from './GiftCodeRepository';
 import type {IUserContentRepository} from './IUserContentRepository';
+import {MobilePushTokenRepository} from './MobilePushTokenRepository';
 import {PaymentRepository} from './PaymentRepository';
 import {PushSubscriptionRepository} from './PushSubscriptionRepository';
 import {RecentMentionRepository} from './RecentMentionRepository';
@@ -35,12 +36,14 @@ import {SavedMessageRepository} from './SavedMessageRepository';
 export class UserContentRepository implements IUserContentRepository {
 	private giftCodeRepository: GiftCodeRepository;
 	private paymentRepository: PaymentRepository;
+	private mobilePushTokenRepository: MobilePushTokenRepository;
 	private pushSubscriptionRepository: PushSubscriptionRepository;
 	private recentMentionRepository: RecentMentionRepository;
 	private savedMessageRepository: SavedMessageRepository;
 
 	constructor() {
 		this.giftCodeRepository = new GiftCodeRepository();
+		this.mobilePushTokenRepository = new MobilePushTokenRepository();
 		this.paymentRepository = new PaymentRepository();
 		this.pushSubscriptionRepository = new PushSubscriptionRepository();
 		this.recentMentionRepository = new RecentMentionRepository();
@@ -118,6 +121,26 @@ export class UserContentRepository implements IUserContentRepository {
 
 	async deleteAllPushSubscriptions(userId: UserID): Promise<void> {
 		return this.pushSubscriptionRepository.deleteAllPushSubscriptions(userId);
+	}
+
+	async upsertMobilePushToken(userId: UserID, token: string, platform: string): Promise<MobilePushToken> {
+		return this.mobilePushTokenRepository.upsertToken(userId, token, platform);
+	}
+
+	async deleteMobilePushTokenByValue(userId: UserID, token: string): Promise<void> {
+		return this.mobilePushTokenRepository.deleteTokenByValue(userId, token);
+	}
+
+	async deleteMobilePushToken(userId: UserID, tokenId: string): Promise<void> {
+		return this.mobilePushTokenRepository.deleteToken(userId, tokenId);
+	}
+
+	async getBulkMobilePushTokens(userIds: Array<UserID>): Promise<Map<UserID, Array<MobilePushToken>>> {
+		return this.mobilePushTokenRepository.getBulkTokens(userIds);
+	}
+
+	async deleteAllMobilePushTokens(userId: UserID): Promise<void> {
+		return this.mobilePushTokenRepository.deleteAllTokens(userId);
 	}
 
 	async getRecentMention(userId: UserID, messageId: MessageID): Promise<RecentMention | null> {

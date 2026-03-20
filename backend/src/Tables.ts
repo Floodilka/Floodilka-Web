@@ -132,6 +132,8 @@ import {
 	type PhoneTokenRow,
 	PRIVATE_CHANNEL_COLUMNS,
 	type PrivateChannelRow,
+	MOBILE_PUSH_TOKEN_COLUMNS,
+	type MobilePushTokenRow,
 	PUSH_SUBSCRIPTION_COLUMNS,
 	type PushSubscriptionRow,
 	RECENT_MENTION_COLUMNS,
@@ -494,6 +496,12 @@ export const PushSubscriptions = defineTable<PushSubscriptionRow, 'user_id' | 's
 	name: 'push_subscriptions',
 	columns: PUSH_SUBSCRIPTION_COLUMNS,
 	primaryKey: ['user_id', 'subscription_id'],
+});
+
+export const MobilePushTokens = defineTable<MobilePushTokenRow, 'user_id' | 'token_id'>({
+	name: 'mobile_push_tokens',
+	columns: MOBILE_PUSH_TOKEN_COLUMNS,
+	primaryKey: ['user_id', 'token_id'],
 });
 
 export const Payments = defineTable<PaymentRow, 'payment_id'>({

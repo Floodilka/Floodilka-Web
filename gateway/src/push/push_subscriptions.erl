@@ -17,9 +17,12 @@
 
 -module(push_subscriptions).
 
- -export([fetch_and_send_subscriptions/9]).
+-export([fetch_and_send_subscriptions/9]).
 -export([fetch_and_cache_user_guild_settings/3]).
 -export([delete_failed_subscriptions/1]).
+-export([delete_failed_mobile_tokens/1]).
+
+-import(rpc_client, [call/1]).
 
 fetch_and_send_subscriptions(
     UserIds,
@@ -37,12 +40,16 @@ fetch_and_send_subscriptions(
         <<"user_ids">> => [integer_to_binary(UserId) || UserId <- UserIds]
     },
 
-    case rpc_client:call(SubscriptionsReq) of
-        {ok, SubscriptionsData} ->
+    case call(SubscriptionsReq) of
+        {ok, ResponseData} ->
+            WebData = maps:get(<<"web">>, ResponseData, #{}),
+            MobileData = maps:get(<<"mobile">>, ResponseData, #{}),
+
+            %% Send web push and cache subscriptions
             NewState = lists:foldl(
                 fun(UserId, S) ->
                     UserIdBin = integer_to_binary(UserId),
-                    case maps:get(UserIdBin, SubscriptionsData, []) of
+                    case maps:get(UserIdBin, WebData, []) of
                         [] ->
                             push_cache:cache_user_subscriptions(UserId, [], S);
                         Subscriptions ->
@@ -64,6 +71,13 @@ fetch_and_send_subscriptions(
                 State,
                 UserIds
             ),
+
+            %% Send mobile push notifications via RPC
+            push_sender:send_mobile_notifications(
+                UserIds, MobileData, MessageData, GuildId,
+                ChannelId, MessageId, GuildName, ChannelName, BadgeCounts
+            ),
+
             NewState;
         {error, _Reason} ->
             State
@@ -98,5 +112,11 @@ delete_failed_subscriptions(FailedSubscriptions) ->
         <<"type">> => <<"delete_push_subscriptions">>,
         <<"subscriptions">> => FailedSubscriptions
     },
+    call(DeleteReq).
 
-    rpc_client:call(DeleteReq).
+delete_failed_mobile_tokens(FailedTokens) ->
+    DeleteReq = #{
+        <<"type">> => <<"delete_mobile_push_tokens">>,
+        <<"tokens">> => FailedTokens
+    },
+    call(DeleteReq).

@@ -283,6 +283,17 @@ const ConfigSchema = z.object({
 		publicVapidKey: z.string().optional(),
 	}),
 
+	mobilePush: z.object({
+		fcmEnabled: z.boolean(),
+		fcmServiceAccountPath: z.string().optional(),
+		apnsEnabled: z.boolean(),
+		apnsKeyPath: z.string().optional(),
+		apnsKeyId: z.string().optional(),
+		apnsTeamId: z.string().optional(),
+		apnsBundleId: z.string(),
+		apnsProduction: z.boolean(),
+	}),
+
 	metrics: z.object({
 		host: z.string().optional(),
 	}),
@@ -513,6 +524,17 @@ function loadConfig() {
 
 		push: {
 			publicVapidKey: optional('VAPID_PUBLIC_KEY'),
+		},
+
+		mobilePush: {
+			fcmEnabled: optionalBool('FCM_ENABLED'),
+			fcmServiceAccountPath: optional('FCM_SERVICE_ACCOUNT_PATH'),
+			apnsEnabled: optionalBool('APNS_ENABLED'),
+			apnsKeyPath: optional('APNS_KEY_PATH'),
+			apnsKeyId: optional('APNS_KEY_ID'),
+			apnsTeamId: optional('APNS_TEAM_ID'),
+			apnsBundleId: optional('APNS_BUNDLE_ID') || 'com.floodilka.floodilka',
+			apnsProduction: optionalBool('APNS_PRODUCTION'),
 		},
 
 		metrics: {

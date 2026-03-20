@@ -165,6 +165,16 @@ export const AuthRateLimitConfigs = {
 		config: {limit: 10, windowMs: 60000},
 	} as RouteRateLimitConfig,
 
+	AUTH_PUSH_TOKEN_REGISTER: {
+		bucket: 'auth:push:token:register',
+		config: {limit: 10, windowMs: 60000},
+	} as RouteRateLimitConfig,
+
+	AUTH_PUSH_TOKEN_UNREGISTER: {
+		bucket: 'auth:push:token:unregister',
+		config: {limit: 10, windowMs: 60000},
+	} as RouteRateLimitConfig,
+
 	SUDO_SMS_SEND: {
 		bucket: 'sudo:sms:send',
 		config: {limit: 5, windowMs: 60000},

@@ -24,6 +24,7 @@
 -import(rpc_client, [call/1]).
 
 -export([send_to_user_subscriptions/9, send_push_notifications/8]).
+-export([send_mobile_notifications/9]).
 
 send_to_user_subscriptions(
     UserId,
@@ -318,3 +319,94 @@ delete_payload(UserId, SubscriptionId) ->
         <<"user_id">> => integer_to_binary(UserId),
         <<"subscription_id">> => SubscriptionId
     }.
+
+%% Mobile push notifications via RPC to backend
+send_mobile_notifications(
+    UserIds, MobileData, MessageData, GuildId,
+    ChannelId, MessageId, GuildName, ChannelName, BadgeCounts
+) ->
+    AuthorData = maps:get(<<"author">>, MessageData, #{}),
+    AuthorUsername = maps:get(<<"username">>, AuthorData, <<"Unknown">>),
+    AuthorAvatar = maps:get(<<"avatar">>, AuthorData, null),
+    AuthorId = maps:get(<<"id">>, AuthorData, <<"0">>),
+    Content = maps:get(<<"content">>, MessageData, <<"">>),
+    Mentions = maps:get(<<"mentions">>, MessageData, []),
+    SanitizedContent = push_notification:sanitize_mentions(Content, Mentions),
+    ContentPreview =
+        case byte_size(SanitizedContent) > 200 of
+            true -> binary:part(SanitizedContent, 0, 200);
+            false -> SanitizedContent
+        end,
+
+    Title = push_notification:build_notification_title(
+        AuthorUsername, MessageData, GuildId, GuildName, ChannelName
+    ),
+
+    NotificationType = determine_notification_type(MessageData, GuildId),
+
+    Notifications = lists:flatmap(
+        fun(UserId) ->
+            UserIdBin = integer_to_binary(UserId),
+            case maps:get(UserIdBin, MobileData, []) of
+                [] -> [];
+                Tokens ->
+                    BadgeCount = maps:get(UserId, BadgeCounts, 0),
+                    lists:map(
+                        fun(TokenEntry) ->
+                            #{
+                                <<"user_id">> => UserIdBin,
+                                <<"token_id">> => maps:get(<<"token_id">>, TokenEntry),
+                                <<"token">> => maps:get(<<"token">>, TokenEntry),
+                                <<"platform">> => maps:get(<<"platform">>, TokenEntry),
+                                <<"type">> => NotificationType,
+                                <<"title">> => Title,
+                                <<"body">> => ContentPreview,
+                                <<"badge_count">> => BadgeCount,
+                                <<"data">> => #{
+                                    <<"senderId">> => AuthorId,
+                                    <<"senderName">> => AuthorUsername,
+                                    <<"senderAvatar">> => case AuthorAvatar of null -> <<"">>; V -> V end,
+                                    <<"channelId">> => integer_to_binary(ChannelId),
+                                    <<"messageId">> => integer_to_binary(MessageId),
+                                    <<"messageContent">> => ContentPreview,
+                                    <<"serverId">> => case GuildId of 0 -> <<"">>; _ -> integer_to_binary(GuildId) end,
+                                    <<"serverName">> => case GuildName of undefined -> <<"">>; V2 -> V2 end,
+                                    <<"channelName">> => case ChannelName of undefined -> <<"">>; V3 -> V3 end
+                                }
+                            }
+                        end,
+                        Tokens
+                    )
+            end
+        end,
+        UserIds
+    ),
+
+    case Notifications of
+        [] -> ok;
+        _ ->
+            Request = #{
+                <<"type">> => <<"send_mobile_push">>,
+                <<"notifications">> => Notifications
+            },
+            spawn(fun() ->
+                case rpc_client:call(Request) of
+                    {ok, #{<<"failed_tokens">> := Failed}} when is_list(Failed), length(Failed) > 0 ->
+                        push_subscriptions:delete_failed_mobile_tokens(Failed);
+                    _ ->
+                        ok
+                end
+            end)
+    end.
+
+determine_notification_type(MessageData, GuildId) ->
+    case GuildId of
+        0 -> <<"direct_message">>;
+        _ ->
+            MentionEveryone = maps:get(<<"mention_everyone">>, MessageData, false),
+            MentionsList = maps:get(<<"mentions">>, MessageData, []),
+            case MentionEveryone orelse length(MentionsList) > 0 of
+                true -> <<"mention">>;
+                false -> <<"direct_message">>
+            end
+    end.

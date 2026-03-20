@@ -34,7 +34,7 @@ import {
 } from '~/auth/AuthModel';
 import {requireSudoMode} from '~/auth/services/SudoVerificationService';
 import {InputValidationError} from '~/Errors';
-import {DefaultUserOnly, LoginRequiredAllowSuspicious} from '~/middleware/AuthMiddleware';
+import {DefaultUserOnly, LoginRequired, LoginRequiredAllowSuspicious} from '~/middleware/AuthMiddleware';
 import {CaptchaMiddleware} from '~/middleware/CaptchaMiddleware';
 import {RateLimitMiddleware} from '~/middleware/RateLimitMiddleware';
 import {SudoModeMiddleware} from '~/middleware/SudoModeMiddleware';
@@ -411,6 +411,43 @@ export const AuthController = (app: HonoApp) => {
 			const {code} = ctx.req.valid('param');
 			await ctx.get('desktopHandoffService').cancelHandoff(code);
 			return ctx.body(null, 204);
+		},
+	);
+
+	const PushTokenRequest = z.object({
+		token: createStringType(),
+		platform: z.enum(['ios', 'android']).optional(),
+	});
+
+	app.post(
+		'/auth/push-token',
+		LoginRequired,
+		RateLimitMiddleware(RateLimitConfigs.AUTH_PUSH_TOKEN_REGISTER),
+		Validator('json', PushTokenRequest),
+		async (ctx) => {
+			const {token, platform: bodyPlatform} = ctx.req.valid('json');
+			const platform = bodyPlatform ?? ctx.req.header('X-Floodilka-Platform') ?? 'ios';
+
+			if (platform !== 'ios' && platform !== 'android') {
+				return ctx.json({error: 'Invalid platform'}, 400);
+			}
+
+			const userId = ctx.get('user').id;
+			await ctx.get('userRepository').upsertMobilePushToken(userId, token, platform);
+			return ctx.json({success: true});
+		},
+	);
+
+	app.delete(
+		'/auth/push-token',
+		LoginRequired,
+		RateLimitMiddleware(RateLimitConfigs.AUTH_PUSH_TOKEN_UNREGISTER),
+		Validator('json', z.object({token: createStringType()})),
+		async (ctx) => {
+			const {token} = ctx.req.valid('json');
+			const userId = ctx.get('user').id;
+			await ctx.get('userRepository').deleteMobilePushTokenByValue(userId, token);
+			return ctx.json({success: true});
 		},
 	);
 };

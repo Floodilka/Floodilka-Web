@@ -82,6 +82,31 @@ export const RpcRequest = z.discriminatedUnion('type', [
 		),
 	}),
 	z.object({
+		type: z.literal('send_mobile_push'),
+		notifications: z.array(
+			z.object({
+				user_id: Int64Type,
+				token_id: createStringType(),
+				token: createStringType(),
+				platform: z.enum(['ios', 'android']),
+				type: createStringType(),
+				title: createStringType(),
+				body: createStringType(),
+				badge_count: z.number().int().min(0),
+				data: z.record(z.string(), z.string()),
+			}),
+		),
+	}),
+	z.object({
+		type: z.literal('delete_mobile_push_tokens'),
+		tokens: z.array(
+			z.object({
+				user_id: Int64Type,
+				token_id: createStringType(),
+			}),
+		),
+	}),
+	z.object({
 		type: z.literal('get_user_blocked_ids'),
 		user_ids: z.array(Int64Type),
 	}),
@@ -207,20 +232,48 @@ export const RpcResponse = z.discriminatedUnion('type', [
 	}),
 	z.object({
 		type: z.literal('get_push_subscriptions'),
-		data: z.record(
-			z.string(),
-			z.array(
-				z.object({
-					subscription_id: z.string(),
-					endpoint: z.string(),
-					p256dh_key: z.string(),
-					auth_key: z.string(),
-				}),
+		data: z.object({
+			web: z.record(
+				z.string(),
+				z.array(
+					z.object({
+						subscription_id: z.string(),
+						endpoint: z.string(),
+						p256dh_key: z.string(),
+						auth_key: z.string(),
+					}),
+				),
 			),
-		),
+			mobile: z.record(
+				z.string(),
+				z.array(
+					z.object({
+						token_id: z.string(),
+						token: z.string(),
+						platform: z.string(),
+					}),
+				),
+			),
+		}),
 	}),
 	z.object({
 		type: z.literal('delete_push_subscriptions'),
+		data: z.object({success: z.boolean()}),
+	}),
+	z.object({
+		type: z.literal('send_mobile_push'),
+		data: z.object({
+			sent: z.number(),
+			failed_tokens: z.array(
+				z.object({
+					user_id: z.string(),
+					token_id: z.string(),
+				}),
+			),
+		}),
+	}),
+	z.object({
+		type: z.literal('delete_mobile_push_tokens'),
 		data: z.object({success: z.boolean()}),
 	}),
 	z.object({

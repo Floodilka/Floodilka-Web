@@ -268,6 +268,12 @@ await ipBanCache.initialize();
 
 initializeMetricsService(Config.metrics.host ?? null);
 
+// Initialize mobile push notification service (FCM + APNs)
+{
+	const {MobilePushService} = await import('~/infrastructure/MobilePushService');
+	MobilePushService.initialize();
+}
+
 await initializeOAuth();
 
 try {
