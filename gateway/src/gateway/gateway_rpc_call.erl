@@ -81,7 +81,7 @@ execute_method(<<"call.update_region">>, #{
                 _ ->
                     throw({error, <<"Failed to update region">>})
             end;
-        not_found ->
+        {error, not_found} ->
             throw({error, <<"Call not found">>})
     end;
 execute_method(<<"call.ring">>, Params) ->
@@ -98,7 +98,7 @@ execute_method(<<"call.ring">>, Params) ->
                 _ ->
                     throw({error, <<"Failed to ring recipients">>})
             end;
-        not_found ->
+        {error, not_found} ->
             throw({error, <<"Call not found">>})
     end;
 execute_method(<<"call.stop_ringing">>, Params) ->
@@ -115,7 +115,7 @@ execute_method(<<"call.stop_ringing">>, Params) ->
                 _ ->
                     throw({error, <<"Failed to stop ringing">>})
             end;
-        not_found ->
+        {error, not_found} ->
             throw({error, <<"Call not found">>})
     end;
 execute_method(<<"call.join">>, Params) ->
@@ -144,10 +144,10 @@ execute_method(<<"call.join">>, Params) ->
                         _ ->
                             throw({error, <<"Failed to join call">>})
                     end;
-                not_found ->
+                {error, not_found} ->
                     throw({error, <<"Call not found">>})
             end;
-        not_found ->
+        {error, not_found} ->
             throw({error, <<"Session not found">>})
     end;
 execute_method(<<"call.leave">>, #{<<"channel_id">> := ChannelIdBin, <<"session_id">> := SessionId}) ->
@@ -161,7 +161,7 @@ execute_method(<<"call.leave">>, #{<<"channel_id">> := ChannelIdBin, <<"session_
                 _ ->
                     throw({error, <<"Failed to leave call">>})
             end;
-        not_found ->
+        {error, not_found} ->
             throw({error, <<"Call not found">>})
     end;
 execute_method(<<"call.delete">>, #{<<"channel_id">> := ChannelIdBin}) ->
