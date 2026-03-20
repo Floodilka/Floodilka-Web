@@ -305,13 +305,19 @@ export class CallService {
 		return call;
 	}
 
-	async updateCall({channelId, region}: {userId: UserID; channelId: ChannelID; region?: string}): Promise<void> {
+	async updateCall({userId, channelId, region}: {userId: UserID; channelId: ChannelID; region?: string}): Promise<void> {
 		const channel = await this.channelRepository.findUnique(channelId);
 		if (!channel) throw new UnknownChannelError();
 
 		if (channel.type !== ChannelTypes.DM && channel.type !== ChannelTypes.GROUP_DM) {
 			throw new InvalidChannelTypeForCallError();
 		}
+
+		this.ensureRequesterIsGroupDmRecipient({
+			channelType: channel.type,
+			channelRecipientIds: channel.recipientIds,
+			userId,
+		});
 
 		const call = await this.gatewayService.getCall(channelId);
 		if (!call) {
@@ -458,6 +464,12 @@ export class CallService {
 		if (channel.type !== ChannelTypes.DM && channel.type !== ChannelTypes.GROUP_DM) {
 			throw new InvalidChannelTypeForCallError();
 		}
+
+		this.ensureRequesterIsGroupDmRecipient({
+			channelType: channel.type,
+			channelRecipientIds: channel.recipientIds,
+			userId,
+		});
 
 		const call = await this.gatewayService.getCall(channelId);
 		if (!call) {
