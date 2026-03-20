@@ -166,9 +166,7 @@ export function rejectCall(channelId: string): void {
 	if (connectedChannelId === channelId) {
 		void MediaEngineStore.disconnectFromVoiceChannel('user');
 	}
-	const call = CallStateStore.getCall(channelId);
-	const allRinging = call?.ringing ?? [];
-	void stopRingingCallRecipients(channelId, allRinging.length > 0 ? allRinging : undefined).catch((error) => {
+	void stopRingingCallRecipients(channelId, [currentUser.id]).catch((error) => {
 		console.error('Failed to stop ringing:', error);
 	});
 	SoundStore.stopIncomingRing();
