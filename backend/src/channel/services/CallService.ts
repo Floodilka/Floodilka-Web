@@ -263,6 +263,9 @@ export class CallService {
 				allRecipients.map((id) => id.toString()),
 			);
 		} catch (error) {
+			// Clean up orphaned message — createCall failed but message is already in DB
+			await this.channelRepository.deleteMessage(channelId, messageId, userId).catch(() => {});
+
 			if (error instanceof CallAlreadyExistsError) {
 				await this.gatewayService.ringCallRecipients(channelId, ringing.map((id) => id.toString()));
 				const fallbackCall = await this.gatewayService.getCall(channelId);
