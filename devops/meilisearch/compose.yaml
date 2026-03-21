@@ -8,8 +8,8 @@ services:
       - MEILI_ENV=production
       - MEILI_DB_PATH=/meili_data
       - MEILI_HTTP_ADDR=0.0.0.0:7700
-      - MEILI_MAX_INDEXING_MEMORY=4gb
-      - MEILI_MAX_INDEXING_THREADS=4
+      - MEILI_MAX_INDEXING_MEMORY=2gb
+      - MEILI_MAX_INDEXING_THREADS=2
       - MEILI_LOG_LEVEL=INFO
       - MEILI_NO_ANALYTICS=true
     volumes:
@@ -26,11 +26,11 @@ services:
         max_attempts: 3
       resources:
         limits:
-          cpus: '4'
-          memory: 8G
-        reservations:
           cpus: '2'
           memory: 4G
+        reservations:
+          cpus: '1'
+          memory: 512M
     healthcheck:
       test: ['CMD-SHELL', 'curl -fsS http://127.0.0.1:7700/health > /dev/null']
       interval: 10s

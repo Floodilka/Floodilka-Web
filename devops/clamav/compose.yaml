@@ -17,11 +17,11 @@ services:
         max_attempts: 3
       resources:
         limits:
-          cpus: '2'
-          memory: 4G
-        reservations:
           cpus: '1'
-          memory: 2G
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 256M
     healthcheck:
       test: ['CMD-SHELL', 'clamdscan --version || exit 1']
       interval: 30s

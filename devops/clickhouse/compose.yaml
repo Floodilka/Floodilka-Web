@@ -28,8 +28,8 @@ services:
         max_attempts: 3
       resources:
         limits:
-          cpus: '4'
-          memory: 16G
+          cpus: '2'
+          memory: 4G
     healthcheck:
       test: ['CMD-SHELL', 'wget -qO- http://127.0.0.1:8123/ping || exit 1']
       interval: 10s

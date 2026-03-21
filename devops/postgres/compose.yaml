@@ -24,11 +24,11 @@ services:
         max_attempts: 3
       resources:
         limits:
-          cpus: '4'
-          memory: 16G
-        reservations:
           cpus: '2'
-          memory: 8G
+          memory: 4G
+        reservations:
+          cpus: '1'
+          memory: 1G
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U floodilka -d floodilka']
       interval: 10s

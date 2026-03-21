@@ -10,7 +10,7 @@ services:
       - CASSANDRA_RACK=rack1
       - CASSANDRA_ENDPOINT_SNITCH=GossipingPropertyFileSnitch
       - CASSANDRA_SEEDS=cassandra
-      - MAX_HEAP_SIZE=32G
+      - MAX_HEAP_SIZE=8G
       - CASSANDRA_BROADCAST_ADDRESS=cassandra
       - CASSANDRA_LISTEN_ADDRESS=auto
       - CASSANDRA_RPC_ADDRESS=0.0.0.0
@@ -35,11 +35,11 @@ services:
         max_attempts: 3
       resources:
         limits:
-          cpus: '6'
-          memory: 64G
-        reservations:
           cpus: '4'
-          memory: 48G
+          memory: 10G
+        reservations:
+          cpus: '2'
+          memory: 4G
     healthcheck:
       test: ['CMD-SHELL', 'nodetool statusbinary | grep -q running']
       interval: 30s

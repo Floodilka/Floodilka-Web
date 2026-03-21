@@ -21,11 +21,11 @@ services:
         max_attempts: 3
       resources:
         limits:
-          cpus: '2'
-          memory: 4G
-        reservations:
           cpus: '1'
           memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 256M
     healthcheck:
       test: ['CMD', 'valkey-cli', 'ping']
       interval: 10s
