@@ -98,16 +98,22 @@ check_user_guild_settings(
                 S
         end,
 
-    MobilePush = maps:get(mobile_push, Settings, true),
+    MobilePush = maps:get(<<"mobile_push">>, Settings, true),
     case MobilePush of
         false ->
             false;
         true ->
-            Muted = maps:get(muted, Settings, false),
-            ChannelOverrides = maps:get(channel_overrides, Settings, #{}),
+            Muted = maps:get(<<"muted">>, Settings, false),
+            ChannelOverridesRaw = maps:get(<<"channel_overrides">>, Settings, #{}),
+            ChannelOverrides = case ChannelOverridesRaw of
+                null -> #{};
+                undefined -> #{};
+                M when is_map(M) -> M;
+                _ -> #{}
+            end,
             ChannelKey = integer_to_binary(ChannelId),
             ChannelOverride = maps:get(ChannelKey, ChannelOverrides, #{}),
-            ChannelMuted = maps:get(muted, ChannelOverride, undefined),
+            ChannelMuted = maps:get(<<"muted">>, ChannelOverride, undefined),
 
             ActualMuted =
                 case ChannelMuted of
@@ -115,7 +121,7 @@ check_user_guild_settings(
                     _ -> ChannelMuted
                 end,
 
-            MuteConfig = maps:get(mute_config, Settings, undefined),
+            MuteConfig = maps:get(<<"mute_config">>, Settings, undefined),
             IsTempMuted =
                 case MuteConfig of
                     undefined ->
@@ -173,8 +179,8 @@ is_private_channel(MessageData) ->
 
 is_user_mentioned(UserId, MessageData, Settings, UserRolesMap) ->
     MentionEveryone = maps:get(<<"mention_everyone">>, MessageData, false),
-    SuppressEveryone = maps:get(suppress_everyone, Settings, false),
-    SuppressRoles = maps:get(suppress_roles, Settings, false),
+    SuppressEveryone = maps:get(<<"suppress_everyone">>, Settings, false),
+    SuppressRoles = maps:get(<<"suppress_roles">>, Settings, false),
     case {MentionEveryone, SuppressEveryone} of
         {true, false} ->
             true;
@@ -233,14 +239,20 @@ role_in_mentions(RoleId, MentionRoles) ->
     ).
 
 resolve_message_notifications(ChannelId, Settings, GuildDefaultNotifications) ->
-    ChannelOverrides = maps:get(channel_overrides, Settings, #{}),
+    ChannelOverridesRaw = maps:get(<<"channel_overrides">>, Settings, #{}),
+    ChannelOverrides = case ChannelOverridesRaw of
+        null -> #{};
+        undefined -> #{};
+        M when is_map(M) -> M;
+        _ -> #{}
+    end,
     ChannelKey = integer_to_binary(ChannelId),
     Level =
         case maps:get(ChannelKey, ChannelOverrides, undefined) of
             undefined ->
                 undefined;
             Override ->
-                maps:get(message_notifications, Override, ?MESSAGE_NOTIFICATIONS_NULL)
+                maps:get(<<"message_notifications">>, Override, ?MESSAGE_NOTIFICATIONS_NULL)
         end,
     case Level of
         ?MESSAGE_NOTIFICATIONS_NULL -> resolve_guild_notification(Settings, GuildDefaultNotifications);
@@ -250,7 +262,7 @@ resolve_message_notifications(ChannelId, Settings, GuildDefaultNotifications) ->
     end.
 
 resolve_guild_notification(Settings, GuildDefaultNotifications) ->
-    Level = maps:get(message_notifications, Settings, ?MESSAGE_NOTIFICATIONS_NULL),
+    Level = maps:get(<<"message_notifications">>, Settings, ?MESSAGE_NOTIFICATIONS_NULL),
     case Level of
         ?MESSAGE_NOTIFICATIONS_NULL -> normalize_notification_level(GuildDefaultNotifications);
         ?MESSAGE_NOTIFICATIONS_INHERIT -> normalize_notification_level(GuildDefaultNotifications);

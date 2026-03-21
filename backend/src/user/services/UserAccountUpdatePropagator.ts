@@ -18,9 +18,11 @@
  */
 
 import type {UserID} from '~/BrandedTypes';
+import {GatewayRpcClient} from '~/infrastructure/GatewayRpcClient';
 import type {IGatewayService} from '~/infrastructure/IGatewayService';
 import type {IMediaService} from '~/infrastructure/IMediaService';
 import type {UserCacheService} from '~/infrastructure/UserCacheService';
+import {Logger} from '~/Logger';
 import type {UserGuildSettings, UserSettings} from '~/Models';
 import {mapUserGuildSettingsToResponse, mapUserSettingsToResponse} from '~/user/UserModel';
 import {BaseUserUpdatePropagator} from './BaseUserUpdatePropagator';
@@ -59,6 +61,20 @@ export class UserAccountUpdatePropagator extends BaseUserUpdatePropagator {
 			event: 'USER_GUILD_SETTINGS_UPDATE',
 			data: mapUserGuildSettingsToResponse(settings),
 		});
+
+		// Sync push notification cache in gateway so eligibility checks use updated settings
+		const settingsPayload = mapUserGuildSettingsToResponse(settings);
+		Logger.info('[UserAccountUpdatePropagator] Syncing push cache for user %s guild %s: %j', userId.toString(), settings.guildId.toString(), settingsPayload);
+		try {
+			const result = await GatewayRpcClient.getInstance().call('push.sync_user_guild_settings', {
+				user_id: userId.toString(),
+				guild_id: settings.guildId.toString(),
+				user_guild_settings: settingsPayload,
+			});
+			Logger.info('[UserAccountUpdatePropagator] Push cache sync result: %j', result);
+		} catch (error) {
+			Logger.error({error}, '[UserAccountUpdatePropagator] Failed to sync push guild settings cache');
+		}
 	}
 
 	async dispatchUserNoteUpdate(params: {userId: UserID; targetId: UserID; note: string}): Promise<void> {
