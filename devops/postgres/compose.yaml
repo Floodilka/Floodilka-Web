@@ -28,7 +28,7 @@ services:
           memory: 4G
         reservations:
           cpus: '1'
-          memory: 1G
+          memory: 2G
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U floodilka -d floodilka']
       interval: 10s

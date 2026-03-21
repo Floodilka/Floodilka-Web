@@ -18,11 +18,11 @@ services:
         max_attempts: 10
       resources:
         limits:
-          cpus: '2'
-          memory: 2G
+          cpus: '3'
+          memory: 4G
         reservations:
-          cpus: '0.5'
-          memory: 512M
+          cpus: '1'
+          memory: 1G
       labels:
         caddy: floodilka.com
         caddy.handle_path: /api/*
