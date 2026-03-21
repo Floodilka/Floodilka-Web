@@ -402,7 +402,7 @@ find_eligible_users_for_push(Members, Sessions, ChannelId, State) ->
         Members
     ).
 
-is_user_eligible_for_push(Member, Sessions, ChannelId, State) ->
+is_user_eligible_for_push(Member, _Sessions, ChannelId, State) ->
     MUser = maps:get(<<"user">>, Member, #{}),
     UserIdBin = maps:get(<<"id">>, MUser, <<"0">>),
     UserId = validation:snowflake_or_default(<<"user.id">>, UserIdBin, 0),
@@ -411,33 +411,10 @@ is_user_eligible_for_push(Member, Sessions, ChannelId, State) ->
         false ->
             false;
         true ->
-            check_user_session_eligibility(UserId, Sessions)
-    end.
-
-check_user_session_eligibility(UserId, Sessions) ->
-    UserSessions = maps:filter(
-        fun(_Sid, Session) ->
-            maps:get(user_id, Session) =:= UserId
-        end,
-        Sessions
-    ),
-
-    case map_size(UserSessions) of
-        0 ->
-            {true, UserId};
-        _ ->
-            HasMobile = lists:any(
-                fun(Session) -> maps:get(mobile, Session, false) end,
-                maps:values(UserSessions)
-            ),
-            AllAfk = lists:all(
-                fun(Session) -> maps:get(afk, Session, false) end,
-                maps:values(UserSessions)
-            ),
-            case (not HasMobile) andalso AllAfk of
-                true -> {true, UserId};
-                false -> false
-            end
+            %% Always eligible if user can view channel.
+            %% push_eligibility checks guild settings (mute, level, suppress).
+            %% Mobile clients suppress foreground notifications themselves.
+            {true, UserId}
     end.
 
 send_push_to_eligible_users(MessageData, GuildId, EligibleUserIds, UserRolesMap, Data) ->
