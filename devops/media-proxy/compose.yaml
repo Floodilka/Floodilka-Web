@@ -20,7 +20,7 @@ services:
           cpus: '0.25'
           memory: 256M
       labels:
-        caddy: stage.floodilka.com
+        caddy: floodilka.com
         caddy.handle_path: /media/*
         caddy.handle_path.reverse_proxy: '{{upstreams 8080}}'
     healthcheck:

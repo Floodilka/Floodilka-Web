@@ -2,7 +2,7 @@
 	email noreply@floodilka.com
 }
 
-stage.floodilka.com {
+floodilka.com {
 	encode zstd gzip
 
 	# Frontend static files
