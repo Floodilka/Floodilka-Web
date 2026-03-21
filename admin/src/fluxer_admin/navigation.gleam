@@ -97,6 +97,9 @@ pub fn sections() -> List(NavSection) {
         constants.acl_gateway_memory_stats,
         constants.acl_gateway_reload_all,
       ]),
+      NavItem("Голосовой монитор", "/voice-monitor", "voice-monitor", [
+        constants.acl_gateway_memory_stats,
+      ]),
       NavItem("Задачи", "/jobs", "jobs", [constants.acl_metrics_view]),
       NavItem("Хранилище", "/storage", "storage", [constants.acl_metrics_view]),
       NavItem("Журнал аудита", "/audit-logs", "audit-logs", [

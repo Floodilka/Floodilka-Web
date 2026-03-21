@@ -122,6 +122,21 @@ handle_call({reload_all_guilds, GuildIds}, From, State) ->
     {noreply, State};
 handle_call({shutdown_guild, GuildId}, _From, State) ->
     do_shutdown_guild(GuildId, State);
+handle_call(get_all_voice_states, _From, State) ->
+    Guilds = maps:get(guilds, State),
+    Results = lists:filtermap(
+        fun
+            ({_GuildId, {Pid, _Ref}}) ->
+                case catch gen_server:call(Pid, {get_voice_states}, 2000) of
+                    {ok, empty} -> false;
+                    {ok, GuildVoiceData} -> {true, GuildVoiceData};
+                    _ -> false
+                end;
+            ({_GuildId, _Other}) -> false
+        end,
+        maps:to_list(Guilds)
+    ),
+    {reply, {ok, Results}, State};
 handle_call(get_local_count, _From, State) ->
     Guilds = maps:get(guilds, State),
     Count = process_registry:get_count(Guilds),

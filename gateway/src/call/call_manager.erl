@@ -68,6 +68,17 @@ handle_call(get_local_count, _From, #{calls := Calls} = State) ->
     {reply, {ok, process_registry:get_count(Calls)}, State};
 handle_call(get_global_count, _From, #{calls := Calls} = State) ->
     {reply, {ok, process_registry:get_count(Calls)}, State};
+handle_call(get_all_call_states, _From, #{calls := Calls} = State) ->
+    Results = lists:filtermap(
+        fun({_ChannelId, {Pid, _Ref}}) ->
+            case catch gen_server:call(Pid, {get_state}, 2000) of
+                {ok, CallData} -> {true, CallData};
+                _ -> false
+            end
+        end,
+        maps:to_list(Calls)
+    ),
+    {reply, {ok, Results}, State};
 handle_call(_Request, _From, State) ->
     {reply, ok, State}.
 

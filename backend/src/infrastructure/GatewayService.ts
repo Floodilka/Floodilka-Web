@@ -1252,6 +1252,43 @@ export class GatewayService {
 		}>('process.node_stats', {});
 	}
 
+	async getAllVoiceStates(): Promise<{
+		guilds: Array<{
+			guild_id: string;
+			guild_name: string;
+			guild_icon: string | null;
+			channels: Array<{
+				channel_id: string;
+				channel_name: string;
+				voice_states: Array<{
+					user_id: string;
+					channel_id: string;
+					guild_id: string;
+					connection_id: string;
+					self_mute: boolean;
+					self_deaf: boolean;
+					self_video: boolean;
+					self_stream: boolean;
+					mute: boolean;
+					deaf: boolean;
+					is_mobile: boolean;
+				}>;
+			}>;
+		}>;
+		calls: Array<{
+			channel_id: string;
+			voice_states: Array<{
+				user_id: string;
+				self_mute: boolean;
+				self_deaf: boolean;
+				self_video: boolean;
+				self_stream: boolean;
+			}>;
+		}>;
+	}> {
+		return this.call('process.get_all_voice_states', {});
+	}
+
 	async getDiscoveryOnlineCounts(guildIds: Array<GuildID>): Promise<Record<string, number>> {
 		const result = await this.call<{counts: Record<string, number>}>('guild.get_discovery_online_counts', {
 			guild_ids: guildIds.map((id) => id.toString()),

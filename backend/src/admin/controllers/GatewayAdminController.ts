@@ -18,8 +18,9 @@
  */
 
 import type {HonoApp} from '~/App';
-import {createGuildID} from '~/BrandedTypes';
+import {createGuildID, createUserID} from '~/BrandedTypes';
 import {AdminACLs} from '~/Constants';
+import {Logger} from '~/Logger';
 import {requireAdminACL} from '~/middleware/AdminMiddleware';
 import {RateLimitMiddleware} from '~/middleware/RateLimitMiddleware';
 import {RateLimitConfigs} from '~/RateLimitConfig';
@@ -60,6 +61,51 @@ export const GatewayAdminController = (app: HonoApp) => {
 		async (ctx) => {
 			const adminService = ctx.get('adminService');
 			return ctx.json(await adminService.getNodeStats());
+		},
+	);
+
+	app.get(
+		'/admin/gateway/voice-states',
+		RateLimitMiddleware(RateLimitConfigs.ADMIN_LOOKUP),
+		requireAdminACL(AdminACLs.GATEWAY_MEMORY_STATS),
+		async (ctx) => {
+			const gatewayService = ctx.get('gatewayService');
+			const userRepository = ctx.get('userRepository');
+
+			const voiceData = await gatewayService.getAllVoiceStates();
+
+			const userIds = new Set<string>();
+			for (const guild of voiceData.guilds) {
+				for (const channel of guild.channels) {
+					for (const vs of channel.voice_states) {
+						userIds.add(vs.user_id);
+					}
+				}
+			}
+			for (const call of voiceData.calls) {
+				for (const vs of call.voice_states) {
+					userIds.add(vs.user_id);
+				}
+			}
+
+			let users: Record<string, {username: string; display_name: string | null; avatar: string | null}> = {};
+			if (userIds.size > 0) {
+				try {
+					const userIdsBigInt = [...userIds].map((id) => createUserID(BigInt(id)));
+					const userList = await userRepository.listUsers(userIdsBigInt);
+					for (const u of userList) {
+						users[u.id.toString()] = {
+							username: u.username,
+							display_name: u.globalName,
+							avatar: u.avatarHash,
+						};
+					}
+				} catch (err) {
+					Logger.warn({err}, '[admin] failed to fetch voice user details');
+				}
+			}
+
+			return ctx.json({...voiceData, users});
 		},
 	);
 };

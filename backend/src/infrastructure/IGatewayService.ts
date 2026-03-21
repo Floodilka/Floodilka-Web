@@ -259,6 +259,41 @@ export abstract class IGatewayService {
 		uptime_seconds: number;
 	}>;
 
+	abstract getAllVoiceStates(): Promise<{
+		guilds: Array<{
+			guild_id: string;
+			guild_name: string;
+			guild_icon: string | null;
+			channels: Array<{
+				channel_id: string;
+				channel_name: string;
+				voice_states: Array<{
+					user_id: string;
+					channel_id: string;
+					guild_id: string;
+					connection_id: string;
+					self_mute: boolean;
+					self_deaf: boolean;
+					self_video: boolean;
+					self_stream: boolean;
+					mute: boolean;
+					deaf: boolean;
+					is_mobile: boolean;
+				}>;
+			}>;
+		}>;
+		calls: Array<{
+			channel_id: string;
+			voice_states: Array<{
+				user_id: string;
+				self_mute: boolean;
+				self_deaf: boolean;
+				self_video: boolean;
+				self_stream: boolean;
+			}>;
+		}>;
+	}>;
+
 	abstract getDiscoveryOnlineCounts(guildIds: Array<GuildID>): Promise<Record<string, number>>;
 
 	abstract getDiscoveryGuildCounts(

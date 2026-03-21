@@ -52,6 +52,7 @@ import fluxer_admin/pages/storage_page
 import fluxer_admin/pages/strange_place_page
 import fluxer_admin/pages/user_detail_page
 import fluxer_admin/pages/users_page
+import fluxer_admin/pages/voice_monitor_page
 import fluxer_admin/pages/voice_regions_page
 import fluxer_admin/pages/voice_servers_page
 import fluxer_admin/session
@@ -644,6 +645,19 @@ fn handle_authenticated_request(req: Request, ctx: Context) -> Response {
         }
         _ -> wisp.method_not_allowed([Get, Post])
       }
+    ["voice-monitor"] -> {
+      use user_session, current_admin <- with_session_and_admin(req, ctx)
+      let admin_acls = admin_acls_from(current_admin)
+      case
+        acl.has_permission(admin_acls, constants.acl_gateway_memory_stats)
+      {
+        True -> {
+          let flash_data = flash.from_request(req)
+          voice_monitor_page.view(ctx, user_session, current_admin, flash_data)
+        }
+        False -> redirect_to_home(ctx, admin_acls)
+      }
+    }
     ["instance-config"] ->
       case req.method {
         Get -> {

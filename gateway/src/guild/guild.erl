@@ -100,6 +100,26 @@ handle_call({get_counts}, _From, State) ->
     MemberCount = maps:get(member_count, State, 0),
     OnlineCount = get_online_count(State),
     {reply, #{member_count => MemberCount, presence_count => OnlineCount}, State};
+handle_call({get_voice_states}, _From, State) ->
+    VoiceStates = guild_voice_state:get_voice_states_list(State),
+    case VoiceStates of
+        [] ->
+            {reply, {ok, empty}, State};
+        _ ->
+            GuildId = maps:get(id, State),
+            Data = maps:get(data, State, #{}),
+            Guild = maps:get(<<"guild">>, Data, #{}),
+            GuildName = maps:get(<<"name">>, Guild, <<"Unknown">>),
+            GuildIcon = maps:get(<<"icon">>, Guild, null),
+            Channels = maps:get(<<"channels">>, Data, []),
+            {reply, {ok, #{
+                guild_id => type_conv:to_binary(GuildId),
+                guild_name => GuildName,
+                guild_icon => GuildIcon,
+                channels => Channels,
+                voice_states => VoiceStates
+            }}, State}
+    end;
 handle_call({get_large_guild_metadata}, _From, State) ->
     MemberCount = maps:get(member_count, State, 0),
     Data = maps:get(data, State, #{}),
