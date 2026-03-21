@@ -88,7 +88,7 @@ fn render_voice_monitor(ctx: Context, data: gateway.AllVoiceStates) {
     ]),
     h.div([a.class("space-y-6")], [
       render_stats_bar(total_users, total_channels, total_guilds, total_calls),
-      ..list.concat([
+      ..list.flatten([
         list.map(data.guilds, fn(guild) {
           render_guild_voice(ctx, guild)
         }),
