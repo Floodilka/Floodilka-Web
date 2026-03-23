@@ -12,6 +12,9 @@ on:
           - all
           - backend
           - frontend
+          - desktop-all
+          - desktop-win
+          - desktop-mac
 
 concurrency:
   group: deploy-production
@@ -150,7 +153,7 @@ jobs:
   deploy-production:
     name: Deploy to Production
     needs: [build-frontend, build-images]
-    if: always() && !failure() && !cancelled()
+    if: always() && !failure() && !cancelled() && !startsWith(inputs.target, 'desktop')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -244,3 +247,203 @@ jobs:
       - name: Cleanup old images
         if: always()
         run: ssh production "docker container prune -f && docker image prune -af" || true
+
+  # ─── Desktop builds ───────────────────────────────────────────────
+
+  build-desktop-mac:
+    name: Build Desktop (macOS)
+    if: inputs.target == 'desktop-all' || inputs.target == 'desktop-mac'
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.26.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Get pnpm store path
+        id: pnpm-store
+        run: echo "path=$(pnpm store path --silent)" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/cache@v4
+        with:
+          path: ${{ steps.pnpm-store.outputs.path }}
+          key: pnpm-mac-${{ hashFiles('frontend/pnpm-lock.yaml') }}
+          restore-keys: pnpm-mac-
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Import Apple certificate
+        env:
+          APPLE_CERTIFICATE_P12: ${{ secrets.APPLE_CERTIFICATE_P12 }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+        run: |
+          CERT_PATH=$RUNNER_TEMP/certificate.p12
+          KEYCHAIN_PATH=$RUNNER_TEMP/build.keychain-db
+          echo "$APPLE_CERTIFICATE_P12" | base64 --decode > $CERT_PATH
+          security create-keychain -p "" $KEYCHAIN_PATH
+          security set-keychain-settings -lut 21600 $KEYCHAIN_PATH
+          security unlock-keychain -p "" $KEYCHAIN_PATH
+          security import $CERT_PATH -k $KEYCHAIN_PATH -P "$APPLE_CERTIFICATE_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple: -s -k "" $KEYCHAIN_PATH
+          security list-keychains -d user -s $KEYCHAIN_PATH
+          rm $CERT_PATH
+
+      - name: Build desktop (macOS)
+        working-directory: frontend
+        env:
+          BUILD_CHANNEL: stable
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          pnpm electron:compile
+          pnpm exec electron-builder --config electron-builder.config.cjs --mac
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: desktop-mac
+          path: |
+            frontend/dist-electron/floodilka-stable-*-arm64.dmg
+            frontend/dist-electron/floodilka-stable-*-x64.dmg
+            frontend/dist-electron/floodilka-stable-*-arm64.zip
+            frontend/dist-electron/floodilka-stable-*-x64.zip
+          retention-days: 7
+
+  build-desktop-win:
+    name: Build Desktop (Windows)
+    if: inputs.target == 'desktop-all' || inputs.target == 'desktop-win'
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.26.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Get pnpm store path
+        id: pnpm-store
+        shell: bash
+        run: echo "path=$(pnpm store path --silent)" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/cache@v4
+        with:
+          path: ${{ steps.pnpm-store.outputs.path }}
+          key: pnpm-win-${{ hashFiles('frontend/pnpm-lock.yaml') }}
+          restore-keys: pnpm-win-
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Build desktop (Windows)
+        working-directory: frontend
+        env:
+          BUILD_CHANNEL: stable
+        run: |
+          pnpm electron:compile
+          pnpm exec electron-builder --config electron-builder.config.cjs --win --x64
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: desktop-win
+          path: frontend/dist-electron/squirrel-windows/
+          retention-days: 7
+
+  deploy-desktop:
+    name: Deploy Desktop
+    needs: [build-desktop-mac, build-desktop-win]
+    if: always() && !failure() && !cancelled() && (needs.build-desktop-mac.result == 'success' || needs.build-desktop-win.result == 'success')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Get version
+        id: version
+        run: echo "version=$(node -p "require('./frontend/package.json').version")" >> "$GITHUB_OUTPUT"
+
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.PRODUCTION_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H ${{ secrets.PRODUCTION_HOST }} >> ~/.ssh/known_hosts 2>/dev/null
+          cat > ~/.ssh/config <<EOF
+          Host production
+            HostName ${{ secrets.PRODUCTION_HOST }}
+            User ${{ secrets.PRODUCTION_USER }}
+            IdentityFile ~/.ssh/deploy_key
+          EOF
+
+      - name: Download macOS artifacts
+        if: needs.build-desktop-mac.result == 'success'
+        uses: actions/download-artifact@v4
+        with:
+          name: desktop-mac
+          path: artifacts/mac/
+
+      - name: Download Windows artifacts
+        if: needs.build-desktop-win.result == 'success'
+        uses: actions/download-artifact@v4
+        with:
+          name: desktop-win
+          path: artifacts/win/
+
+      - name: Deploy macOS
+        if: needs.build-desktop-mac.result == 'success'
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          REMOTE_BASE="/srv/frontend/desktop/updates"
+          CHANNEL="stable"
+          DOMAIN="floodilka.com"
+          PUB_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          BASE_URL="https://${DOMAIN}/desktop/updates/${CHANNEL}/darwin"
+
+          ssh production "mkdir -p ${REMOTE_BASE}/${CHANNEL}/darwin/arm64 ${REMOTE_BASE}/${CHANNEL}/darwin/x64"
+          ssh production "find ${REMOTE_BASE}/${CHANNEL}/darwin/arm64 -name '*.zip' -delete; find ${REMOTE_BASE}/${CHANNEL}/darwin/x64 -name '*.zip' -delete" || true
+
+          scp artifacts/mac/floodilka-stable-${VERSION}-arm64.dmg production:${REMOTE_BASE}/latest-arm64-mac.dmg
+          scp artifacts/mac/floodilka-stable-${VERSION}-x64.dmg production:${REMOTE_BASE}/latest-mac.dmg
+          scp artifacts/mac/floodilka-stable-${VERSION}-arm64.zip production:${REMOTE_BASE}/${CHANNEL}/darwin/arm64/
+          scp artifacts/mac/floodilka-stable-${VERSION}-x64.zip production:${REMOTE_BASE}/${CHANNEL}/darwin/x64/
+
+          echo "{\"url\":\"${BASE_URL}/arm64/floodilka-stable-${VERSION}-arm64.zip\",\"name\":\"${VERSION}\",\"notes\":\"\",\"pub_date\":\"${PUB_DATE}\"}" | ssh production "cat > ${REMOTE_BASE}/${CHANNEL}/darwin/arm64/RELEASES.json"
+          echo "{\"url\":\"${BASE_URL}/x64/floodilka-stable-${VERSION}-x64.zip\",\"name\":\"${VERSION}\",\"notes\":\"\",\"pub_date\":\"${PUB_DATE}\"}" | ssh production "cat > ${REMOTE_BASE}/${CHANNEL}/darwin/x64/RELEASES.json"
+
+          echo "macOS deployed: v${VERSION}"
+
+      - name: Deploy Windows
+        if: needs.build-desktop-win.result == 'success'
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          REMOTE_BASE="/srv/frontend/desktop/updates"
+          CHANNEL="stable"
+          PUB_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+
+          ssh production "mkdir -p ${REMOTE_BASE}/${CHANNEL}/win32/x64"
+          ssh production "find ${REMOTE_BASE}/${CHANNEL}/win32/x64 -type f -delete" || true
+
+          # Upload Setup.exe as landing download
+          scp artifacts/win/floodilka-stable-${VERSION}-x64.exe production:${REMOTE_BASE}/Floodilka.exe
+
+          # Upload all Squirrel files (Setup.exe, .nupkg, RELEASES)
+          for f in artifacts/win/*; do
+            [ -f "$f" ] && scp "$f" production:${REMOTE_BASE}/${CHANNEL}/win32/x64/
+          done
+
+          # RELEASES.json for manual version check
+          echo "{\"url\":\"\",\"name\":\"${VERSION}\",\"notes\":\"\",\"pub_date\":\"${PUB_DATE}\"}" | ssh production "cat > ${REMOTE_BASE}/${CHANNEL}/win32/x64/RELEASES.json"
+
+          echo "Windows deployed: v${VERSION}"
