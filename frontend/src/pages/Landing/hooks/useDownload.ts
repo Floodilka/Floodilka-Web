@@ -100,7 +100,14 @@ export const useDownload = () => {
 
 	const handleDownload = useCallback(() => {
 		if (downloadInfo.link) {
-			window.open(downloadInfo.link, '_blank');
+			const a = document.createElement('a');
+			a.href = downloadInfo.link;
+			if (!downloadInfo.link.startsWith('http')) {
+				a.download = '';
+			}
+			document.body.appendChild(a);
+			a.click();
+			a.remove();
 		}
 	}, [downloadInfo]);
 

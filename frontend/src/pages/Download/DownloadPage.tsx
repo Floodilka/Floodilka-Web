@@ -113,9 +113,8 @@ export const DownloadPage = () => {
 								</h2>
 								<div className={styles.buttons}>
 									<a
-										href={`${window.location.origin}/desktop/updates/Floodilka.exe`}
-										target="_blank"
-										rel="noopener noreferrer"
+										href="/desktop/updates/Floodilka.exe"
+										download="Floodilka.exe"
 										className={styles.storeBtn}
 									>
 										<svg viewBox="0 0 24 24" fill="currentColor">
@@ -124,9 +123,8 @@ export const DownloadPage = () => {
 										Windows
 									</a>
 									<a
-										href={`${window.location.origin}/desktop/updates/latest-arm64-mac.dmg`}
-										target="_blank"
-										rel="noopener noreferrer"
+										href="/desktop/updates/latest-arm64-mac.dmg"
+										download="Floodilka.dmg"
 										className={styles.storeBtn}
 									>
 										<svg viewBox="0 0 24 24" fill="currentColor">
