@@ -142,43 +142,56 @@ EOF
 EOF
 fi
 
-# --- Windows artifacts ---
+# --- Windows artifacts (Squirrel) ---
 if [ "$DEPLOY_WIN" = true ]; then
     echo ""
-    echo "🪟 Windows artifacts:"
+    echo "🪟 Windows artifacts (Squirrel):"
 
-    WIN_EXE="$DIST_DIR/floodilka-${CHANNEL}-${VERSION}-x64.exe"
+    # Squirrel generates: Setup.exe, .nupkg, RELEASES
+    WIN_SETUP="$DIST_DIR/floodilka-${CHANNEL}-${VERSION}-x64.exe"
+    WIN_RELEASES="$DIST_DIR/RELEASES"
 
-    if [ ! -f "$WIN_EXE" ]; then
-        echo "  ❌ Missing: $(basename "$WIN_EXE")"
+    # Find nupkg (name varies by electron-builder-squirrel-windows)
+    WIN_NUPKG=$(find "$DIST_DIR" -maxdepth 1 -name '*.nupkg' | head -1)
+
+    if [ ! -f "$WIN_SETUP" ]; then
+        echo "  ❌ Missing: $(basename "$WIN_SETUP")"
         exit 1
     fi
-    echo "  ✅ $(basename "$WIN_EXE") ($(du -h "$WIN_EXE" | cut -f1))"
+    echo "  ✅ $(basename "$WIN_SETUP") ($(du -h "$WIN_SETUP" | cut -f1))"
+
+    if [ ! -f "$WIN_RELEASES" ]; then
+        echo "  ❌ Missing: RELEASES"
+        exit 1
+    fi
+    echo "  ✅ RELEASES"
+
+    if [ -z "$WIN_NUPKG" ] || [ ! -f "$WIN_NUPKG" ]; then
+        echo "  ❌ Missing: .nupkg"
+        exit 1
+    fi
+    echo "  ✅ $(basename "$WIN_NUPKG") ($(du -h "$WIN_NUPKG" | cut -f1))"
+
+    mkdir -p "$STAGING/${CHANNEL}/win32/x64"
 
     # Landing download file (top-level)
-    cp "$WIN_EXE" "$STAGING/Floodilka.exe"
+    cp "$WIN_SETUP" "$STAGING/Floodilka.exe"
 
-    # Auto-update files (NSIS)
-    mkdir -p "$STAGING/${CHANNEL}/win32/x64"
-    cp "$WIN_EXE" "$STAGING/${CHANNEL}/win32/x64/"
+    # Squirrel auto-update files
+    cp "$WIN_SETUP" "$STAGING/${CHANNEL}/win32/x64/"
+    cp "$WIN_RELEASES" "$STAGING/${CHANNEL}/win32/x64/"
+    cp "$WIN_NUPKG" "$STAGING/${CHANNEL}/win32/x64/"
 
-    BLOCKMAP="$DIST_DIR/floodilka-${CHANNEL}-${VERSION}-x64.exe.blockmap"
-    if [ -f "$BLOCKMAP" ]; then
-        cp "$BLOCKMAP" "$STAGING/${CHANNEL}/win32/x64/"
-    fi
+    # Copy delta nupkg if it exists
+    for f in "$DIST_DIR"/*-delta.nupkg; do
+        [ -f "$f" ] && cp "$f" "$STAGING/${CHANNEL}/win32/x64/" && echo "  ✅ $(basename "$f") (delta)"
+    done
 
-    LATEST_YML="$DIST_DIR/latest.yml"
-    if [ -f "$LATEST_YML" ]; then
-        cp "$LATEST_YML" "$STAGING/${CHANNEL}/win32/x64/"
-        echo "  ✅ latest.yml"
-    fi
-
-    # Generate RELEASES.json for Windows auto-update
+    # Generate RELEASES.json for manual version check (used by updater.ts)
     PUB_DATE=${PUB_DATE:-$(date -u +"%Y-%m-%dT%H:%M:%SZ")}
-    BASE_URL="https://${DOMAIN}/desktop/updates/${CHANNEL}/win32"
 
     cat > "$STAGING/${CHANNEL}/win32/x64/RELEASES.json" <<EOF
-{"url":"${BASE_URL}/x64/floodilka-${CHANNEL}-${VERSION}-x64.exe","name":"${VERSION}","notes":"","pub_date":"${PUB_DATE}"}
+{"url":"","name":"${VERSION}","notes":"","pub_date":"${PUB_DATE}"}
 EOF
 fi
 
@@ -242,6 +255,9 @@ if [ "$DEPLOY_WIN" = true ]; then
     [ "$DEPLOY_MAC" = true ] && echo ""
     echo "📥 Windows download:"
     echo "  https://${DOMAIN}/desktop/updates/Floodilka.exe"
+    echo ""
+    echo "🔄 Windows auto-update (Squirrel):"
+    echo "  https://${DOMAIN}/desktop/updates/${CHANNEL}/win32/x64/RELEASES"
 fi
 
 # Cleanup

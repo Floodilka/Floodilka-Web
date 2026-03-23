@@ -52,6 +52,19 @@ function getReleasesUrl(): string {
 	return `${appUrl}/desktop/updates/${BUILD_CHANNEL}/${process.platform}/${process.arch}/RELEASES.json`;
 }
 
+function getFeedConfig(currentVersion: string): Parameters<typeof autoUpdater.setFeedURL>[0] {
+	const appUrl = IS_CANARY ? CANARY_APP_URL : STABLE_APP_URL;
+	const headers = {'User-Agent': `floodilka-desktop/${currentVersion} (${process.platform}: ${process.arch})`};
+
+	if (process.platform === 'win32') {
+		// Squirrel.Windows: point to directory, it appends /RELEASES automatically
+		return {url: `${appUrl}/desktop/updates/${BUILD_CHANNEL}/win32/${process.arch}`, headers};
+	}
+
+	// macOS (Squirrel.Mac): use JSON feed pointing to ZIP
+	return {url: getReleasesUrl(), headers, serverType: 'json'};
+}
+
 function isNewerVersion(remote: string, local: string): boolean {
 	const r = remote.split('.').map(Number);
 	const l = local.split('.').map(Number);
@@ -93,12 +106,7 @@ async function checkForUpdate(getMainWindow: () => BrowserWindow | null): Promis
 		log.info(`[updater] Update available: ${release.name}`);
 		send(getMainWindow(), {type: 'available', context: lastContext, version: release.name});
 
-		autoUpdater.setFeedURL({
-			url: releasesUrl,
-			headers: {'User-Agent': `floodilka-desktop/${currentVersion} (${process.platform}: ${process.arch})`},
-			serverType: 'json',
-		});
-
+		autoUpdater.setFeedURL(getFeedConfig(currentVersion));
 		autoUpdater.checkForUpdates();
 	} catch (err: unknown) {
 		const message = err instanceof Error ? err.message : String(err);
@@ -168,9 +176,9 @@ export function checkForUpdateOnStartup(): Promise<void> {
 		autoUpdater.on('update-downloaded', onDownloaded);
 		autoUpdater.on('error', onError);
 
-		// Timeout — proceed even if update check hangs
+		// Timeout — proceed if version check hangs (not the download)
 		timeoutId = setTimeout(() => {
-			log.warn('[updater] Startup check timed out');
+			log.warn('[updater] Startup version check timed out');
 			proceed();
 		}, 15000);
 
@@ -191,18 +199,17 @@ export function checkForUpdateOnStartup(): Promise<void> {
 					return;
 				}
 
+				// Update found — cancel timeout, let it download without time limit
+				if (timeoutId) {
+					clearTimeout(timeoutId);
+					timeoutId = null;
+				}
+
 				log.info(`[updater] Update available on startup: ${release.name}`);
 				setSplashStatus(`Загрузка обновления ${release.name}...`);
 				setSplashProgressIndeterminate();
 
-				autoUpdater.setFeedURL({
-					url: releasesUrl,
-					headers: {
-						'User-Agent': `floodilka-desktop/${currentVersion} (${process.platform}: ${process.arch})`,
-					},
-					serverType: 'json',
-				});
-
+				autoUpdater.setFeedURL(getFeedConfig(currentVersion));
 				autoUpdater.checkForUpdates();
 			} catch (err: unknown) {
 				const message = err instanceof Error ? err.message : String(err);

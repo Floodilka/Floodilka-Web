@@ -133,16 +133,11 @@ const config = (() => {
 
 		win: {
 			icon: `${iconsDir}/icon.ico`,
-			target: [{target: 'nsis', arch: ['x64']}],
+			target: [{target: 'squirrel', arch: ['x64']}],
 		},
 
-		nsis: {
-			oneClick: true,
-			perMachine: false,
-			allowToChangeInstallationDirectory: false,
-			installerIcon: `${iconsDir}/icon.ico`,
-			uninstallerIcon: `${iconsDir}/icon.ico`,
-			deleteAppDataOnUninstall: false,
+		squirrelWindows: {
+			iconUrl: winIconUrl,
 		},
 
 		linux: {
