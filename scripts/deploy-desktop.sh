@@ -172,6 +172,14 @@ if [ "$DEPLOY_WIN" = true ]; then
         cp "$LATEST_YML" "$STAGING/${CHANNEL}/win32/x64/"
         echo "  ✅ latest.yml"
     fi
+
+    # Generate RELEASES.json for Windows auto-update
+    PUB_DATE=${PUB_DATE:-$(date -u +"%Y-%m-%dT%H:%M:%SZ")}
+    BASE_URL="https://${DOMAIN}/desktop/updates/${CHANNEL}/win32"
+
+    cat > "$STAGING/${CHANNEL}/win32/x64/RELEASES.json" <<EOF
+{"url":"${BASE_URL}/x64/floodilka-${CHANNEL}-${VERSION}-x64.exe","name":"${VERSION}","notes":"","pub_date":"${PUB_DATE}"}
+EOF
 fi
 
 echo ""
