@@ -32,6 +32,7 @@ import {createApplicationMenu} from './menu.js';
 import {startRpcServer, stopRpcServer} from './rpc-server.js';
 import {checkForUpdateOnStartup, registerUpdater} from './updater.js';
 import {closeSplashWindow, createSplashWindow} from './splash.js';
+import {createTray, destroyTray} from './tray.js';
 import {createWindow, getMainWindow, registerDisplayMediaHandlers, setQuitting, showWindow} from './window.js';
 import {startWsProxyServer, stopWsProxyServer} from './ws-proxy-server.js';
 
@@ -132,6 +133,7 @@ if (!gotTheLock) {
 		createWindow(() => {
 			closeSplashWindow();
 		});
+		createTray();
 		registerUpdater(getMainWindow);
 
 		app.on('activate', () => {
@@ -160,9 +162,7 @@ if (!gotTheLock) {
 	});
 
 	app.on('window-all-closed', () => {
-		if (process.platform !== 'darwin') {
-			app.quit();
-		}
+		// Don't quit — the app stays in the system tray on all platforms
 	});
 
 	app.on('before-quit', () => {
@@ -170,6 +170,7 @@ if (!gotTheLock) {
 	});
 
 	app.on('will-quit', () => {
+		destroyTray();
 		cleanupIpcHandlers();
 		cleanupGlobalKeyHook();
 		globalShortcut.unregisterAll();

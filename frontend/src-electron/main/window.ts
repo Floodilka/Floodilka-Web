@@ -419,7 +419,7 @@ export function createWindow(onReady?: () => void): BrowserWindow {
 		if (saveTimeout) clearTimeout(saveTimeout);
 		saveWindowBounds();
 
-		if (process.platform === 'darwin' && !isQuitting) {
+		if (!isQuitting) {
 			event.preventDefault();
 			mainWindow?.hide();
 		}
