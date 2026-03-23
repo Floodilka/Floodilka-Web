@@ -224,8 +224,8 @@ export class WebhookService {
 			return {code: 0};
 		}
 
-		Logger.debug(
-			{userId: body.AccountId, transactionId: body.TransactionId, statusCode: body.StatusCode},
+		Logger.warn(
+			{userId: body.AccountId, transactionId: body.TransactionId, statusCode: body.StatusCode, status: body.Status},
 			'Payment failed',
 		);
 
