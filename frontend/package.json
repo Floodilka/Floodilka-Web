@@ -1,6 +1,6 @@
 {
 	"name": "floodilka_app",
-	"version": "3.1.1",
+	"version": "3.2.0",
 	"type": "module",
 	"private": true,
 	"main": "src-electron/dist/main/index.js",
