@@ -43,62 +43,75 @@ function markInitialized(): void {
 }
 
 const isMac = process.platform === 'darwin';
+const isWin = process.platform === 'win32';
 
-interface AutoLaunchConfig {
-	name: string;
-	path: string;
-	isHidden: boolean;
-	args?: Array<string>;
+function getAppName(): string {
+	const isCanary = BUILD_CHANNEL === 'canary';
+	return isCanary ? 'Флудилка Canary' : 'Флудилка';
 }
 
-function getAutoLaunchConfig(): AutoLaunchConfig {
-	const isCanary = BUILD_CHANNEL === 'canary';
-	const appName = isCanary ? 'Флудилка Canary' : 'Флудилка';
+// Squirrel.Windows: Update.exe is one directory up from app-X.Y.Z/
+function getUpdateExePath(): string {
+	return path.resolve(process.execPath, '..', '..', 'Update.exe');
+}
 
-	return {
-		name: appName,
-		path: process.execPath,
-		isHidden: true,
-		args: [],
-	};
+function getSquirrelArgs(): Array<string> {
+	return ['--processStart', `"${path.basename(process.execPath)}"`];
 }
 
 async function enableAutostart(): Promise<void> {
-	if (!isMac) return;
-
-	const config = getAutoLaunchConfig();
-	app.setLoginItemSettings({
-		openAtLogin: true,
-		openAsHidden: config.isHidden,
-		name: config.name,
-	});
+	if (isWin) {
+		app.setLoginItemSettings({
+			openAtLogin: true,
+			path: getUpdateExePath(),
+			args: getSquirrelArgs(),
+		});
+	} else if (isMac) {
+		app.setLoginItemSettings({
+			openAtLogin: true,
+			openAsHidden: true,
+			name: getAppName(),
+		});
+	}
 }
 
 async function disableAutostart(): Promise<void> {
-	if (!isMac) return;
-
-	const config = getAutoLaunchConfig();
-	app.setLoginItemSettings({
-		openAtLogin: false,
-		name: config.name,
-		path: config.path,
-		args: config.args,
-	});
+	if (isWin) {
+		app.setLoginItemSettings({
+			openAtLogin: false,
+			path: getUpdateExePath(),
+			args: getSquirrelArgs(),
+		});
+	} else if (isMac) {
+		app.setLoginItemSettings({
+			openAtLogin: false,
+			name: getAppName(),
+			path: process.execPath,
+		});
+	}
 }
 
 async function isAutostartEnabled(): Promise<boolean> {
-	if (!isMac) return false;
-
-	const config = getAutoLaunchConfig();
-	const settings = app.getLoginItemSettings({
-		path: config.path,
-		args: config.args,
-	});
-	return settings.openAtLogin;
+	if (isWin) {
+		return app.getLoginItemSettings({
+			path: getUpdateExePath(),
+			args: getSquirrelArgs(),
+		}).openAtLogin;
+	}
+	if (isMac) {
+		return app.getLoginItemSettings({
+			path: process.execPath,
+		}).openAtLogin;
+	}
+	return false;
 }
 
 export function registerAutostartHandlers(): void {
-	if (!isMac) return;
+	// Enable autostart by default on first launch
+	if (!isInitialized()) {
+		markInitialized();
+		void enableAutostart();
+	}
 
 	ipcMain.handle('autostart-enable', async (): Promise<void> => {
 		await enableAutostart();
