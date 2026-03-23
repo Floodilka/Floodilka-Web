@@ -56,6 +56,7 @@ export const mapUserToPartialResponse = (user: User): UserPartialResponse => {
 		bot: isBot || undefined,
 		system: user.isSystem || undefined,
 		flags: Number((user.flags ?? 0n) & PUBLIC_USER_FLAGS),
+		premium_type: isPremium && !((user.flags ?? 0n) & UserFlags.PREMIUM_BADGE_HIDDEN) ? user.premiumType : undefined,
 	};
 };
 
@@ -70,7 +71,8 @@ export const hasPartialUserFieldsChanged = (oldUser: User, newUser: User): boole
 		oldPartial.avatar_color !== newPartial.avatar_color ||
 		oldPartial.bot !== newPartial.bot ||
 		oldPartial.system !== newPartial.system ||
-		oldPartial.flags !== newPartial.flags
+		oldPartial.flags !== newPartial.flags ||
+		oldPartial.premium_type !== newPartial.premium_type
 	);
 };
 

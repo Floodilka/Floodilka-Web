@@ -24,6 +24,7 @@ import type {MessagePreviewContext} from '~/Constants';
 import {MessageAvatar} from '~/components/channel/MessageAvatar';
 import {MessageUsername} from '~/components/channel/MessageUsername';
 import {TimestampWithTooltip} from '~/components/channel/TimestampWithTooltip';
+import {UserBadgesInline} from '~/components/channel/UserBadgesInline';
 import {UserTag} from '~/components/channel/UserTag';
 import {Tooltip} from '~/components/uikit/Tooltip';
 import type {GuildMemberRecord} from '~/records/GuildMemberRecord';
@@ -125,6 +126,7 @@ export const MessageAuthorInfo = observer(
 							previewColor={previewOverrides?.usernameColor}
 							previewName={previewOverrides?.displayName}
 						/>
+						<UserBadgesInline user={author} guildId={guild?.id} />
 						<span className={styles.messageAssistiveText} aria-hidden="true">
 							{':'}
 						</span>
@@ -171,6 +173,7 @@ export const MessageAuthorInfo = observer(
 							previewColor={previewOverrides?.usernameColor}
 							previewName={previewOverrides?.displayName}
 						/>
+						<UserBadgesInline user={author} guildId={guild?.id} />
 						<span className={styles.messageAssistiveText} aria-hidden="true">
 							{':'}
 						</span>
@@ -206,6 +209,7 @@ export const MessageAuthorInfo = observer(
 								previewColor={previewOverrides?.usernameColor}
 								previewName={previewOverrides?.displayName}
 							/>
+							<UserBadgesInline user={author} guildId={guild?.id} />
 							{author.bot && <UserTag className={styles.userTagOffset} system={author.system} />}
 						</span>
 

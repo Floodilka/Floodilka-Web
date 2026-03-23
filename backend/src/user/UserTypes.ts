@@ -50,6 +50,7 @@ export const UserPartialResponse = z.object({
 	bot: z.boolean().optional(),
 	system: z.boolean().optional(),
 	flags: z.number().int(),
+	premium_type: z.number().int().optional(),
 });
 
 export type UserPartialResponse = z.infer<typeof UserPartialResponse>;

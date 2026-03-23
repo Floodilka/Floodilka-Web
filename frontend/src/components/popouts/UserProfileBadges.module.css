@@ -67,7 +67,7 @@
 	touch-action: manipulation;
 	user-select: none;
 	-webkit-user-select: none;
-	cursor: pointer;
+	cursor: default;
 }
 
 .virtualBadgeMobile {
@@ -91,15 +91,8 @@
 }
 
 .link {
-	cursor: pointer;
+	cursor: default;
 	touch-action: manipulation;
 	user-select: none;
 	-webkit-user-select: none;
-	text-decoration: none;
-}
-
-.link:hover,
-.link:focus,
-.link:active {
-	text-decoration: none;
 }

@@ -25,7 +25,6 @@ import {UserFlags, UserPremiumTypes} from '~/Constants';
 import styles from '~/components/popouts/UserProfileBadges.module.css';
 import FocusRing from '~/components/uikit/FocusRing/FocusRing';
 import {Tooltip} from '~/components/uikit/Tooltip/Tooltip';
-import {Routes} from '~/Routes';
 import type {ProfileRecord} from '~/records/ProfileRecord';
 import type {UserRecord} from '~/records/UserRecord';
 import * as DateUtils from '~/utils/DateUtils';
@@ -34,14 +33,6 @@ interface Badge {
 	key: string;
 	iconUrl: string;
 	tooltip: string;
-	url: string;
-}
-
-interface VirtualBadge {
-	key: string;
-	tooltip: string;
-	url: string;
-	component: React.ReactElement;
 }
 
 interface UserProfileBadgesProps {
@@ -59,39 +50,19 @@ export const UserProfileBadges: React.FC<UserProfileBadgesProps> = observer(
 			const result: Array<Badge> = [];
 
 			if (user.flags & UserFlags.STAFF) {
-				result.push({
-					key: 'staff',
-					iconUrl: '/badges/staff.svg',
-					tooltip: t`Floodilka Staff`,
-					url: Routes.careers(),
-				});
+				result.push({key: 'staff', iconUrl: '/badges/staff.svg', tooltip: t`Floodilka Staff`});
 			}
 
 			if (user.flags & UserFlags.CTP_MEMBER) {
-				result.push({
-					key: 'ctp',
-					iconUrl: '/badges/ctp.svg',
-					tooltip: t`Floodilka Community Team`,
-					url: Routes.careers(),
-				});
+				result.push({key: 'ctp', iconUrl: '/badges/ctp.svg', tooltip: t`Floodilka Community Team`});
 			}
 
 			if (user.flags & UserFlags.PARTNER) {
-				result.push({
-					key: 'partner',
-					iconUrl: '/badges/partner.svg',
-					tooltip: t`Floodilka Partner`,
-					url: Routes.partners(),
-				});
+				result.push({key: 'partner', iconUrl: '/badges/partner.svg', tooltip: t`Floodilka Partner`});
 			}
 
 			if (user.flags & UserFlags.BUG_HUNTER) {
-				result.push({
-					key: 'bug_hunter',
-					iconUrl: '/badges/bug-hunter.svg',
-					tooltip: t`Floodilka Bug Hunter`,
-					url: Routes.bugs(),
-				});
+				result.push({key: 'bug_hunter', iconUrl: '/badges/bug-hunter.svg', tooltip: t`Floodilka Bug Hunter`});
 			}
 
 			if (profile?.premiumType && profile.premiumType !== UserPremiumTypes.NONE) {
@@ -102,23 +73,13 @@ export const UserProfileBadges: React.FC<UserProfileBadgesProps> = observer(
 					tooltipText = t`Floodilka Premium subscriber since ${premiumSinceFormatted}`;
 				}
 
-				result.push({
-					key: 'premium',
-					iconUrl: '/badges/premium.svg',
-					tooltip: tooltipText,
-					url: Routes.premium(),
-				});
+				result.push({key: 'premium', iconUrl: '/badges/premium.svg', tooltip: tooltipText});
 			}
 
 			return result;
 		}, [user.flags, profile?.premiumType, profile?.premiumSince]);
 
-		const virtualBadges = React.useMemo(() => {
-			const result: Array<VirtualBadge> = [];
-			return result;
-		}, []);
-
-		if (badges.length === 0 && virtualBadges.length === 0) {
+		if (badges.length === 0) {
 			return null;
 		}
 
@@ -127,44 +88,17 @@ export const UserProfileBadges: React.FC<UserProfileBadgesProps> = observer(
 			: styles.containerPopout;
 
 		const badgeClassName = isModal && isMobile ? styles.badgeMobile : styles.badgeDesktop;
-		const isDesktopInteractions = !isMobile;
-
-		const renderInteractiveWrapper = (url: string, children: React.ReactNode, style?: React.CSSProperties) => {
-			if (isDesktopInteractions) {
-				return (
-					<a href={url} target="_blank" rel="noopener noreferrer" className={styles.link} style={style}>
-						{children}
-					</a>
-				);
-			}
-
-			return (
-				<div className={styles.link} style={style}>
-					{children}
-				</div>
-			);
-		};
-
-		const virtualBadgeStyle: React.CSSProperties = {
-			WebkitTapHighlightColor: 'transparent',
-			WebkitTouchCallout: 'none',
-		};
 
 		return (
 			<div className={containerClassName}>
 				{warningIndicator}
-				{badges.map((badge) => {
-					const badgeContent = <img src={badge.iconUrl} alt={badge.tooltip} className={badgeClassName} />;
-
-					return (
-						<Tooltip key={badge.key} text={badge.tooltip} maxWidth="xl">
-							<FocusRing offset={-2}>{renderInteractiveWrapper(badge.url, badgeContent)}</FocusRing>
-						</Tooltip>
-					);
-				})}
-				{virtualBadges.map((badge) => (
+				{badges.map((badge) => (
 					<Tooltip key={badge.key} text={badge.tooltip} maxWidth="xl">
-						<FocusRing offset={-2}>{renderInteractiveWrapper(badge.url, badge.component, virtualBadgeStyle)}</FocusRing>
+						<FocusRing offset={-2}>
+							<div className={styles.link}>
+								<img src={badge.iconUrl} alt={badge.tooltip} className={badgeClassName} />
+							</div>
+						</FocusRing>
 					</Tooltip>
 				))}
 			</div>

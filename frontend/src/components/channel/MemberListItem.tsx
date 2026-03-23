@@ -26,6 +26,7 @@ import React from 'react';
 import * as ContextMenuActionCreators from '~/actions/ContextMenuActionCreators';
 import {isOfflineStatus} from '~/Constants';
 import {PreloadableUserPopout} from '~/components/channel/PreloadableUserPopout';
+import {UserBadgesInline} from '~/components/channel/UserBadgesInline';
 import {UserTag} from '~/components/channel/UserTag';
 import {CustomStatusDisplay} from '~/components/common/CustomStatusDisplay/CustomStatusDisplay';
 import {GroupDMMemberContextMenu} from '~/components/uikit/ContextMenu/GroupDMContextMenu';
@@ -148,6 +149,7 @@ export const MemberListItem: React.FC<MemberListItemProps> = observer((props) =>
 										</Tooltip>
 									</div>
 								)}
+								<UserBadgesInline user={user} guildId={guildId} />
 								{user.bot && <UserTag className={styles.userTag} system={user.system} />}
 							</div>
 							<CustomStatusDisplay

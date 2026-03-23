@@ -55,6 +55,7 @@ export type UserPartial = Readonly<{
 	bot?: boolean;
 	system?: boolean;
 	flags: number;
+	premium_type?: number | null;
 }>;
 
 export type RequiredAction =

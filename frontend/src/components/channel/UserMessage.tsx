@@ -29,6 +29,7 @@ import {EditingMessageInput} from '~/components/channel/EditingMessageInput';
 import {MessageAttachments} from '~/components/channel/MessageAttachments';
 import {MessageAuthorInfo} from '~/components/channel/MessageAuthorInfo';
 import {MessageAvatar} from '~/components/channel/MessageAvatar';
+import {UserBadgesInline} from '~/components/channel/UserBadgesInline';
 import {MessageUsername} from '~/components/channel/MessageUsername';
 import {ReplyPreview} from '~/components/channel/ReplyPreview';
 import {TimestampWithTooltip} from '~/components/channel/TimestampWithTooltip';
@@ -437,6 +438,7 @@ export const UserMessage = observer(() => {
 									previewColor={previewOverrides?.usernameColor}
 									previewName={previewOverrides?.displayName}
 								/>
+								<UserBadgesInline user={author} guildId={guild?.id} />
 								{author.bot && <UserTag className={styles.userTagOffset} system={author.system} />}
 							</span>
 							<TimestampWithTooltip date={message.timestamp} className={styles.messageTimestamp}>
@@ -469,6 +471,7 @@ export const UserMessage = observer(() => {
 								previewColor={previewOverrides?.usernameColor}
 								previewName={previewOverrides?.displayName}
 							/>
+							<UserBadgesInline user={author} guildId={guild?.id} />
 							{author.bot && <UserTag className={styles.userTagOffset} />}
 						</span>
 						<TimestampWithTooltip date={message.timestamp} className={styles.messageTimestamp}>
