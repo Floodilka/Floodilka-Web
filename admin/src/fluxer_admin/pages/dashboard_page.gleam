@@ -133,9 +133,11 @@ fn render_stats_grid(stats: system.SystemStats) {
           stat_card("Серверы", format_number(stats.guilds), option.None),
           stat_card("Звонки", format_number(stats.calls), option.None),
           stat_card(
-            "Пользователи онлайн",
-            int.to_string(stats.users.online),
-            option.None,
+            "Пользователи",
+            int.to_string(stats.users.online)
+              <> " / "
+              <> format_number(stats.users.total),
+            option.Some("онлайн / всего"),
           ),
         ],
       ),
@@ -345,7 +347,7 @@ fn format_number(n: Int) -> String {
     _ if len <= 3 -> s
     _ -> {
       let groups = reverse_groups(s, [])
-      string.join(list.reverse(groups), ",")
+      string.join(groups, ",")
     }
   }
 }

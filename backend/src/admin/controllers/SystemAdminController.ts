@@ -23,6 +23,7 @@ import type {HonoApp} from '~/App';
 import {createUserID} from '~/BrandedTypes';
 import {AdminACLs} from '~/Constants';
 import {Logger} from '~/Logger';
+import {getUserSearchService} from '~/Meilisearch';
 import {requireAdminACL} from '~/middleware/AdminMiddleware';
 import {RateLimitMiddleware} from '~/middleware/RateLimitMiddleware';
 import {RateLimitConfigs} from '~/RateLimitConfig';
@@ -42,7 +43,7 @@ export const SystemAdminController = (app: HonoApp) => {
 			const freeMem = os.freemem();
 			const usedMem = totalMem - freeMem;
 
-			const [diskStats, gatewayStats, onlineUserIds] = await Promise.all([
+			const [diskStats, gatewayStats, onlineUserIds, totalUserCount] = await Promise.all([
 				fs.promises.statfs('/').catch(() => null),
 				gatewayService.getNodeStats().catch((err: unknown) => {
 					Logger.warn({err}, '[admin] failed to get gateway stats');
@@ -52,6 +53,16 @@ export const SystemAdminController = (app: HonoApp) => {
 					Logger.warn({err}, '[admin] failed to get online user ids');
 					return [] as Array<string>;
 				}),
+				(async () => {
+					const userSearchService = getUserSearchService();
+					if (!userSearchService) return 0;
+					try {
+						return await userSearchService.getTotalCount();
+					} catch (err) {
+						Logger.warn({err}, '[admin] failed to get total user count');
+						return 0;
+					}
+				})(),
 			]);
 
 			let onlineUsers: Array<{
@@ -127,6 +138,7 @@ export const SystemAdminController = (app: HonoApp) => {
 				timestamp: new Date().toISOString(),
 				users: {
 					online: onlineUsers.length,
+					total: totalUserCount,
 					list: onlineUsers,
 				},
 			});

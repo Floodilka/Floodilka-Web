@@ -294,6 +294,7 @@ pub type OnlineUser {
 pub type UsersInfo {
   UsersInfo(
     online: Int,
+    total: Int,
     list: List(OnlineUser),
   )
 }
@@ -399,11 +400,12 @@ pub fn get_system_stats(
 
       let users_decoder = {
         use online <- decode.field("online", decode.int)
+        use total <- decode.field("total", decode.int)
         use user_list <- decode.field(
           "list",
           decode.list(online_user_decoder),
         )
-        decode.success(UsersInfo(online: online, list: user_list))
+        decode.success(UsersInfo(online: online, total: total, list: user_list))
       }
 
       let decoder = {

@@ -208,6 +208,15 @@ export class UserSearchService {
 		}
 	}
 
+	async getTotalCount(): Promise<number> {
+		if (!this.index) {
+			throw new Error('User search index not initialized');
+		}
+
+		const stats = await this.index.getStats();
+		return stats.numberOfDocuments;
+	}
+
 	async deleteAllDocuments(): Promise<void> {
 		if (!this.index) {
 			throw new Error('User search index not initialized');
