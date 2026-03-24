@@ -23,6 +23,24 @@ import {SHIFT_KEY_SYMBOL} from './KeyboardUtils';
 const isMac = () => /Mac|iPod|iPhone|iPad/.test(navigator.platform);
 const CONTROL_KEY_SYMBOL = '⌃';
 
+const KEY_CODE_RE = /^Key[A-Z]$/;
+const DIGIT_CODE_RE = /^Digit[0-9]$/;
+
+/**
+ * Normalizes event.code values (physical key identifiers) to standard key names.
+ * e.g. 'KeyM' → 'M', 'Digit5' → '5'
+ *
+ * Numpad codes (NumpadEnter, Numpad0, etc.) are intentionally NOT normalized
+ * because they represent distinct physical keys that should not be conflated
+ * with their non-numpad equivalents.
+ */
+export const resolveComboKey = (combo: {code?: string; key?: string}): string => {
+	const raw = combo.code ?? combo.key ?? '';
+	if (KEY_CODE_RE.test(raw)) return raw.slice(3);
+	if (DIGIT_CODE_RE.test(raw)) return raw.slice(5);
+	return raw;
+};
+
 export const formatKeyCombo = (combo: KeyCombo): string => {
 	const parts: Array<string> = [];
 	if (combo.ctrl) {
@@ -38,7 +56,7 @@ export const formatKeyCombo = (combo: KeyCombo): string => {
 		parts.push(shiftLabel);
 	}
 	if (combo.alt) parts.push(isMac() ? '⌥' : 'Alt');
-	const key = combo.code ?? combo.key ?? '';
+	const key = resolveComboKey(combo);
 	if (key === ' ') {
 		parts.push('Space');
 	} else if (key.length === 1) {

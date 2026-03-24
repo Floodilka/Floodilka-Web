@@ -23,6 +23,7 @@ import AccessibilityStore from '~/stores/AccessibilityStore';
 import type {KeybindAction, KeyCombo} from '~/stores/KeybindStore';
 import KeybindStore from '~/stores/KeybindStore';
 import {SHIFT_KEY_SYMBOL} from '~/utils/KeyboardUtils';
+import {resolveComboKey} from '~/utils/KeybindUtils';
 import styles from './KeybindHint.module.css';
 
 const isMac = () => /Mac|iPod|iPhone|iPad/.test(navigator.platform);
@@ -51,7 +52,7 @@ const formatKeyParts = (combo: KeyCombo): Array<KeyPart> => {
 		parts.push(mac ? {label: '⌥', isSymbol: true} : {label: 'Alt'});
 	}
 
-	const key = combo.code ?? combo.key ?? '';
+	const key = resolveComboKey(combo);
 	if (key === ' ') {
 		parts.push({label: 'Space'});
 	} else if (key === 'ArrowUp') {

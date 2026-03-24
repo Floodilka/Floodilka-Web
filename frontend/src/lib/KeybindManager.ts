@@ -48,6 +48,7 @@ import SavedMessagesStore from '~/stores/SavedMessagesStore';
 import SelectedChannelStore from '~/stores/SelectedChannelStore';
 import SelectedGuildStore from '~/stores/SelectedGuildStore';
 import MediaEngineStore from '~/stores/voice/MediaEngineFacade';
+import {resolveComboKey} from '~/utils/KeybindUtils';
 import {goToMessage} from '~/utils/MessageNavigator';
 import {checkNativePermission} from '~/utils/NativePermissions';
 import {getElectronAPI, isNativeMacOS} from '~/utils/NativeUtils';
@@ -101,41 +102,17 @@ const isEditableElement = (target: EventTarget | null): target is HTMLElement =>
 
 const isAltOnlyArrowCombo = (combo: KeyCombo): boolean => {
 	if (!combo.alt || combo.ctrlOrMeta || combo.ctrl || combo.meta) return false;
-	const key = combo.code ?? combo.key;
+	const key = resolveComboKey(combo);
 	return key === 'ArrowLeft' || key === 'ArrowRight' || key === 'ArrowUp' || key === 'ArrowDown';
 };
 
-const comboToShortcutString = (combo: KeyCombo): string => {
-	const parts: Array<string> = [];
-	if (combo.ctrl) {
-		parts.push('Control');
-	} else if (combo.ctrlOrMeta) {
-		parts.push('CommandOrControl');
-	}
-	if (combo.meta) parts.push('Super');
-	if (combo.shift) parts.push('Shift');
-	if (combo.alt) parts.push('Alt');
-	const rawKey = combo.code ?? combo.key;
-	const key = rawKey === ' ' ? 'Space' : rawKey;
-	parts.push(key && key.length === 1 ? key.toUpperCase() : (key ?? ''));
-	return parts.filter(Boolean).join('+');
-};
-
 const keyFromComboForCombokeys = (combo: KeyCombo): string | null => {
-	const raw = combo.code ?? combo.key;
+	const raw = resolveComboKey(combo);
 	if (!raw) return null;
 
 	if (raw === ' ') return 'space';
 	if (raw.length === 1) {
 		return raw.toLowerCase();
-	}
-
-	if (/^Key[A-Z]$/.test(raw)) {
-		return raw.slice(3).toLowerCase();
-	}
-
-	if (/^Digit[0-9]$/.test(raw)) {
-		return raw.slice(5);
 	}
 
 	switch (raw) {
@@ -146,6 +123,7 @@ const keyFromComboForCombokeys = (combo: KeyCombo): string | null => {
 		case 'Esc':
 			return 'esc';
 		case 'Enter':
+		case 'NumpadEnter':
 			return 'enter';
 		case 'Tab':
 			return 'tab';
@@ -195,11 +173,8 @@ class KeybindManager {
 	private combokeys: CombokeysInstance | null = null;
 	private accessibilityStatus: 'unknown' | 'granted' | 'denied' = 'unknown';
 	private pttReleaseTimer: ReturnType<typeof setTimeout> | null = null;
-	private globalShortcutUnsubscribe: (() => void) | null = null;
 	private globalKeyHookUnsubscribes: Array<() => void> = [];
 	private globalKeyHookStarted = false;
-	private pttKeycode: number | null = null;
-	private pttMouseButton: number | null = null;
 
 	private get currentChannelId(): string | null {
 		return SelectedChannelStore.currentChannelId;
@@ -310,36 +285,7 @@ class KeybindManager {
 			}),
 		);
 
-		this.disposers.push(
-			autorun(() => {
-				void this.refreshGlobalKeyHook();
-			}),
-		);
-
 		await this.refreshGlobalShortcuts();
-		await this.refreshGlobalKeyHook();
-	}
-
-	private async refreshGlobalKeyHook(): Promise<void> {
-		const electronApi = getElectronAPI();
-		if (!electronApi?.globalKeyHookStart) return;
-
-		const pttKeybind = KeybindStore.getByAction('push_to_talk');
-		const isPttEnabled = KeybindStore.isPushToTalkEnabled();
-		const hasPttKeybind = !!(pttKeybind.combo.key || pttKeybind.combo.code);
-		const shouldUseGlobalHook = isPttEnabled && hasPttKeybind && (pttKeybind.combo.global ?? false);
-
-		if (shouldUseGlobalHook) {
-			const started = await this.startGlobalKeyHook();
-			if (started) {
-				this.pttKeycode = jsKeyToUiohookKeycode(pttKeybind.combo.code ?? pttKeybind.combo.key);
-				this.pttMouseButton = null;
-			}
-		} else {
-			this.stopGlobalKeyHook();
-			this.pttKeycode = null;
-			this.pttMouseButton = null;
-		}
 	}
 
 	async reapplyGlobalShortcuts() {
@@ -354,17 +300,10 @@ class KeybindManager {
 		this.disposers.forEach((dispose) => dispose());
 		this.disposers = [];
 
-		if (this.globalShortcutUnsubscribe) {
-			this.globalShortcutUnsubscribe();
-			this.globalShortcutUnsubscribe = null;
-		}
+		const electronApi = getElectronAPI();
+		void electronApi?.globalKeyHookUnregisterAll?.().catch(() => {});
 
 		this.stopGlobalKeyHook();
-
-		const electronApi = getElectronAPI();
-		if (electronApi) {
-			void electronApi.unregisterAllGlobalShortcuts?.().catch(() => {});
-		}
 
 		this.handlers.clear();
 
@@ -372,7 +311,7 @@ class KeybindManager {
 		this.combokeys = null;
 	}
 
-	async startGlobalKeyHook(): Promise<boolean> {
+	private async startGlobalKeyHook(): Promise<boolean> {
 		const electronApi = getElectronAPI();
 		if (!electronApi?.globalKeyHookStart) return false;
 
@@ -387,20 +326,21 @@ class KeybindManager {
 
 		this.globalKeyHookStarted = true;
 
-		const keyEventUnsub = electronApi.onGlobalKeyEvent?.((event) => {
-			this.handleGlobalKeyEvent(event);
+		const triggeredUnsub = electronApi.onGlobalKeybindTriggered?.((event) => {
+			const handler = this.handlers.get(event.id as KeybindAction);
+			if (handler) {
+				handler({
+					type: event.type === 'keydown' ? 'press' : 'release',
+					source: 'global',
+				});
+			}
 		});
-		if (keyEventUnsub) this.globalKeyHookUnsubscribes.push(keyEventUnsub);
-
-		const mouseEventUnsub = electronApi.onGlobalMouseEvent?.((event) => {
-			this.handleGlobalMouseEvent(event);
-		});
-		if (mouseEventUnsub) this.globalKeyHookUnsubscribes.push(mouseEventUnsub);
+		if (triggeredUnsub) this.globalKeyHookUnsubscribes.push(triggeredUnsub);
 
 		return true;
 	}
 
-	stopGlobalKeyHook(): void {
+	private stopGlobalKeyHook(): void {
 		const electronApi = getElectronAPI();
 
 		this.globalKeyHookUnsubscribes.forEach((unsub) => unsub());
@@ -411,35 +351,6 @@ class KeybindManager {
 		}
 
 		this.globalKeyHookStarted = false;
-	}
-
-	private handleGlobalKeyEvent(event: {type: 'keydown' | 'keyup'; keycode: number; keyName: string}): void {
-		if (this.pttKeycode !== null && event.keycode === this.pttKeycode) {
-			const handler = this.handlers.get('push_to_talk');
-			if (handler) {
-				handler({
-					type: event.type === 'keydown' ? 'press' : 'release',
-					source: 'global',
-				});
-			}
-		}
-	}
-
-	private handleGlobalMouseEvent(event: {type: 'mousedown' | 'mouseup'; button: number}): void {
-		if (this.pttMouseButton !== null && event.button === this.pttMouseButton) {
-			const handler = this.handlers.get('push_to_talk');
-			if (handler) {
-				handler({
-					type: event.type === 'mousedown' ? 'press' : 'release',
-					source: 'global',
-				});
-			}
-		}
-	}
-
-	setPttKeybind(keycode: number | null, mouseButton: number | null): void {
-		this.pttKeycode = keycode;
-		this.pttMouseButton = mouseButton;
 	}
 
 	suspend(): void {
@@ -867,18 +778,19 @@ class KeybindManager {
 
 	private async refreshGlobalShortcuts() {
 		const electronApi = getElectronAPI();
-		if (!electronApi) return;
+		if (!electronApi?.globalKeyHookStart) return;
+
+		try {
+			await electronApi.globalKeyHookUnregisterAll?.();
+		} catch (error) {
+			console.error('Failed to unregister global keybinds', error);
+		}
 
 		const keybinds = this.activeGlobalKeybinds;
 
-		try {
-			await electronApi.unregisterAllGlobalShortcuts?.();
-		} catch (error) {
-			console.error('Failed to unregister global shortcuts', error);
-		}
-
 		if (!keybinds.length) {
 			this.globalShortcutsEnabled = false;
+			this.stopGlobalKeyHook();
 			return;
 		}
 
@@ -886,33 +798,26 @@ class KeybindManager {
 			return;
 		}
 
-		if (!this.globalShortcutUnsubscribe) {
-			this.globalShortcutUnsubscribe =
-				electronApi.onGlobalShortcut?.((id: string) => {
-					const keybind = keybinds.find((k) => comboToShortcutString(k.combo) === id);
-					if (!keybind) return;
+		const started = await this.startGlobalKeyHook();
+		if (!started) return;
 
-					const handler = this.handlers.get(keybind.action);
-					if (!handler) return;
+		const isMac = isNativeMacOS();
 
-					handler({
-						type: 'press',
-						source: 'global',
-					});
-				}) ?? null;
-		}
+		for (const keybind of keybinds) {
+			const keycode = jsKeyToUiohookKeycode(keybind.combo.code ?? keybind.combo.key);
+			if (keycode === null) continue;
 
-		const shortcuts = keybinds
-			.map((k) => ({entry: k, shortcut: comboToShortcutString(k.combo)}))
-			.filter((s): s is {entry: KeybindConfig & {combo: KeyCombo}; shortcut: string} => !!s.shortcut);
-
-		if (!shortcuts.length) return;
-
-		for (const {shortcut} of shortcuts) {
 			try {
-				await electronApi.registerGlobalShortcut?.(shortcut, shortcut);
+				await electronApi.globalKeyHookRegister?.({
+					id: keybind.action,
+					keycode,
+					ctrl: !!(keybind.combo.ctrl || (!isMac && keybind.combo.ctrlOrMeta)),
+					alt: !!keybind.combo.alt,
+					shift: !!keybind.combo.shift,
+					meta: !!(keybind.combo.meta || (isMac && keybind.combo.ctrlOrMeta)),
+				});
 			} catch (error) {
-				console.error(`Failed to register global shortcut ${shortcut}`, error);
+				console.error(`Failed to register global keybind ${keybind.action}`, error);
 			}
 		}
 
