@@ -94,12 +94,18 @@ class VoiceMediaManager {
 			hasLocalParticipant: !!room.localParticipant,
 		});
 
-		if (selfMute || selfDeaf) {
-			logger.info('[ensureMicrophone] SKIP: user is muted or deafened', {selfMute, selfDeaf});
+		const isPttMuted = KeybindStore.isPushToTalkEffective() && selfMute && !LocalVoiceStateStore.getHasUserSetMute();
+
+		if ((selfMute || selfDeaf) && !isPttMuted) {
+			logger.info('[ensureMicrophone] SKIP: user is muted or deafened (not PTT)', {selfMute, selfDeaf});
 			if (selfMute) {
 				this.syncVoiceState({self_mute: true});
 			}
 			return;
+		}
+
+		if (isPttMuted) {
+			logger.info('[ensureMicrophone] PTT muted — will publish mic then mute publication');
 		}
 
 		if (denied) {
@@ -119,6 +125,16 @@ class VoiceMediaManager {
 		try {
 			await this.enableMicrophone(room, channelId);
 			MediaPermissionStore.updateMicrophonePermissionGranted();
+
+			if (isPttMuted) {
+				logger.info('[ensureMicrophone] Mic published, now muting publications for PTT');
+				room.localParticipant.audioTrackPublications.forEach((publication) => {
+					if (publication.source === Track.Source.ScreenShareAudio) return;
+					publication.mute().catch((error) =>
+						logger.error('[ensureMicrophone] Failed to mute publication for PTT', {error}),
+					);
+				});
+			}
 
 			this.syncVoiceState({self_mute: selfMute});
 		} catch (e: unknown) {
