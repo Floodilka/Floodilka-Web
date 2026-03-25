@@ -263,6 +263,15 @@ handle_dm_connect_or_update(
                         NeedsToken, ChannelIdValue, UserId, UpdatedVoiceState, SessionId, SessionPid
                     ),
 
+                    %% Sync voice state to call.erl so CALL_UPDATE has fresh mute/deaf/video
+                    case NeedsToken of
+                        false ->
+                            maybe_update_call_voice_state(ChannelIdValue, UserId, UpdatedVoiceState);
+                        true ->
+                            %% join_or_create_call already sets voice state in call.erl
+                            ok
+                    end,
+
                     {reply, #{success => true, needs_token => NeedsToken}, NewState}
             end
     end.
@@ -323,6 +332,20 @@ maybe_spawn_join_call(true, ChannelId, UserId, VoiceState, SessionId, SessionPid
     spawn(fun() ->
         try
             join_or_create_call(ChannelId, UserId, VoiceState, SessionId, SessionPid)
+        catch
+            _:_ -> ok
+        end
+    end).
+
+maybe_update_call_voice_state(ChannelId, UserId, VoiceState) ->
+    spawn(fun() ->
+        try
+            case gen_server:call(call_manager, {lookup, ChannelId}, 5000) of
+                {ok, CallPid} ->
+                    gen_server:call(CallPid, {update_voice_state, UserId, VoiceState}, 5000);
+                _ ->
+                    ok
+            end
         catch
             _:_ -> ok
         end

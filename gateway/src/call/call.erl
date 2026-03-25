@@ -233,7 +233,9 @@ handle_call({update_voice_state, UserId, VoiceState}, _From, State) ->
         true ->
             NewVoiceStates = maps:put(UserId, VoiceState, State#state.voice_states),
             NewState = State#state{voice_states = NewVoiceStates},
-            dispatch_call_update(NewState),
+            %% No dispatch_call_update here — dm_voice.erl already sent
+            %% VOICE_STATE_UPDATE to clients. We just keep call.erl in sync
+            %% so future CALL_UPDATE/CALL_CREATE events have fresh data.
             {reply, ok, NewState};
         false ->
             {reply, {error, not_in_call}, State}
