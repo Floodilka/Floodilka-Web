@@ -245,7 +245,6 @@ export const VoiceTab: React.FC<VoiceTabProps> = observer(
 											action="push_to_talk"
 											value={pttKeybind.combo}
 											defaultValue={defaultPttCombo}
-											disabled={isPttLimited}
 											onChange={(combo) => {
 												KeybindStore.setKeybind('push_to_talk', {
 													...combo,
