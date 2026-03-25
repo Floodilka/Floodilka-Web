@@ -173,6 +173,7 @@ class KeybindManager {
 	private combokeys: CombokeysInstance | null = null;
 	private accessibilityStatus: 'unknown' | 'granted' | 'denied' = 'unknown';
 	private pttReleaseTimer: ReturnType<typeof setTimeout> | null = null;
+	private pttKeyupHandler: ((e: KeyboardEvent) => void) | null = null;
 	private globalKeyHookUnsubscribes: Array<() => void> = [];
 	private globalKeyHookStarted = false;
 
@@ -319,6 +320,11 @@ class KeybindManager {
 		if (this.pttReleaseTimer) {
 			clearTimeout(this.pttReleaseTimer);
 			this.pttReleaseTimer = null;
+		}
+
+		if (this.pttKeyupHandler) {
+			document.removeEventListener('keyup', this.pttKeyupHandler);
+			this.pttKeyupHandler = null;
 		}
 
 		this.disposers.forEach((dispose) => dispose());
@@ -892,6 +898,43 @@ class KeybindManager {
 		this.combokeys.reset();
 
 		this.activeKeybinds.forEach((entry) => this.bindLocalShortcut(entry));
+
+		this.refreshPttKeyupListener();
+	}
+
+	/**
+	 * Combokeys does not reliably fire keyup events for single-key bindings.
+	 * PTT requires keyup to re-mute when the key is released, so we use a
+	 * direct DOM listener as a fallback.
+	 */
+	private refreshPttKeyupListener() {
+		if (this.pttKeyupHandler) {
+			document.removeEventListener('keyup', this.pttKeyupHandler);
+			this.pttKeyupHandler = null;
+		}
+
+		const pttKeybind = KeybindStore.getByAction('push_to_talk');
+		if (!pttKeybind.combo.key && !pttKeybind.combo.code) return;
+		if (!(pttKeybind.combo.enabled ?? true)) return;
+
+		// If global shortcuts handle PTT, skip local keyup listener
+		if (this.globalShortcutsEnabled && (pttKeybind.combo.global ?? false)) return;
+
+		const pttHandler = this.handlers.get('push_to_talk');
+		if (!pttHandler) return;
+
+		const resolvedKey = resolveComboKey(pttKeybind.combo);
+
+		this.pttKeyupHandler = (event: KeyboardEvent) => {
+			const eventKey = resolveComboKey({key: event.key, code: event.code});
+			if (eventKey.toLowerCase() !== resolvedKey.toLowerCase()) return;
+
+			console.info('[PTT:keyup-direct] DOM keyup matched PTT key', {eventKey, resolvedKey});
+			pttHandler({type: 'release', source: 'local'});
+		};
+
+		document.addEventListener('keyup', this.pttKeyupHandler);
+		console.info('[PTT:keyup-direct] Registered direct keyup listener for PTT key:', resolvedKey);
 	}
 
 	private bindLocalShortcut(entry: KeybindConfig & {combo: KeyCombo}) {
