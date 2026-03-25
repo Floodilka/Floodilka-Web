@@ -279,15 +279,18 @@ class KeybindManager {
 			}),
 		);
 
-		// Use reaction (not autorun) so we only re-run when the PTT *mode* or
-		// *keybind* actually changes.  An autorun here would also track
+		// Use reaction (not autorun) so we only re-run when the PTT *mode*,
+		// *keybind*, or *room* changes.  An autorun here would also track
 		// selfMute (read inside applyLocalMuteState), creating a feedback loop:
 		// PTT-press → unmute → autorun fires → resets PTT → mutes again.
+		// We must track room so that connecting to a voice channel applies
+		// the initial PTT mute to the LiveKit tracks.
 		this.disposers.push(
 			reaction(
 				() => ({
 					mode: KeybindStore.transmitMode,
 					hasKeybind: KeybindStore.hasPushToTalkKeybind(),
+					room: MediaEngineStore.room,
 				}),
 				() => {
 					MediaEngineStore.handlePushToTalkModeChange();
