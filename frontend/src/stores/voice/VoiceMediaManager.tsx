@@ -29,6 +29,7 @@ import {MicrophonePermissionDeniedModal} from '~/components/alerts/MicrophonePer
 import {Logger} from '~/lib/Logger';
 import CallMediaPrefsStore from '~/stores/CallMediaPrefsStore';
 import ChannelStore from '~/stores/ChannelStore';
+import KeybindStore from '~/stores/KeybindStore';
 import LocalVoiceStateStore from '~/stores/LocalVoiceStateStore';
 import MediaPermissionStore from '~/stores/MediaPermissionStore';
 import VoiceSettingsStore from '~/stores/VoiceSettingsStore';
@@ -82,8 +83,19 @@ class VoiceMediaManager {
 		const selfDeaf = LocalVoiceStateStore.getSelfDeaf();
 		const denied = MediaPermissionStore.isMicrophoneExplicitlyDenied();
 
+		logger.info('[ensureMicrophone] START', {
+			selfMute,
+			selfDeaf,
+			denied,
+			isPttEnabled: KeybindStore.isPushToTalkEnabled(),
+			isPttEffective: KeybindStore.isPushToTalkEffective(),
+			hasUserSetMute: LocalVoiceStateStore.getHasUserSetMute(),
+			channelId,
+			hasLocalParticipant: !!room.localParticipant,
+		});
+
 		if (selfMute || selfDeaf) {
-			logger.debug('[ensureMicrophone] Skipping: user is muted or deafened', {selfMute, selfDeaf});
+			logger.info('[ensureMicrophone] SKIP: user is muted or deafened', {selfMute, selfDeaf});
 			if (selfMute) {
 				this.syncVoiceState({self_mute: true});
 			}

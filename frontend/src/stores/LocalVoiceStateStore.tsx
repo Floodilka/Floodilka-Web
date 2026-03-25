@@ -269,6 +269,7 @@ class LocalVoiceStateStore {
 	}
 
 	clearHasUserSetMute(): void {
+		logger.info('[PTT:LocalVoiceState] clearHasUserSetMute (was:', this.hasUserSetMute, ')');
 		runInAction(() => {
 			this.hasUserSetMute = false;
 		});

@@ -594,7 +594,14 @@ class KeybindStore {
 	handlePushToTalkPress(nowMs: number = Date.now()): boolean {
 		this.pushToTalkPressTime = nowMs;
 
+		console.info('[PTT:KeybindStore] handlePushToTalkPress', {
+			latching: this.pushToTalkLatching,
+			latched: this.pushToTalkLatched,
+			held: this.pushToTalkHeld,
+		});
+
 		if (this.pushToTalkLatching && this.pushToTalkLatched) {
+			console.info('[PTT:KeybindStore] Press while latched → unlatching, returning false');
 			runInAction(() => {
 				this.pushToTalkLatched = false;
 				this.pushToTalkHeld = false;
@@ -605,13 +612,22 @@ class KeybindStore {
 		runInAction(() => {
 			this.pushToTalkHeld = true;
 		});
+		console.info('[PTT:KeybindStore] Press → held=true, returning true (should unmute)');
 		return true;
 	}
 
 	handlePushToTalkRelease(nowMs: number = Date.now()): boolean {
 		const pressDuration = nowMs - this.pushToTalkPressTime;
 
+		console.info('[PTT:KeybindStore] handlePushToTalkRelease', {
+			pressDuration,
+			latching: this.pushToTalkLatching,
+			latched: this.pushToTalkLatched,
+			latchThreshold: LATCH_TAP_THRESHOLD_MS,
+		});
+
 		if (this.pushToTalkLatching && pressDuration < LATCH_TAP_THRESHOLD_MS && !this.pushToTalkLatched) {
+			console.info('[PTT:KeybindStore] Quick tap → latching, returning false');
 			runInAction(() => {
 				this.pushToTalkLatched = true;
 			});
@@ -621,6 +637,7 @@ class KeybindStore {
 		runInAction(() => {
 			this.pushToTalkHeld = false;
 		});
+		console.info('[PTT:KeybindStore] Release → held=false, returning true (should mute)');
 		return true;
 	}
 

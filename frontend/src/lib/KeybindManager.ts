@@ -292,7 +292,12 @@ class KeybindManager {
 					hasKeybind: KeybindStore.hasPushToTalkKeybind(),
 					room: MediaEngineStore.room,
 				}),
-				() => {
+				(data) => {
+					console.info('[PTT:reaction] FIRED', {
+						mode: data.mode,
+						hasKeybind: data.hasKeybind,
+						hasRoom: !!data.room,
+					});
 					MediaEngineStore.handlePushToTalkModeChange();
 				},
 				{fireImmediately: true},
@@ -346,12 +351,15 @@ class KeybindManager {
 		this.globalKeyHookStarted = true;
 
 		const triggeredUnsub = electronApi.onGlobalKeybindTriggered?.((event) => {
+			console.info('[PTT:globalHook] Keybind triggered from main process', {id: event.id, type: event.type});
 			const handler = this.handlers.get(event.id as KeybindAction);
 			if (handler) {
 				handler({
 					type: event.type === 'keydown' ? 'press' : 'release',
 					source: 'global',
 				});
+			} else {
+				console.warn('[PTT:globalHook] No handler found for keybind:', event.id);
 			}
 		});
 		if (triggeredUnsub) this.globalKeyHookUnsubscribes.push(triggeredUnsub);
@@ -476,22 +484,28 @@ class KeybindManager {
 			MediaEngineStore.handlePushToTalkModeChange();
 		});
 
-		this.register('push_to_talk', ({type}) => {
+		this.register('push_to_talk', ({type, source}) => {
+			console.info('[PTT:KeybindManager] push_to_talk handler fired', {type, source});
 			if (type === 'press') {
 				if (this.pttReleaseTimer) {
 					clearTimeout(this.pttReleaseTimer);
 					this.pttReleaseTimer = null;
+					console.info('[PTT:KeybindManager] Cancelled pending release timer');
 				}
 				const shouldUnmute = KeybindStore.handlePushToTalkPress();
+				console.info('[PTT:KeybindManager] PRESS → shouldUnmute:', shouldUnmute);
 				if (shouldUnmute) {
 					MediaEngineStore.applyPushToTalkHold(true);
 				}
 			} else {
 				const shouldMute = KeybindStore.handlePushToTalkRelease();
+				console.info('[PTT:KeybindManager] RELEASE → shouldMute:', shouldMute);
 				if (shouldMute) {
 					const delay = KeybindStore.pushToTalkReleaseDelay;
+					console.info('[PTT:KeybindManager] Setting release timer with delay:', delay);
 					this.pttReleaseTimer = setTimeout(() => {
 						this.pttReleaseTimer = null;
+						console.info('[PTT:KeybindManager] Release timer fired → muting');
 						MediaEngineStore.applyPushToTalkHold(false);
 					}, delay);
 				}
@@ -797,7 +811,10 @@ class KeybindManager {
 
 	private async refreshGlobalShortcuts() {
 		const electronApi = getElectronAPI();
-		if (!electronApi?.globalKeyHookStart) return;
+		if (!electronApi?.globalKeyHookStart) {
+			console.info('[PTT:refreshGlobal] No electronApi.globalKeyHookStart — web mode');
+			return;
+		}
 
 		try {
 			await electronApi.globalKeyHookUnregisterAll?.();
@@ -806,25 +823,50 @@ class KeybindManager {
 		}
 
 		const keybinds = this.activeGlobalKeybinds;
+		console.info('[PTT:refreshGlobal] Active global keybinds:', keybinds.map((k) => ({
+			action: k.action,
+			key: k.combo.key,
+			code: k.combo.code,
+			global: k.combo.global,
+			enabled: k.combo.enabled,
+		})));
 
 		if (!keybinds.length) {
+			console.info('[PTT:refreshGlobal] No global keybinds → stopping hook');
 			this.globalShortcutsEnabled = false;
 			this.stopGlobalKeyHook();
 			return;
 		}
 
 		if (!(await this.checkInputMonitoringPermission())) {
+			console.warn('[PTT:refreshGlobal] Input monitoring permission denied');
 			return;
 		}
 
 		const started = await this.startGlobalKeyHook();
-		if (!started) return;
+		if (!started) {
+			console.warn('[PTT:refreshGlobal] Failed to start global key hook');
+			return;
+		}
 
 		const isMac = isNativeMacOS();
 
 		for (const keybind of keybinds) {
 			const keycode = jsKeyToUiohookKeycode(keybind.combo.code ?? keybind.combo.key);
-			if (keycode === null) continue;
+			console.info('[PTT:refreshGlobal] Registering keybind', {
+				action: keybind.action,
+				key: keybind.combo.key,
+				code: keybind.combo.code,
+				keycode,
+				ctrl: !!(keybind.combo.ctrl || (!isMac && keybind.combo.ctrlOrMeta)),
+				alt: !!keybind.combo.alt,
+				shift: !!keybind.combo.shift,
+				meta: !!(keybind.combo.meta || (isMac && keybind.combo.ctrlOrMeta)),
+			});
+			if (keycode === null) {
+				console.warn('[PTT:refreshGlobal] SKIP: keycode is null for', keybind.combo.code ?? keybind.combo.key);
+				continue;
+			}
 
 			try {
 				await electronApi.globalKeyHookRegister?.({
@@ -841,6 +883,7 @@ class KeybindManager {
 		}
 
 		this.globalShortcutsEnabled = true;
+		console.info('[PTT:refreshGlobal] Done, globalShortcutsEnabled = true');
 	}
 
 	private refreshLocalShortcuts() {
@@ -872,9 +915,13 @@ class KeybindManager {
 		const wrapHandler = (type: 'press' | 'release') => (event?: KeyboardEvent) => {
 			if (!event) return;
 
-			if (shouldIgnoreEvent(event)) return;
+			if (shouldIgnoreEvent(event)) {
+				if (action === 'push_to_talk') console.info('[PTT:local] Ignored in editable element');
+				return;
+			}
 
 			if (this.globalShortcutsEnabled && (combo.global ?? false)) {
+				if (action === 'push_to_talk') console.info('[PTT:local] Skipped — handled by global hook');
 				return;
 			}
 
@@ -882,6 +929,7 @@ class KeybindManager {
 				return;
 			}
 
+			if (action === 'push_to_talk') console.info('[PTT:local] Firing local handler', {type});
 			handler({type, source: 'local'});
 			if (type === 'press') event.preventDefault();
 		};

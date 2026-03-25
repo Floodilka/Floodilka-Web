@@ -55,12 +55,20 @@ export function bindRoomEvents(
 	room.on(
 		RoomEvent.Connected,
 		guard(attemptId, async () => {
+			console.info('[PTT:RoomEventBinder] Room CONNECTED', {
+				channelId,
+				guildId,
+				selfMute: LocalVoiceStateStore.getSelfMute(),
+				selfDeaf: LocalVoiceStateStore.getSelfDeaf(),
+			});
 			VoiceParticipantManager.hydrateFromRoom(room);
 			VoicePermissionManager.applyDeafen(room, LocalVoiceStateStore.getSelfDeaf());
 			VoiceConnectionManager.markConnected();
 			await callbacks.onConnected();
 			await VoiceMediaManager.playEntranceSound();
+			console.info('[PTT:RoomEventBinder] About to call ensureMicrophone');
 			await VoiceMediaManager.ensureMicrophone(room, channelId);
+			console.info('[PTT:RoomEventBinder] ensureMicrophone done');
 			if (guildId && channelId) {
 				VoicePermissionManager.syncWithPermissionStore(guildId, channelId, room);
 			}
