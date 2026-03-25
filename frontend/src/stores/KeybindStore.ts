@@ -482,7 +482,13 @@ class KeybindStore {
 	setI18n(i18n: I18n): void {
 		this.i18n = i18n;
 		if (!this.initialized) {
-			this.resetToDefaults();
+			// Only populate defaults on first-ever use. If keybinds were already
+			// hydrated from persistence we must not overwrite them — the PTT
+			// keybind (and any other user-customised shortcut) would be wiped
+			// because the default PTT combo has no key assigned.
+			if (Object.keys(this.keybinds).length === 0) {
+				this.resetToDefaults();
+			}
 			this.initialized = true;
 		}
 	}

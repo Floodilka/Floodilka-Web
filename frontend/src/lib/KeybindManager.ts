@@ -20,7 +20,7 @@
 import type {I18n} from '@lingui/core';
 import {msg} from '@lingui/core/macro';
 import CombokeysImport from 'combokeys';
-import {autorun} from 'mobx';
+import {autorun, reaction} from 'mobx';
 import React from 'react';
 import * as CallActionCreators from '~/actions/CallActionCreators';
 import * as ModalActionCreators from '~/actions/ModalActionCreators';
@@ -279,10 +279,21 @@ class KeybindManager {
 			}),
 		);
 
+		// Use reaction (not autorun) so we only re-run when the PTT *mode* or
+		// *keybind* actually changes.  An autorun here would also track
+		// selfMute (read inside applyLocalMuteState), creating a feedback loop:
+		// PTT-press → unmute → autorun fires → resets PTT → mutes again.
 		this.disposers.push(
-			autorun(() => {
-				MediaEngineStore.handlePushToTalkModeChange();
-			}),
+			reaction(
+				() => ({
+					mode: KeybindStore.transmitMode,
+					hasKeybind: KeybindStore.hasPushToTalkKeybind(),
+				}),
+				() => {
+					MediaEngineStore.handlePushToTalkModeChange();
+				},
+				{fireImmediately: true},
+			),
 		);
 
 		await this.refreshGlobalShortcuts();
