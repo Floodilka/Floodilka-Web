@@ -433,20 +433,27 @@ export class CallService {
 
 		const existingCall = await this.gatewayService.getCall(channelId);
 		if (!existingCall) {
-			await this.createOrGetCall({
-				userId,
-				channelId,
-				ringing: recipientsToRing,
-				requestCache,
-				latitude,
-				longitude,
-			});
-		} else {
-			await this.gatewayService.ringCallRecipients(
-				channelId,
-				recipientsToRing.map((id) => id.toString()),
-			);
+			try {
+				await this.createOrGetCall({
+					userId,
+					channelId,
+					ringing: recipientsToRing,
+					requestCache,
+					latitude,
+					longitude,
+				});
+				return;
+			} catch (error) {
+				if (!(error instanceof CallAlreadyExistsError)) {
+					throw error;
+				}
+			}
 		}
+
+		await this.gatewayService.ringCallRecipients(
+			channelId,
+			recipientsToRing.map((id) => id.toString()),
+		);
 	}
 
 	async stopRingingCallRecipients({
