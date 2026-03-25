@@ -311,6 +311,11 @@ class KeybindManager {
 		if (!this.initialized) return;
 		this.initialized = false;
 
+		if (this.pttReleaseTimer) {
+			clearTimeout(this.pttReleaseTimer);
+			this.pttReleaseTimer = null;
+		}
+
 		this.disposers.forEach((dispose) => dispose());
 		this.disposers = [];
 

@@ -301,11 +301,9 @@ export const toggleSelfMute = async (_guildId: string | null = null): Promise<vo
 		} else {
 			room.localParticipant.audioTrackPublications.forEach((publication: LocalTrackPublication) => {
 				if (publication.source === Track.Source.ScreenShareAudio) return;
-				const track = publication.track;
-				if (!track) return;
-				const operation = newMute ? track.mute() : track.unmute();
+				const operation = newMute ? publication.mute() : publication.unmute();
 				operation.catch((error) =>
-					logger.error(newMute ? 'Failed to mute local track' : 'Failed to unmute local track', {error}),
+					logger.error(newMute ? 'Failed to mute publication' : 'Failed to unmute publication', {error}),
 				);
 			});
 		}

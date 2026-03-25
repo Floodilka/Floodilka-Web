@@ -85,9 +85,8 @@ export function handlePushToTalkModeChange(
 	if (KeybindStore.isPushToTalkEffective()) {
 		KeybindStore.setPushToTalkHeld(false);
 		KeybindStore.resetPushToTalkState();
-		if (!LocalVoiceStateStore.getHasUserSetMute()) {
-			applyLocalMuteState(true, room, syncVoiceState);
-		}
+		LocalVoiceStateStore.clearHasUserSetMute();
+		applyLocalMuteState(true, room, syncVoiceState);
 	} else if (!LocalVoiceStateStore.getHasUserSetMute()) {
 		applyLocalMuteState(false, room, syncVoiceState);
 	}

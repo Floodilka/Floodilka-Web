@@ -268,6 +268,12 @@ class LocalVoiceStateStore {
 		return this.hasUserSetMute;
 	}
 
+	clearHasUserSetMute(): void {
+		runInAction(() => {
+			this.hasUserSetMute = false;
+		});
+	}
+
 	getHasUserSetDeaf(): boolean {
 		return this.hasUserSetDeaf;
 	}

@@ -40,6 +40,7 @@ interface KeybindRegistration {
 const registeredKeybinds = new Map<string, KeybindRegistration>();
 const activeKeys = new Set<number>();
 let hookStarted = false;
+let listenersAttached = false;
 const requireModule = createRequire(import.meta.url);
 
 function keycodeToKeyName(keycode: number): string {
@@ -204,10 +205,13 @@ async function startHook(): Promise<boolean> {
 		uIOhook = uiohookModule.uIOhook;
 		UiohookKey = uiohookModule.UiohookKey;
 
-		uIOhook.on('keydown', (event) => handleKeyEvent(event, 'keydown'));
-		uIOhook.on('keyup', (event) => handleKeyEvent(event, 'keyup'));
-		uIOhook.on('mousedown', (event) => handleMouseEvent(event, 'mousedown'));
-		uIOhook.on('mouseup', (event) => handleMouseEvent(event, 'mouseup'));
+		if (!listenersAttached) {
+			uIOhook.on('keydown', (event) => handleKeyEvent(event, 'keydown'));
+			uIOhook.on('keyup', (event) => handleKeyEvent(event, 'keyup'));
+			uIOhook.on('mousedown', (event) => handleMouseEvent(event, 'mousedown'));
+			uIOhook.on('mouseup', (event) => handleMouseEvent(event, 'mouseup'));
+			listenersAttached = true;
+		}
 
 		uIOhook.start();
 		hookStarted = true;
