@@ -317,13 +317,12 @@ handle_info({pending_connection_timeout, ConnectionId}, State) ->
                     case erlang:is_process_alive(SessionPid) of
                         true ->
                             logger:warning(
-                                "[call] Pending connection ~p timed out, but session is still alive; keeping user ~p in call",
+                                "[call] Pending connection ~p timed out, session alive; "
+                                "scheduling grace timeout for user ~p",
                                 [ConnectionId, UserId]
                             ),
-                            NewPending = voice_pending_common:remove_pending_connection(
-                                ConnectionId, State#state.pending_connections
-                            ),
-                            {noreply, State#state{pending_connections = NewPending}};
+                            erlang:send_after(30000, self(), {pending_connection_grace_timeout, ConnectionId}),
+                            {noreply, State};
                         false ->
                             disconnect_user_after_pending_timeout(
                                 ConnectionId, UserId, SessionId, State
@@ -331,6 +330,41 @@ handle_info({pending_connection_timeout, ConnectionId}, State) ->
                     end;
                 _ ->
                     disconnect_user_after_pending_timeout(ConnectionId, UserId, SessionId, State)
+            end
+    end;
+handle_info({pending_connection_grace_timeout, ConnectionId}, State) ->
+    case
+        voice_pending_common:get_pending_connection(
+            ConnectionId, State#state.pending_connections
+        )
+    of
+        undefined ->
+            %% Connection was confirmed during grace period — all good
+            {noreply, State};
+        #{user_id := UserId, session_id := SessionId} ->
+            %% Verify the user hasn't reconnected with a new session since this
+            %% pending connection was created. If they did, just clean up the
+            %% stale pending entry — don't disconnect their new connection.
+            CurrentSession = maps:get(SessionId, State#state.sessions, undefined),
+            case CurrentSession of
+                {UserId, _, _} ->
+                    logger:warning(
+                        "[call] Grace timeout expired for connection ~p, disconnecting phantom user ~p "
+                        "from channel ~p",
+                        [ConnectionId, UserId, State#state.channel_id]
+                    ),
+                    disconnect_user_after_pending_timeout(ConnectionId, UserId, SessionId, State);
+                _ ->
+                    %% Session changed or gone — user reconnected, just remove stale pending
+                    logger:info(
+                        "[call] Grace timeout for connection ~p, but user ~p session changed; "
+                        "cleaning up stale pending only",
+                        [ConnectionId, UserId]
+                    ),
+                    NewPending = voice_pending_common:remove_pending_connection(
+                        ConnectionId, State#state.pending_connections
+                    ),
+                    {noreply, State#state{pending_connections = NewPending}}
             end
     end;
 handle_info(idle_timeout, State) ->
