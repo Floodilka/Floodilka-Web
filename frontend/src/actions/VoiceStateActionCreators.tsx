@@ -26,6 +26,7 @@ import {MicrophonePermissionDeniedModal} from '~/components/alerts/MicrophonePer
 import {Logger} from '~/lib/Logger';
 import ChannelStore from '~/stores/ChannelStore';
 import ConnectionStore from '~/stores/ConnectionStore';
+import KeybindStore from '~/stores/KeybindStore';
 import LocalVoiceStateStore from '~/stores/LocalVoiceStateStore';
 import MediaPermissionStore from '~/stores/MediaPermissionStore';
 import ParticipantVolumeStore from '~/stores/ParticipantVolumeStore';
@@ -326,6 +327,14 @@ export const toggleSelfMute = async (_guildId: string | null = null): Promise<vo
 			self_mute: newMute,
 			self_deaf: newDeaf,
 		});
+	}
+
+	// When user unmutes while PTT is active, PTT should take control back.
+	// Clear the manual mute override and let PTT re-mute (key is not held).
+	if (!newMute && KeybindStore.isPushToTalkEffective() && !KeybindStore.pushToTalkHeld) {
+		logger.info('[toggleSelfMute] User unmuted in PTT mode — PTT taking control, re-muting');
+		LocalVoiceStateStore.clearHasUserSetMute();
+		MediaEngineStore.applyPushToTalkHold(false);
 	}
 };
 
