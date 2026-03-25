@@ -115,19 +115,24 @@ export function applyLocalMuteState(
 		return;
 	}
 
-	LocalVoiceStateStore.updateSelfMute(targetMute);
-
 	if (room?.localParticipant) {
+		const hasAudioTracks = room.localParticipant.audioTrackPublications.size > 0;
+
+		if (!targetMute && !hasAudioTracks) {
+			logger.debug('Skipping unmute: no audio tracks exist. Enable microphone first.');
+			syncVoiceState({self_mute: true});
+			return;
+		}
+
 		room.localParticipant.audioTrackPublications.forEach((publication: LocalTrackPublication) => {
 			if (publication.source === Track.Source.ScreenShareAudio) return;
-			const track = publication.track;
-			if (!track) return;
-			const operation = targetMute ? track.mute() : track.unmute();
+			const operation = targetMute ? publication.mute() : publication.unmute();
 			operation.catch((error) =>
-				logger.error(targetMute ? 'Failed to mute local track' : 'Failed to unmute local track', {error}),
+				logger.error(targetMute ? 'Failed to mute publication' : 'Failed to unmute publication', {error}),
 			);
 		});
 	}
 
+	LocalVoiceStateStore.updateSelfMute(targetMute);
 	syncVoiceState({self_mute: targetMute});
 }
