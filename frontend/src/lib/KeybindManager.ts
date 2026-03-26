@@ -976,6 +976,8 @@ class KeybindManager {
 		const ignoreInEditable = isAltOnlyArrowCombo(combo);
 
 		const shouldIgnoreEvent = (event: KeyboardEvent): boolean => {
+			// PTT must work even when typing in a text field
+			if (action === 'push_to_talk') return false;
 			const target = event.target ?? null;
 			if (!isEditableElement(target)) return false;
 			if (!hasModifier) return true;
@@ -985,10 +987,7 @@ class KeybindManager {
 		const wrapHandler = (type: 'press' | 'release') => (event?: KeyboardEvent) => {
 			if (!event) return;
 
-			if (shouldIgnoreEvent(event)) {
-				if (action === 'push_to_talk') console.info('[PTT:local] Ignored in editable element');
-				return;
-			}
+			if (shouldIgnoreEvent(event)) return;
 
 			if (this.globalShortcutsEnabled && (combo.global ?? false)) {
 				if (action === 'push_to_talk') console.info('[PTT:local] Skipped — handled by global hook');
