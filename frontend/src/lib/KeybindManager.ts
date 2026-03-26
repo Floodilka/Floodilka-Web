@@ -903,9 +903,10 @@ class KeybindManager {
 	}
 
 	/**
-	 * Combokeys does not reliably fire keyup events for single-key bindings.
-	 * PTT requires keyup to re-mute when the key is released, so we use a
-	 * direct DOM listener as a fallback.
+	 * Combokeys does not reliably fire keyup events, and on macOS the browser
+	 * swallows keyup for letter keys while Cmd is held. PTT requires keyup
+	 * to re-mute, so we listen for keyup of the main key OR any required
+	 * modifier — releasing any part of the combo triggers PTT release.
 	 */
 	private refreshPttKeyupListener() {
 		if (this.pttKeyupHandler) {
@@ -923,18 +924,44 @@ class KeybindManager {
 		const pttHandler = this.handlers.get('push_to_talk');
 		if (!pttHandler) return;
 
-		const resolvedKey = resolveComboKey(pttKeybind.combo);
+		const {combo} = pttKeybind;
+		const resolvedKey = resolveComboKey(combo);
+		const isMac = navigator.platform?.includes('Mac') ?? false;
+		const needsCtrl = !!(combo.ctrl || (!isMac && combo.ctrlOrMeta));
+		const needsMeta = !!(combo.meta || (isMac && combo.ctrlOrMeta));
+		const needsAlt = !!combo.alt;
+		const needsShift = !!combo.shift;
+		const hasModifiers = needsCtrl || needsMeta || needsAlt || needsShift;
+
+		console.info('[PTT:keyup-direct] Registering listener', {
+			resolvedKey, needsCtrl, needsMeta, needsAlt, needsShift, hasModifiers,
+		});
 
 		this.pttKeyupHandler = (event: KeyboardEvent) => {
-			const eventKey = resolveComboKey({key: event.key, code: event.code});
-			if (eventKey.toLowerCase() !== resolvedKey.toLowerCase()) return;
+			// Only fire if PTT is currently held
+			if (!KeybindStore.pushToTalkHeld) return;
 
-			console.info('[PTT:keyup-direct] DOM keyup matched PTT key', {eventKey, resolvedKey});
+			const eventKey = resolveComboKey({key: event.key, code: event.code});
+			const isMainKey = eventKey.toLowerCase() === resolvedKey.toLowerCase();
+
+			// On Mac, keyup for the letter doesn't fire while Cmd is held.
+			// So also check if a required modifier was released.
+			const isRequiredModifier =
+				(needsCtrl && (event.key === 'Control')) ||
+				(needsMeta && (event.key === 'Meta')) ||
+				(needsAlt && (event.key === 'Alt')) ||
+				(needsShift && (event.key === 'Shift'));
+
+			if (!isMainKey && !isRequiredModifier) return;
+
+			console.info('[PTT:keyup-direct] PTT release detected', {
+				eventKey, isMainKey, isRequiredModifier, key: event.key,
+			});
 			pttHandler({type: 'release', source: 'local'});
 		};
 
 		document.addEventListener('keyup', this.pttKeyupHandler);
-		console.info('[PTT:keyup-direct] Registered direct keyup listener for PTT key:', resolvedKey);
+		console.info('[PTT:keyup-direct] Registered for PTT key:', resolvedKey);
 	}
 
 	private bindLocalShortcut(entry: KeybindConfig & {combo: KeyCombo}) {
