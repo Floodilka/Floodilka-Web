@@ -153,8 +153,9 @@ const UserAreaInner = observer(
 			hasVoiceConnection && styles.userAreaInnerWrapperHasVoiceConnection,
 		);
 
+		const isPushToTalkEffective = KeybindStore.isPushToTalkEffective();
 		const pushToTalkCombo = KeybindStore.getByAction('push_to_talk').combo;
-		const pushToTalkHint = formatKeyCombo(pushToTalkCombo);
+		const pushToTalkHint = isPushToTalkEffective ? formatKeyCombo(pushToTalkCombo) : '';
 		const effectiveMuted = muteReason !== null || isMuted;
 
 		return (
@@ -201,7 +202,7 @@ const UserAreaInner = observer(
 									label={
 										isGuildMuted
 											? t`Community Muted`
-											: muteReason === 'push_to_talk'
+											: isPushToTalkEffective && pushToTalkHint
 												? t`Push-to-talk enabled — hold ${pushToTalkHint} to speak`
 												: effectiveMuted
 													? t`Unmute`
