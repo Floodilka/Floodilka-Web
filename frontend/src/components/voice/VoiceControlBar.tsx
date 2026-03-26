@@ -236,13 +236,12 @@ const VoiceControlBarInner = observer(function VoiceControlBarInner() {
 	const getMuteTooltipLabel = useCallback(() => {
 		if (isGuildMuted) return t`Community Muted`;
 
-		switch (muteReason) {
-			case 'push_to_talk':
-				return t`Push-to-talk enabled — hold ${pushToTalkHint} to speak`;
-			default:
-				return effectiveMuted ? t`Unmute` : t`Mute`;
+		if (isPushToTalkEffective && pushToTalkHint) {
+			return t`Push-to-talk enabled — hold ${pushToTalkHint} to speak`;
 		}
-	}, [effectiveMuted, isGuildMuted, muteReason, pushToTalkHint, t]);
+
+		return effectiveMuted ? t`Unmute` : t`Mute`;
+	}, [effectiveMuted, isGuildMuted, isPushToTalkEffective, pushToTalkHint, t]);
 
 	const getDeafenTooltipLabel = useCallback(() => {
 		if (isGuildDeafened) return t`Community Deafened`;
