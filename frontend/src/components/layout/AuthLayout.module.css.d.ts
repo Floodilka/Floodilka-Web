@@ -18,6 +18,7 @@ declare const styles: {
   readonly "mobileContent": string;
   readonly "mobileLogoContainer": string;
   readonly "mobileWordmark": string;
+  readonly "mobileWordmarkText": string;
   readonly "patternHost": string;
   readonly "rightSplit": string;
   readonly "scrollerWrapper": string;

@@ -41,6 +41,7 @@ declare const styles: {
   readonly "page": string;
   readonly "pageLogo": string;
   readonly "pageWordmark": string;
+  readonly "pageWordmarkText": string;
   readonly "panel": string;
   readonly "permissionHint": string;
   readonly "permissionLabel": string;

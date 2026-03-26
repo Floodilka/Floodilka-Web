@@ -31,7 +31,7 @@ import {AuthLayoutContext} from '~/contexts/AuthLayoutContext';
 import {useSetLayoutVariant} from '~/contexts/LayoutVariantContext';
 import {useAuthBackground} from '~/hooks/useAuthBackground';
 import i18n, {initI18n} from '~/i18n';
-import FloodilkaWordmarkMonochrome from '~/images/floodilka-logo-wordmark-monochrome.svg?react';
+import {FloodilkaIcon} from '~/components/icons/FloodilkaIcon';
 import foodPatternUrl from '~/images/i-like-food.svg';
 import {useLocation} from '~/lib/router';
 import {isMobileExperienceEnabled} from '~/utils/mobileExperience';
@@ -109,7 +109,10 @@ const AuthLayoutContent = observer(function AuthLayoutContent({children}: {child
 					<Scroller ref={scrollerRef} className={styles.mobileContainer} fade={false} key="auth-layout-mobile-scroller">
 						<div className={styles.mobileContent}>
 							<div className={styles.mobileLogoContainer}>
-								<FloodilkaWordmarkMonochrome className={styles.mobileWordmark} />
+								<div className={styles.mobileWordmark}>
+									<FloodilkaIcon style={{height: '2rem', width: 'auto'}} />
+									<span className={styles.mobileWordmarkText}>Флудилка</span>
+								</div>
 							</div>
 							{children}
 						</div>

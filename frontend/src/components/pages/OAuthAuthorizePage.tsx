@@ -37,7 +37,7 @@ import {Tooltip} from '~/components/uikit/Tooltip/Tooltip';
 import {useAuthLayoutContext} from '~/contexts/AuthLayoutContext';
 import {Endpoints} from '~/Endpoints';
 import {useDocumentTitle} from '~/hooks/useDocumentTitle';
-import FloodilkaWordmarkMonochrome from '~/images/floodilka-logo-wordmark-monochrome.svg?react';
+import {FloodilkaIcon} from '~/components/icons/FloodilkaIcon';
 import http, {HttpError} from '~/lib/HttpClient';
 import {Logger} from '~/lib/Logger';
 import UserStore from '~/stores/UserStore';
@@ -590,7 +590,7 @@ const OAuthAuthorizePage: React.FC = observer(() => {
 		return (
 			<div className={styles.page}>
 				<div className={styles.pageLogo}>
-					<FloodilkaWordmarkMonochrome className={styles.pageWordmark} />
+					<FloodilkaIcon className={styles.pageWordmark} /><span className={styles.pageWordmarkText}>Флудилка</span>
 				</div>
 
 				<div className={styles.breadcrumbs}>
@@ -725,7 +725,7 @@ const OAuthAuthorizePage: React.FC = observer(() => {
 	return (
 		<div className={styles.page}>
 			<div className={styles.pageLogo}>
-				<FloodilkaWordmarkMonochrome className={styles.pageWordmark} />
+				<FloodilkaIcon className={styles.pageWordmark} /><span className={styles.pageWordmarkText}>Флудилка</span>
 			</div>
 
 			{needsPermissionsStep && (
