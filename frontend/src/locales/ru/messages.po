@@ -2711,8 +2711,8 @@ msgid "Automatically use your system's reduced motion preference, or customize i
 msgstr "Автоматически применять системные настройки уменьшенного движения или настроить ниже."
 
 #: src/components/modals/tabs/AdvancedTab.tsx:96
-msgid "Autostart is coming soon for Windows and Linux. For now, it is only available on macOS."
-msgstr "Автозапуск скоро появится для Windows и Linux. Пока он доступен только на macOS."
+msgid "Autostart is coming soon for Linux. For now, it is only available on macOS and Windows."
+msgstr "Автозапуск скоро появится для Linux. Пока он доступен только на macOS и Windows."
 
 #: src/components/modals/tabs/MyProfileTab/AvatarUploader.tsx:187
 #: src/components/modals/tabs/MyProfileTab/AvatarUploader.tsx:227

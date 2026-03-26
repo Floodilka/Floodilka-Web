@@ -45,7 +45,7 @@ const AdvancedTab: React.FC = observer(() => {
 			if (!mounted) return;
 
 			setPlatform(detectedPlatform);
-			if (detectedPlatform !== 'macos') return;
+			if (detectedPlatform !== 'macos' && detectedPlatform !== 'windows') return;
 
 			setAutostartBusy(true);
 			const enabled = await getAutostartStatus();
@@ -66,7 +66,7 @@ const AdvancedTab: React.FC = observer(() => {
 	}, []);
 
 	const handleAutostartChange = async (value: boolean) => {
-		if (platform !== 'macos') return;
+		if (platform !== 'macos' && platform !== 'windows') return;
 		setAutostartBusy(true);
 		const nextState = await setAutostartEnabled(value);
 		if (nextState !== null) {
@@ -75,7 +75,7 @@ const AdvancedTab: React.FC = observer(() => {
 		setAutostartBusy(false);
 	};
 
-	const showAutostartWarning = platform !== 'unknown' && platform !== 'macos';
+	const showAutostartWarning = platform === 'linux';
 
 	return (
 		<SettingsTabContainer>
@@ -87,13 +87,13 @@ const AdvancedTab: React.FC = observer(() => {
 					<Switch
 						label={<Trans>Launch Флудилка at login</Trans>}
 						description={<Trans>Applies only to the desktop app on this device.</Trans>}
-						value={platform === 'macos' ? autostartEnabled : false}
-						disabled={platform !== 'macos' || autostartBusy}
+						value={autostartEnabled}
+						disabled={(platform !== 'macos' && platform !== 'windows') || autostartBusy}
 						onChange={handleAutostartChange}
 					/>
 					{showAutostartWarning && (
 						<WarningAlert>
-							<Trans>Autostart is coming soon for Windows and Linux. For now, it is only available on macOS.</Trans>
+							<Trans>Autostart is coming soon for Linux. For now, it is only available on macOS and Windows.</Trans>
 						</WarningAlert>
 					)}
 				</SettingsTabSection>
