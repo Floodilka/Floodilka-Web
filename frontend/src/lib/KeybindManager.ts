@@ -1000,7 +1000,8 @@ class KeybindManager {
 
 			if (action === 'push_to_talk') console.info('[PTT:local] Firing local handler', {type});
 			handler({type, source: 'local'});
-			if (type === 'press') event.preventDefault();
+			// Don't preventDefault for PTT — let the key be typed in text fields
+			if (type === 'press' && action !== 'push_to_talk') event.preventDefault();
 		};
 
 		const combokeys = this.ensureCombokeys();
