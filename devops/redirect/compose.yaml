@@ -1,0 +1,19 @@
+services:
+  redirect:
+    image: alpine:latest
+    command: ["sleep", "infinity"]
+    networks:
+      - floodilka-shared
+    deploy:
+      replicas: 1
+      resources:
+        limits:
+          cpus: '0.01'
+          memory: 8M
+      labels:
+        caddy: floodilka.ru
+        caddy.redir: "https://floodilka.com{uri} permanent"
+
+networks:
+  floodilka-shared:
+    external: true
