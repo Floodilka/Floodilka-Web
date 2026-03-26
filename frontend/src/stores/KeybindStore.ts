@@ -490,7 +490,20 @@ class KeybindStore {
 			if (Object.keys(this.keybinds).length === 0) {
 				this.resetToDefaults();
 			}
+			this.migratePttGlobal();
 			this.initialized = true;
+		}
+	}
+
+	/** Migrate existing PTT keybinds to global: true on desktop. */
+	private migratePttGlobal(): void {
+		if (!isDesktop()) return;
+		const ptt = this.keybinds.push_to_talk;
+		if (ptt && (ptt.key || ptt.code) && !ptt.global) {
+			console.info('[KeybindStore] Migrating PTT keybind to global: true');
+			runInAction(() => {
+				this.keybinds.push_to_talk = {...ptt, global: true};
+			});
 		}
 	}
 
