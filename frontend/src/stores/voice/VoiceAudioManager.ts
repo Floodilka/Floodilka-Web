@@ -138,7 +138,10 @@ export function getMuteReason(voiceState: VoiceState | null): 'guild' | 'push_to
 	if (isGuildMuted) return 'guild';
 
 	const selfMuted = voiceState?.self_mute ?? LocalVoiceStateStore.getSelfMute();
-	if (KeybindStore.isPushToTalkEffective() && KeybindStore.isPushToTalkMuted(selfMuted)) return 'push_to_talk';
+	// isPushToTalkMuted expects whether the user MANUALLY muted (not the current mute state).
+	// Passing selfMuted here would always return false when muted, defeating the purpose.
+	const hasUserSetMute = LocalVoiceStateStore.getHasUserSetMute() && selfMuted;
+	if (KeybindStore.isPushToTalkEffective() && KeybindStore.isPushToTalkMuted(hasUserSetMute)) return 'push_to_talk';
 	if (selfMuted) return 'self';
 	return null;
 }
