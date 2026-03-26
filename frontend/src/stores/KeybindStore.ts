@@ -21,6 +21,7 @@ import type {I18n} from '@lingui/core';
 import {msg} from '@lingui/core/macro';
 import {makeAutoObservable, runInAction} from 'mobx';
 import {makePersistent} from '~/lib/MobXPersistence';
+import {isDesktop} from '~/utils/NativeUtils';
 
 export type KeybindAction =
 	| 'quick_switcher'
@@ -520,7 +521,12 @@ class KeybindStore {
 
 	setKeybind(action: KeybindAction, combo: KeyCombo): void {
 		runInAction(() => {
-			this.keybinds[action] = combo;
+			// PTT is useless without global shortcut on desktop — auto-enable
+			if (action === 'push_to_talk' && isDesktop() && combo.key) {
+				this.keybinds[action] = {...combo, global: true};
+			} else {
+				this.keybinds[action] = combo;
+			}
 		});
 	}
 
