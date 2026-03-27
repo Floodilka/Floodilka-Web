@@ -126,6 +126,7 @@ export const ListRenderer = observer(function ListRenderer({
 							<li
 								key={`${id}-segment-${segmentIndex}-item-${itemIndex}`}
 								className={clsx(isInlineContext && markupStyles.inlineFormat)}
+								data-value={item.ordinal}
 							>
 								{renderChildren(item.children)}
 							</li>

@@ -162,18 +162,13 @@
 	font-weight: 900;
 }
 
-.markup ol {
-	counter-reset: list-counter;
-}
-
 .markup ol > li {
 	position: relative;
 	padding-left: 1.25em;
-	counter-increment: list-counter;
 }
 
 .markup ol > li::before {
-	content: counter(list-counter) '.';
+	content: attr(data-value) '.';
 	position: absolute;
 	left: 0;
 }
