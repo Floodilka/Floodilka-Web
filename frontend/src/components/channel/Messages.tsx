@@ -609,7 +609,7 @@ export const Messages = observer(function Messages({channel}: {channel: ChannelR
 
 	useEffect(() => {
 		if (!canAutoAck || !state.isAtBottom || !state.messages?.ready) return;
-		if (ReadStateStore.hasUnread(channel.id)) {
+		if (ReadStateStore.hasUnread(channel.id) || ReadStateStore.getMentionCount(channel.id) > 0) {
 			ReadStateActionCreators.ackWithStickyUnread(channel.id);
 		}
 	}, [canAutoAck, state.isAtBottom, state.messages?.ready, channel.id]);

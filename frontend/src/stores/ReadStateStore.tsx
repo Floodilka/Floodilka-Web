@@ -935,9 +935,10 @@ class ReadStateStore {
 
 		const ackedMessageId = state.ackMessageId;
 		const hasUnreads = state.unreadCount > 0;
+		const hasStaleMentions = state.mentionCount > 0;
 		const ackBehind = ackedMessageId == null || compareSnowflakes(ackedMessageId, lastMessageId) < 0;
 
-		if (!hasUnreads && !ackBehind) {
+		if (!hasUnreads && !ackBehind && !hasStaleMentions) {
 			return;
 		}
 

@@ -98,28 +98,32 @@ export class ReadStateRepository implements IReadStateRepository {
 			),
 		);
 
-		const batch = new BatchBuilder();
-		for (const {userId, channelId, state} of existingStates) {
-			if (state) {
-				batch.addPrepared(
-					ReadStates.patchByPk(
-						{user_id: userId, channel_id: channelId},
-						{mention_count: Db.set((state.mention_count || 0) + 1)},
-					),
-				);
-			} else {
-				batch.addPrepared(
-					ReadStates.upsertAll({
-						user_id: userId,
-						channel_id: channelId,
-						message_id: channelIdToMessageId(channelId),
-						mention_count: 1,
-						last_pin_timestamp: null,
-					}),
-				);
+		const CHUNK_SIZE = 50;
+		for (let i = 0; i < existingStates.length; i += CHUNK_SIZE) {
+			const chunk = existingStates.slice(i, i + CHUNK_SIZE);
+			const batch = new BatchBuilder();
+			for (const {userId, channelId, state} of chunk) {
+				if (state) {
+					batch.addPrepared(
+						ReadStates.patchByPk(
+							{user_id: userId, channel_id: channelId},
+							{mention_count: Db.set((state.mention_count || 0) + 1)},
+						),
+					);
+				} else {
+					batch.addPrepared(
+						ReadStates.upsertAll({
+							user_id: userId,
+							channel_id: channelId,
+							message_id: channelIdToMessageId(channelId),
+							mention_count: 1,
+							last_pin_timestamp: null,
+						}),
+					);
+				}
 			}
+			await batch.execute();
 		}
-		await batch.execute();
 	}
 
 	async deleteReadState(userId: UserID, channelId: ChannelID): Promise<void> {
