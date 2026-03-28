@@ -787,8 +787,21 @@ const VoiceParticipantTileInner = observer(function VoiceParticipantTileInner({
 			}
 			return;
 		}
+
+		// Camera tile: click to focus/unfocus when video is active
+		if (hasVideo) {
+			const isPinned = VoiceCallLayoutStore.pinnedParticipantIdentity === identity;
+			if (isPinned) {
+				VoiceCallLayoutActionCreators.setPinnedParticipant(null);
+			} else {
+				VoiceCallLayoutActionCreators.setPinnedParticipant(identity);
+				VoiceCallLayoutActionCreators.markUserOverride();
+			}
+			return;
+		}
+
 		onClick?.(identity);
-	}, [identity, isScreenShare, onClick, stopWatching, startWatching]);
+	}, [identity, isScreenShare, hasVideo, onClick, stopWatching, startWatching]);
 
 	const handleWatch = useCallback(
 		(e: React.MouseEvent) => {
@@ -887,7 +900,7 @@ const VoiceParticipantTileInner = observer(function VoiceParticipantTileInner({
 				>
 					{mediaNode}
 
-					{isScreenShare && isFocused && !isOwnScreenShare && (
+					{isFocused && !isOwnScreenShare && (
 						<button
 							type="button"
 							className={voiceCallStyles.lkFocusToggle}

@@ -173,12 +173,22 @@ const VoiceCallViewInner = observer(({channel}: {channel: ChannelRecord}) => {
 	const handleOpenCallSheet = useCallback(() => setIsCallSheetOpen(true), []);
 	const handleCloseCallSheet = useCallback(() => setIsCallSheetOpen(false), []);
 
-	// Determine if we're watching a stream (focusMainTrack is a screen share)
-	const isWatchingStream = Boolean(focusMainTrack && hasScreenShare);
+	// Determine if we're in focus mode (pinned screen share or camera)
+	const isInFocusMode = Boolean(focusMainTrack);
 
 	const mainContentNode = useMemo(() => {
-		if (isWatchingStream && focusMainTrack) {
-			// Stream on top, horizontal cards below (like main branch)
+		if (isInFocusMode && focusMainTrack) {
+			const focusIdentity = focusMainTrack.participant.identity;
+			const isScreenShareFocused = screenShareTracks.some(
+				(t) => t.participant.identity === focusIdentity,
+			);
+
+			// When focusing a camera, exclude it from the carousel
+			// When focusing a screen share, it's not in filteredCameraTracks so no filtering needed
+			const carouselCameraTracks = isScreenShareFocused
+				? filteredCameraTracks
+				: filteredCameraTracks.filter((t) => t.participant.identity !== focusIdentity);
+
 			return (
 				<div className={styles.gridLayoutWrapperStream}>
 					<div className={styles.streamPlayer}>
@@ -194,7 +204,7 @@ const VoiceCallViewInner = observer(({channel}: {channel: ChannelRecord}) => {
 							</ParticipantContext.Provider>
 						</TrackRefContext.Provider>
 					</div>
-					<VoiceGridLayout tracks={filteredCameraTracks} horizontal>
+					<VoiceGridLayout tracks={carouselCameraTracks} horizontal>
 						<VoiceParticipantTile guildId={channel.guildId} channelId={channel.id} />
 					</VoiceGridLayout>
 				</div>
@@ -210,7 +220,7 @@ const VoiceCallViewInner = observer(({channel}: {channel: ChannelRecord}) => {
 				</VoiceGridLayout>
 			</div>
 		);
-	}, [isWatchingStream, focusMainTrack, hasScreenShare, screenShareTracks, filteredCameraTracks, channel.guildId, channel.id]);
+	}, [isInFocusMode, focusMainTrack, hasScreenShare, screenShareTracks, filteredCameraTracks, channel.guildId, channel.id]);
 
 	const statsReferencePropsRaw = getStatsReferenceProps();
 	const {ref: _statsRef, onClick: statsOnClickRaw, ...statsReferenceProps} = statsReferencePropsRaw;

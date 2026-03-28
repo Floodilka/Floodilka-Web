@@ -123,6 +123,30 @@ export function useVoiceCallTracksAndLayout({channel}: UseVoiceCallTracksAndLayo
 		}
 	}, [cameraTracksAll, screenShareTracks, pinnedParticipantIdentity]);
 
+	// Clear pinned participant when their camera is turned off (only for camera-pinned, not screen share)
+	useEffect(() => {
+		if (!pinnedParticipantIdentity) return;
+
+		const isScreenSharePinned = screenShareTracks.some(
+			(tr) => tr.participant.identity === pinnedParticipantIdentity,
+		);
+		if (isScreenSharePinned) return;
+
+		const pinnedCameraTrack = cameraTracksAll.find(
+			(tr) => tr.participant.identity === pinnedParticipantIdentity,
+		);
+		if (!pinnedCameraTrack) return;
+
+		const hasCameraVideo =
+			isTrackReference(pinnedCameraTrack) &&
+			Boolean(pinnedCameraTrack.publication?.track) &&
+			!pinnedCameraTrack.publication?.isMuted;
+
+		if (!hasCameraVideo) {
+			VoiceCallLayoutActionCreators.setPinnedParticipant(null);
+		}
+	}, [cameraTracksAll, screenShareTracks, pinnedParticipantIdentity]);
+
 	const {mainTrack: focusMainTrack, carouselTracks} = usePinnedTrackRef({
 		layoutMode,
 		pinnedParticipantIdentity,
