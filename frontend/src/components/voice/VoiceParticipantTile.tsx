@@ -783,6 +783,7 @@ const VoiceParticipantTileInner = observer(function VoiceParticipantTileInner({
 				startWatching();
 				VoiceCallLayoutActionCreators.setLayoutMode('focus');
 				VoiceCallLayoutActionCreators.setPinnedParticipant(identity);
+				VoiceCallLayoutActionCreators.markUserOverride();
 			}
 			return;
 		}
@@ -886,7 +887,7 @@ const VoiceParticipantTileInner = observer(function VoiceParticipantTileInner({
 				>
 					{mediaNode}
 
-					{isScreenShare && isFocused && (
+					{isScreenShare && isFocused && !isOwnScreenShare && (
 						<button
 							type="button"
 							className={voiceCallStyles.lkFocusToggle}
