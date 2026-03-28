@@ -900,6 +900,15 @@ const VoiceParticipantTileInner = observer(function VoiceParticipantTileInner({
 				>
 					{mediaNode}
 
+					{!isScreenShare && hasVideo && !isFocused && (
+						<>
+							<div className={styles.placeholderGradient} />
+							<div className={styles.placeholderName}>
+								<span className={styles.placeholderNameText}>{participantDisplayName}</span>
+							</div>
+						</>
+					)}
+
 					{isFocused && !isOwnScreenShare && (
 						<button
 							type="button"

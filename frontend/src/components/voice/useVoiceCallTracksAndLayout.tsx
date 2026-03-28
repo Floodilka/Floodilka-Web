@@ -139,7 +139,6 @@ export function useVoiceCallTracksAndLayout({channel}: UseVoiceCallTracksAndLayo
 
 		const hasCameraVideo =
 			isTrackReference(pinnedCameraTrack) &&
-			Boolean(pinnedCameraTrack.publication?.track) &&
 			!pinnedCameraTrack.publication?.isMuted;
 
 		if (!hasCameraVideo) {
