@@ -114,19 +114,9 @@ filter_sessions_for_event(Event, FinalData, SessionIdOpt, Sessions, UpdatedState
                         Sessions, ChannelId, SessionIdOpt, UpdatedState
                     );
                 false ->
-                    FilteredSessions = filter_sessions_exclude_session(
+                    filter_sessions_exclude_session(
                         Sessions, SessionIdOpt
-                    ),
-                    case Event of
-                        guild_member_add ->
-                            [
-                                {Sid, SessionData}
-                             || {Sid, SessionData} <- FilteredSessions,
-                                maps:get(bot, SessionData, false) =:= true
-                            ];
-                        _ ->
-                            FilteredSessions
-                    end
+                    )
             end
     end.
 
