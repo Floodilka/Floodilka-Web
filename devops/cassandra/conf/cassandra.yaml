@@ -1,11 +1,11 @@
 cluster_name: 'floodilka-cluster'
-num_tokens: 256
+num_tokens: 16
 partitioner: org.apache.cassandra.dht.Murmur3Partitioner
 seed_provider:
   - class_name: org.apache.cassandra.locator.SimpleSeedProvider
     parameters:
       - seeds: 'cassandra'
-listen_address: auto
+listen_address: cassandra
 broadcast_address: cassandra
 rpc_address: 0.0.0.0
 broadcast_rpc_address: cassandra

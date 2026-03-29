@@ -10,9 +10,9 @@ services:
       - CASSANDRA_RACK=rack1
       - CASSANDRA_ENDPOINT_SNITCH=GossipingPropertyFileSnitch
       - CASSANDRA_SEEDS=cassandra
-      - MAX_HEAP_SIZE=8G
+      - MAX_HEAP_SIZE=2G
       - CASSANDRA_BROADCAST_ADDRESS=cassandra
-      - CASSANDRA_LISTEN_ADDRESS=auto
+      - CASSANDRA_LISTEN_ADDRESS=cassandra
       - CASSANDRA_RPC_ADDRESS=0.0.0.0
       - CASSANDRA_AUTHENTICATOR=PasswordAuthenticator
       - CASSANDRA_AUTHORIZER=CassandraAuthorizer
@@ -36,10 +36,10 @@ services:
       resources:
         limits:
           cpus: '4'
-          memory: 12G
+          memory: 6G
         reservations:
-          cpus: '2'
-          memory: 8G
+          cpus: '1'
+          memory: 3G
     healthcheck:
       test: ['CMD-SHELL', 'nodetool statusbinary | grep -q running']
       interval: 30s
@@ -83,8 +83,8 @@ services:
           cpus: '1'
           memory: 2G
         reservations:
-          cpus: '0.5'
-          memory: 1G
+          cpus: '0.25'
+          memory: 256M
 
 networks:
   floodilka-shared:

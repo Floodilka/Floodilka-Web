@@ -102,7 +102,7 @@ echo "[$(date)] Encrypted backup size: ${BACKUP_SIZE}"
 echo "[$(date)] Uploading encrypted backup to S3..."
 if ! aws s3 cp "/tmp/${ENCRYPTED_BACKUP}" \
      "s3://${S3_BUCKET}/${S3_PREFIX}/${ENCRYPTED_BACKUP}" \
-     --endpoint-url="${S3_ENDPOINT_URL}"; then
+     --endpoint-url="${S3_ENDPOINT_URL}" --no-verify-ssl; then
     echo "[$(date)] Error: Upload to S3 failed"
     rm -f "/tmp/${ENCRYPTED_BACKUP}"
     rm -rf "${TEMP_DIR}"
@@ -122,14 +122,14 @@ nodetool -h "${CASSANDRA_HOST}" clearsnapshot -t "${SNAPSHOT_TAG}"
 
 # Step 7: Purge old backups from S3
 echo "[$(date)] Purging old backups (keeping last ${MAX_BACKUP_COUNT})..."
-aws s3 ls "s3://${S3_BUCKET}/${S3_PREFIX}/" --endpoint-url="${S3_ENDPOINT_URL}" | \
+aws s3 ls "s3://${S3_BUCKET}/${S3_PREFIX}/" --endpoint-url="${S3_ENDPOINT_URL}" --no-verify-ssl | \
     grep "cassandra-backup-.*\.tar\.age$" | \
     awk '{print $4}' | \
     sort -r | \
     tail -n +$((MAX_BACKUP_COUNT + 1)) | \
     while read -r old_backup; do
         echo "[$(date)] Deleting old backup: ${old_backup}"
-        aws s3 rm "s3://${S3_BUCKET}/${S3_PREFIX}/${old_backup}" --endpoint-url="${S3_ENDPOINT_URL}" || true
+        aws s3 rm "s3://${S3_BUCKET}/${S3_PREFIX}/${old_backup}" --endpoint-url="${S3_ENDPOINT_URL}" --no-verify-ssl || true
     done
 
 echo "[$(date)] Backup process completed successfully"
