@@ -28,12 +28,9 @@ AGE_PUBLIC_KEY_FILE="${AGE_PUBLIC_KEY_FILE:-/tmp/age_public_key.txt}"
 ENCRYPTED_BACKUP="${BACKUP_NAME}.tar.age"
 MAX_BACKUP_COUNT=168  # 7 days of hourly backups
 CASSANDRA_HOST="${CASSANDRA_HOST:-cassandra}"
-
-# AWS CLI configuration for B2
-export AWS_ACCESS_KEY_ID="${B2_KEY_ID}"
-export AWS_SECRET_ACCESS_KEY="${B2_APPLICATION_KEY}"
-export AWS_DEFAULT_REGION="${B2_REGION}"
-B2_ENDPOINT_URL="https://${B2_ENDPOINT}"
+S3_ENDPOINT_URL="${AWS_S3_ENDPOINT}"
+S3_BUCKET="${AWS_S3_BUCKET}"
+S3_PREFIX="${AWS_S3_PREFIX:-backups/cassandra}"
 
 echo "[$(date)] Starting Cassandra backup: ${BACKUP_NAME}"
 
@@ -101,12 +98,12 @@ echo "[$(date)] Encryption completed: ${ENCRYPTED_BACKUP}"
 BACKUP_SIZE=$(du -h "/tmp/${ENCRYPTED_BACKUP}" | cut -f1)
 echo "[$(date)] Encrypted backup size: ${BACKUP_SIZE}"
 
-# Step 5: Upload encrypted backup to B2
-echo "[$(date)] Uploading encrypted backup to B2..."
+# Step 5: Upload encrypted backup to S3
+echo "[$(date)] Uploading encrypted backup to S3..."
 if ! aws s3 cp "/tmp/${ENCRYPTED_BACKUP}" \
-     "s3://${B2_BUCKET_NAME}/${ENCRYPTED_BACKUP}" \
-     --endpoint-url="${B2_ENDPOINT_URL}"; then
-    echo "[$(date)] Error: Upload to B2 failed"
+     "s3://${S3_BUCKET}/${S3_PREFIX}/${ENCRYPTED_BACKUP}" \
+     --endpoint-url="${S3_ENDPOINT_URL}"; then
+    echo "[$(date)] Error: Upload to S3 failed"
     rm -f "/tmp/${ENCRYPTED_BACKUP}"
     rm -rf "${TEMP_DIR}"
     nodetool -h "${CASSANDRA_HOST}" clearsnapshot -t "${SNAPSHOT_TAG}"
@@ -123,16 +120,16 @@ rm -rf "${TEMP_DIR}"
 echo "[$(date)] Clearing snapshot from Cassandra"
 nodetool -h "${CASSANDRA_HOST}" clearsnapshot -t "${SNAPSHOT_TAG}"
 
-# Step 7: Purge old backups from B2
-echo "[$(date)] Purging old backups from B2 (keeping last ${MAX_BACKUP_COUNT})..."
-aws s3 ls "s3://${B2_BUCKET_NAME}/" --endpoint-url="${B2_ENDPOINT_URL}" | \
+# Step 7: Purge old backups from S3
+echo "[$(date)] Purging old backups (keeping last ${MAX_BACKUP_COUNT})..."
+aws s3 ls "s3://${S3_BUCKET}/${S3_PREFIX}/" --endpoint-url="${S3_ENDPOINT_URL}" | \
     grep "cassandra-backup-.*\.tar\.age$" | \
     awk '{print $4}' | \
     sort -r | \
     tail -n +$((MAX_BACKUP_COUNT + 1)) | \
     while read -r old_backup; do
         echo "[$(date)] Deleting old backup: ${old_backup}"
-        aws s3 rm "s3://${B2_BUCKET_NAME}/${old_backup}" --endpoint-url="${B2_ENDPOINT_URL}" || true
+        aws s3 rm "s3://${S3_BUCKET}/${S3_PREFIX}/${old_backup}" --endpoint-url="${S3_ENDPOINT_URL}" || true
     done
 
 echo "[$(date)] Backup process completed successfully"
