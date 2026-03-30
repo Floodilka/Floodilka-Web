@@ -89,7 +89,43 @@ function generateBrowserConfig(cdnEndpointRaw) {
 }
 
 function generateRobotsTxt() {
-	return 'User-agent: *\nAllow: /\n';
+	return [
+		'# Флудилка — голосовой чат для геймеров',
+		'',
+		'User-agent: *',
+		'Allow: /',
+		'Disallow: /channels/',
+		'Disallow: /oauth2/',
+		'Disallow: /verify',
+		'Disallow: /reset',
+		'Disallow: /wasntme',
+		'Disallow: /report',
+		'Disallow: /bookmarks',
+		'Disallow: /mentions',
+		'Disallow: /notifications',
+		'Disallow: /you',
+		'Disallow: /api/',
+		'',
+		'# Yandex',
+		'User-agent: Yandex',
+		'Allow: /',
+		'Disallow: /channels/',
+		'Disallow: /oauth2/',
+		'Disallow: /verify',
+		'Disallow: /reset',
+		'Disallow: /wasntme',
+		'Disallow: /report',
+		'Disallow: /bookmarks',
+		'Disallow: /mentions',
+		'Disallow: /notifications',
+		'Disallow: /you',
+		'Disallow: /api/',
+		'Clean-param: ref /',
+		'',
+		'Host: https://floodilka.com',
+		'Sitemap: https://floodilka.com/sitemap.xml',
+		'',
+	].join('\n');
 }
 
 export class StaticFilesPlugin {

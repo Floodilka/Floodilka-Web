@@ -1,4 +1,5 @@
 import {useEffect, useRef} from 'react';
+import {useSEO} from '~/hooks/useSEO';
 import {useNavigate} from '~/lib/router';
 import {Routes} from '~/Routes';
 import AuthenticationStore from '~/stores/AuthenticationStore';
@@ -23,8 +24,6 @@ export const LandingPage = () => {
 	const {menuOpen, toggleMenu, closeMenu} = useMenu();
 
 	useEffect(() => {
-		document.title = 'Флудилка — голосовой чат для геймеров';
-
 		const html = document.documentElement;
 		const {body} = document;
 
@@ -38,6 +37,15 @@ export const LandingPage = () => {
 			body.style.overflow = '';
 		};
 	}, []);
+
+	useSEO({
+		title: 'Флудилка — голосовой чат для геймеров | Альтернатива Discord в России',
+		description:
+			'Флудилка — бесплатный голосовой мессенджер для геймеров. Аналог Discord, который работает в России без VPN. Голосовые каналы, стримы, серверы — всё бесплатно.',
+		keywords:
+			'аналог дискорда, замена дискорда, альтернатива дискорду, голосовой чат для игр, голосовой мессенджер, бесплатный голосовой чат, дискорд аналог, чем заменить дискорд, голосовой чат без впн, дискорд заблокирован, мессенджер для геймеров, discord альтернатива, войс чат, голосовой чат россия, флудилка',
+		canonicalPath: '/',
+	});
 
 	const handleDownload = () => {
 		closeMenu();

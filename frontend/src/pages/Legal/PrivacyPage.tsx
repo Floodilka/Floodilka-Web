@@ -1,4 +1,5 @@
 import {useEffect, useLayoutEffect} from 'react';
+import {useSEO} from '~/hooks/useSEO';
 import {LandingHeader} from '~/pages/Landing/components/LandingHeader';
 import {LandingFooter} from '~/pages/Landing/components/LandingFooter';
 import {useMenu} from '~/pages/Landing/hooks/useMenu';
@@ -7,9 +8,13 @@ import styles from './PrivacyPage.module.css';
 const PrivacyPage = () => {
 	const {menuOpen, toggleMenu, closeMenu} = useMenu();
 
-	useEffect(() => {
-		document.title = 'Политика конфиденциальности';
+	useSEO({
+		title: 'Политика конфиденциальности — Флудилка',
+		description: 'Политика конфиденциальности Флудилки. Узнайте, как мы защищаем ваши данные.',
+		canonicalPath: '/privacy',
+	});
 
+	useEffect(() => {
 		const html = document.documentElement;
 		const {body} = document;
 

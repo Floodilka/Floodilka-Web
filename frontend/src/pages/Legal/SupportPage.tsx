@@ -1,4 +1,5 @@
 import {useEffect, useLayoutEffect} from 'react';
+import {useSEO} from '~/hooks/useSEO';
 import {LandingHeader} from '~/pages/Landing/components/LandingHeader';
 import {LandingFooter} from '~/pages/Landing/components/LandingFooter';
 import {useMenu} from '~/pages/Landing/hooks/useMenu';
@@ -7,9 +8,13 @@ import styles from './SupportPage.module.css';
 const SupportPage = () => {
 	const {menuOpen, toggleMenu, closeMenu} = useMenu();
 
-	useEffect(() => {
-		document.title = 'Поддержка';
+	useSEO({
+		title: 'Поддержка — Флудилка',
+		description: 'Служба поддержки Флудилки. Свяжитесь с нами по любым вопросам о голосовом мессенджере.',
+		canonicalPath: '/support',
+	});
 
+	useEffect(() => {
 		const html = document.documentElement;
 		const {body} = document;
 

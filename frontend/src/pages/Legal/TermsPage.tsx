@@ -1,4 +1,5 @@
 import {useEffect, useLayoutEffect} from 'react';
+import {useSEO} from '~/hooks/useSEO';
 import {LandingHeader} from '~/pages/Landing/components/LandingHeader';
 import {LandingFooter} from '~/pages/Landing/components/LandingFooter';
 import {useMenu} from '~/pages/Landing/hooks/useMenu';
@@ -7,9 +8,13 @@ import styles from './TermsPage.module.css';
 const TermsPage = () => {
 	const {menuOpen, toggleMenu, closeMenu} = useMenu();
 
-	useEffect(() => {
-		document.title = 'Условия использования — Флудилка';
+	useSEO({
+		title: 'Условия использования — Флудилка',
+		description: 'Условия использования платформы Флудилка — голосового мессенджера для геймеров.',
+		canonicalPath: '/terms',
+	});
 
+	useEffect(() => {
 		const html = document.documentElement;
 		const {body} = document;
 

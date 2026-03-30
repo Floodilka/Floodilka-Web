@@ -1,4 +1,5 @@
 import {useEffect} from 'react';
+import {useSEO} from '~/hooks/useSEO';
 import {QRCodeCanvas} from '~/components/uikit/QRCodeCanvas';
 import {LandingFooter} from '../Landing/components/LandingFooter';
 import {LandingHeader} from '../Landing/components/LandingHeader';
@@ -15,9 +16,16 @@ export const DownloadPage = () => {
 	const {downloadInfo} = useDownload();
 	const {menuOpen, toggleMenu, closeMenu} = useMenu();
 
-	useEffect(() => {
-		document.title = 'Скачать Флудилку';
+	useSEO({
+		title: 'Скачать Флудилку — голосовой чат для Windows, macOS, Android, iOS',
+		description:
+			'Скачайте Флудилку бесплатно для Windows, macOS, Android и iOS. Голосовой чат для геймеров — альтернатива Discord без VPN.',
+		keywords:
+			'скачать флудилку, скачать аналог дискорда, голосовой чат скачать, замена дискорда скачать, флудилка windows, флудилка android, флудилка ios',
+		canonicalPath: '/download',
+	});
 
+	useEffect(() => {
 		const html = document.documentElement;
 		const {body} = document;
 

@@ -1,4 +1,5 @@
 import {useEffect, useLayoutEffect} from 'react';
+import {useSEO} from '~/hooks/useSEO';
 import {LandingHeader} from '~/pages/Landing/components/LandingHeader';
 import {LandingFooter} from '~/pages/Landing/components/LandingFooter';
 import {useMenu} from '~/pages/Landing/hooks/useMenu';
@@ -7,9 +8,13 @@ import styles from './GuidelinesPage.module.css';
 const GuidelinesPage = () => {
 	const {menuOpen, toggleMenu, closeMenu} = useMenu();
 
-	useEffect(() => {
-		document.title = 'Правила сообщества — Флудилка';
+	useSEO({
+		title: 'Правила сообщества — Флудилка',
+		description: 'Правила сообщества Флудилки. Узнайте, как мы поддерживаем дружелюбную атмосферу.',
+		canonicalPath: '/guidelines',
+	});
 
+	useEffect(() => {
 		const html = document.documentElement;
 		const {body} = document;
 

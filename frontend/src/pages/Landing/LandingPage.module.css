@@ -164,7 +164,7 @@
 
 .hero__text {
   max-width: 922px;
-  margin: 32px auto 0;
+  margin: 16px auto 0;
   font-size: clamp(16px, 2.1vw, 22px);
   font-weight: 400;
   line-height: clamp(24px, 4.5vw, 35px);

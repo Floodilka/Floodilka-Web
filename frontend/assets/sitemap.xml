@@ -9,7 +9,7 @@
   <!-- Главная страница -->
   <url>
     <loc>https://floodilka.com/</loc>
-    <lastmod>2025-12-17</lastmod>
+    <lastmod>2026-03-30</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
     <xhtml:link rel="alternate" hreflang="ru" href="https://floodilka.com/" />
@@ -17,22 +17,69 @@
     <xhtml:link rel="alternate" hreflang="x-default" href="https://floodilka.com/" />
     <image:image>
       <image:loc>https://floodilka.com/icons/logo.png</image:loc>
-      <image:title>Флудилка — Голосовой чат для геймеров</image:title>
-      <image:caption>Бесплатный голосовой чат с качественной связью и низким пингом</image:caption>
+      <image:title>Флудилка — голосовой чат для геймеров, альтернатива Discord</image:title>
+      <image:caption>Бесплатный голосовой мессенджер для геймеров с качественной связью и низким пингом</image:caption>
     </image:image>
     <image:image>
-      <image:loc>https://floodilka.com/icons/og-image.png</image:loc>
-      <image:title>Флудилка — превью</image:title>
-      <image:caption>Современная платформа для голосового и текстового общения геймеров</image:caption>
+      <image:loc>https://floodilka.com/icons/og-image-default.png</image:loc>
+      <image:title>Флудилка — интерфейс приложения</image:title>
+      <image:caption>Современная платформа для голосового и текстового общения геймеров — аналог Discord в России</image:caption>
     </image:image>
+  </url>
+
+  <!-- Скачать приложение -->
+  <url>
+    <loc>https://floodilka.com/download</loc>
+    <lastmod>2026-03-30</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://floodilka.com/download" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://floodilka.com/download?lang=en" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://floodilka.com/download" />
+    <image:image>
+      <image:loc>https://floodilka.com/icons/og-image-default.png</image:loc>
+      <image:title>Скачать Флудилку — голосовой чат для геймеров</image:title>
+      <image:caption>Скачать Флудилку для Windows, macOS, Android, iOS. Бесплатно и без VPN.</image:caption>
+    </image:image>
+  </url>
+
+  <!-- Регистрация -->
+  <url>
+    <loc>https://floodilka.com/register</loc>
+    <lastmod>2026-03-30</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://floodilka.com/register" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://floodilka.com/register?lang=en" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://floodilka.com/register" />
+  </url>
+
+  <!-- Вход -->
+  <url>
+    <loc>https://floodilka.com/login</loc>
+    <lastmod>2026-03-30</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://floodilka.com/login" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://floodilka.com/login" />
+  </url>
+
+  <!-- Поддержка -->
+  <url>
+    <loc>https://floodilka.com/support</loc>
+    <lastmod>2026-03-30</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://floodilka.com/support" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://floodilka.com/support" />
   </url>
 
   <!-- Условия использования -->
   <url>
     <loc>https://floodilka.com/terms</loc>
-    <lastmod>2025-11-15</lastmod>
+    <lastmod>2026-03-30</lastmod>
     <changefreq>monthly</changefreq>
-    <priority>0.6</priority>
+    <priority>0.5</priority>
     <xhtml:link rel="alternate" hreflang="ru" href="https://floodilka.com/terms" />
     <xhtml:link rel="alternate" hreflang="x-default" href="https://floodilka.com/terms" />
   </url>
@@ -40,9 +87,9 @@
   <!-- Политика конфиденциальности -->
   <url>
     <loc>https://floodilka.com/privacy</loc>
-    <lastmod>2025-11-15</lastmod>
+    <lastmod>2026-03-30</lastmod>
     <changefreq>monthly</changefreq>
-    <priority>0.6</priority>
+    <priority>0.5</priority>
     <xhtml:link rel="alternate" hreflang="ru" href="https://floodilka.com/privacy" />
     <xhtml:link rel="alternate" hreflang="x-default" href="https://floodilka.com/privacy" />
   </url>
@@ -50,21 +97,11 @@
   <!-- Правила сообщества -->
   <url>
     <loc>https://floodilka.com/guidelines</loc>
-    <lastmod>2026-03-01</lastmod>
+    <lastmod>2026-03-30</lastmod>
     <changefreq>monthly</changefreq>
-    <priority>0.6</priority>
+    <priority>0.5</priority>
     <xhtml:link rel="alternate" hreflang="ru" href="https://floodilka.com/guidelines" />
     <xhtml:link rel="alternate" hreflang="x-default" href="https://floodilka.com/guidelines" />
-  </url>
-
-  <!-- Поддержка -->
-  <url>
-    <loc>https://floodilka.com/support</loc>
-    <lastmod>2025-12-17</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-    <xhtml:link rel="alternate" hreflang="ru" href="https://floodilka.com/support" />
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://floodilka.com/support" />
   </url>
 
 </urlset>
