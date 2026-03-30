@@ -48,8 +48,13 @@ import MediaEngineFacade from '~/stores/voice/MediaEngineFacade';
 import {registerServiceWorker} from '~/sw/register';
 import {preloadClientInfo} from '~/utils/ClientInfoUtils';
 import Config from './Config';
+import {initYandexMetrika} from './utils/yandexMetrika';
 
 preloadClientInfo();
+
+if (Config.PUBLIC_YANDEX_METRIKA_ID) {
+	initYandexMetrika(Config.PUBLIC_YANDEX_METRIKA_ID).catch(() => {});
+}
 
 const normalizePathSegment = (value: string): string => value.replace(/^\/+|\/+$/g, '');
 

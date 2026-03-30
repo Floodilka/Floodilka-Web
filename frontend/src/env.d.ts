@@ -74,6 +74,7 @@ declare global {
 		readonly PUBLIC_CDN_ENDPOINT?: string;
 		readonly PUBLIC_BOOTSTRAP_API_ENDPOINT?: string;
 		readonly PUBLIC_BOOTSTRAP_API_PUBLIC_ENDPOINT?: string;
+		readonly PUBLIC_YANDEX_METRIKA_ID?: string;
 	}
 
 	interface ImportMetaHot {

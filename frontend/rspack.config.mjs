@@ -242,6 +242,7 @@ export default () => {
 				'import.meta.env.PUBLIC_API_VERSION': getPublicEnvVar('PUBLIC_API_VERSION'),
 				'import.meta.env.PUBLIC_BOOTSTRAP_API_ENDPOINT': getPublicEnvVar('PUBLIC_BOOTSTRAP_API_ENDPOINT'),
 				'import.meta.env.PUBLIC_BOOTSTRAP_API_PUBLIC_ENDPOINT': getPublicEnvVar('PUBLIC_BOOTSTRAP_API_PUBLIC_ENDPOINT'),
+				'import.meta.env.PUBLIC_YANDEX_METRIKA_ID': getPublicEnvVar('PUBLIC_YANDEX_METRIKA_ID'),
 			}),
 
 			isDevelopment && new ReactRefreshPlugin(),

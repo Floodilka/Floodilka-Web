@@ -18,6 +18,7 @@
  */
 
 import {useEffect} from 'react';
+import {trackPageView} from '~/utils/yandexMetrika';
 
 interface SEOConfig {
 	title: string;
@@ -90,5 +91,8 @@ export const useSEO = (config: SEOConfig) => {
 		setMetaTag('name', 'twitter:title', title);
 		setMetaTag('name', 'twitter:description', description);
 		setMetaTag('name', 'twitter:image', ogImage ?? DEFAULT_OG_IMAGE);
+
+		// Analytics
+		trackPageView(canonicalUrl, title);
 	}, [config.title, config.description, config.keywords, config.canonicalPath, config.ogType, config.ogImage, config.noindex]);
 };

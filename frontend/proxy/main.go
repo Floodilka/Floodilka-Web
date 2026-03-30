@@ -352,6 +352,8 @@ func (s *Server) buildCSP(nonce string) string {
 			"https://hcaptcha.com",
 			"https://*.hcaptcha.com",
 			"https://challenges.cloudflare.com",
+			"https://mc.yandex.ru",
+			"https://mc.yandex.com",
 		},
 		"IMAGE": {
 			"https://*.floodilka.com",
@@ -360,6 +362,8 @@ func (s *Server) buildCSP(nonce string) string {
 			"https://static.floodilka.com",
 			"http://127.0.0.1:21867",
 			"http://127.0.0.1:21868",
+			"https://mc.yandex.ru",
+			"https://mc.yandex.com",
 		},
 		"MEDIA": {
 			"https://*.floodilka.com",
@@ -374,6 +378,9 @@ func (s *Server) buildCSP(nonce string) string {
 			"https://*.hcaptcha.com",
 			"https://challenges.cloudflare.com",
 			"https://static.floodilka.com",
+			"https://mc.yandex.ru",
+			"https://mc.yandex.com",
+			"https://yastatic.net",
 		},
 		"STYLE": {
 			"https://*.floodilka.com",
@@ -395,6 +402,10 @@ func (s *Server) buildCSP(nonce string) string {
 			"https://static.floodilka.com",
 			"https://sentry.floodilka.com",
 			"https://sentry.stage.floodilka.com",
+			"https://mc.yandex.ru",
+			"https://mc.yandex.com",
+			"wss://mc.yandex.ru",
+			"wss://mc.yandex.com",
 			"ipc:",
 			"http://ipc.localhost",
 			"http://127.0.0.1:21865",

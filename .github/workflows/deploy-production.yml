@@ -76,6 +76,7 @@ jobs:
           PUBLIC_PROJECT_ENV: stable
           PUBLIC_BUILD_SHA: ${{ github.sha }}
           PUBLIC_BUILD_NUMBER: ${{ github.run_number }}
+          PUBLIC_YANDEX_METRIKA_ID: '108307618'
         run: |
           export PUBLIC_BUILD_TIMESTAMP=$(date +%s)
           pnpm wasm:codegen

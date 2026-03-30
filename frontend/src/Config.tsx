@@ -34,6 +34,7 @@ const envSchema = v.object({
 	PUBLIC_API_VERSION: v.optional(v.pipe(v.string(), v.transform(Number), v.number()), '1'),
 	PUBLIC_BOOTSTRAP_API_ENDPOINT: v.optional(v.string(), '/api'),
 	PUBLIC_BOOTSTRAP_API_PUBLIC_ENDPOINT: v.optional(v.string()),
+	PUBLIC_YANDEX_METRIKA_ID: v.optional(v.nullable(v.string()), null),
 });
 
 const env = v.parse(envSchema, {
@@ -48,6 +49,7 @@ const env = v.parse(envSchema, {
 	PUBLIC_API_VERSION: import.meta.env.PUBLIC_API_VERSION,
 	PUBLIC_BOOTSTRAP_API_ENDPOINT: import.meta.env.PUBLIC_BOOTSTRAP_API_ENDPOINT,
 	PUBLIC_BOOTSTRAP_API_PUBLIC_ENDPOINT: import.meta.env.PUBLIC_BOOTSTRAP_API_PUBLIC_ENDPOINT,
+	PUBLIC_YANDEX_METRIKA_ID: import.meta.env.PUBLIC_YANDEX_METRIKA_ID,
 });
 
 export default {
@@ -62,4 +64,5 @@ export default {
 	PUBLIC_API_VERSION: env.PUBLIC_API_VERSION,
 	PUBLIC_BOOTSTRAP_API_ENDPOINT: env.PUBLIC_BOOTSTRAP_API_ENDPOINT,
 	PUBLIC_BOOTSTRAP_API_PUBLIC_ENDPOINT: env.PUBLIC_BOOTSTRAP_API_PUBLIC_ENDPOINT ?? env.PUBLIC_BOOTSTRAP_API_ENDPOINT,
+	PUBLIC_YANDEX_METRIKA_ID: env.PUBLIC_YANDEX_METRIKA_ID,
 };
