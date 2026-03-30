@@ -184,13 +184,18 @@ class VoiceMediaManager {
 
 			const useRNNoise = VoiceSettingsStore.noiseSuppression && RNNoiseProcessor.isSupported();
 			logger.info('[enableMicrophone] Noise suppression', {enabled: VoiceSettingsStore.noiseSuppression, supported: RNNoiseProcessor.isSupported(), useRNNoise});
+
+			// Pre-create RNNoise processor BEFORE enabling mic so it's ready immediately
+			if (useRNNoise) {
+				logger.info('[enableMicrophone] Pre-creating RNNoise processor');
+				this.noiseFilterProcessor = createRNNoiseProcessor();
+			}
+
 			await room.localParticipant.setMicrophoneEnabled(true, getMicConstraints(inputDeviceId, audioBitrate));
 
-			if (useRNNoise) {
+			if (useRNNoise && this.noiseFilterProcessor) {
 				const pub = room.localParticipant.getTrackPublication(Track.Source.Microphone);
 				if (pub?.track) {
-					logger.info('[enableMicrophone] Initializing RNNoise processor');
-					this.noiseFilterProcessor = createRNNoiseProcessor();
 					await (pub.track as LocalAudioTrack).setProcessor(this.noiseFilterProcessor);
 					logger.info('[enableMicrophone] RNNoise processor attached');
 				} else {

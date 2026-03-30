@@ -164,6 +164,7 @@ registerProcessor('rnnoise-processor', RNNoiseWorklet);
 `;
 
 let cachedWasmBinary: ArrayBuffer | null = null;
+let preloadPromise: Promise<ArrayBuffer> | null = null;
 
 async function loadWasmBinary(): Promise<ArrayBuffer> {
 	if (cachedWasmBinary) return cachedWasmBinary;
@@ -171,6 +172,16 @@ async function loadWasmBinary(): Promise<ArrayBuffer> {
 	if (!response.ok) throw new Error(`Failed to load RNNoise WASM: ${response.status}`);
 	cachedWasmBinary = await response.arrayBuffer();
 	return cachedWasmBinary;
+}
+
+/**
+ * Preload WASM binary so it's ready when the user joins a voice channel.
+ * Call this early (e.g. on app startup).
+ */
+export function preloadRNNoiseWasm(): void {
+	if (!preloadPromise && typeof WebAssembly !== 'undefined') {
+		preloadPromise = loadWasmBinary().catch(() => null as unknown as ArrayBuffer);
+	}
 }
 
 export class RNNoiseProcessor implements TrackProcessor<Track.Kind.Audio, AudioProcessorOptions> {

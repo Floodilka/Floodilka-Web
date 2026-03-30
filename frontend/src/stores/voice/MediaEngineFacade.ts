@@ -26,6 +26,7 @@ import * as ToastActionCreators from '~/actions/ToastActionCreators';
 import {ChannelTypes, type GatewayErrorCode, GatewayErrorCodes} from '~/Constants';
 import type {GatewayErrorData} from '~/lib/GatewaySocket';
 import {Logger} from '~/lib/Logger';
+import {preloadRNNoiseWasm} from '~/lib/RNNoiseProcessor';
 import {voiceStatsDB} from '~/lib/VoiceStatsDB';
 import type {GuildReadyData} from '~/records/GuildRecord';
 import AuthenticationStore from '~/stores/AuthenticationStore';
@@ -617,4 +618,8 @@ export type {LivekitParticipantSnapshot, VoiceStats, VoiceState, LatencyDataPoin
 
 const instance = new MediaEngineFacade();
 (window as typeof window & {_mediaEngineFacade?: MediaEngineFacade})._mediaEngineFacade = instance;
+
+// Preload RNNoise WASM binary so it's ready instantly when joining voice
+preloadRNNoiseWasm();
+
 export default instance;
