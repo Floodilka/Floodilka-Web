@@ -374,7 +374,6 @@ const SETTINGS_SECTIONS_MAP_DESCRIPTORS: Partial<Record<UserSettingsTabType, Arr
 		notifications: [
 			{id: 'notifications', label: msg`Notifications`, isAdvanced: false},
 			{id: 'sounds', label: msg`Sounds`, isAdvanced: false},
-			{id: 'push', label: msg`Push Settings`, isAdvanced: false},
 		],
 		developer_options: [
 			{id: 'general', label: msg`General`, isAdvanced: false},

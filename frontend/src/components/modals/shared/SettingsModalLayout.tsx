@@ -270,7 +270,6 @@ export const SettingsModalSidebarSubItem: React.FC<SettingsModalSidebarSubItemPr
 					onClick={onClick}
 					data-section-id={sectionId}
 				>
-					<span className={styles.sidebarSubItemIndicator} />
 					<span className={styles.sidebarSubItemLabel}>{label}</span>
 				</button>
 			</FocusRing>
@@ -283,7 +282,47 @@ export interface SettingsModalSidebarSubItemsProps {
 }
 
 export const SettingsModalSidebarSubItems: React.FC<SettingsModalSidebarSubItemsProps> = observer(({children}) => {
-	return <div className={styles.sidebarSubItems}>{children}</div>;
+	const containerRef = React.useRef<HTMLDivElement>(null);
+	const prefersReducedMotion = React.useMemo(
+		() => typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches,
+		[],
+	);
+
+	const childArray = React.Children.toArray(children);
+	const activeIndex = childArray.findIndex(
+		(child) => React.isValidElement<SettingsModalSidebarSubItemProps>(child) && child.props.isActive,
+	);
+	const hasActive = activeIndex !== -1;
+
+	React.useEffect(() => {
+		if (!containerRef.current || !hasActive) return;
+
+		const container = containerRef.current;
+		const childElements = Array.from(container.children) as Array<HTMLElement>;
+		const activeElement = childElements[activeIndex];
+
+		if (!activeElement) return;
+
+		const containerRect = container.getBoundingClientRect();
+		const activeRect = activeElement.getBoundingClientRect();
+
+		const top = activeRect.top - containerRect.top;
+		const height = activeRect.height;
+
+		container.style.setProperty('--active-top', `${top}px`);
+		container.style.setProperty('--active-height', `${height}px`);
+	}, [activeIndex, hasActive, children]);
+
+	return (
+		<div
+			ref={containerRef}
+			className={styles.sidebarSubItems}
+			data-has-active={hasActive}
+			data-reduced-motion={prefersReducedMotion}
+		>
+			{children}
+		</div>
+	);
 });
 
 export const settingsModalStyles = styles;

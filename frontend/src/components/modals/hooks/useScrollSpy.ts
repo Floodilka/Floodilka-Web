@@ -17,8 +17,7 @@
  * along with Fluxer. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import React from 'react';
-import AccessibilityStore from '~/stores/AccessibilityStore';
+import {useCallback, useEffect, useRef, useState} from 'react';
 
 export interface UseScrollSpyOptions {
 	sectionIds: ReadonlyArray<string>;
@@ -32,62 +31,78 @@ export interface UseScrollSpyReturn {
 }
 
 export function useScrollSpy({sectionIds, containerRef, offset = 68}: UseScrollSpyOptions): UseScrollSpyReturn {
-	const [activeSectionId, setActiveSectionId] = React.useState<string | null>(sectionIds[0] ?? null);
-	const sectionsInViewRef = React.useRef<Map<string, boolean>>(new Map());
+	const [activeSectionId, setActiveSectionId] = useState<string | null>(sectionIds[0] ?? null);
+	const rafIdRef = useRef<number | null>(null);
 
-	React.useEffect(() => {
+	useEffect(() => {
 		const container = containerRef.current;
 		if (!container || sectionIds.length === 0) {
 			setActiveSectionId(null);
 			return;
 		}
 
-		const handleIntersection = (entries: Array<IntersectionObserverEntry>) => {
-			for (const entry of entries) {
-				sectionsInViewRef.current.set(entry.target.id, entry.isIntersecting);
+		const updateActive = () => {
+			const containerRect = container.getBoundingClientRect();
+			const scrollTop = container.scrollTop;
+			const maxScrollTop = Math.max(0, container.scrollHeight - container.clientHeight);
+			const isAtBottom = scrollTop >= maxScrollTop - 1;
+			const target = scrollTop + offset + 1;
+			let nextActive: string | null = null;
+
+			for (const id of sectionIds) {
+				const element = document.getElementById(id);
+				if (!element) continue;
+
+				const rect = element.getBoundingClientRect();
+				const elementTop = rect.top - containerRect.top + scrollTop;
+
+				if (elementTop <= target) {
+					nextActive = id;
+				} else if (nextActive) {
+					break;
+				}
 			}
 
-			const visibleSections = sectionIds.filter((id) => sectionsInViewRef.current.get(id) === true);
+			if (!nextActive && sectionIds.length > 0) {
+				nextActive = sectionIds[0];
+			}
 
-			if (visibleSections.length > 0) {
-				let topSectionId = visibleSections[0];
-				let topSectionTop = Number.MAX_VALUE;
+			if (isAtBottom && sectionIds.length > 0) {
+				nextActive = sectionIds[sectionIds.length - 1];
+			}
 
-				for (const id of visibleSections) {
-					const element = document.getElementById(id);
-					if (element) {
-						const rect = element.getBoundingClientRect();
-						if (rect.top < topSectionTop) {
-							topSectionTop = rect.top;
-							topSectionId = id;
-						}
-					}
-				}
-
-				setActiveSectionId(topSectionId);
+			if (nextActive) {
+				setActiveSectionId((prev) => (prev === nextActive ? prev : nextActive));
 			}
 		};
 
-		const observer = new IntersectionObserver(handleIntersection, {
-			root: container,
-			rootMargin: `-${offset}px 0px -50% 0px`,
-			threshold: [0, 0.1, 0.5, 1],
-		});
+		const scheduleUpdate = () => {
+			if (rafIdRef.current != null) return;
+			rafIdRef.current = window.requestAnimationFrame(() => {
+				rafIdRef.current = null;
+				updateActive();
+			});
+		};
 
-		for (const id of sectionIds) {
-			const element = document.getElementById(id);
-			if (element) {
-				observer.observe(element);
-			}
-		}
+		scheduleUpdate();
+		container.addEventListener('scroll', scheduleUpdate, {passive: true});
+		window.addEventListener('resize', scheduleUpdate);
+
+		const resizeObserver = new ResizeObserver(() => scheduleUpdate());
+		resizeObserver.observe(container);
 
 		return () => {
-			observer.disconnect();
-			sectionsInViewRef.current.clear();
+			container.removeEventListener('scroll', scheduleUpdate);
+			window.removeEventListener('resize', scheduleUpdate);
+			resizeObserver.disconnect();
+			if (rafIdRef.current != null) {
+				cancelAnimationFrame(rafIdRef.current);
+				rafIdRef.current = null;
+			}
 		};
 	}, [sectionIds, containerRef, offset]);
 
-	const scrollToSection = React.useCallback(
+	const scrollToSection = useCallback(
 		(sectionId: string) => {
 			const element = document.getElementById(sectionId);
 			const container = containerRef.current;
@@ -99,10 +114,9 @@ export function useScrollSpy({sectionIds, containerRef, offset = 68}: UseScrollS
 			const elementRect = element.getBoundingClientRect();
 			const scrollTop = container.scrollTop + (elementRect.top - containerRect.top) - offset;
 
-			const reduceMotion = AccessibilityStore.useReducedMotion;
 			container.scrollTo({
 				top: scrollTop,
-				behavior: reduceMotion ? 'auto' : 'smooth',
+				behavior: 'auto',
 			});
 
 			setActiveSectionId(sectionId);
