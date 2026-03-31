@@ -16,6 +16,6 @@ WORKDIR /workspace
 RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates && rm -rf /var/lib/apt/lists/*
 
 COPY --from=builder /workspace/scripts/cassandra-migrate/target/release/cassandra-migrate /usr/local/bin/cassandra-migrate
-COPY fluxer_devops/cassandra/migrations fluxer_devops/cassandra/migrations
+COPY floodilka_devops/cassandra/migrations floodilka_devops/cassandra/migrations
 
 ENTRYPOINT ["cassandra-migrate"]

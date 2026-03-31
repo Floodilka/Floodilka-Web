@@ -1,20 +1,20 @@
 /*
- * Copyright (C) 2026 Fluxer Contributors
+ * Copyright (C) 2026 Floodilka Contributors
  *
- * This file is part of Fluxer.
+ * This file is part of Floodilka.
  *
- * Fluxer is free software: you can redistribute it and/or modify
+ * Floodilka is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * Fluxer is distributed in the hope that it will be useful,
+ * Floodilka is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU Affero General Public License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Fluxer. If not, see <https://www.gnu.org/licenses/>.
+ * along with Floodilka. If not, see <https://www.gnu.org/licenses/>.
  */
 
 import type {AuthenticationResponseJSON, RegistrationResponseJSON} from '@simplewebauthn/server';
@@ -30,7 +30,7 @@ import {createUserID, type UserID} from '~/BrandedTypes';
 import {Config} from '~/Config';
 import {APIErrorCodes, UserAuthenticatorTypes} from '~/Constants';
 import {
-	FluxerAPIError,
+	FloodilkaAPIError,
 	InputValidationError,
 	PhoneRequiredForSmsMfaError,
 	SmsMfaNotEnabledError,
@@ -204,7 +204,7 @@ export class AuthMfaService {
 		const existingCredentials = await this.repository.listWebAuthnCredentials(userId);
 
 		if (existingCredentials.length >= 10) {
-			throw new FluxerAPIError({
+			throw new FloodilkaAPIError({
 				code: APIErrorCodes.WEBAUTHN_CREDENTIAL_LIMIT_REACHED,
 				message: 'You have reached the maximum number of passkeys (10)',
 				status: 400,
@@ -250,7 +250,7 @@ export class AuthMfaService {
 		await this.consumeWebAuthnChallenge(expectedChallenge, 'registration', {userId});
 
 		if (existingCredentials.length >= 10) {
-			throw new FluxerAPIError({
+			throw new FloodilkaAPIError({
 				code: APIErrorCodes.WEBAUTHN_CREDENTIAL_LIMIT_REACHED,
 				message: 'You have reached the maximum number of passkeys (10)',
 				status: 400,
@@ -269,7 +269,7 @@ export class AuthMfaService {
 				expectedRPID: rpID,
 			});
 		} catch (_error) {
-			throw new FluxerAPIError({
+			throw new FloodilkaAPIError({
 				code: APIErrorCodes.INVALID_WEBAUTHN_CREDENTIAL,
 				message: 'Failed to verify WebAuthn credential',
 				status: 400,
@@ -277,7 +277,7 @@ export class AuthMfaService {
 		}
 
 		if (!verification.verified || !verification.registrationInfo) {
-			throw new FluxerAPIError({
+			throw new FloodilkaAPIError({
 				code: APIErrorCodes.INVALID_WEBAUTHN_CREDENTIAL,
 				message: 'Failed to verify WebAuthn credential',
 				status: 400,
@@ -292,7 +292,7 @@ export class AuthMfaService {
 		try {
 			publicKeyBuffer = Buffer.from(credential.publicKey);
 		} catch (_error) {
-			throw new FluxerAPIError({
+			throw new FloodilkaAPIError({
 				code: APIErrorCodes.INVALID_WEBAUTHN_CREDENTIAL,
 				message: 'Invalid credential public key format during registration',
 				status: 400,
@@ -305,7 +305,7 @@ export class AuthMfaService {
 			}
 			counterBigInt = BigInt(credential.counter);
 		} catch (_error) {
-			throw new FluxerAPIError({
+			throw new FloodilkaAPIError({
 				code: APIErrorCodes.INVALID_WEBAUTHN_CREDENTIAL,
 				message: 'Invalid credential counter value during registration',
 				status: 400,
@@ -348,7 +348,7 @@ export class AuthMfaService {
 	async deleteWebAuthnCredential(userId: UserID, credentialId: string): Promise<void> {
 		const credential = await this.repository.getWebAuthnCredential(userId, credentialId);
 		if (!credential) {
-			throw new FluxerAPIError({
+			throw new FloodilkaAPIError({
 				code: APIErrorCodes.UNKNOWN_WEBAUTHN_CREDENTIAL,
 				message: 'Credential not found',
 				status: 404,
@@ -385,7 +385,7 @@ export class AuthMfaService {
 	async renameWebAuthnCredential(userId: UserID, credentialId: string, name: string): Promise<void> {
 		const credential = await this.repository.getWebAuthnCredential(userId, credentialId);
 		if (!credential) {
-			throw new FluxerAPIError({
+			throw new FloodilkaAPIError({
 				code: APIErrorCodes.UNKNOWN_WEBAUTHN_CREDENTIAL,
 				message: 'Credential not found',
 				status: 404,
@@ -420,7 +420,7 @@ export class AuthMfaService {
 				name: 'auth.login.failure',
 				dimensions: {reason: 'mfa_invalid'},
 			});
-			throw new FluxerAPIError({
+			throw new FloodilkaAPIError({
 				code: APIErrorCodes.PASSKEY_AUTHENTICATION_FAILED,
 				message: 'Passkey authentication failed',
 				status: 401,
@@ -442,7 +442,7 @@ export class AuthMfaService {
 		const credentials = await this.repository.listWebAuthnCredentials(createUserID(BigInt(userId)));
 
 		if (credentials.length === 0) {
-			throw new FluxerAPIError({
+			throw new FloodilkaAPIError({
 				code: APIErrorCodes.INVALID_WEBAUTHN_CREDENTIAL,
 				message: 'No passkeys registered',
 				status: 400,
@@ -484,7 +484,7 @@ export class AuthMfaService {
 				name: 'auth.login.failure',
 				dimensions: {reason: 'mfa_invalid'},
 			});
-			throw new FluxerAPIError({
+			throw new FloodilkaAPIError({
 				code: APIErrorCodes.PASSKEY_AUTHENTICATION_FAILED,
 				message: 'Passkey authentication failed',
 				status: 401,
@@ -502,7 +502,7 @@ export class AuthMfaService {
 				const arrayBuffer: ArrayBuffer = buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength);
 				publicKeyUint8Array = new Uint8Array(arrayBuffer);
 			} catch (_error) {
-				throw new FluxerAPIError({
+				throw new FloodilkaAPIError({
 					code: APIErrorCodes.INVALID_WEBAUTHN_CREDENTIAL,
 					message: 'Invalid credential public key format',
 					status: 400,
@@ -528,7 +528,7 @@ export class AuthMfaService {
 				name: 'auth.login.failure',
 				dimensions: {reason: 'mfa_invalid'},
 			});
-			throw new FluxerAPIError({
+			throw new FloodilkaAPIError({
 				code: APIErrorCodes.PASSKEY_AUTHENTICATION_FAILED,
 				message: 'Passkey authentication failed',
 				status: 401,
@@ -540,7 +540,7 @@ export class AuthMfaService {
 				name: 'auth.login.failure',
 				dimensions: {reason: 'mfa_invalid'},
 			});
-			throw new FluxerAPIError({
+			throw new FloodilkaAPIError({
 				code: APIErrorCodes.PASSKEY_AUTHENTICATION_FAILED,
 				message: 'Passkey authentication failed',
 				status: 401,
@@ -557,7 +557,7 @@ export class AuthMfaService {
 			}
 			newCounter = BigInt(verification.authenticationInfo.newCounter);
 		} catch (_error) {
-			throw new FluxerAPIError({
+			throw new FloodilkaAPIError({
 				code: APIErrorCodes.GENERAL_ERROR,
 				message: 'Invalid authentication counter value',
 				status: 500,
@@ -572,7 +572,7 @@ export class AuthMfaService {
 		const credentials = await this.repository.listWebAuthnCredentials(userId);
 
 		if (credentials.length === 0) {
-			throw new FluxerAPIError({
+			throw new FloodilkaAPIError({
 				code: APIErrorCodes.INVALID_WEBAUTHN_CREDENTIAL,
 				message: 'No passkeys registered',
 				status: 400,
@@ -710,9 +710,9 @@ export class AuthMfaService {
 		await this.cacheService.delete(key);
 	}
 
-	private createChallengeError(context: WebAuthnChallengeContext): FluxerAPIError {
+	private createChallengeError(context: WebAuthnChallengeContext): FloodilkaAPIError {
 		const isRegistration = context === 'registration';
-		return new FluxerAPIError({
+		return new FloodilkaAPIError({
 			code: isRegistration ? APIErrorCodes.INVALID_WEBAUTHN_CREDENTIAL : APIErrorCodes.PASSKEY_AUTHENTICATION_FAILED,
 			message: isRegistration ? 'Failed to verify WebAuthn credential' : 'Passkey authentication failed',
 			status: isRegistration ? 400 : 401,

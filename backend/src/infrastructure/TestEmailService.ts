@@ -1,20 +1,20 @@
 /*
- * Copyright (C) 2026 Fluxer Contributors
+ * Copyright (C) 2026 Floodilka Contributors
  *
- * This file is part of Fluxer.
+ * This file is part of Floodilka.
  *
- * Fluxer is free software: you can redistribute it and/or modify
+ * Floodilka is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * Fluxer is distributed in the hope that it will be useful,
+ * Floodilka is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU Affero General Public License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Fluxer. If not, see <https://www.gnu.org/licenses/>.
+ * along with Floodilka. If not, see <https://www.gnu.org/licenses/>.
  */
 
 import type {ITestEmailService, SentEmailRecord} from '~/infrastructure/IEmailService';
@@ -53,7 +53,7 @@ export class TestEmailService implements ITestEmailService {
 		Logger.info(`[TestEmailService] Reset token: ${resetToken}`);
 		return this.recordEmail({
 			to: email,
-			subject: 'Reset your Fluxer password',
+			subject: 'Reset your Floodilka password',
 			type: 'password_reset',
 			metadata: {token: resetToken},
 		});
@@ -85,7 +85,7 @@ export class TestEmailService implements ITestEmailService {
 		Logger.info(`[TestEmailService] Verification token: ${verificationToken}`);
 		return this.recordEmail({
 			to: email,
-			subject: 'Verify your Fluxer email address',
+			subject: 'Verify your Floodilka email address',
 			type: 'email_verification',
 			metadata: {token: verificationToken},
 		});
@@ -101,7 +101,7 @@ export class TestEmailService implements ITestEmailService {
 		Logger.info(`[TestEmailService] Reason: ${reason ?? 'Not specified'}`);
 		return this.recordEmail({
 			to: email,
-			subject: 'Your Fluxer account has been temporarily disabled',
+			subject: 'Your Floodilka account has been temporarily disabled',
 			type: 'account_disabled_suspicious',
 			metadata: {reason: reason ?? ''},
 		});
@@ -120,7 +120,7 @@ export class TestEmailService implements ITestEmailService {
 		Logger.info(`[TestEmailService] Reason: ${reason ?? 'Not specified'}`);
 		return this.recordEmail({
 			to: email,
-			subject: 'Your Fluxer account has been temporarily suspended',
+			subject: 'Your Floodilka account has been temporarily suspended',
 			type: 'account_temp_banned',
 			metadata: {
 				reason: reason ?? '',
@@ -142,7 +142,7 @@ export class TestEmailService implements ITestEmailService {
 		Logger.info(`[TestEmailService] Reason: ${reason ?? 'Not specified'}`);
 		return this.recordEmail({
 			to: email,
-			subject: 'Your Fluxer account is scheduled for deletion',
+			subject: 'Your Floodilka account is scheduled for deletion',
 			type: 'account_scheduled_deletion',
 			metadata: {
 				reason: reason ?? '',
@@ -161,7 +161,7 @@ export class TestEmailService implements ITestEmailService {
 		Logger.info(`[TestEmailService] Deletion date: ${deletionDate.toISOString()}`);
 		return this.recordEmail({
 			to: email,
-			subject: 'Your Fluxer account deletion has been scheduled',
+			subject: 'Your Floodilka account deletion has been scheduled',
 			type: 'self_deletion_scheduled',
 			metadata: {deletion_date: deletionDate.toISOString()},
 		});
@@ -177,7 +177,7 @@ export class TestEmailService implements ITestEmailService {
 		Logger.info(`[TestEmailService] Reason: ${reason}`);
 		return this.recordEmail({
 			to: email,
-			subject: 'Your Fluxer account suspension has been lifted',
+			subject: 'Your Floodilka account suspension has been lifted',
 			type: 'unban_notification',
 			metadata: {reason},
 		});
@@ -195,7 +195,7 @@ export class TestEmailService implements ITestEmailService {
 		Logger.info(`[TestEmailService] Reason: ${reason}`);
 		return this.recordEmail({
 			to: email,
-			subject: 'Your Fluxer account is scheduled for deletion',
+			subject: 'Your Floodilka account is scheduled for deletion',
 			type: 'scheduled_deletion_notification',
 			metadata: {deletion_date: deletionDate.toISOString(), reason},
 		});
@@ -213,7 +213,7 @@ export class TestEmailService implements ITestEmailService {
 		Logger.info(`[TestEmailService] Last active: ${lastActiveDate.toISOString()}`);
 		return this.recordEmail({
 			to: email,
-			subject: 'Your Fluxer account will be deleted due to inactivity',
+			subject: 'Your Floodilka account will be deleted due to inactivity',
 			type: 'inactivity_warning',
 			metadata: {
 				deletion_date: deletionDate.toISOString(),
@@ -237,7 +237,7 @@ export class TestEmailService implements ITestEmailService {
 		Logger.info(`[TestEmailService] Expires at: ${expiresAt.toISOString()}`);
 		return this.recordEmail({
 			to: email,
-			subject: 'Your Fluxer Data Export is Ready',
+			subject: 'Your Floodilka Data Export is Ready',
 			type: 'harvest_completed',
 			metadata: {
 				download_url: downloadUrl,
@@ -252,7 +252,7 @@ export class TestEmailService implements ITestEmailService {
 		Logger.info(`[TestEmailService] Gift chargeback notification sent to ${email} for user ${username}`);
 		return this.recordEmail({
 			to: email,
-			subject: 'Your Fluxer Premium gift has been revoked',
+			subject: 'Your Floodilka Premium gift has been revoked',
 			type: 'gift_chargeback_notification',
 		});
 	}
@@ -269,7 +269,7 @@ export class TestEmailService implements ITestEmailService {
 		Logger.info(`[TestEmailService] Comment: ${publicComment}`);
 		return this.recordEmail({
 			to: email,
-			subject: 'Your Fluxer report has been reviewed',
+			subject: 'Your Floodilka report has been reviewed',
 			type: 'report_resolved',
 			metadata: {report_id: reportId, public_comment: publicComment},
 		});
@@ -303,7 +303,7 @@ export class TestEmailService implements ITestEmailService {
 		Logger.info(`[TestEmailService] Email change original verification sent to ${email} for user ${username}`);
 		return this.recordEmail({
 			to: email,
-			subject: 'Confirm your Fluxer email change',
+			subject: 'Confirm your Floodilka email change',
 			type: 'email_change_original',
 			metadata: {code},
 		});
@@ -313,7 +313,7 @@ export class TestEmailService implements ITestEmailService {
 		Logger.info(`[TestEmailService] Email change new verification sent to ${email} for user ${username}`);
 		return this.recordEmail({
 			to: email,
-			subject: 'Verify your new Fluxer email',
+			subject: 'Verify your new Floodilka email',
 			type: 'email_change_new',
 			metadata: {code},
 		});
@@ -329,7 +329,7 @@ export class TestEmailService implements ITestEmailService {
 		Logger.info(`[TestEmailService] Registration code: ${code}`);
 		return this.recordEmail({
 			to: email,
-			subject: 'Your Fluxer registration code',
+			subject: 'Your Floodilka registration code',
 			type: 'registration_code',
 			metadata: {code},
 		});
@@ -345,7 +345,7 @@ export class TestEmailService implements ITestEmailService {
 		Logger.info(`[TestEmailService] Email change revert notice sent to ${email} for user ${username}`);
 		return this.recordEmail({
 			to: email,
-			subject: 'Your Fluxer email was changed',
+			subject: 'Your Floodilka email was changed',
 			type: 'email_change_revert',
 			metadata: {token, new_email: newEmail},
 		});

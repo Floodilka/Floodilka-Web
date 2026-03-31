@@ -1,0 +1,24 @@
+{application, floodilka_gateway, [
+    {description, "Floodilka Gateway"},
+    {vsn, "0.0.0"},
+    {registered, []},
+    {mod, {floodilka_gateway_app, []}},
+    {applications, [
+        kernel,
+        stdlib,
+        crypto,
+        public_key,
+        ssl,
+        inets,
+        jsx,
+        jose,
+        cowboy,
+        hackney,
+        base64url,
+        ezstd
+    ]},
+    {env, []},
+    {modules, []},
+    {licenses, ["AGPL-3.0-or-later"]},
+    {links, []}
+]}.

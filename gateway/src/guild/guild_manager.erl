@@ -1,24 +1,24 @@
-%% Copyright (C) 2026 Fluxer Contributors
+%% Copyright (C) 2026 Floodilka Contributors
 %%
-%% This file is part of Fluxer.
+%% This file is part of Floodilka.
 %%
-%% Fluxer is free software: you can redistribute it and/or modify
+%% Floodilka is free software: you can redistribute it and/or modify
 %% it under the terms of the GNU Affero General Public License as published by
 %% the Free Software Foundation, either version 3 of the License, or
 %% (at your option) any later version.
 %%
-%% Fluxer is distributed in the hope that it will be useful,
+%% Floodilka is distributed in the hope that it will be useful,
 %% but WITHOUT ANY WARRANTY; without even the implied warranty of
 %% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 %% GNU Affero General Public License for more details.
 %%
 %% You should have received a copy of the GNU Affero General Public License
-%% along with Fluxer. If not, see <https://www.gnu.org/licenses/>.
+%% along with Floodilka. If not, see <https://www.gnu.org/licenses/>.
 
 -module(guild_manager).
 -behaviour(gen_server).
 
--include_lib("fluxer_gateway/include/timeout_config.hrl").
+-include_lib("floodilka_gateway/include/timeout_config.hrl").
 
 -export([start_link/0, start_or_lookup/1, start_or_lookup/2, lookup/1, lookup/2]).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
@@ -166,7 +166,7 @@ code_change(_OldVsn, State, _Extra) when is_map(State) ->
 
 -spec determine_shard_count() -> {pos_integer(), configured | auto}.
 determine_shard_count() ->
-    case fluxer_gateway_env:get(guild_shards) of
+    case floodilka_gateway_env:get(guild_shards) of
         Value when is_integer(Value), Value > 0 ->
             {Value, configured};
         _ ->
@@ -521,10 +521,10 @@ determine_shard_count_auto_test() ->
     end).
 
 with_runtime_config(Key, Value, Fun) ->
-    Original = fluxer_gateway_env:get(Key),
-    fluxer_gateway_env:patch(#{Key => Value}),
+    Original = floodilka_gateway_env:get(Key),
+    floodilka_gateway_env:patch(#{Key => Value}),
     Result = Fun(),
-    fluxer_gateway_env:update(fun(Map) ->
+    floodilka_gateway_env:update(fun(Map) ->
         case Original of
             undefined -> maps:remove(Key, Map);
             Val -> maps:put(Key, Val, Map)

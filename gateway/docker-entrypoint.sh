@@ -1,27 +1,27 @@
 #!/bin/bash
 
-# Copyright (C) 2026 Fluxer Contributors
+# Copyright (C) 2026 Floodilka Contributors
 #
-# This file is part of Fluxer.
+# This file is part of Floodilka.
 #
-# Fluxer is free software: you can redistribute it and/or modify
+# Floodilka is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
 #
-# Fluxer is distributed in the hope that it will be useful,
+# Floodilka is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU Affero General Public License for more details.
 #
 # You should have received a copy of the GNU Affero General Public License
-# along with Fluxer. If not, see <https://www.gnu.org/licenses/>.
+# along with Floodilka. If not, see <https://www.gnu.org/licenses/>.
 
 set -e
 
 # Set default values for environment variables if not set
 export LOGGER_LEVEL=${LOGGER_LEVEL:-debug}
-export RELEASE_NODE=${RELEASE_NODE:-fluxer_gateway@gateway}
+export RELEASE_NODE=${RELEASE_NODE:-floodilka_gateway@gateway}
 
 # Substitute environment variables in config files
 envsubst < /workspace/config/vm.args.template > /workspace/config/vm.args
@@ -40,5 +40,5 @@ done) &
 exec erl -pa _build/default/lib/*/ebin \
     -config config/sys.config \
     -args_file config/vm.args \
-    -eval 'application:ensure_all_started(fluxer_gateway)' \
+    -eval 'application:ensure_all_started(floodilka_gateway)' \
     -noshell

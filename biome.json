@@ -122,17 +122,17 @@
 			"!**/.git",
 			"!**/app.css",
 			"!**/build",
-			"fluxer_app/scripts/build",
+			"floodilka_app/scripts/build",
 			"!**/dist",
-			"!**/fluxer_app/src/data/emojis.json",
-			"!**/fluxer_app/src/locales/*/messages.js",
-			"!**/fluxer_app/src/env.d.ts",
+			"!**/floodilka_app/src/data/emojis.json",
+			"!**/floodilka_app/src/locales/*/messages.js",
+			"!**/floodilka_app/src/env.d.ts",
 			"!**/node_modules",
 			"!**/tailwind.css",
 			"!**/*.html",
 			"!**/*.module.css.d.ts",
-			"!**/fluxer_app/src/components/uikit/SVGMasks.tsx",
-			"!fluxer_static"
+			"!**/floodilka_app/src/components/uikit/SVGMasks.tsx",
+			"!floodilka_static"
 		],
 		"ignoreUnknown": true
 	}

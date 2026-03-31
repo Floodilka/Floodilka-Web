@@ -1,19 +1,19 @@
-%% Copyright (C) 2026 Fluxer Contributors
+%% Copyright (C) 2026 Floodilka Contributors
 %%
-%% This file is part of Fluxer.
+%% This file is part of Floodilka.
 %%
-%% Fluxer is free software: you can redistribute it and/or modify
+%% Floodilka is free software: you can redistribute it and/or modify
 %% it under the terms of the GNU Affero General Public License as published by
 %% the Free Software Foundation, either version 3 of the License, or
 %% (at your option) any later version.
 %%
-%% Fluxer is distributed in the hope that it will be useful,
+%% Floodilka is distributed in the hope that it will be useful,
 %% but WITHOUT ANY WARRANTY; without even the implied warranty of
 %% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 %% GNU Affero General Public License for more details.
 %%
 %% You should have received a copy of the GNU Affero General Public License
-%% along with Fluxer. If not, see <https://www.gnu.org/licenses/>.
+%% along with Floodilka. If not, see <https://www.gnu.org/licenses/>.
 
 -module(rpc_client).
 
@@ -74,12 +74,12 @@ call(Request, _Options) ->
     end.
 
 get_rpc_url() ->
-    ApiHost = fluxer_gateway_env:get(api_host),
+    ApiHost = floodilka_gateway_env:get(api_host),
     get_rpc_url(ApiHost).
 
 get_rpc_url(ApiHost) ->
     "http://" ++ ApiHost ++ "/_rpc".
 
 get_rpc_headers() ->
-    RpcSecretKey = fluxer_gateway_env:get(rpc_secret_key),
+    RpcSecretKey = floodilka_gateway_env:get(rpc_secret_key),
     [{<<"Authorization">>, <<"Bearer ", RpcSecretKey/binary>>}].

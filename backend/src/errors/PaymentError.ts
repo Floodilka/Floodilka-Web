@@ -18,9 +18,9 @@
  */
 
 import {APIErrorCodes} from '~/Constants';
-import {FluxerAPIError} from './FluxerAPIError';
+import {FloodilkaAPIError} from './FloodilkaAPIError';
 
-export class PaymentError extends FluxerAPIError {
+export class PaymentError extends FloodilkaAPIError {
 	constructor(message: string = 'Произошла ошибка обработки платежа') {
 		super({
 			code: APIErrorCodes.PAYMENT_ERROR,

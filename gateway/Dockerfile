@@ -27,22 +27,22 @@ RUN cp config/vm.args.template config/vm.args && \
 
 FROM erlang:27-slim
 
-WORKDIR /opt/fluxer_gateway
+WORKDIR /opt/floodilka_gateway
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
 	ca-certificates \
 	curl \
 	&& rm -rf /var/lib/apt/lists/*
 
-COPY --from=build /usr/src/app/_build/prod/rel/fluxer_gateway .
+COPY --from=build /usr/src/app/_build/prod/rel/floodilka_gateway .
 
-RUN useradd -r -s /sbin/nologin -d /opt/fluxer_gateway fluxer && \
-	chown -R fluxer:fluxer /opt/fluxer_gateway
+RUN useradd -r -s /sbin/nologin -d /opt/floodilka_gateway floodilka && \
+	chown -R floodilka:floodilka /opt/floodilka_gateway
 
-USER fluxer
+USER floodilka
 
 EXPOSE 8080 8081
 
 ENV RELX_REPLACE_OS_VARS=true
 
-ENTRYPOINT ["/opt/fluxer_gateway/bin/fluxer_gateway", "foreground"]
+ENTRYPOINT ["/opt/floodilka_gateway/bin/floodilka_gateway", "foreground"]

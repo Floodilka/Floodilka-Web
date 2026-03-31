@@ -18,9 +18,9 @@
  */
 
 import {APIErrorCodes} from '~/Constants';
-import {FluxerAPIError} from './FluxerAPIError';
+import {FloodilkaAPIError} from './FloodilkaAPIError';
 
-export class WebhookVerificationError extends FluxerAPIError {
+export class WebhookVerificationError extends FloodilkaAPIError {
 	constructor() {
 		super({
 			code: APIErrorCodes.WEBHOOK_VERIFICATION_ERROR,

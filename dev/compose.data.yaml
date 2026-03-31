@@ -4,11 +4,11 @@ services:
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: fluxer
+      POSTGRES_DB: floodilka
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
-      - fluxer-shared
+      - floodilka-shared
     restart: on-failure
 
   cassandra:
@@ -19,7 +19,7 @@ services:
     volumes:
       - scylla_data:/var/lib/scylla
     networks:
-      - fluxer-shared
+      - floodilka-shared
     restart: on-failure
     healthcheck:
       test: ['CMD-SHELL', 'cqlsh -e "describe cluster"']
@@ -34,7 +34,7 @@ services:
       - redis_data:/data
     command: valkey-server --save 60 1 --loglevel warning
     networks:
-      - fluxer-shared
+      - floodilka-shared
     restart: on-failure
 
   minio:
@@ -46,7 +46,7 @@ services:
     volumes:
       - minio_data:/data
     networks:
-      - fluxer-shared
+      - floodilka-shared
     restart: on-failure
     healthcheck:
       test: ['CMD', 'mc', 'ready', 'local']
@@ -62,12 +62,12 @@ services:
     entrypoint: >
       /bin/sh -c "
       mc alias set minio http://minio:9000 minioadmin minioadmin;
-      mc mb --ignore-existing minio/fluxer-metrics;
-      mc mb --ignore-existing minio/fluxer-uploads;
+      mc mb --ignore-existing minio/floodilka-metrics;
+      mc mb --ignore-existing minio/floodilka-uploads;
       exit 0;
       "
     networks:
-      - fluxer-shared
+      - floodilka-shared
     restart: 'no'
 
   clamav:
@@ -79,7 +79,7 @@ services:
       CLAMAV_NO_CLAMD: 'false'
       CLAMAV_NO_MILTERD: 'true'
     networks:
-      - fluxer-shared
+      - floodilka-shared
     restart: on-failure
     healthcheck:
       test: ['CMD', '/usr/local/bin/clamdcheck.sh']
@@ -96,7 +96,7 @@ services:
       MEILI_ENV: development
       MEILI_MASTER_KEY: masterKey
     networks:
-      - fluxer-shared
+      - floodilka-shared
     restart: on-failure
 
   livekit:
@@ -111,7 +111,7 @@ services:
       - '7882:7882/udp'
       - '7999:7999/udp'
     networks:
-      - fluxer-shared
+      - floodilka-shared
     restart: on-failure
 
   clickhouse:
@@ -120,15 +120,15 @@ services:
     profiles:
       - clickhouse
     environment:
-      - CLICKHOUSE_DB=fluxer_metrics
-      - CLICKHOUSE_USER=fluxer
-      - CLICKHOUSE_PASSWORD=fluxer_dev
+      - CLICKHOUSE_DB=floodilka_metrics
+      - CLICKHOUSE_USER=floodilka
+      - CLICKHOUSE_PASSWORD=floodilka_dev
       - CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT=1
     volumes:
       - clickhouse_data:/var/lib/clickhouse
       - clickhouse_logs:/var/log/clickhouse-server
     networks:
-      - fluxer-shared
+      - floodilka-shared
     ports:
       - '8123:8123'
       - '9000:9000'
@@ -145,8 +145,8 @@ services:
         hard: 262144
 
 networks:
-  fluxer-shared:
-    name: fluxer-shared
+  floodilka-shared:
+    name: floodilka-shared
     external: true
 
 volumes:

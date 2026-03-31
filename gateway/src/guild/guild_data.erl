@@ -1,19 +1,19 @@
-%% Copyright (C) 2026 Fluxer Contributors
+%% Copyright (C) 2026 Floodilka Contributors
 %%
-%% This file is part of Fluxer.
+%% This file is part of Floodilka.
 %%
-%% Fluxer is free software: you can redistribute it and/or modify
+%% Floodilka is free software: you can redistribute it and/or modify
 %% it under the terms of the GNU Affero General Public License as published by
 %% the Free Software Foundation, either version 3 of the License, or
 %% (at your option) any later version.
 %%
-%% Fluxer is distributed in the hope that it will be useful,
+%% Floodilka is distributed in the hope that it will be useful,
 %% but WITHOUT ANY WARRANTY; without even the implied warranty of
 %% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 %% GNU Affero General Public License for more details.
 %%
 %% You should have received a copy of the GNU Affero General Public License
-%% along with Fluxer. If not, see <https://www.gnu.org/licenses/>.
+%% along with Floodilka. If not, see <https://www.gnu.org/licenses/>.
 
 -module(guild_data).
 
@@ -255,7 +255,7 @@ get_guild_data_membership_gate_test() ->
 
     {reply, Reply2, _} = get_guild_data(#{user_id => 200}, State),
     Guild = maps:get(guild_data, Reply2),
-    ?assertEqual(<<"Fluxer">>, maps:get(<<"name">>, Guild)),
+    ?assertEqual(<<"Floodilka">>, maps:get(<<"name">>, Guild)),
     Roles = maps:get(<<"roles">>, Guild, []),
     ?assert(length(Roles) > 0).
 
@@ -279,7 +279,7 @@ test_state() ->
     #{
         id => GuildId,
         data => #{
-            <<"guild">> => #{<<"name">> => <<"Fluxer">>},
+            <<"guild">> => #{<<"name">> => <<"Floodilka">>},
             <<"roles">> => [
                 #{
                     <<"id">> => integer_to_binary(GuildId),

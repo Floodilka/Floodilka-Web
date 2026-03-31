@@ -1,20 +1,20 @@
 /*
- * Copyright (C) 2026 Fluxer Contributors
+ * Copyright (C) 2026 Floodilka Contributors
  *
- * This file is part of Fluxer.
+ * This file is part of Floodilka.
  *
- * Fluxer is free software: you can redistribute it and/or modify
+ * Floodilka is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * Fluxer is distributed in the hope that it will be useful,
+ * Floodilka is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU Affero General Public License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Fluxer. If not, see <https://www.gnu.org/licenses/>.
+ * along with Floodilka. If not, see <https://www.gnu.org/licenses/>.
  */
 
 import {beforeEach, describe, expect, it} from 'vitest';
@@ -37,7 +37,7 @@ describe('EmailI18nService', () => {
 
 			it('should render in en-US', () => {
 				const result = service.getTemplate('passwordReset', 'en-US', variables);
-				expect(result.subject).toBe('Reset your Fluxer password');
+				expect(result.subject).toBe('Reset your Floodilka password');
 				expect(result.body).toContain('Hello testuser');
 				expect(result.body).toContain('https://floodilka.com/reset/abc123');
 				expect(result.body).toContain('This link will expire in 1 hour');
@@ -66,7 +66,7 @@ describe('EmailI18nService', () => {
 
 			it('should render in en-US', () => {
 				const result = service.getTemplate('emailVerification', 'en-US', variables);
-				expect(result.subject).toBe('Verify your Fluxer email address');
+				expect(result.subject).toBe('Verify your Floodilka email address');
 				expect(result.body).toContain('Hello newuser');
 				expect(result.body).toContain('https://floodilka.com/verify/xyz789');
 				expect(result.body).toContain('This link will expire in 24 hours');
@@ -96,7 +96,7 @@ describe('EmailI18nService', () => {
 				};
 
 				const result = service.getTemplate('accountDisabledSuspicious', 'en-US', variables);
-				expect(result.subject).toBe('Your Fluxer account has been temporarily disabled');
+				expect(result.subject).toBe('Your Floodilka account has been temporarily disabled');
 				expect(result.body).toContain('Hello suspicioususer');
 				expect(result.body).toContain('Multiple failed login attempts detected');
 				expect(result.body).toContain('https://floodilka.com/forgot');
@@ -141,7 +141,7 @@ describe('EmailI18nService', () => {
 				};
 
 				const result = service.getTemplate('accountTempBanned', 'en-US', variables);
-				expect(result.subject).toBe('Your Fluxer account has been temporarily suspended');
+				expect(result.subject).toBe('Your Floodilka account has been temporarily suspended');
 				expect(result.body).toContain('Hello banneduser');
 				expect(result.body).toContain('24 hours');
 				expect(result.body).toContain('Spam behavior');
@@ -190,7 +190,7 @@ describe('EmailI18nService', () => {
 				};
 
 				const result = service.getTemplate('accountScheduledDeletion', 'en-US', variables);
-				expect(result.subject).toBe('Your Fluxer account is scheduled for deletion');
+				expect(result.subject).toBe('Your Floodilka account is scheduled for deletion');
 				expect(result.body).toContain('Hello deleteduser');
 				expect(result.body).toContain('Repeated violations');
 				expect(result.body).toContain('appeals@floodilka.com');
@@ -220,7 +220,7 @@ describe('EmailI18nService', () => {
 				};
 
 				const result = service.getTemplate('selfDeletionScheduled', 'en-US', variables);
-				expect(result.subject).toBe('Your Fluxer account deletion has been scheduled');
+				expect(result.subject).toBe('Your Floodilka account deletion has been scheduled');
 				expect(result.body).toContain('Hello leavinguser');
 				expect(result.body).toContain('sad to see you go');
 				expect(result.body).toContain('cancel this deletion');
@@ -250,7 +250,7 @@ describe('EmailI18nService', () => {
 				};
 
 				const result = service.getTemplate('inactivityWarning', 'en-US', variables);
-				expect(result.subject).toBe('Your Fluxer account will be deleted due to inactivity');
+				expect(result.subject).toBe('Your Floodilka account will be deleted due to inactivity');
 				expect(result.body).toContain('Hello inactiveuser');
 				expect(result.body).toContain('over 2 years');
 				expect(result.body).toContain('https://floodilka.com/login');
@@ -282,7 +282,7 @@ describe('EmailI18nService', () => {
 				};
 
 				const result = service.getTemplate('harvestCompleted', 'en-US', variables);
-				expect(result.subject).toBe('Your Fluxer Data Export is Ready');
+				expect(result.subject).toBe('Your Floodilka Data Export is Ready');
 				expect(result.body).toContain('Hello datauser');
 				expect(result.body).toContain('12,345');
 				expect(result.body).toContain('456 MB');
@@ -312,7 +312,7 @@ describe('EmailI18nService', () => {
 				};
 
 				const result = service.getTemplate('unbanNotification', 'en-US', variables);
-				expect(result.subject).toBe('Your Fluxer account suspension has been lifted');
+				expect(result.subject).toBe('Your Floodilka account suspension has been lifted');
 				expect(result.body).toContain('Hello unbanneduser');
 				expect(result.body).toContain('Good news');
 				expect(result.body).toContain('Appeal approved');
@@ -340,7 +340,7 @@ describe('EmailI18nService', () => {
 				};
 
 				const result = service.getTemplate('scheduledDeletionNotification', 'en-US', variables);
-				expect(result.subject).toBe('Your Fluxer account is scheduled for deletion');
+				expect(result.subject).toBe('Your Floodilka account is scheduled for deletion');
 				expect(result.body).toContain('Hello scheduser');
 				expect(result.body).toContain('Terms violation');
 				expect(result.body).toContain('appeals@floodilka.com');
@@ -365,7 +365,7 @@ describe('EmailI18nService', () => {
 				};
 
 				const result = service.getTemplate('giftChargebackNotification', 'en-US', variables);
-				expect(result.subject).toBe('Your Fluxer Premium gift has been revoked');
+				expect(result.subject).toBe('Your Floodilka Premium gift has been revoked');
 				expect(result.body).toContain('Hello giftuser');
 				expect(result.body).toContain('chargeback');
 				expect(result.body).toContain('revoked');
@@ -390,7 +390,7 @@ describe('EmailI18nService', () => {
 				};
 
 				const result = service.getTemplate('reportResolved', 'en-US', variables);
-				expect(result.subject).toBe('Your Fluxer report has been reviewed');
+				expect(result.subject).toBe('Your Floodilka report has been reviewed');
 				expect(result.body).toContain('Hello reporter');
 				expect(result.body).toContain('RPT-12345');
 				expect(result.body).toContain('We have taken action on the reported content.');
@@ -419,7 +419,7 @@ describe('EmailI18nService', () => {
 			};
 
 			const result = service.getTemplate('passwordReset', 'unsupported-locale', variables);
-			expect(result.subject).toBe('Reset your Fluxer password');
+			expect(result.subject).toBe('Reset your Floodilka password');
 		});
 
 		it('should fall back to en-US for null locale', () => {
@@ -429,7 +429,7 @@ describe('EmailI18nService', () => {
 			};
 
 			const result = service.getTemplate('passwordReset', null, variables);
-			expect(result.subject).toBe('Reset your Fluxer password');
+			expect(result.subject).toBe('Reset your Floodilka password');
 		});
 
 		it('should handle all supported locales without error', () => {

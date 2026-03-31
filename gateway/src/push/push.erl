@@ -1,19 +1,19 @@
-%% Copyright (C) 2026 Fluxer Contributors
+%% Copyright (C) 2026 Floodilka Contributors
 %%
-%% This file is part of Fluxer.
+%% This file is part of Floodilka.
 %%
-%% Fluxer is free software: you can redistribute it and/or modify
+%% Floodilka is free software: you can redistribute it and/or modify
 %% it under the terms of the GNU Affero General Public License as published by
 %% the Free Software Foundation, either version 3 of the License, or
 %% (at your option) any later version.
 %%
-%% Fluxer is distributed in the hope that it will be useful,
+%% Floodilka is distributed in the hope that it will be useful,
 %% but WITHOUT ANY WARRANTY; without even the implied warranty of
 %% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 %% GNU Affero General Public License for more details.
 %%
 %% You should have received a copy of the GNU Affero General Public License
-%% along with Fluxer. If not, see <https://www.gnu.org/licenses/>.
+%% along with Floodilka. If not, see <https://www.gnu.org/licenses/>.
 
 -module(push).
 -behaviour(gen_server).
@@ -64,7 +64,7 @@ start_link() ->
 
 init([]) ->
     install_progress_filter(),
-    PushEnabled = fluxer_gateway_env:get(push_enabled),
+    PushEnabled = floodilka_gateway_env:get(push_enabled),
     BaseState = #{
         user_guild_settings_cache => #{},
         user_guild_settings_lru => [],
@@ -86,11 +86,11 @@ init([]) ->
     },
     case PushEnabled of
         true ->
-            UgsMaxMb = fluxer_gateway_env:get(push_user_guild_settings_cache_mb),
-            PsMaxMb = fluxer_gateway_env:get(push_subscriptions_cache_mb),
-            BiMaxMb = fluxer_gateway_env:get(push_blocked_ids_cache_mb),
-            BcMaxMb = fluxer_gateway_env:get(push_badge_counts_cache_mb),
-            BcTtl = fluxer_gateway_env:get(push_badge_counts_cache_ttl_seconds),
+            UgsMaxMb = floodilka_gateway_env:get(push_user_guild_settings_cache_mb),
+            PsMaxMb = floodilka_gateway_env:get(push_subscriptions_cache_mb),
+            BiMaxMb = floodilka_gateway_env:get(push_blocked_ids_cache_mb),
+            BcMaxMb = floodilka_gateway_env:get(push_badge_counts_cache_mb),
+            BcTtl = floodilka_gateway_env:get(push_badge_counts_cache_ttl_seconds),
             {ok, BaseState#{
                 user_guild_settings_max_mb := UgsMaxMb,
                 push_subscriptions_max_mb := PsMaxMb,
@@ -194,7 +194,7 @@ code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
 
 handle_message_create(Params) ->
-    PushEnabled = fluxer_gateway_env:get(push_enabled),
+    PushEnabled = floodilka_gateway_env:get(push_enabled),
     UserIds = maps:get(user_ids, Params, []),
     GuildId = maps:get(guild_id, Params, -1),
     logger:info("[push] handle_message_create called, enabled=~p, users=~p, guild=~p", [PushEnabled, UserIds, GuildId]),

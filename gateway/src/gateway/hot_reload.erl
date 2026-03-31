@@ -1,19 +1,19 @@
-%% Copyright (C) 2026 Fluxer Contributors
+%% Copyright (C) 2026 Floodilka Contributors
 %%
-%% This file is part of Fluxer.
+%% This file is part of Floodilka.
 %%
-%% Fluxer is free software: you can redistribute it and/or modify
+%% Floodilka is free software: you can redistribute it and/or modify
 %% it under the terms of the GNU Affero General Public License as published by
 %% the Free Software Foundation, either version 3 of the License, or
 %% (at your option) any later version.
 %%
-%% Fluxer is distributed in the hope that it will be useful,
+%% Floodilka is distributed in the hope that it will be useful,
 %% but WITHOUT ANY WARRANTY; without even the implied warranty of
 %% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 %% GNU Affero General Public License for more details.
 %%
 %% You should have received a copy of the GNU Affero General Public License
-%% along with Fluxer. If not, see <https://www.gnu.org/licenses/>.
+%% along with Floodilka. If not, see <https://www.gnu.org/licenses/>.
 
 -module(hot_reload).
 
@@ -117,7 +117,7 @@ reload_all_changed(Purge) ->
 
 -spec get_loaded_modules() -> [atom()].
 get_loaded_modules() ->
-    [M || {M, _} <- code:all_loaded(), is_fluxer_module(M)].
+    [M || {M, _} <- code:all_loaded(), is_floodilka_module(M)].
 
 -spec get_module_info(atom()) -> {ok, map()} | {error, not_loaded}.
 get_module_info(Module) when is_atom(Module) ->
@@ -282,14 +282,14 @@ count_lingering(Module) ->
 
 get_changed_modules() ->
     Modified = code:modified_modules(),
-    [M || M <- Modified, is_fluxer_module(M), not is_critical_module(M)].
+    [M || M <- Modified, is_floodilka_module(M), not is_critical_module(M)].
 
 is_critical_module(Module) ->
     lists:member(Module, ?CRITICAL_MODULES).
 
-is_fluxer_module(Module) ->
+is_floodilka_module(Module) ->
     ModuleStr = atom_to_list(Module),
-    lists:prefix("fluxer_", ModuleStr) orelse
+    lists:prefix("floodilka_", ModuleStr) orelse
         lists:prefix("gateway", ModuleStr) orelse
         lists:prefix("session", ModuleStr) orelse
         lists:prefix("guild", ModuleStr) orelse

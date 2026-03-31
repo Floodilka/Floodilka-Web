@@ -223,10 +223,10 @@ jobs:
           ssh production "
             docker rm -f gw-extract 2>/dev/null || true &&
             docker create --name gw-extract floodilka-gateway:latest &&
-            docker cp gw-extract:/opt/fluxer_gateway/lib/fluxer_gateway/ebin /tmp/gw-beams &&
+            docker cp gw-extract:/opt/floodilka_gateway/lib/floodilka_gateway/ebin /tmp/gw-beams &&
             docker rm gw-extract &&
             CONTAINER_ID=\$(docker ps -q -f name=gateway_gateway --no-trunc | head -1) &&
-            docker cp /tmp/gw-beams/. \$CONTAINER_ID:/opt/fluxer_gateway/lib/fluxer_gateway/ebin/ &&
+            docker cp /tmp/gw-beams/. \$CONTAINER_ID:/opt/floodilka_gateway/lib/floodilka_gateway/ebin/ &&
             docker exec \$CONTAINER_ID curl -sf \
               -X POST http://localhost:8081/_admin/reload \
               -H 'Content-Type: application/json' \

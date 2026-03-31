@@ -1,25 +1,25 @@
 /*
- * Copyright (C) 2026 Fluxer Contributors
+ * Copyright (C) 2026 Floodilka Contributors
  *
- * This file is part of Fluxer.
+ * This file is part of Floodilka.
  *
- * Fluxer is free software: you can redistribute it and/or modify
+ * Floodilka is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * Fluxer is distributed in the hope that it will be useful,
+ * Floodilka is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU Affero General Public License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Fluxer. If not, see <https://www.gnu.org/licenses/>.
+ * along with Floodilka. If not, see <https://www.gnu.org/licenses/>.
  */
 
 import type {HonoApp} from '~/App';
 import {Config} from '~/Config';
-import {FluxerAPIError} from '~/Errors';
+import {FloodilkaAPIError} from '~/Errors';
 import {RateLimitMiddleware} from '~/middleware/RateLimitMiddleware';
 import {RateLimitConfigs} from '~/RateLimitConfig';
 
@@ -46,7 +46,7 @@ export const GatewayController = (app: HonoApp) => {
 		const token = extractToken(ctx.req.header('Authorization') || null);
 
 		if (!token) {
-			throw new FluxerAPIError({
+			throw new FloodilkaAPIError({
 				code: 'MISSING_AUTHORIZATION',
 				message: 'Bot token required',
 				status: 401,
@@ -54,7 +54,7 @@ export const GatewayController = (app: HonoApp) => {
 		}
 
 		if (parseTokenType(token) !== 'bot') {
-			throw new FluxerAPIError({
+			throw new FloodilkaAPIError({
 				code: 'INVALID_AUTH_TOKEN',
 				message: 'Gateway bot endpoint only accepts bot tokens',
 				status: 401,

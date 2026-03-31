@@ -1,9 +1,9 @@
 [package]
-name = "fluxer_metrics"
+name = "floodilka_metrics"
 version = "0.1.0"
 edition = "2024"
 license = "AGPL-3.0-or-later"
-description = "Metrics collection and time-series storage service for Fluxer"
+description = "Metrics collection and time-series storage service for Floodilka"
 
 [dependencies]
 # Async runtime

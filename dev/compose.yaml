@@ -124,7 +124,7 @@ services:
       - VAPID_PRIVATE_KEY=Ze8J4aSmwV5B77zz9NzTU_IdyFyR1hMiKaYF2G61Y-E
       - VAPID_EMAIL=support@floodilka.app
       - FLOODILKA_METRICS_HOST=metrics:8080
-      - FLUXER_API_HOST=api:8080
+      - FLOODILKA_API_HOST=api:8080
     volumes:
       - ../gateway:/workspace
       - gateway_build:/workspace/_build

@@ -1,5 +1,5 @@
 {
-	"name": "fluxer_media_proxy",
+	"name": "floodilka_media_proxy",
 	"private": true,
 	"type": "module",
 	"packageManager": "pnpm@10.26.0",

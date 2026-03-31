@@ -1,19 +1,19 @@
-%% Copyright (C) 2026 Fluxer Contributors
+%% Copyright (C) 2026 Floodilka Contributors
 %%
-%% This file is part of Fluxer.
+%% This file is part of Floodilka.
 %%
-%% Fluxer is free software: you can redistribute it and/or modify
+%% Floodilka is free software: you can redistribute it and/or modify
 %% it under the terms of the GNU Affero General Public License as published by
 %% the Free Software Foundation, either version 3 of the License, or
 %% (at your option) any later version.
 %%
-%% Fluxer is distributed in the hope that it will be useful,
+%% Floodilka is distributed in the hope that it will be useful,
 %% but WITHOUT ANY WARRANTY; without even the implied warranty of
 %% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 %% GNU Affero General Public License for more details.
 %%
 %% You should have received a copy of the GNU Affero General Public License
-%% along with Fluxer. If not, see <https://www.gnu.org/licenses/>.
+%% along with Floodilka. If not, see <https://www.gnu.org/licenses/>.
 
 -module(push_sender).
 
@@ -202,9 +202,9 @@ normalize_badge_count(_) ->
 -define(PUSH_TTL, <<"86400">>).
 
 ensure_vapid_credentials() ->
-    Email = fluxer_gateway_env:get(vapid_email),
-    Public = fluxer_gateway_env:get(vapid_public_key),
-    Private = fluxer_gateway_env:get(vapid_private_key),
+    Email = floodilka_gateway_env:get(vapid_email),
+    Public = floodilka_gateway_env:get(vapid_public_key),
+    Private = floodilka_gateway_env:get(vapid_private_key),
     case {Email, Public, Private} of
         {Email0, Public0, Private0}
         when is_binary(Email0) andalso is_binary(Public0) andalso is_binary(Private0) andalso

@@ -3,7 +3,7 @@ services:
     image: scylladb/scylla:6.2
     command: --smp 1 --memory 1G --overprovisioned 1 --developer-mode 1 --api-address 0.0.0.0
     networks:
-      - fluxer-integration
+      - floodilka-integration
     healthcheck:
       test: ['CMD-SHELL', 'cqlsh -e "describe cluster"']
       interval: 30s
@@ -22,26 +22,26 @@ services:
       CASSANDRA_HOST: cassandra
       CASSANDRA_USERNAME: cassandra
       CASSANDRA_PASSWORD: cassandra
-      CASSANDRA_KEYSPACE: fluxer
+      CASSANDRA_KEYSPACE: floodilka
     depends_on:
       cassandra:
         condition: service_healthy
     networks:
-      - fluxer-integration
+      - floodilka-integration
 
   postgres:
     image: postgres:17
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: fluxer
+      POSTGRES_DB: floodilka
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U postgres']
       interval: 10s
       timeout: 5s
       retries: 5
     networks:
-      - fluxer-integration
+      - floodilka-integration
     volumes:
       - postgres-data:/var/lib/postgresql/data
 
@@ -49,7 +49,7 @@ services:
     image: valkey/valkey:8.0
     command: valkey-server --save 60 1 --loglevel warning
     networks:
-      - fluxer-integration
+      - floodilka-integration
     volumes:
       - valkey-data:/data
 
@@ -59,7 +59,7 @@ services:
       MEILI_ENV: development
       MEILI_MASTER_KEY: masterKey
     networks:
-      - fluxer-integration
+      - floodilka-integration
     volumes:
       - meilisearch-data:/meili_data
 
@@ -70,7 +70,7 @@ services:
       MINIO_ROOT_USER: minioadmin
       MINIO_ROOT_PASSWORD: minioadmin
     networks:
-      - fluxer-integration
+      - floodilka-integration
     volumes:
       - minio-data:/data
     healthcheck:
@@ -89,19 +89,19 @@ services:
         until mc alias set integration http://minio:9000 minioadmin minioadmin; do
           echo 'Waiting for MinIO...' && sleep 2;
         done &&
-        mc mb --ignore-existing integration/fluxer-cdn &&
-        mc mb --ignore-existing integration/fluxer-uploads &&
-        mc mb --ignore-existing integration/fluxer-reports &&
-        mc mb --ignore-existing integration/fluxer-harvests &&
-        mc mb --ignore-existing integration/fluxer-downloads
+        mc mb --ignore-existing integration/floodilka-cdn &&
+        mc mb --ignore-existing integration/floodilka-uploads &&
+        mc mb --ignore-existing integration/floodilka-reports &&
+        mc mb --ignore-existing integration/floodilka-harvests &&
+        mc mb --ignore-existing integration/floodilka-downloads
       "
     networks:
-      - fluxer-integration
+      - floodilka-integration
 
   clamav:
     image: clamav/clamav:1.2.2
     networks:
-      - fluxer-integration
+      - floodilka-integration
     healthcheck:
       test: ['CMD', '/usr/local/bin/clamdcheck.sh']
       interval: 30s
@@ -115,7 +115,7 @@ services:
     env_file:
       - ./env/secrets.env
     networks:
-      - fluxer-integration
+      - floodilka-integration
     restart: on-failure
 
   livekit:
@@ -124,7 +124,7 @@ services:
     volumes:
       - ./livekit.yaml:/etc/livekit.yaml:ro
     networks:
-      - fluxer-integration
+      - floodilka-integration
     restart: on-failure
     healthcheck:
       test: ['CMD', 'wget', '--spider', '-q', 'http://localhost:7880']
@@ -134,21 +134,21 @@ services:
 
   media-proxy:
     build:
-      context: ../../fluxer_media_proxy
+      context: ../../floodilka_media_proxy
     environment:
       NODE_ENV: production
-      FLUXER_MEDIA_PROXY_PORT: 8080
+      FLOODILKA_MEDIA_PROXY_PORT: 8080
       AWS_ACCESS_KEY_ID: minioadmin
       AWS_SECRET_ACCESS_KEY: minioadmin
       AWS_S3_ENDPOINT: http://minio:9000
-      AWS_S3_BUCKET_CDN: fluxer-cdn
-      AWS_S3_BUCKET_UPLOADS: fluxer-uploads
+      AWS_S3_BUCKET_CDN: floodilka-cdn
+      AWS_S3_BUCKET_UPLOADS: floodilka-uploads
       MEDIA_PROXY_SECRET_KEY: integration-media-secret
     depends_on:
       minio:
         condition: service_started
     networks:
-      - fluxer-integration
+      - floodilka-integration
     healthcheck:
       test: ['CMD', 'curl', '-f', 'http://localhost:8080/_health']
       interval: 10s
@@ -157,15 +157,15 @@ services:
 
   api:
     build:
-      context: ../../fluxer_api
+      context: ../../floodilka_api
     command: ['pnpm', 'start']
     env_file:
       - ./env/api.env
       - ./env/secrets.env
     environment:
-      CASSANDRA_KEYSPACE: fluxer
+      CASSANDRA_KEYSPACE: floodilka
       GATEWAY_RPC_SECRET: integration-gateway-secret
-      FLUXER_MEDIA_PROXY_HOST: media-proxy
+      FLOODILKA_MEDIA_PROXY_HOST: media-proxy
       MEDIA_PROXY_SECRET_KEY: integration-media-secret
     depends_on:
       cassandra-migrate:
@@ -187,7 +187,7 @@ services:
       cloudflared:
         condition: service_started
     networks:
-      - fluxer-integration
+      - floodilka-integration
     healthcheck:
       test: ['CMD', 'curl', '-f', 'http://localhost:8080/_health']
       interval: 10s
@@ -196,17 +196,17 @@ services:
 
   gateway:
     build:
-      context: ../../fluxer_gateway
+      context: ../../floodilka_gateway
     environment:
       API_HOST: api:8080
       GATEWAY_RPC_SECRET: integration-gateway-secret
-      FLUXER_GATEWAY_WS_PORT: 8080
-      FLUXER_GATEWAY_RPC_PORT: 8081
+      FLOODILKA_GATEWAY_WS_PORT: 8080
+      FLOODILKA_GATEWAY_RPC_PORT: 8081
     depends_on:
       api:
         condition: service_healthy
     networks:
-      - fluxer-integration
+      - floodilka-integration
     healthcheck:
       test: ['CMD', 'curl', '-f', 'http://localhost:8080/_health']
       interval: 10s
@@ -215,12 +215,12 @@ services:
 
   worker:
     build:
-      context: ../../fluxer_api
+      context: ../../floodilka_api
     command: ['pnpm', 'start:worker']
     env_file:
       - ./env/api.env
     environment:
-      CASSANDRA_KEYSPACE: fluxer
+      CASSANDRA_KEYSPACE: floodilka
       GATEWAY_RPC_SECRET: integration-gateway-secret
       MEDIA_PROXY_SECRET_KEY: integration-media-secret
     depends_on:
@@ -239,17 +239,17 @@ services:
       gateway:
         condition: service_healthy
     networks:
-      - fluxer-integration
+      - floodilka-integration
 
   integration-tests:
     build:
       context: ../..
       dockerfile: tests/integration/Dockerfile
     environment:
-      FLUXER_INTEGRATION_API_URL: http://api:8080
-      FLUXER_INTEGRATION_GATEWAY_URL: ws://gateway:8080
-      FLUXER_TEST_TOKEN: integration-token
-      FLUXER_WEBAPP_ORIGIN: http://localhost:8088
+      FLOODILKA_INTEGRATION_API_URL: http://api:8080
+      FLOODILKA_INTEGRATION_GATEWAY_URL: ws://gateway:8080
+      FLOODILKA_TEST_TOKEN: integration-token
+      FLOODILKA_WEBAPP_ORIGIN: http://localhost:8088
       GATEWAY_RPC_SECRET: integration-gateway-secret
       REDIS_URL: redis://valkey:6379
     depends_on:
@@ -262,10 +262,10 @@ services:
       worker:
         condition: service_started
     networks:
-      - fluxer-integration
+      - floodilka-integration
 
 networks:
-  fluxer-integration:
+  floodilka-integration:
     driver: bridge
 
 volumes:

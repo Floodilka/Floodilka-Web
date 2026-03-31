@@ -1,33 +1,33 @@
 /*
- * Copyright (C) 2026 Fluxer Contributors
+ * Copyright (C) 2026 Floodilka Contributors
  *
- * This file is part of Fluxer.
+ * This file is part of Floodilka.
  *
- * Fluxer is free software: you can redistribute it and/or modify
+ * Floodilka is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * Fluxer is distributed in the hope that it will be useful,
+ * Floodilka is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU Affero General Public License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Fluxer. If not, see <https://www.gnu.org/licenses/>.
+ * along with Floodilka. If not, see <https://www.gnu.org/licenses/>.
  */
 
 import {HTTPException} from 'hono/http-exception';
 
 type ErrorStatusCode = 202 | 400 | 401 | 403 | 404 | 423 | 429 | 500 | 502 | 503 | 504;
 
-export type FluxerErrorData = Record<string, unknown>;
+export type FloodilkaErrorData = Record<string, unknown>;
 
-export class FluxerAPIError extends HTTPException {
+export class FloodilkaAPIError extends HTTPException {
 	code: string;
 	override message: string;
 	override status: ErrorStatusCode;
-	data?: FluxerErrorData;
+	data?: FloodilkaErrorData;
 	headers?: Record<string, string>;
 
 	constructor({
@@ -40,7 +40,7 @@ export class FluxerAPIError extends HTTPException {
 		code: string;
 		message: string;
 		status: ErrorStatusCode;
-		data?: FluxerErrorData;
+		data?: FloodilkaErrorData;
 		headers?: Record<string, string>;
 	}) {
 		super(status, {message});
@@ -49,7 +49,7 @@ export class FluxerAPIError extends HTTPException {
 		this.status = status;
 		this.data = data;
 		this.headers = headers;
-		this.name = 'FluxerAPIError';
+		this.name = 'FloodilkaAPIError';
 	}
 
 	override getResponse(): Response {

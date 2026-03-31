@@ -1,27 +1,27 @@
 /*
- * Copyright (C) 2026 Fluxer Contributors
+ * Copyright (C) 2026 Floodilka Contributors
  *
- * This file is part of Fluxer.
+ * This file is part of Floodilka.
  *
- * Fluxer is free software: you can redistribute it and/or modify
+ * Floodilka is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * Fluxer is distributed in the hope that it will be useful,
+ * Floodilka is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU Affero General Public License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Fluxer. If not, see <https://www.gnu.org/licenses/>.
+ * along with Floodilka. If not, see <https://www.gnu.org/licenses/>.
  */
 
 import crypto from 'node:crypto';
 import {promisify} from 'node:util';
 import type {UserID} from '~/BrandedTypes';
 import {APIErrorCodes, UserFlags} from '~/Constants';
-import {AccessDeniedError, FluxerAPIError, UnauthorizedError} from '~/Errors';
+import {AccessDeniedError, FloodilkaAPIError, UnauthorizedError} from '~/Errors';
 import type {IRateLimitService} from '~/infrastructure/IRateLimitService';
 import type {User} from '~/Models';
 import type {IUserRepository} from '~/user/IUserRepository';
@@ -139,7 +139,7 @@ export class AuthUtilityService {
 		const banStatus = this.checkAccountBanStatus(user);
 
 		if (banStatus.isPermanentlyBanned) {
-			throw new FluxerAPIError({
+			throw new FloodilkaAPIError({
 				code: APIErrorCodes.ACCOUNT_DISABLED,
 				message: 'Your account has been permanently suspended',
 				status: 403,
@@ -147,7 +147,7 @@ export class AuthUtilityService {
 		}
 
 		if (banStatus.isTempBanned) {
-			throw new FluxerAPIError({
+			throw new FloodilkaAPIError({
 				code: APIErrorCodes.ACCOUNT_DISABLED,
 				message: 'Your account has been temporarily suspended',
 				status: 403,

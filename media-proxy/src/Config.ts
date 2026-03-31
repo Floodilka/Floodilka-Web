@@ -1,20 +1,20 @@
 /*
- * Copyright (C) 2026 Fluxer Contributors
+ * Copyright (C) 2026 Floodilka Contributors
  *
- * This file is part of Fluxer.
+ * This file is part of Floodilka.
  *
- * Fluxer is free software: you can redistribute it and/or modify
+ * Floodilka is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * Fluxer is distributed in the hope that it will be useful,
+ * Floodilka is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU Affero General Public License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Fluxer. If not, see <https://www.gnu.org/licenses/>.
+ * along with Floodilka. If not, see <https://www.gnu.org/licenses/>.
  */
 
 import process from 'node:process';
@@ -67,14 +67,14 @@ const MediaProxyConfigSchema = v.looseObject({
 
 export const Config = v.parse(MediaProxyConfigSchema, {
 	NODE_ENV: (env('NODE_ENV') || 'production') as 'development' | 'production',
-	PORT: envInt('FLUXER_MEDIA_PROXY_PORT', 8080),
+	PORT: envInt('FLOODILKA_MEDIA_PROXY_PORT', 8080),
 	AWS_ACCESS_KEY_ID: env('AWS_ACCESS_KEY_ID'),
 	AWS_SECRET_ACCESS_KEY: env('AWS_SECRET_ACCESS_KEY'),
 	AWS_S3_ENDPOINT: env('AWS_S3_ENDPOINT'),
 	AWS_S3_BUCKET_CDN: env('AWS_S3_BUCKET_CDN'),
 	AWS_S3_BUCKET_UPLOADS: env('AWS_S3_BUCKET_UPLOADS'),
 	SECRET_KEY: env('MEDIA_PROXY_SECRET_KEY'),
-	REQUIRE_CLOUDFLARE: envBool('FLUXER_MEDIA_PROXY_REQUIRE_CLOUDFLARE', false),
-	STATIC_MODE: envBool('FLUXER_MEDIA_PROXY_STATIC_MODE', false),
+	REQUIRE_CLOUDFLARE: envBool('FLOODILKA_MEDIA_PROXY_REQUIRE_CLOUDFLARE', false),
+	STATIC_MODE: envBool('FLOODILKA_MEDIA_PROXY_STATIC_MODE', false),
 	AWS_S3_BUCKET_STATIC: env('AWS_S3_BUCKET_STATIC') || undefined,
 });

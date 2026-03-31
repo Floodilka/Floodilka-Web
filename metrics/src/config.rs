@@ -1,20 +1,20 @@
 /*
- * Copyright (C) 2026 Fluxer Contributors
+ * Copyright (C) 2026 Floodilka Contributors
  *
- * This file is part of Fluxer.
+ * This file is part of Floodilka.
  *
- * Fluxer is free software: you can redistribute it and/or modify
+ * Floodilka is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * Fluxer is distributed in the hope that it will be useful,
+ * Floodilka is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU Affero General Public License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Fluxer. If not, see <https://www.gnu.org/licenses/>.
+ * along with Floodilka. If not, see <https://www.gnu.org/licenses/>.
  */
 
 use std::env;
@@ -61,7 +61,7 @@ impl Config {
         let clickhouse_url =
             env::var("CLICKHOUSE_URL").unwrap_or_else(|_| "http://localhost:8123".into());
         let clickhouse_database =
-            env::var("CLICKHOUSE_DATABASE").unwrap_or_else(|_| "fluxer_metrics".into());
+            env::var("CLICKHOUSE_DATABASE").unwrap_or_else(|_| "floodilka_metrics".into());
         let clickhouse_user = env::var("CLICKHOUSE_USER").unwrap_or_else(|_| "default".into());
         let clickhouse_password = env::var("CLICKHOUSE_PASSWORD").unwrap_or_default();
 
@@ -80,7 +80,7 @@ impl Config {
             clickhouse_user,
             clickhouse_password,
             alert_webhook_url: env::var("ALERT_WEBHOOK_URL").ok().filter(|s| !s.is_empty()),
-            admin_endpoint: env::var("FLUXER_ADMIN_ENDPOINT")
+            admin_endpoint: env::var("FLOODILKA_ADMIN_ENDPOINT")
                 .ok()
                 .filter(|s| !s.is_empty()),
         })

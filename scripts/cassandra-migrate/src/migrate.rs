@@ -1,20 +1,20 @@
 /*
- * Copyright (C) 2026 Fluxer Contributors
+ * Copyright (C) 2026 Floodilka Contributors
  *
- * This file is part of Fluxer.
+ * This file is part of Floodilka.
  *
- * Fluxer is free software: you can redistribute it and/or modify
+ * Floodilka is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * Fluxer is distributed in the hope that it will be useful,
+ * Floodilka is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU Affero General Public License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Fluxer. If not, see <https://www.gnu.org/licenses/>.
+ * along with Floodilka. If not, see <https://www.gnu.org/licenses/>.
  */
 
 use anyhow::{Result, anyhow};
@@ -31,7 +31,7 @@ use std::time::{Duration, Instant};
 const MIGRATION_TABLE: &str = "schema_migrations";
 
 lazy_static::lazy_static! {
-    static ref MIGRATION_KEYSPACE: String = env::var("CASSANDRA_KEYSPACE").unwrap_or_else(|_| "fluxer".to_string());
+    static ref MIGRATION_KEYSPACE: String = env::var("CASSANDRA_KEYSPACE").unwrap_or_else(|_| "floodilka".to_string());
 }
 
 fn migration_keyspace() -> &'static str {
@@ -483,7 +483,7 @@ fn get_migration_files() -> Result<Vec<String>> {
 }
 
 fn get_migrations_dir() -> PathBuf {
-    PathBuf::from("fluxer_devops/cassandra/migrations")
+    PathBuf::from("floodilka_devops/cassandra/migrations")
 }
 
 fn get_migration_path(filename: &str) -> PathBuf {

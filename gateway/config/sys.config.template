@@ -1,8 +1,8 @@
 [
-    {fluxer_gateway, [
+    {floodilka_gateway, [
         {ws_port, 8080},
         {rpc_port, 8081},
-        {api_host, "${FLUXER_API_HOST}"},
+        {api_host, "${FLOODILKA_API_HOST}"},
         {rpc_secret_key, <<"${GATEWAY_RPC_SECRET}">>},
         {max_payload_size, 4096},
         {heartbeat_interval, 41250},

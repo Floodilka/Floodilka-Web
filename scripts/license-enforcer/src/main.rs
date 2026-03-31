@@ -1,22 +1,22 @@
 #![allow(clippy::four_forward_slashes)]
 
 /*
- * Copyright (C) 2026 Fluxer Contributors
+ * Copyright (C) 2026 Floodilka Contributors
  *
- * This file is part of Fluxer.
+ * This file is part of Floodilka.
  *
- * Fluxer is free software: you can redistribute it and/or modify
+ * Floodilka is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * Fluxer is distributed in the hope that it will be useful,
+ * Floodilka is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU Affero General Public License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Fluxer. If not, see <https://www.gnu.org/licenses/>.
+ * along with Floodilka. If not, see <https://www.gnu.org/licenses/>.
  */
 
 use regex::Regex;
@@ -26,74 +26,74 @@ use std::path::{Path, PathBuf};
 use walkdir::WalkDir;
 
 const TS_LICENSE_HEADER: &str = r"/*
- * Copyright (C) {year} Fluxer Contributors
+ * Copyright (C) {year} Floodilka Contributors
  *
- * This file is part of Fluxer.
+ * This file is part of Floodilka.
  *
- * Fluxer is free software: you can redistribute it and/or modify
+ * Floodilka is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * Fluxer is distributed in the hope that it will be useful,
+ * Floodilka is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU Affero General Public License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Fluxer. If not, see <https://www.gnu.org/licenses/>.
+ * along with Floodilka. If not, see <https://www.gnu.org/licenses/>.
  */";
 
-const ERLANG_LICENSE_HEADER: &str = r"%% Copyright (C) {year} Fluxer Contributors
+const ERLANG_LICENSE_HEADER: &str = r"%% Copyright (C) {year} Floodilka Contributors
 %%
-%% This file is part of Fluxer.
+%% This file is part of Floodilka.
 %%
-%% Fluxer is free software: you can redistribute it and/or modify
+%% Floodilka is free software: you can redistribute it and/or modify
 %% it under the terms of the GNU Affero General Public License as published by
 %% the Free Software Foundation, either version 3 of the License, or
 %% (at your option) any later version.
 %%
-%% Fluxer is distributed in the hope that it will be useful,
+%% Floodilka is distributed in the hope that it will be useful,
 %% but WITHOUT ANY WARRANTY; without even the implied warranty of
 %% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 %% GNU Affero General Public License for more details.
 %%
 %% You should have received a copy of the GNU Affero General Public License
-%% along with Fluxer. If not, see <https://www.gnu.org/licenses/>.";
+%% along with Floodilka. If not, see <https://www.gnu.org/licenses/>.";
 
-const GLEAM_LICENSE_HEADER: &str = r"//// Copyright (C) {year} Fluxer Contributors
+const GLEAM_LICENSE_HEADER: &str = r"//// Copyright (C) {year} Floodilka Contributors
 ////
-//// This file is part of Fluxer.
+//// This file is part of Floodilka.
 ////
-//// Fluxer is free software: you can redistribute it and/or modify
+//// Floodilka is free software: you can redistribute it and/or modify
 //// it under the terms of the GNU Affero General Public License as published by
 //// the Free Software Foundation, either version 3 of the License, or
 //// (at your option) any later version.
 ////
-//// Fluxer is distributed in the hope that it will be useful,
+//// Floodilka is distributed in the hope that it will be useful,
 //// but WITHOUT ANY WARRANTY; without even the implied warranty of
 //// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 //// GNU Affero General Public License for more details.
 ////
 //// You should have received a copy of the GNU Affero General Public License
-//// along with Fluxer. If not, see <https://www.gnu.org/licenses/>.";
+//// along with Floodilka. If not, see <https://www.gnu.org/licenses/>.";
 
-const SHELL_LICENSE_HEADER: &str = r"# Copyright (C) {year} Fluxer Contributors
+const SHELL_LICENSE_HEADER: &str = r"# Copyright (C) {year} Floodilka Contributors
 #
-# This file is part of Fluxer.
+# This file is part of Floodilka.
 #
-# Fluxer is free software: you can redistribute it and/or modify
+# Floodilka is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
 #
-# Fluxer is distributed in the hope that it will be useful,
+# Floodilka is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU Affero General Public License for more details.
 #
 # You should have received a copy of the GNU Affero General Public License
-# along with Fluxer. If not, see <https://www.gnu.org/licenses/>.";
+# along with Floodilka. If not, see <https://www.gnu.org/licenses/>.";
 
 const BLOCK_COMMENT_EXTS: &[&str] = &[
     "ts", "tsx", "js", "jsx", "mjs", "cjs", "css", "go", "rs", "c", "cc", "cpp", "cxx", "h", "hh",
@@ -153,7 +153,7 @@ impl Processor {
     }
 
     fn should_ignore(&self, path: &str) -> bool {
-        if path.contains("fluxer_static") {
+        if path.contains("floodilka_static") {
             return true;
         }
         for pattern in &self.ignore_patterns {
@@ -231,7 +231,7 @@ impl Processor {
     fn detect_license(&self, content: &str) -> (bool, Option<i32>) {
         let lines: Vec<&str> = content.lines().take(25).collect();
         let mut has_agpl = false;
-        let mut has_fluxer = false;
+        let mut has_floodilka = false;
         let mut detected_year = None;
 
         let year_regex = Regex::new(r"\b(20\d{2})\b").unwrap();
@@ -241,11 +241,11 @@ impl Processor {
             if lower.contains("gnu affero general public license") || lower.contains("agpl") {
                 has_agpl = true;
             }
-            if lower.contains("fluxer") {
-                has_fluxer = true;
+            if lower.contains("floodilka") {
+                has_floodilka = true;
             }
             if lower.contains("copyright")
-                && lower.contains("fluxer")
+                && lower.contains("floodilka")
                 && detected_year.is_none()
                 && let Some(cap) = year_regex.captures(line)
                 && let Ok(year) = cap[1].parse::<i32>()
@@ -255,7 +255,7 @@ impl Processor {
             }
         }
 
-        (has_agpl && has_fluxer, detected_year)
+        (has_agpl && has_floodilka, detected_year)
     }
 
     fn update_year(&self, content: &str, old_year: i32) -> String {

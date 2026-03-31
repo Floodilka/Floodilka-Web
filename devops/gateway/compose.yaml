@@ -8,7 +8,7 @@ services:
       - CLUSTER_DISCOVERY_DNS=gateway
       - NODE_COOKIE=floodilka_prod_cookie
       - LOGGER_LEVEL=info
-      - FLUXER_API_HOST=api:8080
+      - FLOODILKA_API_HOST=api:8080
       - MEDIA_PROXY_ENDPOINT=https://floodilka.com/media
       - GATEWAY_ADMIN_SECRET=${GATEWAY_ADMIN_SECRET}
     env_file:

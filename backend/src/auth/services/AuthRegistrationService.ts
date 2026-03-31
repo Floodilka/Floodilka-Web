@@ -1,20 +1,20 @@
 /*
- * Copyright (C) 2026 Fluxer Contributors
+ * Copyright (C) 2026 Floodilka Contributors
  *
- * This file is part of Fluxer.
+ * This file is part of Floodilka.
  *
- * Fluxer is free software: you can redistribute it and/or modify
+ * Floodilka is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * Fluxer is distributed in the hope that it will be useful,
+ * Floodilka is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU Affero General Public License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Fluxer. If not, see <https://www.gnu.org/licenses/>.
+ * along with Floodilka. If not, see <https://www.gnu.org/licenses/>.
  */
 
 import crypto from 'node:crypto';
@@ -24,7 +24,7 @@ import type {RegisterRequest} from '~/auth/AuthModel';
 import {createInviteCode, createUserID, type UserID} from '~/BrandedTypes';
 import {Config} from '~/Config';
 import {APIErrorCodes, UserFlags} from '~/Constants';
-import {FluxerAPIError, InputValidationError} from '~/Errors';
+import {FloodilkaAPIError, InputValidationError} from '~/Errors';
 import type {ICacheService} from '~/infrastructure/ICacheService';
 import type {IEmailService} from '~/infrastructure/IEmailService';
 import type {IRateLimitService} from '~/infrastructure/IRateLimitService';
@@ -136,8 +136,8 @@ function isIpv6(ip: string): boolean {
 	return ip.includes(':');
 }
 
-function rateLimitError(message: string): FluxerAPIError {
-	return new FluxerAPIError({code: APIErrorCodes.RATE_LIMITED, message, status: 429});
+function rateLimitError(message: string): FloodilkaAPIError {
+	return new FloodilkaAPIError({code: APIErrorCodes.RATE_LIMITED, message, status: 429});
 }
 
 function parseDobLocalDate(dateOfBirth: string): types.LocalDate {
@@ -275,7 +275,7 @@ export class AuthRegistrationService {
 		const pending = await this.cacheService.get<PendingRegistration>(redisKey);
 
 		if (!pending) {
-			throw new FluxerAPIError({
+			throw new FloodilkaAPIError({
 				code: APIErrorCodes.INVALID_REQUEST,
 				message: 'Invalid or expired registration ticket',
 				status: 400,
@@ -284,7 +284,7 @@ export class AuthRegistrationService {
 
 		if (pending.attempts >= PENDING_REG_MAX_ATTEMPTS) {
 			await this.cacheService.delete(redisKey);
-			throw new FluxerAPIError({
+			throw new FloodilkaAPIError({
 				code: APIErrorCodes.RATE_LIMITED,
 				message: 'Too many verification attempts. Please register again.',
 				status: 429,
@@ -294,7 +294,7 @@ export class AuthRegistrationService {
 		if (pending.code !== code) {
 			pending.attempts += 1;
 			await this.cacheService.set(redisKey, pending, PENDING_REG_TTL_SECONDS);
-			throw new FluxerAPIError({
+			throw new FloodilkaAPIError({
 				code: APIErrorCodes.INVALID_REQUEST,
 				message: 'Invalid verification code',
 				status: 400,
@@ -311,7 +311,7 @@ export class AuthRegistrationService {
 		const pending = await this.cacheService.get<PendingRegistration>(redisKey);
 
 		if (!pending) {
-			throw new FluxerAPIError({
+			throw new FloodilkaAPIError({
 				code: APIErrorCodes.INVALID_REQUEST,
 				message: 'Invalid or expired registration ticket',
 				status: 400,

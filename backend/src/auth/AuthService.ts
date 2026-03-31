@@ -1,20 +1,20 @@
 /*
- * Copyright (C) 2026 Fluxer Contributors
+ * Copyright (C) 2026 Floodilka Contributors
  *
- * This file is part of Fluxer.
+ * This file is part of Floodilka.
  *
- * Fluxer is free software: you can redistribute it and/or modify
+ * Floodilka is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * Fluxer is distributed in the hope that it will be useful,
+ * Floodilka is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU Affero General Public License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with Fluxer. If not, see <https://www.gnu.org/licenses/>.
+ * along with Floodilka. If not, see <https://www.gnu.org/licenses/>.
  */
 
 import type {AuthenticationResponseJSON, RegistrationResponseJSON} from '@simplewebauthn/server';
@@ -39,7 +39,7 @@ import {AuthSessionService} from '~/auth/services/AuthSessionService';
 import {AuthUtilityService} from '~/auth/services/AuthUtilityService';
 import {createMfaTicket, type UserID} from '~/BrandedTypes';
 import {APIErrorCodes, UserAuthenticatorTypes} from '~/Constants';
-import {FluxerAPIError} from '~/Errors';
+import {FloodilkaAPIError} from '~/Errors';
 import type {ICacheService} from '~/infrastructure/ICacheService';
 import type {IEmailService} from '~/infrastructure/IEmailService';
 import type {IGatewayService} from '~/infrastructure/IGatewayService';
@@ -391,7 +391,7 @@ export class AuthService implements IAuthService {
 		const existingSession = await this.sessionService.getAuthSessionByToken(token);
 
 		if (!existingSession) {
-			throw new FluxerAPIError({
+			throw new FloodilkaAPIError({
 				code: APIErrorCodes.INVALID_TOKEN,
 				message: 'Invalid or expired session token',
 				status: 400,
@@ -400,7 +400,7 @@ export class AuthService implements IAuthService {
 
 		const user = await this.repository.findUnique(existingSession.userId);
 		if (!user) {
-			throw new FluxerAPIError({
+			throw new FloodilkaAPIError({
 				code: APIErrorCodes.UNKNOWN_USER,
 				message: 'User not found for session token',
 				status: 404,
@@ -408,7 +408,7 @@ export class AuthService implements IAuthService {
 		}
 
 		if (expectedUserId && user.id.toString() !== expectedUserId) {
-			throw new FluxerAPIError({
+			throw new FloodilkaAPIError({
 				code: APIErrorCodes.INVALID_REQUEST,
 				message: 'Session token does not match provided user',
 				status: 400,
@@ -461,7 +461,7 @@ export class AuthService implements IAuthService {
 	async getUserSession(_requestCache: RequestCache, token: string): Promise<AuthSession> {
 		const session = await this.getAuthSessionByToken(token);
 		if (!session) {
-			throw new FluxerAPIError({code: APIErrorCodes.UNAUTHORIZED, message: 'Invalid session token', status: 401});
+			throw new FloodilkaAPIError({code: APIErrorCodes.UNAUTHORIZED, message: 'Invalid session token', status: 401});
 		}
 		return session;
 	}
