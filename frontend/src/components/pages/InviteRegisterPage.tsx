@@ -22,10 +22,8 @@ import {observer} from 'mobx-react-lite';
 import {useEffect} from 'react';
 import * as InviteActionCreators from '~/actions/InviteActionCreators';
 import {GuildFeatures, GuildSplashCardAlignment} from '~/Constants';
-import {AuthBottomLink} from '~/components/auth/AuthBottomLink';
 import {AuthErrorState} from '~/components/auth/AuthErrorState';
 import {AuthLoadingState} from '~/components/auth/AuthLoadingState';
-import {AuthMinimalRegisterFormCore} from '~/components/auth/AuthMinimalRegisterFormCore';
 import sharedStyles from '~/components/auth/AuthPageStyles.module.css';
 import {AuthRouterLink} from '~/components/auth/AuthRouterLink';
 import {DesktopDeepLinkPrompt} from '~/components/auth/DesktopDeepLinkPrompt';
@@ -34,7 +32,6 @@ import {Button} from '~/components/uikit/Button/Button';
 import {useAuthLayoutContext} from '~/contexts/AuthLayoutContext';
 import {useDocumentTitle} from '~/hooks/useDocumentTitle';
 import {useParams} from '~/lib/router';
-import {Routes} from '~/Routes';
 import InviteStore from '~/stores/InviteStore';
 import {isGroupDmInvite, isGuildInvite} from '~/types/InviteTypes';
 import * as AvatarUtils from '~/utils/AvatarUtils';
@@ -146,10 +143,12 @@ const InviteRegisterPage = observer(function InviteRegisterPage() {
 
 			<InviteHeader invite={invite} />
 
-			<div className={sharedStyles.container}>
-				<AuthMinimalRegisterFormCore submitLabel={<Trans>Create account</Trans>} redirectPath="/" inviteCode={code} />
-
-				<AuthBottomLink variant="login" to={Routes.inviteLogin(code)} />
+			<div className={sharedStyles.disabledActions}>
+				<AuthRouterLink to="/login" className={sharedStyles.disabledActionLink}>
+					<Button fitContainer>
+						<Trans>Log In</Trans>
+					</Button>
+				</AuthRouterLink>
 			</div>
 		</>
 	);

@@ -26,7 +26,7 @@
 	flex-direction: column;
 	border-radius: clamp(12px, 1.1vw, 16px);
 	border: 1px solid var(--background-header-secondary);
-	background: var(--background-secondary);
+	background: var(--background-global-color);
 	box-shadow:
 		0 0 0 1px hsla(223, 7%, 20%, 0.08),
 		0 16px 40px hsla(0, 0%, 0%, 0.16);
@@ -38,7 +38,7 @@
 	position: absolute;
 	inset: 0;
 	pointer-events: none;
-	background-color: var(--brand-primary);
+	background-color: var(--background-global-color);
 }
 
 .splashImage {
@@ -80,7 +80,7 @@
 	flex-direction: column;
 	border-radius: 18px;
 	border: 1px solid color-mix(in srgb, var(--background-modifier-accent) 70%, transparent);
-	background: color-mix(in srgb, var(--background-secondary) 86%, transparent);
+	background: color-mix(in srgb, var(--background-color) 86%, transparent);
 	backdrop-filter: blur(18px);
 	box-shadow: 0 24px 60px rgba(0, 0, 0, 0.28);
 	overflow: auto;

@@ -50,7 +50,6 @@ declare const styles: {
   readonly "hero__content": string;
   readonly "hero__icon": string;
   readonly "hero__line": string;
-  readonly "hero__subtitle": string;
   readonly "hero__text": string;
   readonly "hero__title": string;
   readonly "is-open": string;
@@ -59,8 +58,6 @@ declare const styles: {
   readonly "landing-main": string;
   readonly "landing__container": string;
   readonly "login-btn": string;
-  readonly "seo_block": string;
-  readonly "seo_block__content": string;
   readonly "show": string;
   readonly "text_h2": string;
   readonly "txt_and_butt": string;
