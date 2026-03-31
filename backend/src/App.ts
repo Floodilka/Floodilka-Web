@@ -330,18 +330,33 @@ if (Config.voice.enabled && Config.voice.autoCreateDummyData) {
 }
 
 
-serve({
+const server = serve({
 	fetch: app.fetch,
 	hostname: '0.0.0.0',
 	port: Config.port,
 });
 
-const shutdown = () => {
+let isShuttingDown = false;
+
+const shutdown = async () => {
+	if (isShuttingDown) return;
+	isShuttingDown = true;
+
 	Logger.info('Shutting down gracefully...');
+
+	server.close(() => {
+		Logger.info('HTTP server closed');
+	});
+	server.closeIdleConnections();
+
 	shutdownGatewayService();
 	shutdownReportService();
 	ipBanCache.shutdown();
-	process.exit(0);
+
+	setTimeout(() => {
+		Logger.warn('Forced shutdown after timeout');
+		process.exit(1);
+	}, 25000).unref();
 };
 
 process.on('SIGINT', shutdown);

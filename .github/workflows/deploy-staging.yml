@@ -194,6 +194,7 @@ jobs:
         env:
           SHA: ${{ github.sha }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GATEWAY_ADMIN_SECRET: ${{ secrets.GATEWAY_ADMIN_SECRET }}
         run: |
           echo "$GITHUB_TOKEN" | ssh staging "docker login ghcr.io -u github-actions --password-stdin"
 
@@ -209,20 +210,35 @@ jobs:
             docker stack deploy -c /var/www/floodilka/devops/metrics/compose.yaml metrics
           "
 
+          # Rolling update API (start-first, блокирующий)
+          ssh staging "docker service update --image floodilka-backend:latest backend_api"
+
+          # Rolling update Worker (stop-first, блокирующий)
+          ssh staging "docker service update --image floodilka-backend:latest backend_worker"
+
+          # Gateway hot reload (zero downtime, no restart)
           ssh staging "
-            docker service update --force backend_api &&
-            docker service update --force backend_worker &&
-            docker service update --force gateway_gateway &&
-            docker service update --force media_media &&
-            docker service update --force admin_admin &&
-            docker service update --force metrics_metrics
-          "
+            docker rm -f gw-extract 2>/dev/null || true &&
+            docker create --name gw-extract floodilka-gateway:latest &&
+            docker cp gw-extract:/opt/fluxer_gateway/lib/fluxer_gateway/ebin /tmp/gw-beams &&
+            docker rm gw-extract &&
+            CONTAINER_ID=\$(docker ps -q -f name=gateway_gateway --no-trunc | head -1) &&
+            docker cp /tmp/gw-beams/. \$CONTAINER_ID:/opt/fluxer_gateway/lib/fluxer_gateway/ebin/ &&
+            docker exec \$CONTAINER_ID curl -sf \
+              -X POST http://localhost:8081/_admin/reload \
+              -H 'Content-Type: application/json' \
+              -H 'Authorization: Bearer ${GATEWAY_ADMIN_SECRET}' \
+              -d '{}' &&
+            rm -rf /tmp/gw-beams
+          " || echo "Gateway hot reload skipped (container may have restarted from config change)"
+
+          # Rolling update remaining services (start-first, parallel)
+          ssh staging "docker service update --image floodilka-media-proxy:latest media_media --detach"
+          ssh staging "docker service update --image floodilka-admin:latest admin_admin --detach"
+          ssh staging "docker service update --image floodilka-metrics:latest metrics_metrics --detach"
 
       - name: Health checks
         run: |
-          echo "Waiting for services to stabilize..."
-          sleep 10
-
           if [[ "${{ inputs.target }}" == "all" || "${{ inputs.target }}" == "backend" ]]; then
             echo "Checking API health..."
             curl -sf --retry 5 --retry-delay 10 --retry-all-errors https://stage.floodilka.com/api/_health

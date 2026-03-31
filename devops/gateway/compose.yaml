@@ -10,12 +10,18 @@ services:
       - LOGGER_LEVEL=info
       - FLUXER_API_HOST=api:8080
       - MEDIA_PROXY_ENDPOINT=https://floodilka.com/media
+      - GATEWAY_ADMIN_SECRET=${GATEWAY_ADMIN_SECRET}
     env_file:
       - /var/www/floodilka/.env
     networks:
       - floodilka-shared
+    stop_grace_period: 15s
     deploy:
       replicas: 1
+      update_config:
+        order: start-first
+        failure_action: rollback
+        monitor: 15s
       restart_policy:
         condition: any
         delay: 10s

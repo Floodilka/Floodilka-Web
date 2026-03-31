@@ -10,8 +10,13 @@ services:
       - /var/www/floodilka/backend/firebase-service-account.json:/var/www/floodilka/backend/firebase-service-account.json:ro
     networks:
       - floodilka-shared
+    stop_grace_period: 30s
     deploy:
       replicas: 1
+      update_config:
+        order: start-first
+        failure_action: rollback
+        monitor: 10s
       restart_policy:
         condition: any
         delay: 10s
@@ -42,8 +47,13 @@ services:
       - /var/www/floodilka/.env
     networks:
       - floodilka-shared
+    stop_grace_period: 60s
     deploy:
       replicas: 1
+      update_config:
+        order: stop-first
+        failure_action: rollback
+        monitor: 10s
       restart_policy:
         condition: any
         delay: 10s

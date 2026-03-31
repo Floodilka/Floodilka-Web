@@ -6,8 +6,13 @@ services:
       - /var/www/floodilka/.env
     networks:
       - floodilka-shared
+    stop_grace_period: 15s
     deploy:
       replicas: 1
+      update_config:
+        order: start-first
+        failure_action: rollback
+        monitor: 10s
       restart_policy:
         condition: any
         delay: 10s
