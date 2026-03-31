@@ -42,6 +42,7 @@ import {
 	QueryBooleanType,
 	SudoVerificationSchema,
 	URLType,
+	UsernameType,
 	z,
 } from '~/Schema';
 import {getCachedUserPartialResponse, mapUserToPartialResponseWithCache} from '~/user/UserCacheHelpers';
@@ -173,6 +174,25 @@ export const UserAccountController = (app: HonoApp) => {
 
 		throw new UnauthorizedError();
 	});
+
+	// Username availability check
+	app.post(
+		'/users/@me/username-check',
+		RateLimitMiddleware(RateLimitConfigs.USER_SETTINGS_GET),
+		LoginRequired,
+		Validator('json', z.object({username: UsernameType})),
+		async (ctx) => {
+			const {username} = ctx.req.valid('json');
+			const user = ctx.get('user');
+
+			if (username === user.username) {
+				return ctx.json({taken: false});
+			}
+
+			const existing = await ctx.get('userRepository').findByUsername(username);
+			return ctx.json({taken: existing !== null});
+		},
+	);
 
 	app.patch(
 		'/users/@me',
