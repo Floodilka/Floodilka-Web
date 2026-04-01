@@ -219,10 +219,10 @@ jobs:
           ssh production "docker stack deploy --resolve-image never -c /var/www/floodilka/devops/gateway/compose.yaml gateway"
 
           # Rolling update API (start-first, блокирующий)
-          ssh production "docker service update --image floodilka-backend:latest backend_api"
+          ssh production "docker service update --image floodilka-backend:${SHA} backend_api"
 
           # Rolling update Worker (stop-first, блокирующий)
-          ssh production "docker service update --image floodilka-backend:latest backend_worker"
+          ssh production "docker service update --image floodilka-backend:${SHA} backend_worker"
 
           # Gateway hot reload (zero downtime, no restart)
           ssh production "
@@ -241,9 +241,9 @@ jobs:
           " || echo "Gateway hot reload skipped (container may have restarted from config change)"
 
           # Rolling update remaining services (start-first, parallel)
-          ssh production "docker service update --image floodilka-media-proxy:latest media_media --detach"
-          ssh production "docker service update --image floodilka-admin:latest admin_admin --detach"
-          ssh production "docker service update --image floodilka-metrics:latest metrics_metrics --detach"
+          ssh production "docker service update --image floodilka-media-proxy:${SHA} media_media --detach"
+          ssh production "docker service update --image floodilka-admin:${SHA} admin_admin --detach"
+          ssh production "docker service update --image floodilka-metrics:${SHA} metrics_metrics --detach"
 
       - name: Health checks
         run: |
