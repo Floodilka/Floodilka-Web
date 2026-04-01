@@ -366,24 +366,18 @@ load_relationships(_) ->
 
 resolve_platform(Properties, Mobile) ->
     DesktopVersion = map_utils:get_safe(Properties, <<"desktop_app_version">>, null),
-    UserAgent = map_utils:get_safe(Properties, <<"user_agent">>, <<"">>),
+    Os = map_utils:get_safe(Properties, <<"os">>, <<"">>),
     case DesktopVersion of
         V when is_binary(V), byte_size(V) > 0 -> <<"desktop">>;
         _ ->
-            case binary:match(UserAgent, <<"Electron/">>) of
-                {_, _} -> <<"desktop">>;
-                nomatch ->
-                    case binary:match(UserAgent, <<"okhttp/">>) of
-                        {_, _} -> <<"android">>;
-                        nomatch ->
-                            case binary:match(UserAgent, <<"CFNetwork">>) of
-                                {_, _} -> <<"ios">>;
-                                nomatch ->
-                                    case Mobile of
-                                        true -> <<"mobile">>;
-                                        false -> <<"web">>
-                                    end
-                            end
+            OsLower = string:lowercase(Os),
+            case OsLower of
+                <<"ios">> -> <<"ios">>;
+                <<"android">> -> <<"android">>;
+                _ ->
+                    case Mobile of
+                        true -> <<"mobile">>;
+                        false -> <<"web">>
                     end
             end
     end.
