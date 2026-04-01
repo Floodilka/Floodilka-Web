@@ -279,7 +279,9 @@ export class LiveKitWebhookService {
 				return;
 			}
 
-			const exceedsResolution = track.width > FREE_MAX_WIDTH || track.height > FREE_MAX_HEIGHT;
+			const maxDimension = Math.max(track.width, track.height);
+			const minDimension = Math.min(track.width, track.height);
+			const exceedsResolution = maxDimension > FREE_MAX_WIDTH || minDimension > FREE_MAX_HEIGHT;
 			if (!exceedsResolution) {
 				return;
 			}
