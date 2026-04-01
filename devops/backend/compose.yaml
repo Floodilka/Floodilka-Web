@@ -26,8 +26,8 @@ services:
           cpus: '3'
           memory: 4G
         reservations:
-          cpus: '1'
-          memory: 1G
+          cpus: '0.5'
+          memory: 512M
       labels:
         caddy: floodilka.com
         caddy.handle_path: /api/*

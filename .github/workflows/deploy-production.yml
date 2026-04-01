@@ -202,7 +202,7 @@ jobs:
           echo "$GITHUB_TOKEN" | ssh production "docker login ghcr.io -u github-actions --password-stdin"
 
           for image in floodilka-backend floodilka-gateway floodilka-media-proxy floodilka-admin floodilka-metrics; do
-            ssh production "docker pull ghcr.io/floodilka/${image}:${SHA} && docker tag ghcr.io/floodilka/${image}:${SHA} ${image}:latest"
+            ssh production "docker pull ghcr.io/floodilka/${image}:${SHA} && docker tag ghcr.io/floodilka/${image}:${SHA} ${image}:latest && docker tag ghcr.io/floodilka/${image}:${SHA} ${image}:${SHA}"
           done
 
           ssh production "
