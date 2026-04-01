@@ -394,7 +394,7 @@ fn render_platform_breakdown(
                   h.div(
                     [
                       a.class("absolute inset-0 bg-blue-50 rounded"),
-                      a.style("width: " <> int.to_string(bar_width) <> "%"),
+                      a.attribute("style", "width: " <> int.to_string(bar_width) <> "%"),
                     ],
                     [],
                   ),
