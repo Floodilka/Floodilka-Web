@@ -51,7 +51,7 @@ export type LoginRequest = z.infer<typeof LoginRequest>;
 
 export const LogoutAuthSessionsRequest = z.object({
 	session_id_hashes: z.array(createStringType()).max(100),
-	password: PasswordType.optional(),
+	password: z.string().min(1).max(256).optional(),
 });
 
 export const ForgotPasswordRequest = z.object({

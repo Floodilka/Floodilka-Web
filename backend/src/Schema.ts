@@ -571,7 +571,7 @@ export const AuditLogReasonType = z
 	});
 
 export const SudoVerificationSchema = z.object({
-	password: PasswordType.optional(),
+	password: z.string().min(1).max(256).optional(),
 	mfa_method: z.enum(['totp', 'sms', 'webauthn']).optional(),
 	mfa_code: createStringType(1, 32).optional(),
 	webauthn_response: z.any().optional(),

@@ -110,7 +110,7 @@ export const UserUpdateRequest = z
 		global_name: GlobalNameType.nullish(),
 		email: EmailType,
 		new_password: PasswordType,
-		password: PasswordType,
+		password: z.string().min(1).max(256),
 		avatar: createBase64StringType(1, AVATAR_MAX_SIZE * 1.33).nullish(),
 		banner: createBase64StringType(1, AVATAR_MAX_SIZE * 1.33).nullish(),
 		bio: createStringType(1, 320).nullish(),
