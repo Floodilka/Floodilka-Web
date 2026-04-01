@@ -55,17 +55,15 @@ pub fn get_user_avatar_url(
 }
 
 fn get_default_avatar(
-  cdn_endpoint: String,
+  _cdn_endpoint: String,
   user_id: String,
-  asset_version: String,
+  _asset_version: String,
 ) -> String {
   let id = do_parse_bigint(user_id)
   let index = do_rem(id, 6)
-  cdn_endpoint
-  <> "/avatars/"
+  "https://static.floodilka.com/avatars/"
   <> int.to_string(index)
   <> ".png"
-  |> web.cache_busted_with_version(asset_version)
 }
 
 @external(erlang, "erlang", "binary_to_integer")
