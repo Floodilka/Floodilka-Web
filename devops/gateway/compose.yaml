@@ -10,7 +10,6 @@ services:
       - LOGGER_LEVEL=info
       - FLOODILKA_API_HOST=api:8080
       - MEDIA_PROXY_ENDPOINT=https://floodilka.com/media
-      - GATEWAY_ADMIN_SECRET=${GATEWAY_ADMIN_SECRET}
     env_file:
       - /var/www/floodilka/.env
     networks:
