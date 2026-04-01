@@ -37,6 +37,7 @@ init(SessionData) ->
     Status = maps:get(status, SessionData),
     Afk = maps:get(afk, SessionData, false),
     Mobile = maps:get(mobile, SessionData, false),
+    Platform = resolve_platform(Properties, Mobile),
     SocketPid = maps:get(socket_pid, SessionData),
     GuildIds = maps:get(guilds, SessionData),
     Ready0 = maps:get(ready, SessionData),
@@ -70,6 +71,7 @@ init(SessionData) ->
         status => Status,
         afk => Afk,
         mobile => Mobile,
+        platform => Platform,
         presence_pid => undefined,
         presence_mref => undefined,
         socket_pid => SocketPid,
@@ -361,6 +363,30 @@ load_relationships(Ready) when is_map(Ready) ->
     );
 load_relationships(_) ->
     #{}.
+
+resolve_platform(Properties, Mobile) ->
+    DesktopVersion = map_utils:get_safe(Properties, <<"desktop_app_version">>, null),
+    UserAgent = map_utils:get_safe(Properties, <<"user_agent">>, <<"">>),
+    case DesktopVersion of
+        V when is_binary(V), byte_size(V) > 0 -> <<"desktop">>;
+        _ ->
+            case binary:match(UserAgent, <<"Electron/">>) of
+                {_, _} -> <<"desktop">>;
+                nomatch ->
+                    case binary:match(UserAgent, <<"okhttp/">>) of
+                        {_, _} -> <<"android">>;
+                        nomatch ->
+                            case binary:match(UserAgent, <<"CFNetwork">>) of
+                                {_, _} -> <<"ios">>;
+                                nomatch ->
+                                    case Mobile of
+                                        true -> <<"mobile">>;
+                                        false -> <<"web">>
+                                    end
+                            end
+                    end
+            end
+    end.
 
 ensure_bot_ready_map(undefined) ->
     #{<<"guilds">> => []};

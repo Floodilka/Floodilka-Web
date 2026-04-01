@@ -82,7 +82,8 @@ voice_flags_from_context(Context) ->
         self_deaf = maps:get(self_deaf, Context, false),
         self_video = maps:get(self_video, Context, false),
         self_stream = maps:get(self_stream, Context, false),
-        is_mobile = maps:get(is_mobile, Context, false)
+        is_mobile = maps:get(is_mobile, Context, false),
+        platform = maps:get(platform, Context, <<"web">>)
     }.
 
 -spec parse_stream_key(term()) ->

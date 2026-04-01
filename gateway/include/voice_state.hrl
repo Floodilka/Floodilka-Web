@@ -20,7 +20,8 @@
     self_deaf = false :: boolean(),
     self_video = false :: boolean(),
     self_stream = false :: boolean(),
-    is_mobile = false :: boolean()
+    is_mobile = false :: boolean(),
+    platform = <<"web">> :: binary()
 }).
 
 -type voice_flags() :: #voice_flags{}.

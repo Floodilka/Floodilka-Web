@@ -257,10 +257,16 @@ fn render_voice_user(ctx: Context, vs: gateway.VoiceStateEntry) {
         element.text(vs.username),
       ]),
       h.div([a.class("ml-auto flex items-center gap-1.5")], [
-        case vs.is_mobile {
-          True ->
+        case vs.platform {
+          "android" ->
+            icon_badge(icons.android_icon("text-green-600"), "Android")
+          "ios" ->
+            icon_badge(icons.ios_icon("text-neutral-700"), "iOS")
+          "desktop" ->
+            icon_badge(icons.desktop_icon("text-blue-500"), "Desktop")
+          "mobile" ->
             icon_badge(icons.mobile_icon("text-blue-500"), "Мобильное устройство")
-          False -> element.none()
+          _ -> element.none()
         },
         case vs.mute || vs.self_mute {
           True ->

@@ -320,6 +320,7 @@ send_single_voice_server_update(GuildId, ChannelId, SessionInfo, GuildPid) ->
     SelfVideo = maps:get(self_video, SessionInfo),
     SelfStream = maps:get(self_stream, SessionInfo),
     IsMobile = maps:get(is_mobile, SessionInfo),
+    Platform = maps:get(platform, SessionInfo, <<"web">>),
     Member = maps:get(member, SessionInfo),
     ServerMute = maps:get(<<"mute">>, Member, false),
     ServerDeaf = maps:get(<<"deaf">>, Member, false),
@@ -357,6 +358,7 @@ send_single_voice_server_update(GuildId, ChannelId, SessionInfo, GuildPid) ->
                                 <<"self_video">> => SelfVideo,
                                 <<"self_stream">> => SelfStream,
                                 <<"is_mobile">> => IsMobile,
+                                <<"platform">> => Platform,
                                 <<"server_mute">> => ServerMute,
                                 <<"server_deaf">> => ServerDeaf,
                                 <<"member">> => Member

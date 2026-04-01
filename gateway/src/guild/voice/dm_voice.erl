@@ -86,6 +86,7 @@ handle_dm_voice_with_channel(Channel, ChannelIdValue, UserId, Request, State) ->
     SelfStream = maps:get(self_stream, Request, false),
     ConnectionId = maps:get(connection_id, Request, undefined),
     IsMobile = maps:get(is_mobile, Request, false),
+    Platform = maps:get(platform, Request, <<"web">>),
     ViewerStreamKey = maps:get(viewer_stream_key, Request, undefined),
     Latitude = maps:get(latitude, Request, null),
     Longitude = maps:get(longitude, Request, null),
@@ -246,6 +247,7 @@ handle_dm_connect_or_update(
                         <<"self_video">> => SelfVideo,
                         <<"self_stream">> => SelfStream,
                         <<"is_mobile">> => IsMobile,
+                        <<"platform">> => Platform,
                         <<"viewer_stream_key">> => ParsedViewerKey
                     },
 
@@ -445,6 +447,7 @@ handle_dm_token_success(
         <<"channel_id">> => integer_to_binary(ChannelId),
         <<"connection_id">> => ConnectionId,
         <<"is_mobile">> => IsMobile,
+        <<"platform">> => Platform,
         <<"session_id">> => SessionId,
         <<"self_mute">> => SelfMute,
         <<"self_deaf">> => SelfDeaf,

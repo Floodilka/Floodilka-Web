@@ -108,6 +108,7 @@ send_voice_server_update_for_region_switch(
                         self_video => maps:get(<<"self_video">>, ExistingVoiceState, false),
                         self_stream => maps:get(<<"self_stream">>, ExistingVoiceState, false),
                         is_mobile => maps:get(<<"is_mobile">>, ExistingVoiceState, false),
+                        platform => maps:get(<<"platform">>, ExistingVoiceState, <<"web">>),
                         server_mute => maps:get(<<"mute">>, ExistingVoiceState, false),
                         server_deaf => maps:get(<<"deaf">>, ExistingVoiceState, false),
                         member => maps:get(<<"member">>, ExistingVoiceState, #{})

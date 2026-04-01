@@ -228,7 +228,8 @@ get_voice_token_and_create_state(Context, Member, ParsedViewerStreamKey, State) 
                         self_deaf = SelfDeafFlag,
                         self_video = SelfVideoFlag,
                         self_stream = SelfStreamFlag,
-                        is_mobile = IsMobileFlag
+                        is_mobile = IsMobileFlag,
+                        platform = PlatformFlag
                     } = Flags,
                     SessionIdValue = maps:get(session_id, Context, undefined),
                     SessionIdBin = normalize_session_id(SessionIdValue),
@@ -264,6 +265,7 @@ get_voice_token_and_create_state(Context, Member, ParsedViewerStreamKey, State) 
                         self_video => SelfVideoFlag,
                         self_stream => SelfStreamFlag,
                         is_mobile => IsMobileFlag,
+                        platform => PlatformFlag,
                         server_mute => ServerMute,
                         server_deaf => ServerDeaf,
                         member => Member,
@@ -315,6 +317,7 @@ build_context(Request0) ->
         self_video => normalize_boolean(maps:get(self_video, Request, false)),
         self_stream => normalize_boolean(maps:get(self_stream, Request, false)),
         is_mobile => normalize_boolean(maps:get(is_mobile, Request, false)),
+        platform => maps:get(platform, Request, <<"web">>),
         viewer_stream_key => maps:get(viewer_stream_key, Request, undefined)
     }.
 
@@ -461,7 +464,8 @@ build_voice_state_from_pending(PendingData, ConnectionId, State) ->
                 self_deaf = pending_get_boolean(PendingData, self_deaf),
                 self_video = pending_get_boolean(PendingData, self_video),
                 self_stream = pending_get_boolean(PendingData, self_stream),
-                is_mobile = pending_get_boolean(PendingData, is_mobile)
+                is_mobile = pending_get_boolean(PendingData, is_mobile),
+                platform = maps:get(platform, PendingData, <<"web">>)
             },
             ServerMute = pending_get_boolean(PendingData, server_mute),
             ServerDeaf = pending_get_boolean(PendingData, server_deaf),

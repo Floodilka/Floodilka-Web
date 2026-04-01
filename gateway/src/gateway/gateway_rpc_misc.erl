@@ -223,7 +223,8 @@ format_voice_state(VoiceState) ->
         <<"self_stream">> => maps:get(<<"self_stream">>, VoiceState, false),
         <<"mute">> => maps:get(<<"mute">>, VoiceState, false),
         <<"deaf">> => maps:get(<<"deaf">>, VoiceState, false),
-        <<"is_mobile">> => maps:get(<<"is_mobile">>, VoiceState, false)
+        <<"is_mobile">> => maps:get(<<"is_mobile">>, VoiceState, false),
+        <<"platform">> => maps:get(<<"platform">>, VoiceState, <<"web">>)
     }.
 
 to_bin(V) when is_integer(V) -> integer_to_binary(V);

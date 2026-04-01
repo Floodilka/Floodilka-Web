@@ -114,6 +114,7 @@ handle_validated_voice_state_update(
         self_stream => false,
         viewer_stream_key => null,
         is_mobile => false,
+        platform => maps:get(platform, State, <<"web">>),
         latitude => null,
         longitude => null
     },
@@ -154,6 +155,7 @@ handle_validated_voice_state_update(
         self_stream => SelfStream,
         viewer_stream_key => ViewerStreamKey,
         is_mobile => IsMobile,
+        platform => maps:get(platform, State, <<"web">>),
         latitude => Latitude,
         longitude => Longitude
     },

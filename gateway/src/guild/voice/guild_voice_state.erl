@@ -76,7 +76,8 @@ update_voice_state_data(
         self_deaf = SelfDeaf,
         self_video = SelfVideo,
         self_stream = SelfStream,
-        is_mobile = IsMobile
+        is_mobile = IsMobile,
+        platform = Platform
     } = Flags,
     ServerMute = maps:get(<<"mute">>, Member, false),
     ServerDeaf = maps:get(<<"deaf">>, Member, false),
@@ -90,6 +91,7 @@ update_voice_state_data(
         <<"self_video">> => SelfVideo,
         <<"self_stream">> => SelfStream,
         <<"is_mobile">> => IsMobile,
+        <<"platform">> => Platform,
         <<"viewer_stream_key">> => ViewerStreamKey,
         <<"version">> => OldVersion + 1
     },
@@ -139,7 +141,8 @@ create_voice_state(
         self_deaf = SelfDeaf,
         self_video = SelfVideo,
         self_stream = SelfStream,
-        is_mobile = IsMobile
+        is_mobile = IsMobile,
+        platform = Platform
     } = Flags,
     #{
         <<"guild_id">> => GuildIdBin,
@@ -153,6 +156,7 @@ create_voice_state(
         <<"self_video">> => SelfVideo,
         <<"self_stream">> => SelfStream,
         <<"is_mobile">> => IsMobile,
+        <<"platform">> => Platform,
         <<"viewer_stream_key">> => ViewerStreamKey,
         <<"version">> => 0
     }.
@@ -167,6 +171,7 @@ extract_session_info_from_voice_state(ConnId, VoiceState) ->
         self_video => maps:get(<<"self_video">>, VoiceState, false),
         self_stream => maps:get(<<"self_stream">>, VoiceState, false),
         is_mobile => maps:get(<<"is_mobile">>, VoiceState, false),
+        platform => maps:get(<<"platform">>, VoiceState, <<"web">>),
         member => maps:get(<<"member">>, VoiceState, #{})
     }.
 

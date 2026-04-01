@@ -42,6 +42,7 @@ pub type VoiceStateEntry {
     mute: Bool,
     deaf: Bool,
     is_mobile: Bool,
+    platform: String,
   )
 }
 
@@ -141,6 +142,11 @@ pub fn get_all_voice_states(
           False,
           decode.bool,
         )
+        use platform <- decode.optional_field(
+          "platform",
+          "web",
+          decode.string,
+        )
         decode.success(#(
           user_id,
           connection_id,
@@ -151,6 +157,7 @@ pub fn get_all_voice_states(
           mute,
           deaf,
           is_mobile,
+          platform,
         ))
       }
 
@@ -258,7 +265,7 @@ pub fn get_all_voice_states(
 }
 
 fn enrich_voice_state(
-  vs: #(String, String, Bool, Bool, Bool, Bool, Bool, Bool, Bool),
+  vs: #(String, String, Bool, Bool, Bool, Bool, Bool, Bool, Bool, String),
   users: Dict(String, UserInfo),
 ) -> VoiceStateEntry {
   let #(
@@ -271,6 +278,7 @@ fn enrich_voice_state(
     mute,
     deaf,
     is_mobile,
+    platform,
   ) = vs
 
   let user_info = dict.get(users, user_id)
@@ -303,5 +311,6 @@ fn enrich_voice_state(
     mute: mute,
     deaf: deaf,
     is_mobile: is_mobile,
+    platform: platform,
   )
 }
