@@ -19,6 +19,7 @@ import floodilka_admin/api/common
 import floodilka_admin/api/gateway
 import floodilka_admin/avatar
 import floodilka_admin/components/flash
+import floodilka_admin/components/icons
 import floodilka_admin/components/layout
 import floodilka_admin/components/ui
 import floodilka_admin/web.{type Context, type Session, href}
@@ -255,30 +256,30 @@ fn render_voice_user(ctx: Context, vs: gateway.VoiceStateEntry) {
       h.span([a.class("text-xs text-neutral-400")], [
         element.text(vs.username),
       ]),
-      h.div([a.class("ml-auto flex items-center gap-1")], [
+      h.div([a.class("ml-auto flex items-center gap-1.5")], [
         case vs.is_mobile {
           True ->
-            status_badge("📱", "Mobile", "text-blue-500")
+            icon_badge(icons.mobile_icon("text-blue-500"), "Мобильное устройство")
           False -> element.none()
         },
         case vs.mute || vs.self_mute {
           True ->
-            status_badge("🔇", "Muted", "text-red-500")
+            icon_badge(icons.mic_off_icon("text-red-500"), "Микрофон выключен")
           False -> element.none()
         },
         case vs.deaf || vs.self_deaf {
           True ->
-            status_badge("🔈", "Deafened", "text-red-500")
+            icon_badge(icons.headphones_off_icon("text-red-500"), "Звук выключен")
           False -> element.none()
         },
         case vs.self_video {
           True ->
-            status_badge("📹", "Camera", "text-green-500")
+            icon_badge(icons.video_icon("text-green-500"), "Камера включена")
           False -> element.none()
         },
         case vs.self_stream {
           True ->
-            status_badge("🖥", "Streaming", "text-purple-500")
+            icon_badge(icons.monitor_icon("text-purple-500"), "Стрим")
           False -> element.none()
         },
       ]),
@@ -346,10 +347,10 @@ fn render_empty() {
   )
 }
 
-fn status_badge(icon: String, title: String, color: String) {
+fn icon_badge(icon: element.Element(a), title: String) {
   h.span(
-    [a.class("text-xs " <> color), a.attribute("title", title)],
-    [element.text(icon)],
+    [a.attribute("title", title)],
+    [icon],
   )
 }
 

@@ -155,3 +155,57 @@ pub fn x_icon(color: String) {
     ],
   )
 }
+
+fn svg24(color: String, children: List(element.Element(a))) {
+  element.element("svg", [
+    a.attribute("xmlns", "http://www.w3.org/2000/svg"),
+    a.attribute("viewBox", "0 0 24 24"),
+    a.attribute("fill", "none"),
+    a.attribute("stroke", "currentColor"),
+    a.attribute("stroke-width", "2"),
+    a.attribute("stroke-linecap", "round"),
+    a.attribute("stroke-linejoin", "round"),
+    a.class("w-4 h-4 inline-block " <> color),
+  ], children)
+}
+
+pub fn mobile_icon(color: String) {
+  svg24(color, [
+    element.element("rect", [a.attribute("x", "5"), a.attribute("y", "2"), a.attribute("width", "14"), a.attribute("height", "20"), a.attribute("rx", "2"), a.attribute("ry", "2")], []),
+    element.element("line", [a.attribute("x1", "12"), a.attribute("y1", "18"), a.attribute("x2", "12.01"), a.attribute("y2", "18")], []),
+  ])
+}
+
+pub fn mic_off_icon(color: String) {
+  svg24(color, [
+    element.element("line", [a.attribute("x1", "1"), a.attribute("y1", "1"), a.attribute("x2", "23"), a.attribute("y2", "23")], []),
+    element.element("path", [a.attribute("d", "M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6")], []),
+    element.element("path", [a.attribute("d", "M17 16.95A7 7 0 0 1 5 12v-2m14 0v2c0 .76-.12 1.49-.34 2.18")], []),
+    element.element("line", [a.attribute("x1", "12"), a.attribute("y1", "19"), a.attribute("x2", "12"), a.attribute("y2", "23")], []),
+    element.element("line", [a.attribute("x1", "8"), a.attribute("y1", "23"), a.attribute("x2", "16"), a.attribute("y2", "23")], []),
+  ])
+}
+
+pub fn headphones_off_icon(color: String) {
+  svg24(color, [
+    element.element("path", [a.attribute("d", "M3 18v-6a9 9 0 0 1 18 0v6")], []),
+    element.element("path", [a.attribute("d", "M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3v5z")], []),
+    element.element("path", [a.attribute("d", "M3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3v5z")], []),
+    element.element("line", [a.attribute("x1", "1"), a.attribute("y1", "1"), a.attribute("x2", "23"), a.attribute("y2", "23")], []),
+  ])
+}
+
+pub fn video_icon(color: String) {
+  svg24(color, [
+    element.element("polygon", [a.attribute("points", "23 7 16 12 23 17 23 7")], []),
+    element.element("rect", [a.attribute("x", "1"), a.attribute("y", "5"), a.attribute("width", "15"), a.attribute("height", "14"), a.attribute("rx", "2"), a.attribute("ry", "2")], []),
+  ])
+}
+
+pub fn monitor_icon(color: String) {
+  svg24(color, [
+    element.element("rect", [a.attribute("x", "2"), a.attribute("y", "3"), a.attribute("width", "20"), a.attribute("height", "14"), a.attribute("rx", "2"), a.attribute("ry", "2")], []),
+    element.element("line", [a.attribute("x1", "8"), a.attribute("y1", "21"), a.attribute("x2", "16"), a.attribute("y2", "21")], []),
+    element.element("line", [a.attribute("x1", "12"), a.attribute("y1", "17"), a.attribute("x2", "12"), a.attribute("y2", "21")], []),
+  ])
+}
