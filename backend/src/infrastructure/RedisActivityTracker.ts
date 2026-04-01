@@ -21,6 +21,7 @@ import type {Redis} from 'ioredis';
 import type {UserID} from '~/BrandedTypes';
 import {Logger} from '~/Logger';
 import {UserRepository} from '~/user/UserRepository';
+import type {ClientPlatform} from '~/utils/PlatformUtils';
 
 const TTL_SECONDS = 90 * 24 * 60 * 60;
 const STATE_VERSION_KEY = 'activity_tracker:state_version';
@@ -42,6 +43,20 @@ export class RedisActivityTracker {
 		const key = this.getActivityKey(userId);
 		const value = timestamp.getTime().toString();
 		await this.redis.setex(key, TTL_SECONDS, value);
+	}
+
+	async trackRegistration(userId: UserID): Promise<void> {
+		const dateStr = new Date().toISOString().slice(0, 10);
+		const key = `registrations:${dateStr}`;
+		await this.redis.sadd(key, userId.toString());
+		await this.redis.expire(key, 31 * 24 * 60 * 60);
+	}
+
+	async trackDailyActiveIfNew(userId: UserID, platform: ClientPlatform): Promise<boolean> {
+		const dateStr = new Date().toISOString().slice(0, 10);
+		const key = `dau:${dateStr}:${userId}`;
+		const result = await this.redis.set(key, platform, 'EX', 90000, 'NX');
+		return result !== null;
 	}
 
 	async getActivity(userId: UserID): Promise<Date | null> {

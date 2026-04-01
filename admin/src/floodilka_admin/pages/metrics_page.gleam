@@ -15,6 +15,8 @@
 //// You should have received a copy of the GNU Affero General Public License
 //// along with Floodilka. If not, see <https://www.gnu.org/licenses/>.
 
+import birl
+import birl/duration
 import floodilka_admin/api/common
 import floodilka_admin/api/metrics
 import floodilka_admin/components/flash
@@ -30,17 +32,26 @@ import gleam/string
 import lustre/attribute as a
 import lustre/element
 import lustre/element/html as h
-import wisp.{type Response}
+import wisp.{type Request, type Response}
 
 pub fn view(
   ctx: Context,
   session: Session,
   current_admin: Option(common.UserLookupResult),
   flash_data: Option(flash.Flash),
+  req: Request,
 ) -> Response {
+  let query = wisp.get_query(req)
+  let period =
+    list.key_find(query, "period")
+    |> option.from_result
+    |> option.unwrap("30d")
+
+  let #(start_opt, end_opt) = period_to_range(period)
+
   let content = case ctx.metrics_endpoint {
     None -> render_not_configured()
-    Some(_) -> render_dashboard(ctx)
+    Some(_) -> render_dashboard(ctx, period, start_opt, end_opt)
   }
 
   let html =
@@ -54,6 +65,31 @@ pub fn view(
       content,
     )
   wisp.html_response(element.to_document_string(html), 200)
+}
+
+fn period_to_range(period: String) -> #(Option(String), Option(String)) {
+  let now = birl.now()
+  let end_str = birl.to_iso8601(now)
+
+  case period {
+    "1d" -> {
+      let start = birl.subtract(now, duration.days(1))
+      #(Some(birl.to_iso8601(start)), Some(end_str))
+    }
+    "7d" -> {
+      let start = birl.subtract(now, duration.days(7))
+      #(Some(birl.to_iso8601(start)), Some(end_str))
+    }
+    "30d" -> {
+      let start = birl.subtract(now, duration.days(30))
+      #(Some(birl.to_iso8601(start)), Some(end_str))
+    }
+    "365d" -> {
+      let start = birl.subtract(now, duration.days(365))
+      #(Some(birl.to_iso8601(start)), Some(end_str))
+    }
+    _ -> #(None, None)
+  }
 }
 
 fn render_not_configured() {
@@ -76,36 +112,92 @@ fn render_not_configured() {
   ])
 }
 
-fn render_dashboard(ctx: Context) {
-  let registrations = metrics.query_aggregate(ctx, "user.registration")
-  let messages = metrics.query_aggregate(ctx, "message.send")
-  let message_deletes = metrics.query_aggregate(ctx, "message.delete")
-  let guilds_created = metrics.query_aggregate(ctx, "guild.create")
-  let gateway_ready = metrics.query_aggregate(ctx, "gateway.ready")
-  let attachments = metrics.query_aggregate(ctx, "attachment.created")
+fn render_dashboard(
+  ctx: Context,
+  period: String,
+  start_opt: Option(String),
+  end_opt: Option(String),
+) {
+  let registrations =
+    metrics.query_aggregate_with_period(ctx, "user.registration", start_opt, end_opt)
+  let messages =
+    metrics.query_aggregate_with_period(ctx, "message.send", start_opt, end_opt)
+  let message_deletes =
+    metrics.query_aggregate_with_period(ctx, "message.delete", start_opt, end_opt)
+  let guilds_created =
+    metrics.query_aggregate_with_period(ctx, "guild.create", start_opt, end_opt)
+  let gateway_ready =
+    metrics.query_aggregate_with_period(ctx, "gateway.ready", start_opt, end_opt)
+  let attachments =
+    metrics.query_aggregate_with_period(ctx, "attachment.created", start_opt, end_opt)
   let attachment_storage =
-    metrics.query_aggregate(ctx, "attachment.storage.bytes")
-  let reports_created = metrics.query_aggregate(ctx, "reports.iar.created")
-  let reports_resolved = metrics.query_aggregate(ctx, "reports.iar.resolved")
+    metrics.query_aggregate_with_period(ctx, "attachment.storage.bytes", start_opt, end_opt)
+  let reports_created =
+    metrics.query_aggregate_with_period(ctx, "reports.iar.created", start_opt, end_opt)
+  let reports_resolved =
+    metrics.query_aggregate_with_period(ctx, "reports.iar.resolved", start_opt, end_opt)
   let age_distribution =
-    metrics.query_aggregate_grouped(ctx, "user.age", option.Some("age_group"))
+    metrics.query_aggregate_grouped_with_period(
+      ctx,
+      "user.age",
+      option.Some("age_group"),
+      start_opt,
+      end_opt,
+    )
   let registration_by_state =
-    metrics.query_aggregate_grouped(
+    metrics.query_aggregate_grouped_with_period(
       ctx,
       "user.registration",
       option.Some("state"),
+      start_opt,
+      end_opt,
     )
   let registration_by_country =
-    metrics.query_aggregate_grouped(
+    metrics.query_aggregate_grouped_with_period(
       ctx,
       "user.registration",
       option.Some("country"),
+      start_opt,
+      end_opt,
+    )
+  let registration_by_platform =
+    metrics.query_aggregate_grouped_with_period(
+      ctx,
+      "user.registration",
+      option.Some("platform"),
+      start_opt,
+      end_opt,
+    )
+  let login_by_platform =
+    metrics.query_aggregate_grouped_with_period(
+      ctx,
+      "user.login",
+      option.Some("platform"),
+      start_opt,
+      end_opt,
+    )
+  let dau_by_platform =
+    metrics.query_aggregate_grouped_with_period(
+      ctx,
+      "user.daily_active",
+      option.Some("platform"),
+      start_opt,
+      end_opt,
     )
   let top_guilds = metrics.query_top(ctx, "guild.member_count", 6)
   let top_users = metrics.query_top(ctx, "user.guild_membership_count", 6)
   let crashes = metrics.query_crashes(ctx, 5)
 
   let proxy_endpoint = prepend_base_path(ctx, "/api/metrics")
+
+  let start_param = case start_opt {
+    Some(s) -> s
+    None -> ""
+  }
+  let end_param = case end_opt {
+    Some(e) -> e
+    None -> ""
+  }
 
   h.div([], [
     ui.flex_row_between([
@@ -116,8 +208,15 @@ fn render_dashboard(ctx: Context) {
         render_quick_link(ctx, "Сообщения и API", "/messages-metrics"),
       ]),
     ]),
+    render_period_filter(ctx, period),
     render_platform_health_section(ctx, proxy_endpoint),
     render_key_metrics_section(proxy_endpoint),
+    render_platform_audience_section(
+      registration_by_platform,
+      login_by_platform,
+      dau_by_platform,
+    ),
+    render_retention_section(proxy_endpoint, start_param, end_param),
     h.div([a.class("mt-8")], [
       h.h2([a.class("text-base font-semibold text-neutral-900 mb-4")], [
         element.text("Основные показатели"),
@@ -146,6 +245,18 @@ fn render_dashboard(ctx: Context) {
         element.element(
           "canvas",
           [a.id("activityChart"), a.attribute("height", "250")],
+          [],
+        ),
+      ]),
+    ]),
+    h.div([a.class("mt-8")], [
+      h.h2([a.class("text-base font-semibold text-neutral-900 mb-4")], [
+        element.text("DAU по платформам"),
+      ]),
+      h.div([a.class("bg-white border border-neutral-200 rounded-lg p-4")], [
+        element.element(
+          "canvas",
+          [a.id("dauPlatformChart"), a.attribute("height", "250")],
           [],
         ),
       ]),
@@ -185,8 +296,245 @@ fn render_dashboard(ctx: Context) {
       ]),
     ]),
     h.script([a.src("https://static.floodilka.com/libs/chartjs/chart.min.js")], ""),
-    h.script([], render_dashboard_script(proxy_endpoint)),
+    h.script([], render_dashboard_script(proxy_endpoint, start_param, end_param)),
+    h.script([], render_dau_platform_chart_script(proxy_endpoint, start_param, end_param)),
   ])
+}
+
+fn render_period_filter(ctx: Context, current: String) {
+  let periods = [
+    #("1d", "День"),
+    #("7d", "Неделя"),
+    #("30d", "Месяц"),
+    #("365d", "Год"),
+    #("all", "Всё время"),
+  ]
+
+  h.div([a.class("mt-4 flex gap-2")], list.map(periods, fn(p) {
+    let #(value, label) = p
+    let is_active = value == current
+    let base_class =
+      "px-3 py-1.5 text-sm font-medium rounded transition-colors"
+    let cls = case is_active {
+      True ->
+        base_class
+        <> " bg-blue-600 text-white"
+      False ->
+        base_class
+        <> " text-neutral-700 hover:text-neutral-900 border border-neutral-300 hover:border-neutral-400"
+    }
+    h.a([href(ctx, "/metrics?period=" <> value), a.class(cls)], [
+      element.text(label),
+    ])
+  }))
+}
+
+fn render_platform_audience_section(
+  registration_by_platform: Result(metrics.AggregateResponse, common.ApiError),
+  login_by_platform: Result(metrics.AggregateResponse, common.ApiError),
+  dau_by_platform: Result(metrics.AggregateResponse, common.ApiError),
+) {
+  h.div([a.class("mt-8")], [
+    h.h2([a.class("text-base font-semibold text-neutral-900 mb-4")], [
+      element.text("Аудитория по платформам"),
+    ]),
+    h.div([a.class("grid grid-cols-1 lg:grid-cols-3 gap-4")], [
+      h.div([a.class("bg-white/70 border border-neutral-200 rounded-lg p-4")], [
+        h.h3([a.class("text-sm font-semibold text-neutral-900 mb-2")], [
+          element.text("Регистрации"),
+        ]),
+        render_platform_breakdown(registration_by_platform),
+      ]),
+      h.div([a.class("bg-white/70 border border-neutral-200 rounded-lg p-4")], [
+        h.h3([a.class("text-sm font-semibold text-neutral-900 mb-2")], [
+          element.text("Логины"),
+        ]),
+        render_platform_breakdown(login_by_platform),
+      ]),
+      h.div([a.class("bg-white/70 border border-neutral-200 rounded-lg p-4")], [
+        h.h3([a.class("text-sm font-semibold text-neutral-900 mb-2")], [
+          element.text("DAU (уник. активные)"),
+        ]),
+        render_platform_breakdown(dau_by_platform),
+      ]),
+    ]),
+  ])
+}
+
+fn render_platform_breakdown(
+  result: Result(metrics.AggregateResponse, common.ApiError),
+) {
+  case result {
+    Ok(resp) ->
+      case resp.breakdown {
+        Some(breakdown) -> {
+          let total = resp.total
+          let sorted =
+            breakdown
+            |> list.sort(fn(a, b) {
+              float.compare(b.value, a.value)
+            })
+
+          h.div([], [
+            h.div([a.class("text-2xl font-semibold text-neutral-900 mb-3")], [
+              element.text(format_number(total)),
+            ]),
+            h.ul(
+              [a.class("space-y-2")],
+              list.map(sorted, fn(entry) {
+                let pct = case total >. 0.0 {
+                  True -> float.round(entry.value /. total *. 100.0)
+                  False -> 0
+                }
+                let bar_width = case total >. 0.0 {
+                  True -> float.round(entry.value /. total *. 100.0)
+                  False -> 0
+                }
+                h.li([a.class("relative")], [
+                  h.div(
+                    [
+                      a.class("absolute inset-0 bg-blue-50 rounded"),
+                      a.style("width: " <> int.to_string(bar_width) <> "%"),
+                    ],
+                    [],
+                  ),
+                  h.div(
+                    [
+                      a.class(
+                        "relative flex justify-between py-1.5 px-2 text-sm",
+                      ),
+                    ],
+                    [
+                      h.span([a.class("font-medium text-neutral-800")], [
+                        element.text(format_platform_label(entry.label)),
+                      ]),
+                      h.span([a.class("text-neutral-600")], [
+                        element.text(
+                          format_number(entry.value)
+                          <> " ("
+                          <> int.to_string(pct)
+                          <> "%)",
+                        ),
+                      ]),
+                    ],
+                  ),
+                ])
+              }),
+            ),
+          ])
+        }
+        None ->
+          h.div([a.class("text-neutral-500 text-sm")], [
+            element.text("Нет данных"),
+          ])
+      }
+    Error(_) ->
+      h.div([a.class("text-neutral-500 text-sm")], [
+        element.text("Не удалось загрузить данные"),
+      ])
+  }
+}
+
+fn format_platform_label(platform: String) -> String {
+  case platform {
+    "web" -> "Web"
+    "desktop" -> "Desktop"
+    "android" -> "Android"
+    "ios" -> "iOS"
+    _ -> platform
+  }
+}
+
+fn render_retention_section(proxy_endpoint: String, start: String, end: String) {
+  let range_qs = case start, end {
+    "", "" -> ""
+    s, e -> "&start=" <> s <> "&end=" <> e
+  }
+  h.div([a.class("mt-8")], [
+    h.div([a.class("bg-white border border-neutral-200 rounded-lg shadow-sm")], [
+      h.div([a.class("p-6")], [
+        ui.heading_section("Удержание пользователей"),
+        ui.text_small_muted(
+          "Процент зарегистрировавшихся, вернувшихся через N дней",
+        ),
+        h.div(
+          [a.class("grid grid-cols-1 md:grid-cols-3 gap-4 mt-4")],
+          [
+            render_retention_card("D1 (1 день)", "retention-d1", "retention-d1-detail"),
+            render_retention_card("D7 (7 дней)", "retention-d7", "retention-d7-detail"),
+            render_retention_card("D30 (30 дней)", "retention-d30", "retention-d30-detail"),
+          ],
+        ),
+      ]),
+    ]),
+    h.script([], render_retention_script(proxy_endpoint, range_qs)),
+  ])
+}
+
+fn render_retention_card(label: String, value_id: String, detail_id: String) {
+  h.div([a.class("bg-neutral-50 rounded-lg p-4 border border-neutral-200")], [
+    h.div([a.class("text-xs text-neutral-600 uppercase tracking-wider mb-1")], [
+      element.text(label),
+    ]),
+    h.div(
+      [a.id(value_id), a.class("text-2xl font-semibold text-neutral-900")],
+      [element.text("—")],
+    ),
+    h.div(
+      [a.id(detail_id), a.class("text-xs text-neutral-500 mt-1")],
+      [],
+    ),
+  ])
+}
+
+fn render_retention_script(metrics_endpoint: String, range_qs: String) -> String {
+  "
+  (async function() {
+    const endpoint = '" <> metrics_endpoint <> "';
+    const rangeQs = '" <> range_qs <> "';
+    if (!endpoint) return;
+
+    try {
+      const resp = await fetch(endpoint + '/query?metric=retention.rate' + rangeQs).then(r => r.json());
+      const sizeResp = await fetch(endpoint + '/query?metric=retention.cohort_size' + rangeQs).then(r => r.json());
+      const activeResp = await fetch(endpoint + '/query?metric=retention.active_count' + rangeQs).then(r => r.json());
+
+      const data = resp.data || [];
+      const sizeData = sizeResp.data || [];
+      const activeData = activeResp.data || [];
+
+      const getLatest = (arr, windowName) => {
+        const filtered = arr.filter(d => d.dimensions && d.dimensions.window === windowName);
+        if (filtered.length === 0) return null;
+        filtered.sort((a, b) => b.timestamp - a.timestamp);
+        return filtered[0];
+      };
+
+      for (const w of ['d1', 'd7', 'd30']) {
+        const rate = getLatest(data, w);
+        const size = getLatest(sizeData, w);
+        const active = getLatest(activeData, w);
+
+        const el = document.getElementById('retention-' + w);
+        const detailEl = document.getElementById('retention-' + w + '-detail');
+
+        if (rate && el) {
+          const val = rate.value;
+          el.textContent = val.toFixed(1) + '%';
+          if (val >= 40) el.classList.add('text-green-600');
+          else if (val >= 20) el.classList.add('text-yellow-600');
+          else el.classList.add('text-red-600');
+        }
+
+        if (size && active && detailEl) {
+          detailEl.textContent = Math.round(active.value) + ' из ' + Math.round(size.value) + ' вернулись';
+        }
+      }
+    } catch (e) {
+      console.error('Failed to load retention data:', e);
+    }
+  })();
+  "
 }
 
 fn render_quick_link(ctx: Context, label: String, path: String) {
@@ -706,18 +1054,23 @@ fn render_trends_script(metrics_endpoint: String) -> String {
   "
 }
 
-fn render_dashboard_script(metrics_endpoint: String) -> String {
+fn render_dashboard_script(metrics_endpoint: String, start: String, end: String) -> String {
+  let range_qs = case start, end {
+    "", "" -> ""
+    s, e -> "&start=" <> s <> "&end=" <> e
+  }
   "
   (async function() {
     const endpoint = '" <> metrics_endpoint <> "';
+    const rangeQs = '" <> range_qs <> "';
     if (!endpoint) return;
 
     try {
       const [regResp, msgResp, delResp, attachResp] = await Promise.all([
-        fetch(endpoint + '/query?metric=user.registration').then(r => r.json()),
-        fetch(endpoint + '/query?metric=message.send').then(r => r.json()),
-        fetch(endpoint + '/query?metric=message.delete').then(r => r.json()),
-        fetch(endpoint + '/query?metric=attachment.created').then(r => r.json())
+        fetch(endpoint + '/query?metric=user.registration' + rangeQs).then(r => r.json()),
+        fetch(endpoint + '/query?metric=message.send' + rangeQs).then(r => r.json()),
+        fetch(endpoint + '/query?metric=message.delete' + rangeQs).then(r => r.json()),
+        fetch(endpoint + '/query?metric=attachment.created' + rangeQs).then(r => r.json())
       ]);
 
       const timestamps = Array.from(new Set([
@@ -774,6 +1127,67 @@ fn render_dashboard_script(metrics_endpoint: String) -> String {
       });
     } catch (e) {
       console.error('Failed to load chart data:', e);
+    }
+  })();
+  "
+}
+
+fn render_dau_platform_chart_script(metrics_endpoint: String, start: String, end: String) -> String {
+  let range_qs = case start, end {
+    "", "" -> ""
+    s, e -> "&start=" <> s <> "&end=" <> e
+  }
+  "
+  (async function() {
+    const endpoint = '" <> metrics_endpoint <> "';
+    const rangeQs = '" <> range_qs <> "';
+    if (!endpoint) return;
+
+    try {
+      const resp = await fetch(endpoint + '/query?metric=user.daily_active' + rangeQs).then(r => r.json());
+      const data = resp.data || [];
+
+      const platforms = { web: {}, desktop: {}, android: {}, ios: {} };
+      for (const point of data) {
+        const dims = point.dimensions || {};
+        const platform = dims.platform || 'web';
+        const date = new Date(point.timestamp).toLocaleDateString();
+        if (platforms[platform]) {
+          platforms[platform][date] = (platforms[platform][date] || 0) + point.value;
+        }
+      }
+
+      const allDates = Array.from(new Set(data.map(d => new Date(d.timestamp).toLocaleDateString())));
+      allDates.sort((a, b) => new Date(a) - new Date(b));
+
+      const colors = {
+        web: 'rgb(59, 130, 246)',
+        desktop: 'rgb(168, 85, 247)',
+        android: 'rgb(34, 197, 94)',
+        ios: 'rgb(249, 115, 22)'
+      };
+      const labels = { web: 'Web', desktop: 'Desktop', android: 'Android', ios: 'iOS' };
+
+      const datasets = Object.keys(platforms).map(p => ({
+        label: labels[p],
+        data: allDates.map(d => platforms[p][d] || 0),
+        borderColor: colors[p],
+        tension: 0.1
+      }));
+
+      const canvas = document.getElementById('dauPlatformChart');
+      if (canvas) {
+        new Chart(canvas, {
+          type: 'line',
+          data: { labels: allDates, datasets },
+          options: {
+            responsive: true,
+            scales: { y: { beginAtZero: true } }
+          }
+        });
+      }
+    } catch (e) {
+      console.error('Failed to load DAU platform chart:', e);
     }
   })();
   "

@@ -23,6 +23,7 @@ import type {HonoEnv} from '~/App';
 import {getMetricsService} from '~/infrastructure/MetricsService';
 import type {User} from '~/Models';
 import * as IpUtils from '~/utils/IpUtils';
+import {resolveClientPlatform} from '~/utils/PlatformUtils';
 
 type TokenType = 'session' | 'bearer' | 'bot';
 
@@ -106,6 +107,14 @@ export const UserMiddleware = createMiddleware<HonoEnv>(async (ctx, next) => {
 			});
 
 			const user = await ctx.get('userService').findUniqueAssert(authSession.userId);
+
+			const platform = resolveClientPlatform(ctx.req.raw);
+			const redisActivityTracker = ctx.get('redisActivityTracker');
+			void redisActivityTracker.trackDailyActiveIfNew(user.id, platform).then((isNew) => {
+				if (isNew) {
+					getMetricsService().counter({name: 'user.daily_active', dimensions: {platform}});
+				}
+			}).catch(() => {});
 
 			ctx.set('authSession', authSession);
 			ctx.set('authTokenType', 'session');

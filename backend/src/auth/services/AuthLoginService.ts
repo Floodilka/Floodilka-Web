@@ -39,6 +39,7 @@ import type {RequestCache} from '~/middleware/RequestCacheMiddleware';
 import type {IUserRepository} from '~/user/IUserRepository';
 import * as IpUtils from '~/utils/IpUtils';
 import {needsRehash, hashPassword} from '~/utils/PasswordUtils';
+import {resolveClientPlatform} from '~/utils/PlatformUtils';
 import * as RandomUtils from '~/utils/RandomUtils';
 
 function createRequestCache(): RequestCache {
@@ -218,7 +219,7 @@ export class AuthLoginService {
 
 		getMetricsService().counter({
 			name: 'user.login',
-			dimensions: {mfa_type: 'none'},
+			dimensions: {mfa_type: 'none', platform: resolveClientPlatform(request)},
 		});
 		getMetricsService().counter({
 			name: 'auth.login.success',
@@ -252,7 +253,7 @@ export class AuthLoginService {
 			const [token] = await this.createAuthSession({user, request});
 			getMetricsService().counter({
 				name: 'user.login',
-				dimensions: {mfa_type: 'totp'},
+				dimensions: {mfa_type: 'totp', platform: resolveClientPlatform(request)},
 			});
 			return {user_id: user.id.toString(), token};
 		}
@@ -277,7 +278,7 @@ export class AuthLoginService {
 
 		getMetricsService().counter({
 			name: 'user.login',
-			dimensions: {mfa_type: 'totp'},
+			dimensions: {mfa_type: 'totp', platform: resolveClientPlatform(request)},
 		});
 		getMetricsService().counter({
 			name: 'auth.login.success',
@@ -325,7 +326,7 @@ export class AuthLoginService {
 
 		getMetricsService().counter({
 			name: 'user.login',
-			dimensions: {mfa_type: 'sms'},
+			dimensions: {mfa_type: 'sms', platform: resolveClientPlatform(request)},
 		});
 		getMetricsService().counter({
 			name: 'auth.login.success',
@@ -368,7 +369,7 @@ export class AuthLoginService {
 
 		getMetricsService().counter({
 			name: 'user.login',
-			dimensions: {mfa_type: 'webauthn'},
+			dimensions: {mfa_type: 'webauthn', platform: resolveClientPlatform(request)},
 		});
 		getMetricsService().counter({
 			name: 'auth.login.success',

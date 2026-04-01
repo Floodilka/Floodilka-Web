@@ -39,6 +39,7 @@ import harvestGuildData from '~/worker/tasks/harvestGuildData';
 import harvestUserData from '~/worker/tasks/harvestUserData';
 import indexChannelMessages from '~/worker/tasks/indexChannelMessages';
 import messageShred from '~/worker/tasks/messageShred';
+import calculateRetention from '~/worker/tasks/calculateRetention';
 import processAssetDeletionQueue from '~/worker/tasks/processAssetDeletionQueue';
 import processCloudfarePurgeQueue from '~/worker/tasks/processCloudfarePurgeQueue';
 import processInactivityDeletions from '~/worker/tasks/processInactivityDeletions';
@@ -76,6 +77,7 @@ async function main() {
 			applicationProcessDeletion,
 			batchGuildAuditLogMessageDeletes,
 			bulkDeleteUserMessages,
+			calculateRetention,
 			deleteUserMessagesInGuildByTime,
 			extractEmbeds,
 			handleMentions,

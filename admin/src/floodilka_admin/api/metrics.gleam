@@ -116,7 +116,16 @@ pub fn query_aggregate(
   ctx: Context,
   metric: String,
 ) -> Result(AggregateResponse, ApiError) {
-  query_aggregate_grouped(ctx, metric, option.None)
+  query_aggregate_filtered(ctx, metric, option.None, option.None, option.None)
+}
+
+pub fn query_aggregate_with_period(
+  ctx: Context,
+  metric: String,
+  start: Option(String),
+  end: Option(String),
+) -> Result(AggregateResponse, ApiError) {
+  query_aggregate_filtered(ctx, metric, option.None, start, end)
 }
 
 fn top_entry_decoder() -> decode.Decoder(TopEntry) {
@@ -132,12 +141,41 @@ pub fn query_aggregate_grouped(
   metric: String,
   group_by: option.Option(String),
 ) -> Result(AggregateResponse, ApiError) {
+  query_aggregate_filtered(ctx, metric, group_by, option.None, option.None)
+}
+
+pub fn query_aggregate_grouped_with_period(
+  ctx: Context,
+  metric: String,
+  group_by: option.Option(String),
+  start: Option(String),
+  end: Option(String),
+) -> Result(AggregateResponse, ApiError) {
+  query_aggregate_filtered(ctx, metric, group_by, start, end)
+}
+
+fn query_aggregate_filtered(
+  ctx: Context,
+  metric: String,
+  group_by: option.Option(String),
+  start: Option(String),
+  end: Option(String),
+) -> Result(AggregateResponse, ApiError) {
   case ctx.metrics_endpoint {
     None -> Error(NotFound)
     Some(endpoint) -> {
+      let base = "?metric=" <> metric
       let query_params = case group_by {
-        option.Some(group) -> "?metric=" <> metric <> "&group_by=" <> group
-        option.None -> "?metric=" <> metric
+        option.Some(group) -> base <> "&group_by=" <> group
+        option.None -> base
+      }
+      let query_params = case start {
+        Some(s) -> query_params <> "&start=" <> s
+        None -> query_params
+      }
+      let query_params = case end {
+        Some(e) -> query_params <> "&end=" <> e
+        None -> query_params
       }
       let url = endpoint <> "/query/aggregate" <> query_params
 

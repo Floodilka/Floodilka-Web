@@ -4,3 +4,4 @@
 15 * * * * expireAttachments
 0 3 * * * userProcessPendingDeletions
 0 4 * * 0 processInactivityDeletions
+0 23 * * * calculateRetention

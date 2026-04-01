@@ -1079,7 +1079,7 @@ fn handle_authenticated_request(req: Request, ctx: Context) -> Response {
         Get -> {
           use user_session, current_admin <- with_session_and_admin(req, ctx)
           let flash_data = flash.from_request(req)
-          metrics_page.view(ctx, user_session, current_admin, flash_data)
+          metrics_page.view(ctx, user_session, current_admin, flash_data, req)
         }
         _ -> wisp.method_not_allowed([Get])
       }

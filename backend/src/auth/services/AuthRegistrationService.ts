@@ -42,6 +42,7 @@ import type {RequestCache} from '~/middleware/RequestCacheMiddleware';
 import type {IUserRepository} from '~/user/IUserRepository';
 import * as AgeUtils from '~/utils/AgeUtils';
 import * as IpUtils from '~/utils/IpUtils';
+import {resolveClientPlatform} from '~/utils/PlatformUtils';
 import {parseAcceptLanguage} from '~/utils/LocaleUtils';
 import {randomString} from '~/utils/RandomUtils';
 import type {EmailDnsValidationService} from '~/infrastructure/EmailDnsValidationService';
@@ -411,6 +412,7 @@ export class AuthRegistrationService {
 		});
 
 		await this.redisActivityTracker.updateActivity(user.id, now);
+		void this.redisActivityTracker.trackRegistration(user.id).catch(() => {});
 
 		metrics.counter({
 			name: 'user.registration',
@@ -418,6 +420,7 @@ export class AuthRegistrationService {
 				country: countryCode ?? 'unknown',
 				state: geoipResult.region ?? 'unknown',
 				ip_version: isIpv6(clientIp) ? 'v6' : 'v4',
+				platform: resolveClientPlatform(request),
 			},
 		});
 
@@ -429,6 +432,7 @@ export class AuthRegistrationService {
 				state: geoipResult.region ?? 'unknown',
 				age: age !== null ? age.toString() : 'unknown',
 				age_group: determineAgeGroup(age),
+				platform: resolveClientPlatform(request),
 			},
 		});
 
