@@ -112,6 +112,7 @@ handle_dm_voice_with_channel(Channel, ChannelIdValue, UserId, Request, State) ->
                         SelfStream,
                         ViewerStreamKey,
                         IsMobile,
+                        Platform,
                         Latitude,
                         Longitude,
                         VoiceStates,
@@ -185,6 +186,7 @@ handle_dm_connect_or_update(
     SelfStream,
     ViewerStreamKey,
     IsMobile,
+    Platform,
     Latitude,
     Longitude,
     _VoiceStates,
@@ -205,6 +207,7 @@ handle_dm_connect_or_update(
                 SelfStream,
                 ParsedViewerKey,
                 IsMobile,
+                Platform,
                 Latitude,
                 Longitude,
                 State
@@ -221,6 +224,7 @@ handle_dm_connect_or_update(
     SelfStream,
     ViewerStreamKey,
     IsMobile,
+    Platform,
     _Latitude,
     _Longitude,
     VoiceStates,
@@ -393,6 +397,7 @@ get_dm_voice_token_and_create_state(
     SelfStream,
     ViewerStreamKey,
     IsMobile,
+    Platform,
     Latitude,
     Longitude,
     State
@@ -414,6 +419,7 @@ get_dm_voice_token_and_create_state(
                 SelfStream,
                 ViewerStreamKey,
                 IsMobile,
+                Platform,
                 State
             );
         {error, {http_error, _Status, Body}} ->
@@ -436,6 +442,7 @@ handle_dm_token_success(
     SelfStream,
     ViewerStreamKey,
     IsMobile,
+    Platform,
     State
 ) ->
     Token = maps:get(<<"token">>, Data),
