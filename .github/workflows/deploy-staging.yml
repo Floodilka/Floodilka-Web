@@ -204,11 +204,13 @@ jobs:
 
           ssh staging "
             docker stack deploy -c /var/www/floodilka/devops/backend/compose.yaml backend &&
-            docker stack deploy -c /var/www/floodilka/devops/gateway/compose.yaml gateway &&
             docker stack deploy -c /var/www/floodilka/devops/media-proxy/compose.yaml media &&
             docker stack deploy -c /var/www/floodilka/devops/admin/compose.yaml admin &&
             docker stack deploy -c /var/www/floodilka/devops/metrics/compose.yaml metrics
           "
+
+          # Gateway: apply config without triggering image-based restart
+          ssh staging "docker stack deploy --resolve-image never -c /var/www/floodilka/devops/gateway/compose.yaml gateway"
 
           # Rolling update API (start-first, блокирующий)
           ssh staging "docker service update --image floodilka-backend:latest backend_api"
