@@ -35,6 +35,7 @@
     initiator_ready = false,
     ringing_timers = #{},
     idle_timer = undefined,
+    alone_timer = undefined,
     created_at,
     participants_history = sets:new() :: sets:set(integer())
 }).
@@ -51,11 +52,13 @@
     initiator_ready :: boolean(),
     ringing_timers :: map(),
     idle_timer :: reference() | undefined,
+    alone_timer :: reference() | undefined,
     created_at :: integer(),
     participants_history :: sets:set(integer())
 }.
 -define(RING_TIMEOUT_MS, 30000).
 -define(IDLE_TIMEOUT_MS, 120000).
+-define(ALONE_TIMEOUT_MS, 60000).
 
 -spec start_link(map()) -> {ok, pid()} | {error, term()} | ignore.
 
@@ -195,7 +198,7 @@ handle_call({disconnect_user_if_in_channel, UserId, ExpectedChannelId, Connectio
                         true -> ok;
                         false -> dispatch_call_update(UpdatedState)
                     end,
-                    {reply, #{success => true}, UpdatedState}
+                    {reply, #{success => true}, maybe_start_alone_timer(UpdatedState)}
             end
     end;
 handle_call({leave, SessionId}, _From, State) ->
@@ -223,7 +226,7 @@ handle_call({leave, SessionId}, _From, State) ->
                         true -> ok;
                         false -> dispatch_call_update(UpdatedState)
                     end,
-                    {reply, ok, UpdatedState}
+                    {reply, ok, maybe_start_alone_timer(UpdatedState)}
             end;
         undefined ->
             {reply, {error, not_found}, State}
@@ -275,7 +278,7 @@ handle_info({'DOWN', _Ref, process, Pid, _Reason}, State) ->
                         true -> ok;
                         false -> dispatch_call_update(UpdatedState)
                     end,
-                    {noreply, UpdatedState}
+                    {noreply, maybe_start_alone_timer(UpdatedState)}
             end;
         not_found ->
             {noreply, State}
@@ -294,7 +297,7 @@ handle_info({ring_timeout, UserId}, State) ->
 
             case HasParticipants orelse HasPendingRinging of
                 true ->
-                    {noreply, UpdatedState};
+                    {noreply, maybe_start_alone_timer(UpdatedState)};
                 false ->
                     dispatch_call_delete(UpdatedState),
                     {stop, normal, UpdatedState}
@@ -369,6 +372,20 @@ handle_info({pending_connection_grace_timeout, ConnectionId}, State) ->
                     {noreply, State#state{pending_connections = NewPending}}
             end
     end;
+handle_info(alone_timeout, State) ->
+    Count = maps:size(State#state.voice_states),
+    HasRinging = length(State#state.ringing) > 0,
+    case Count =:= 1 andalso not HasRinging of
+        true ->
+            logger:info(
+                "[call] Alone timeout - ending call for channel ~p",
+                [State#state.channel_id]
+            ),
+            dispatch_call_delete(State),
+            {stop, normal, State};
+        false ->
+            {noreply, State#state{alone_timer = undefined}}
+    end;
 handle_info(idle_timeout, State) ->
     HasParticipants = maps:size(State#state.voice_states) > 0,
     HasPendingRinging = length(State#state.ringing) > 0,
@@ -415,7 +432,7 @@ disconnect_user_after_pending_timeout(ConnectionId, UserId, SessionId, State) ->
             {stop, normal, NewState};
         _ ->
             dispatch_call_update(NewState),
-            {noreply, NewState}
+            {noreply, maybe_start_alone_timer(NewState)}
     end.
 
 terminate(_Reason, State) ->
@@ -626,6 +643,26 @@ format_voice_state(VoiceState) ->
 integer_list_to_binaries(Values) ->
     lists:map(fun integer_to_binary/1, Values).
 
+maybe_start_alone_timer(State) ->
+    State1 = cancel_alone_timer(State),
+    Count = maps:size(State1#state.voice_states),
+    HasRinging = length(State1#state.ringing) > 0,
+    case Count =:= 1 andalso not HasRinging of
+        true ->
+            Ref = erlang:send_after(?ALONE_TIMEOUT_MS, self(), alone_timeout),
+            State1#state{alone_timer = Ref};
+        false ->
+            State1
+    end.
+
+cancel_alone_timer(State) ->
+    case State#state.alone_timer of
+        undefined -> State;
+        Ref ->
+            erlang:cancel_timer(Ref),
+            State#state{alone_timer = undefined}
+    end.
+
 find_session_by_pid(Pid, Sessions) ->
     maps:fold(
         fun
@@ -684,7 +721,7 @@ handle_join_internal(UserId, VoiceState, SessionId, SessionPid, ConnectionId, St
         participants_history = NewParticipantsHistory
     },
 
-    StateWithTimer = reset_idle_timer(NewState),
+    StateWithTimer = reset_idle_timer(cancel_alone_timer(NewState)),
     {UpdatedState, Dispatched} = maybe_dispatch_state_update(BaseState, StateWithTimer),
     case Dispatched of
         true -> ok;
