@@ -370,8 +370,8 @@ resolve_platform(Properties, Mobile) ->
     case DesktopVersion of
         V when is_binary(V), byte_size(V) > 0 -> <<"desktop">>;
         _ ->
-            OsLower = string:lowercase(Os),
-            case OsLower of
+            OsLower = string:lowercase(binary_to_list(Os)),
+            case list_to_binary(OsLower) of
                 <<"ios">> -> <<"ios">>;
                 <<"android">> -> <<"android">>;
                 _ ->
