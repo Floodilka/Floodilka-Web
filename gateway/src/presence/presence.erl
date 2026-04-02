@@ -115,33 +115,14 @@ handle_call({dispatch, EventAtom, Data}, _From, State) ->
             FinalState = force_publish_global_presence(NewState),
             {reply, ok, FinalState};
         message_create ->
-            HasMobile = lists:any(
-                fun(Session) ->
-                    maps:get(mobile, Session, false)
-                end,
-                maps:values(Sessions)
-            ),
-            AllAfk = lists:all(
-                fun(Session) ->
-                    maps:get(afk, Session, false)
-                end,
-                maps:values(Sessions)
-            ),
-            ShouldSendPush =
-                (map_size(Sessions) =:= 0) orelse ((not HasMobile) andalso AllAfk),
-            case ShouldSendPush of
-                true ->
-                    AuthorIdBin = maps:get(<<"id">>, maps:get(<<"author">>, Data, #{}), <<"0">>),
-                    AuthorId = validation:snowflake_or_default(AuthorIdBin, 0),
-                    push:handle_message_create(#{
-                        message_data => Data,
-                        user_ids => [UserId],
-                        guild_id => 0,
-                        author_id => AuthorId
-                    });
-                false ->
-                    ok
-            end,
+            AuthorIdBin = maps:get(<<"id">>, maps:get(<<"author">>, Data, #{}), <<"0">>),
+            AuthorId = validation:snowflake_or_default(AuthorIdBin, 0),
+            push:handle_message_create(#{
+                message_data => Data,
+                user_ids => [UserId],
+                guild_id => 0,
+                author_id => AuthorId
+            }),
             {reply, ok, State};
         _ ->
             {reply, ok, State}
@@ -203,33 +184,14 @@ handle_cast({dispatch, Event, Data}, State) ->
             FinalState = force_publish_global_presence(NewState),
             {noreply, FinalState};
         message_create ->
-            HasMobile = lists:any(
-                fun(Session) ->
-                    maps:get(mobile, Session, false)
-                end,
-                maps:values(Sessions)
-            ),
-            AllAfk = lists:all(
-                fun(Session) ->
-                    maps:get(afk, Session, false)
-                end,
-                maps:values(Sessions)
-            ),
-            ShouldSendPush =
-                (map_size(Sessions) =:= 0) orelse ((not HasMobile) andalso AllAfk),
-            case ShouldSendPush of
-                true ->
-                    AuthorIdBin = maps:get(<<"id">>, maps:get(<<"author">>, Data, #{}), <<"0">>),
-                    AuthorId = validation:snowflake_or_default(AuthorIdBin, 0),
-                    push:handle_message_create(#{
-                        message_data => Data,
-                        user_ids => [UserId],
-                        guild_id => 0,
-                        author_id => AuthorId
-                    });
-                false ->
-                    ok
-            end,
+            AuthorIdBin = maps:get(<<"id">>, maps:get(<<"author">>, Data, #{}), <<"0">>),
+            AuthorId = validation:snowflake_or_default(AuthorIdBin, 0),
+            push:handle_message_create(#{
+                message_data => Data,
+                user_ids => [UserId],
+                guild_id => 0,
+                author_id => AuthorId
+            }),
             {noreply, State};
         _ ->
             {noreply, State}
