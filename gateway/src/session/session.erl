@@ -367,13 +367,7 @@ load_relationships(_) ->
 resolve_platform(Properties, Mobile) ->
     DesktopVersion = map_utils:get_safe(Properties, <<"desktop_app_version">>, null),
     Os = map_utils:get_safe(Properties, <<"os">>, <<"">>),
-    OsLowerResult = string:lowercase(binary_to_list(Os)),
-    OsBin = list_to_binary(OsLowerResult),
-    Result = resolve_platform_inner(DesktopVersion, OsBin, Mobile),
-    logger:info("[session] resolve_platform os=~p os_lower=~p mobile=~p desktop=~p result=~p", [Os, OsBin, Mobile, DesktopVersion, Result]),
-    Result.
-
-resolve_platform_inner(DesktopVersion, OsBin, Mobile) ->
+    OsBin = list_to_binary(string:lowercase(binary_to_list(Os))),
     case DesktopVersion of
         V when is_binary(V), byte_size(V) > 0 -> <<"desktop">>;
         _ ->

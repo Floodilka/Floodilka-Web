@@ -210,6 +210,7 @@ handle_validated_voice_state_update(
                 self_stream => SelfStream,
                 viewer_stream_key => ViewerStreamKey,
                 is_mobile => IsMobile,
+                platform => maps:get(platform, State, <<"web">>),
                 latitude => Latitude,
                 longitude => Longitude
             },
