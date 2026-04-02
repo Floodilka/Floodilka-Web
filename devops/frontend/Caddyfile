@@ -20,6 +20,30 @@
 	@seoFiles path /sitemap.xml /robots.txt
 	header @seoFiles Cache-Control "public, max-age=3600"
 
+	# SEO: prerender for search engine bots
+	# Maps route path to _prerender/{name}.html built at compile time
+	map {path} {prerender_file} {
+		/          /_prerender/index.html
+		/faq       /_prerender/faq.html
+		/download  /_prerender/download.html
+		/support   /_prerender/support.html
+		/privacy   /_prerender/privacy.html
+		/terms     /_prerender/terms.html
+		/guidelines /_prerender/guidelines.html
+		default    ""
+	}
+
+	@bot {
+		header_regexp User-Agent (?i)(googlebot|yandex|bingbot|mail\.ru_bot|baiduspider|duckduckbot|slurp|facebookexternalhit|twitterbot|linkedinbot|telegrambot|whatsapp|applebot|semrushbot|ahrefsbot|mj12bot)
+		not path /assets/* /icons/* /fonts/* /sitemap.xml /robots.txt /manifest.json
+		expression `{prerender_file} != ""`
+	}
+	handle @bot {
+		rewrite * {prerender_file}
+		file_server
+	}
+
+	# Default: serve SPA for regular users
 	try_files {path} /index.html
 	file_server
 }

@@ -22,6 +22,7 @@ import {fileURLToPath} from 'node:url';
 import {CopyRspackPlugin, DefinePlugin, HtmlRspackPlugin, SwcJsMinimizerRspackPlugin} from '@rspack/core';
 import ReactRefreshPlugin from '@rspack/plugin-react-refresh';
 import {createPoFileRule, getLinguiSwcPluginConfig} from './scripts/build/rspack/lingui.mjs';
+import {prerenderPlugin} from './scripts/build/rspack/prerender.mjs';
 import {staticFilesPlugin} from './scripts/build/rspack/static-files.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -225,6 +226,7 @@ export default () => {
 			}),
 
 			staticFilesPlugin({cdnEndpoint: CDN_ENDPOINT}),
+			isProduction && prerenderPlugin(),
 
 			new DefinePlugin({
 				'process.env.NODE_ENV': JSON.stringify(mode),
