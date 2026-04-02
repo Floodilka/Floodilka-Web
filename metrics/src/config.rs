@@ -49,6 +49,8 @@ pub struct Config {
     pub clickhouse_password: String,
     pub alert_webhook_url: Option<String>,
     pub admin_endpoint: Option<String>,
+    pub buffer_flush_interval_secs: u64,
+    pub buffer_max_size: usize,
 }
 
 impl Config {
@@ -83,6 +85,14 @@ impl Config {
             admin_endpoint: env::var("FLOODILKA_ADMIN_ENDPOINT")
                 .ok()
                 .filter(|s| !s.is_empty()),
+            buffer_flush_interval_secs: env::var("BUFFER_FLUSH_INTERVAL_SECS")
+                .ok()
+                .and_then(|v| v.parse().ok())
+                .unwrap_or(5),
+            buffer_max_size: env::var("BUFFER_MAX_SIZE")
+                .ok()
+                .and_then(|v| v.parse().ok())
+                .unwrap_or(1000),
         })
     }
 }

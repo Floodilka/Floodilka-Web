@@ -17,6 +17,7 @@
  * along with Floodilka. If not, see <https://www.gnu.org/licenses/>.
  */
 
+pub mod buffer;
 mod migrations;
 pub mod schemas;
 pub mod storage;

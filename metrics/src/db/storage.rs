@@ -27,6 +27,7 @@ use tracing::info;
 use ulid::Ulid;
 
 use super::Storage;
+use super::buffer::{BufferedMetric, MetricBuffer};
 use super::migrations::run_migrations;
 use super::schemas::{
     CounterMetric, CounterRequest, CrashEvent, CrashRequest, DataPoint, GaugeMetric, GaugeRequest,
@@ -88,6 +89,7 @@ impl Resolution {
 pub struct ClickHouseStorage {
     client: Client,
     database: String,
+    buffer: MetricBuffer,
 }
 
 #[derive(Debug, Clone)]
@@ -251,11 +253,18 @@ impl ClickHouseStorage {
 
         let client = migration_client.with_database(&config.clickhouse_database);
 
+        let buffer = MetricBuffer::spawn(
+            client.clone(),
+            config.buffer_flush_interval_secs,
+            config.buffer_max_size,
+        );
+
         info!("ClickHouse storage initialized successfully");
 
         Ok(Self {
             client,
             database: config.clickhouse_database.clone(),
+            buffer,
         })
     }
 
@@ -272,10 +281,7 @@ impl ClickHouseStorage {
             value: req.value,
         };
 
-        let mut insert = self.client.insert("counters")?;
-        insert.write(&metric).await?;
-        insert.end().await?;
-
+        self.buffer.send(BufferedMetric::Counter(metric)).await;
         Ok(())
     }
 
@@ -293,10 +299,7 @@ impl ClickHouseStorage {
             value: req.value,
         };
 
-        let mut insert = self.client.insert("gauges")?;
-        insert.write(&metric).await?;
-        insert.end().await?;
-
+        self.buffer.send(BufferedMetric::Gauge(metric)).await;
         Ok(())
     }
 
@@ -314,10 +317,7 @@ impl ClickHouseStorage {
             value_ms: req.value_ms,
         };
 
-        let mut insert = self.client.insert("histogram_raw")?;
-        insert.write(&raw).await?;
-        insert.end().await?;
-
+        self.buffer.send(BufferedMetric::Histogram(raw)).await;
         Ok(())
     }
 
