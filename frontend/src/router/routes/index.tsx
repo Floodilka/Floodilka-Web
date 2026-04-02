@@ -20,8 +20,8 @@
 import type {RouteConfig} from '~/lib/router';
 import {appRouteTree} from '~/router/routes/appRoutes';
 import {authRouteTree, glassRouteTree} from '~/router/routes/authRoutes';
-import {downloadAppRoute, downloadRoute, guidelinesRoute, homeRoute, notFoundRoute, privacyRoute, rootRoute, supportRoute, termsRoute} from '~/router/routes/rootRoutes';
+import {downloadAppRoute, downloadRoute, faqRoute, guidelinesRoute, homeRoute, notFoundRoute, privacyRoute, rootRoute, supportRoute, termsRoute} from '~/router/routes/rootRoutes';
 
-const routeTree = rootRoute.addChildren([homeRoute, downloadRoute, downloadAppRoute, privacyRoute, termsRoute, supportRoute, guidelinesRoute, notFoundRoute, glassRouteTree, authRouteTree, appRouteTree]);
+const routeTree = rootRoute.addChildren([homeRoute, downloadRoute, downloadAppRoute, privacyRoute, termsRoute, supportRoute, faqRoute, guidelinesRoute, notFoundRoute, glassRouteTree, authRouteTree, appRouteTree]);
 
 export const buildRoutes = (): Array<RouteConfig> => routeTree.build();

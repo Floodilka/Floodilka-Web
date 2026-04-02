@@ -8,6 +8,18 @@
 		file_server
 	}
 
+	# SEO: noindex for auth routes
+	@authRoutes path /login /register /verify /reset /wasntme /invite/*
+	header @authRoutes X-Robots-Tag "noindex, nofollow"
+
+	# SEO: cache images and fonts
+	@staticAssets path_regexp static \.(png|jpg|jpeg|webp|avif|svg|ico|woff2|woff|ttf)$
+	header @staticAssets Cache-Control "public, max-age=2592000"
+
+	# SEO: sitemap and robots — short cache for fresh updates
+	@seoFiles path /sitemap.xml /robots.txt
+	header @seoFiles Cache-Control "public, max-age=3600"
+
 	try_files {path} /index.html
 	file_server
 }

@@ -22,6 +22,7 @@ import {createRootRoute, createRoute} from '~/lib/router';
 import {DownloadPage} from '~/pages/Download/DownloadPage';
 import {DownloadRedirect} from '~/pages/Download/DownloadRedirect';
 import {LandingPage} from '~/pages/Landing/LandingPage';
+import FAQPage from '~/pages/Legal/FAQPage';
 import GuidelinesPage from '~/pages/Legal/GuidelinesPage';
 import PrivacyPage from '~/pages/Legal/PrivacyPage';
 import SupportPage from '~/pages/Legal/SupportPage';
@@ -78,6 +79,13 @@ export const downloadAppRoute = createRoute({
 	id: 'downloadApp',
 	path: '/download/app',
 	component: () => <DownloadRedirect />,
+});
+
+export const faqRoute = createRoute({
+	getParentRoute: () => rootRoute,
+	id: 'faq',
+	path: '/faq',
+	component: () => <FAQPage />,
 });
 
 export const guidelinesRoute = createRoute({

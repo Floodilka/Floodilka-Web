@@ -15,6 +15,10 @@ export const LandingFooter = () => {
 						Пользовательское соглашение
 					</Link>
 					&nbsp;|&nbsp;
+					<Link to="/faq" className={styles.footer__link}>
+						FAQ
+					</Link>
+					&nbsp;|&nbsp;
 					<Link to="/support" className={styles.footer__link}>
 						Поддержка
 					</Link>

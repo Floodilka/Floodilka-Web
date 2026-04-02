@@ -20,6 +20,7 @@
 import {observer} from 'mobx-react-lite';
 import {useEffect} from 'react';
 import AuthModal from '~/components/auth/AuthModal';
+import {useSEO} from '~/hooks/useSEO';
 import AuthenticationStore from '~/stores/AuthenticationStore';
 import * as RouterUtils from '~/utils/RouterUtils';
 
@@ -28,6 +29,15 @@ interface AuthPageProps {
 }
 
 const AuthPage = observer(function AuthPage({initialMode = 'login'}: AuthPageProps) {
+	useSEO({
+		title: initialMode === 'login' ? 'Войти — Флудилка' : 'Регистрация — Флудилка',
+		description: initialMode === 'login'
+			? 'Войдите в свой аккаунт Флудилки — бесплатного голосового чата для геймеров.'
+			: 'Создайте аккаунт в Флудилке — бесплатном голосовом мессенджере для геймеров. Альтернатива Discord в России.',
+		canonicalPath: initialMode === 'login' ? '/login' : '/register',
+		noindex: true,
+	});
+
 	useEffect(() => {
 		if (AuthenticationStore.isAuthenticated) {
 			const qp = new URLSearchParams(window.location.search);

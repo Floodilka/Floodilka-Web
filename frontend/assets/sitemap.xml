@@ -9,7 +9,7 @@
   <!-- Главная страница -->
   <url>
     <loc>https://floodilka.com/</loc>
-    <lastmod>2026-03-30</lastmod>
+    <lastmod>2026-04-02</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
     <xhtml:link rel="alternate" hreflang="ru" href="https://floodilka.com/" />
@@ -30,7 +30,7 @@
   <!-- Скачать приложение -->
   <url>
     <loc>https://floodilka.com/download</loc>
-    <lastmod>2026-03-30</lastmod>
+    <lastmod>2026-04-02</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
     <xhtml:link rel="alternate" hreflang="ru" href="https://floodilka.com/download" />
@@ -46,7 +46,7 @@
   <!-- Регистрация -->
   <url>
     <loc>https://floodilka.com/register</loc>
-    <lastmod>2026-03-30</lastmod>
+    <lastmod>2026-04-02</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
     <xhtml:link rel="alternate" hreflang="ru" href="https://floodilka.com/register" />
@@ -57,7 +57,7 @@
   <!-- Вход -->
   <url>
     <loc>https://floodilka.com/login</loc>
-    <lastmod>2026-03-30</lastmod>
+    <lastmod>2026-04-02</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
     <xhtml:link rel="alternate" hreflang="ru" href="https://floodilka.com/login" />
@@ -67,7 +67,7 @@
   <!-- Поддержка -->
   <url>
     <loc>https://floodilka.com/support</loc>
-    <lastmod>2026-03-30</lastmod>
+    <lastmod>2026-04-02</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
     <xhtml:link rel="alternate" hreflang="ru" href="https://floodilka.com/support" />
@@ -77,7 +77,7 @@
   <!-- Условия использования -->
   <url>
     <loc>https://floodilka.com/terms</loc>
-    <lastmod>2026-03-30</lastmod>
+    <lastmod>2026-04-02</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
     <xhtml:link rel="alternate" hreflang="ru" href="https://floodilka.com/terms" />
@@ -87,7 +87,7 @@
   <!-- Политика конфиденциальности -->
   <url>
     <loc>https://floodilka.com/privacy</loc>
-    <lastmod>2026-03-30</lastmod>
+    <lastmod>2026-04-02</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
     <xhtml:link rel="alternate" hreflang="ru" href="https://floodilka.com/privacy" />
@@ -97,11 +97,21 @@
   <!-- Правила сообщества -->
   <url>
     <loc>https://floodilka.com/guidelines</loc>
-    <lastmod>2026-03-30</lastmod>
+    <lastmod>2026-04-02</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
     <xhtml:link rel="alternate" hreflang="ru" href="https://floodilka.com/guidelines" />
     <xhtml:link rel="alternate" hreflang="x-default" href="https://floodilka.com/guidelines" />
+  </url>
+
+  <!-- FAQ — Часто задаваемые вопросы -->
+  <url>
+    <loc>https://floodilka.com/faq</loc>
+    <lastmod>2026-04-02</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://floodilka.com/faq" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://floodilka.com/faq" />
   </url>
 
 </urlset>
