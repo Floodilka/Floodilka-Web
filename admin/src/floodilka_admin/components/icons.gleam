@@ -200,9 +200,7 @@ pub fn ios_icon(color: String) {
 
 pub fn desktop_icon(color: String) {
   svg24(color, [
-    element.element("rect", [a.attribute("x", "2"), a.attribute("y", "3"), a.attribute("width", "20"), a.attribute("height", "14"), a.attribute("rx", "2"), a.attribute("ry", "2")], []),
-    element.element("line", [a.attribute("x1", "8"), a.attribute("y1", "21"), a.attribute("x2", "16"), a.attribute("y2", "21")], []),
-    element.element("line", [a.attribute("x1", "12"), a.attribute("y1", "17"), a.attribute("x2", "12"), a.attribute("y2", "21")], []),
+    element.element("path", [a.attribute("d", "M20 16V7a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v9m16 0H4m16 0 1.28 2.55a1 1 0 0 1-.9 1.45H3.62a1 1 0 0 1-.9-1.45L4 16")], []),
   ])
 }
 
