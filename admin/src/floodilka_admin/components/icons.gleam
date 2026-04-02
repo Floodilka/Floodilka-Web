@@ -239,3 +239,11 @@ pub fn monitor_icon(color: String) {
     element.element("line", [a.attribute("x1", "12"), a.attribute("y1", "17"), a.attribute("x2", "12"), a.attribute("y2", "21")], []),
   ])
 }
+
+pub fn globe_icon(color: String) {
+  svg24(color, [
+    element.element("circle", [a.attribute("cx", "12"), a.attribute("cy", "12"), a.attribute("r", "10")], []),
+    element.element("line", [a.attribute("x1", "2"), a.attribute("y1", "12"), a.attribute("x2", "22"), a.attribute("y2", "12")], []),
+    element.element("path", [a.attribute("d", "M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z")], []),
+  ])
+}

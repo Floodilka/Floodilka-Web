@@ -266,6 +266,8 @@ fn render_voice_user(ctx: Context, vs: gateway.VoiceStateEntry) {
             icon_badge(icons.desktop_icon("text-blue-500"), "Desktop")
           "mobile" ->
             icon_badge(icons.mobile_icon("text-blue-500"), "Мобильное устройство")
+          "web" ->
+            icon_badge(icons.globe_icon("text-neutral-400"), "Web")
           _ -> element.none()
         },
         case vs.mute || vs.self_mute {
