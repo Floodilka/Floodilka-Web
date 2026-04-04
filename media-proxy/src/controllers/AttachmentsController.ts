@@ -80,6 +80,8 @@ export const createAttachmentsHandler = (coalescer: InMemoryCoalescer) => {
 					lastModified = result.lastModified;
 				}
 
+				ctx.req.raw.signal.addEventListener('abort', () => streamData.destroy(), {once: true});
+
 				setHeaders(ctx, totalSize, contentType, range, lastModified);
 				ctx.header('Content-Disposition', `attachment; filename="${encodeURIComponent(filename)}"`);
 

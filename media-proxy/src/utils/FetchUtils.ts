@@ -150,6 +150,7 @@ class HttpClient {
 		});
 
 		if ([301, 302, 303, 307, 308].includes(newStatusCode)) {
+			await body.dump();
 			return HttpClient.handleRedirect(
 				newStatusCode,
 				newHeaders as Record<string, string | Array<string>>,
@@ -202,6 +203,7 @@ class HttpClient {
 			}
 
 			if ([301, 302, 303, 307, 308].includes(statusCode)) {
+				await body.dump();
 				const redirectResult = await HttpClient.handleRedirect(
 					statusCode,
 					responseHeaders as Record<string, string | Array<string>>,
