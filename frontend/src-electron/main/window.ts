@@ -35,6 +35,7 @@ import {
 	STABLE_APP_URL,
 } from '../common/constants.js';
 import {registerSpellcheck} from './spellcheck.js';
+import {setSplashStatus} from './splash.js';
 import {refreshWindowsBadgeOverlay} from './windows-badge.js';
 
 const VISIBILITY_MARGIN = 32;
@@ -92,6 +93,55 @@ interface WindowBounds {
 let mainWindow: BrowserWindow | null = null;
 let windowStateFile: string;
 let isQuitting = false;
+
+// Chromium network error codes that indicate the OS network stack isn't ready
+// yet — typical when the app is launched via autostart before the connection
+// comes up. We retry the load instead of giving up.
+// Full list: https://source.chromium.org/chromium/chromium/src/+/main:net/base/net_error_list.h
+const NETWORK_ERROR_CODES = new Set<number>([
+	-21, // ERR_NETWORK_CHANGED
+	-105, // ERR_NAME_NOT_RESOLVED
+	-106, // ERR_INTERNET_DISCONNECTED
+	-109, // ERR_ADDRESS_UNREACHABLE
+	-118, // ERR_CONNECTION_TIMED_OUT
+	-130, // ERR_PROXY_CONNECTION_FAILED
+	-137, // ERR_NAME_RESOLUTION_FAILED
+	-201, // ERR_CERT_DATE_INVALID (system clock not set yet after cold boot)
+	-324, // ERR_EMPTY_RESPONSE
+]);
+const MAX_RETRY_DELAY_MS = 15000;
+
+let targetAppUrl = '';
+let hasFinishedLoad = false;
+let loadRetryAttempt = 0;
+let loadRetryTimer: NodeJS.Timeout | null = null;
+
+function cancelLoadRetry(): void {
+	if (loadRetryTimer) {
+		clearTimeout(loadRetryTimer);
+		loadRetryTimer = null;
+	}
+}
+
+function scheduleLoadRetry(): void {
+	if (!mainWindow || mainWindow.isDestroyed() || hasFinishedLoad) return;
+	cancelLoadRetry();
+
+	const delay = Math.min(1000 * 2 ** loadRetryAttempt, MAX_RETRY_DELAY_MS);
+	loadRetryAttempt += 1;
+
+	log.info(`[Load] Scheduling retry #${loadRetryAttempt} in ${delay}ms`);
+	setSplashStatus('Ожидание подключения к интернету...');
+
+	loadRetryTimer = setTimeout(() => {
+		loadRetryTimer = null;
+		if (!mainWindow || mainWindow.isDestroyed() || hasFinishedLoad) return;
+		log.info(`[Load] Retry #${loadRetryAttempt}: reloading ${targetAppUrl}`);
+		mainWindow.loadURL(targetAppUrl).catch((error) => {
+			log.warn('[Load] loadURL rejected during retry:', error);
+		});
+	}, delay);
+}
 
 interface PendingDisplayMediaRequest {
 	callback: (streams: Electron.Streams | null) => void;
@@ -385,10 +435,29 @@ export function createWindow(onReady?: () => void): BrowserWindow {
 		}
 	};
 
-	mainWindow.webContents.once('did-finish-load', showWindowOnce);
+	mainWindow.webContents.once('did-finish-load', () => {
+		hasFinishedLoad = true;
+		cancelLoadRetry();
+		showWindowOnce();
+	});
+
+	mainWindow.webContents.on('did-fail-load', (_event, errorCode, errorDescription, validatedURL, isMainFrame) => {
+		if (!isMainFrame) return;
+		// ERR_ABORTED (-3) fires when a navigation supersedes the previous one; harmless.
+		if (errorCode === -3) return;
+
+		log.warn('[Load] did-fail-load:', {errorCode, errorDescription, validatedURL});
+
+		if (!hasFinishedLoad && NETWORK_ERROR_CODES.has(errorCode)) {
+			scheduleLoadRetry();
+		}
+	});
 
 	setTimeout(() => {
-		if (!windowShown) {
+		// Only force-show if we haven't loaded yet AND aren't in the middle of a
+		// network-retry loop. Showing an empty window while the network is still
+		// coming up after autostart gives the user a dark window with no UI.
+		if (!windowShown && !loadRetryTimer && !hasFinishedLoad) {
 			log.warn('Remote content did not load within 15 seconds, forcing window to show');
 			showWindowOnce();
 		}
@@ -426,6 +495,7 @@ export function createWindow(onReady?: () => void): BrowserWindow {
 	});
 
 	mainWindow.on('closed', () => {
+		cancelLoadRetry();
 		mainWindow = null;
 	});
 
@@ -519,10 +589,15 @@ export function createWindow(onReady?: () => void): BrowserWindow {
 
 	setupDisplayMediaHandler(session, webContents);
 
-	const appUrl = isCanary ? CANARY_APP_URL : STABLE_APP_URL;
+	targetAppUrl = isCanary ? CANARY_APP_URL : STABLE_APP_URL;
+	hasFinishedLoad = false;
+	loadRetryAttempt = 0;
+	cancelLoadRetry();
 
-	mainWindow.loadURL(appUrl).catch((error) => {
-		console.error('Failed to load app URL:', error);
+	mainWindow.loadURL(targetAppUrl).catch((error) => {
+		// did-fail-load will fire with the specific error code and schedule a
+		// retry if it was a network error.
+		log.warn('[Load] Initial loadURL rejected:', error);
 	});
 
 	webContents.on('will-navigate', (event, url) => {
