@@ -233,7 +233,7 @@ export const GroupDMAvatar: React.FC<GroupDMAvatarProps> = observer(
 					<svg viewBox={`0 0 ${size} ${size}`} className={styles.iconImageContainer} aria-hidden role="presentation">
 						<defs>
 							<mask id={groupMaskId} maskUnits="userSpaceOnUse" x={0} y={0} width={size} height={size}>
-								<circle cx={size / 2} cy={size / 2} r={size / 2} fill="white" />
+								<rect x={0} y={0} width={size} height={size} rx={8} ry={8} fill="white" />
 								{hasCutout &&
 									(isTyping ? (
 										renderTypingCutouts(layout)

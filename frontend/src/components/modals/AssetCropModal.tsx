@@ -45,7 +45,7 @@ interface AssetConfig {
 const ASSET_CONFIGS: Record<AssetType, AssetConfig> = {
 	[AssetType.AVATAR]: {
 		aspectRatio: 1,
-		cropShape: 'round',
+		cropShape: 'rect',
 		maxWidth: 1024,
 		maxHeight: 1024,
 		minWidth: 256,
@@ -54,7 +54,7 @@ const ASSET_CONFIGS: Record<AssetType, AssetConfig> = {
 	},
 	[AssetType.GUILD_ICON]: {
 		aspectRatio: 1,
-		cropShape: 'round',
+		cropShape: 'rect',
 		maxWidth: 1024,
 		maxHeight: 1024,
 		minWidth: 256,
@@ -63,7 +63,7 @@ const ASSET_CONFIGS: Record<AssetType, AssetConfig> = {
 	},
 	[AssetType.CHANNEL_ICON]: {
 		aspectRatio: 1,
-		cropShape: 'round',
+		cropShape: 'rect',
 		maxWidth: 1024,
 		maxHeight: 1024,
 		minWidth: 256,
