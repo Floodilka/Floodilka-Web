@@ -42,6 +42,7 @@ import floodilka_admin/pages/jobs_page
 import floodilka_admin/pages/login_page
 import floodilka_admin/pages/messages_metrics_page
 import floodilka_admin/pages/messages_page
+import floodilka_admin/pages/monitoring_page
 import floodilka_admin/pages/metrics_page
 import floodilka_admin/pages/oauth2_callback_page
 import floodilka_admin/pages/phone_bans_page
@@ -654,6 +655,19 @@ fn handle_authenticated_request(req: Request, ctx: Context) -> Response {
         True -> {
           let flash_data = flash.from_request(req)
           voice_monitor_page.view(ctx, user_session, current_admin, flash_data)
+        }
+        False -> redirect_to_home(ctx, admin_acls)
+      }
+    }
+    ["monitoring"] -> {
+      use user_session, current_admin <- with_session_and_admin(req, ctx)
+      let admin_acls = admin_acls_from(current_admin)
+      case
+        acl.has_permission(admin_acls, constants.acl_metrics_view)
+      {
+        True -> {
+          let flash_data = flash.from_request(req)
+          monitoring_page.view(ctx, user_session, current_admin, flash_data)
         }
         False -> redirect_to_home(ctx, admin_acls)
       }

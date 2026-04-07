@@ -12,7 +12,7 @@ services:
       - floodilka-shared
     stop_grace_period: 30s
     deploy:
-      replicas: 3
+      replicas: 2
       update_config:
         order: start-first
         failure_action: rollback

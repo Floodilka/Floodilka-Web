@@ -2,6 +2,9 @@ services:
   admin:
     image: floodilka-admin:latest
     hostname: admin
+    environment:
+      - NETDATA_PROD_URL=http://91.197.98.25:19999
+      - NETDATA_LIVEKIT_URL=http://89.104.74.144:19999
     env_file:
       - /var/www/floodilka/.env
     networks:

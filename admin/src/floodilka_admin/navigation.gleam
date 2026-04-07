@@ -105,6 +105,9 @@ pub fn sections() -> List(NavSection) {
       NavItem("Журнал аудита", "/audit-logs", "audit-logs", [
         constants.acl_audit_log_view,
       ]),
+      NavItem("Серверы", "/monitoring", "monitoring", [
+        constants.acl_metrics_view,
+      ]),
     ]),
     NavSection("Платформа", [
       NavItem("Поисковые индексы", "/search-index", "search-index", [
