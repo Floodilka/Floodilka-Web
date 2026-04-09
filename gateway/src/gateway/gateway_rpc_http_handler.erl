@@ -124,7 +124,11 @@ execute_method(Method, Params, Req0, State) ->
     catch
         throw:{error, Message} ->
             respond(400, #{<<"error">> => Message}, Req0, State);
-        _:_ ->
+        Class:Reason:Stacktrace ->
+            logger:error(
+                "[gateway_rpc] Internal error executing method=~s: ~p:~p~nStacktrace: ~p~nParams: ~p",
+                [Method, Class, Reason, Stacktrace, Params]
+            ),
             respond(500, #{<<"error">> => <<"Internal error">>}, Req0, State)
     end.
 
