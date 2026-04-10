@@ -40,7 +40,6 @@ declare const styles: {
   readonly "sidebarNavWrapper": string;
   readonly "sidebarSubItem": string;
   readonly "sidebarSubItemActive": string;
-  readonly "sidebarSubItemIndicator": string;
   readonly "sidebarSubItemLabel": string;
   readonly "sidebarSubItems": string;
 };
