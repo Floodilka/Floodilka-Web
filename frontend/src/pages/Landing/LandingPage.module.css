@@ -102,11 +102,7 @@
   font-weight: 700;
   margin: 0;
   line-height: 1;
-  background: linear-gradient(90deg, #6DA9F6 0%, #E6AFFF 49%, #2AE8BD 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  -webkit-text-fill-color: transparent;
+  color: #ffffff;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -119,11 +115,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  background: linear-gradient(90deg, #6DA9F6 0%, #E6AFFF 49%, #2AE8BD 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  -webkit-text-fill-color: transparent;
+  color: #ffffff;
   text-align: center;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -140,11 +132,7 @@
   align-items: center;
   justify-content: center;
   white-space: normal;
-  background: inherit;
-  -webkit-background-clip: inherit;
-  background-clip: inherit;
   color: inherit;
-  -webkit-text-fill-color: inherit;
 }
 
 .hero__line {

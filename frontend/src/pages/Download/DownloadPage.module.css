@@ -3,7 +3,7 @@
   flex-direction: column;
   align-items: center;
   padding: 64px 0 0;
-  gap: 88px;
+  gap: 48px;
   width: 100%;
   min-height: 100vh;
 }
@@ -28,10 +28,7 @@
   line-height: 77px;
   text-align: center;
   margin: 0;
-  background: linear-gradient(90deg, #6DA9F6 0%, #E6AFFF 48.56%, #2AE8BD 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: #ffffff;
 }
 
 /* === CARDS CONTAINER === */

@@ -24,22 +24,13 @@ export const LandingHero = ({
 				<div className={styles.hero__content}>
 					<div className={styles.hero__title}>
 						<h1 className={styles['hero-heading']}>
-							<span className={styles['hero-heading__line']}>
-								Голосовой{' '}
-								<img
-									src="/icons/connection.svg"
-									alt="Иконка качественного соединения"
-									className={styles.hero__icon}
-								/>{' '}
-								чат
-							</span>
-							<span className={styles['hero-heading__line']}>для геймеров</span>
+							<span className={styles['hero-heading__line']}>Общение без границ</span>
 						</h1>
 					</div>
 
 					<p className={styles.hero__text}>
-						Флудилка — это бесплатный голосовой мессенджер для геймеров, которые ценят скорость, надёжность
-						и свободу
+						Флудилка — удобное место, чтобы созвониться с друзьями или собрать своё большое сообщество.
+						Создавайте личные серверы для общения, игр и любых увлечений.
 					</p>
 
 					<div className={styles.hero__buttons}>
