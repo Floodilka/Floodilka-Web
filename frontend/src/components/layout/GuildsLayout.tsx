@@ -222,11 +222,7 @@ function BottomDropZone({onGuildDrop, lastItemKey, lastItemIsFolder, isDragging}
 	return (
 		<div
 			ref={setRef}
-			className={clsx(
-				styles.guildListDropZone,
-				isDragging && styles.guildListDropZoneEnabled,
-				isActive && styles.guildListDropZoneActive,
-			)}
+			className={styles.guildListDropZone}
 		/>
 	);
 }
