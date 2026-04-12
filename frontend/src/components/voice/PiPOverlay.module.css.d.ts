@@ -1,0 +1,34 @@
+declare const styles: {
+  readonly "actionButton": string;
+  readonly "actionIcon": string;
+  readonly "avatarPlaceholder": string;
+  readonly "closeButton": string;
+  readonly "container": string;
+  readonly "containerInteractionActive": string;
+  readonly "containerResizing": string;
+  readonly "disconnectButton": string;
+  readonly "footerContent": string;
+  readonly "footerGradient": string;
+  readonly "footerLeft": string;
+  readonly "footerRight": string;
+  readonly "headerContent": string;
+  readonly "headerGradient": string;
+  readonly "headerLeft": string;
+  readonly "hoverOverlay": string;
+  readonly "resizeHandleBottom": string;
+  readonly "resizeHandleBottomLeft": string;
+  readonly "resizeHandleBottomRight": string;
+  readonly "resizeHandleLeft": string;
+  readonly "resizeHandleRight": string;
+  readonly "resizeHandleTop": string;
+  readonly "resizeHandleTopLeft": string;
+  readonly "resizeHandleTopRight": string;
+  readonly "returnToCallButton": string;
+  readonly "returnToCallIcon": string;
+  readonly "returnToCallLabel": string;
+  readonly "screenShareVideo": string;
+  readonly "streamerName": string;
+  readonly "videoWrapper": string;
+};
+export = styles;
+

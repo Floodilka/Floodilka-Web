@@ -45,7 +45,7 @@ import {
 	XIcon,
 } from '@phosphor-icons/react';
 import {clsx} from 'clsx';
-import {ConnectionState, type Participant} from 'livekit-client';
+import {ConnectionState, type Participant, Track} from 'livekit-client';
 import {observer} from 'mobx-react-lite';
 import React, {useCallback, useMemo, useRef, useState} from 'react';
 
@@ -56,9 +56,12 @@ import {BottomSheet} from '~/components/uikit/BottomSheet/BottomSheet';
 import FocusRing from '~/components/uikit/FocusRing/FocusRing';
 import type {ChannelRecord} from '~/records/ChannelRecord';
 import ContextMenuStore, {isContextMenuNodeTarget} from '~/stores/ContextMenuStore';
+import * as PiPActionCreators from '~/actions/PiPActionCreators';
 import KeyboardModeStore from '~/stores/KeyboardModeStore';
 import MobileLayoutStore from '~/stores/MobileLayoutStore';
+import PiPStore from '~/stores/PiPStore';
 import PopoutStore from '~/stores/PopoutStore';
+import MediaEngineStore from '~/stores/voice/MediaEngineFacade';
 import * as ChannelUtils from '~/utils/ChannelUtils';
 import channelHeaderStyles from '../channel/ChannelHeader.module.css';
 import {CompactVoiceCallView} from './CompactVoiceCallView';
@@ -144,6 +147,57 @@ const VoiceCallViewInner = observer(({channel}: {channel: ChannelRecord}) => {
 		filteredCameraTracks,
 		focusMainTrack,
 	} = useVoiceCallTracksAndLayout({channel});
+
+	const pipTrack = useMemo<TrackReferenceOrPlaceholder | null>(() => {
+		if (focusMainTrack) return focusMainTrack as TrackReferenceOrPlaceholder;
+		if (screenShareTracks.length > 0) return screenShareTracks[0] as TrackReferenceOrPlaceholder;
+		if (filteredCameraTracks.length > 0) return filteredCameraTracks[0] as TrackReferenceOrPlaceholder;
+		return null;
+	}, [focusMainTrack, screenShareTracks, filteredCameraTracks]);
+
+	const pipSnapshotRef = useRef<{pipTrack: TrackReferenceOrPlaceholder | null}>({pipTrack});
+	React.useEffect(() => {
+		pipSnapshotRef.current = {pipTrack};
+	}, [pipTrack]);
+
+	const openPiPForTrack = useCallback(
+		(trackRef: TrackReferenceOrPlaceholder) => {
+			const identity = trackRef?.participant?.identity ?? '';
+			if (!identity) return;
+			const match = identity.match(/^user_(\d+)_(.+)$/);
+			const userId = match?.[1] ?? '';
+			const connectionId = match?.[2] ?? '';
+			if (!userId || !connectionId) return;
+			const contentType = trackRef.source === Track.Source.ScreenShare ? 'stream' : 'camera';
+			PiPActionCreators.openPiP({
+				type: contentType,
+				participantIdentity: identity,
+				channelId: channel.id,
+				guildId: channel.guildId ?? null,
+				connectionId,
+				userId,
+			});
+		},
+		[channel.id, channel.guildId],
+	);
+
+	React.useEffect(() => {
+		return () => {
+			if (isMobile) return;
+			if (!MediaEngineStore.room) return;
+			const snapshot = pipSnapshotRef.current;
+			if (!snapshot.pipTrack) return;
+			openPiPForTrack(snapshot.pipTrack);
+		};
+	}, [isMobile, openPiPForTrack]);
+
+	const pipOpen = PiPStore.getIsOpen();
+	const pipContent = PiPStore.getContent();
+	React.useEffect(() => {
+		if (pipOpen && pipContent?.channelId === channel.id) {
+			PiPActionCreators.closePiP();
+		}
+	}, [pipOpen, pipContent, channel.id]);
 
 	const {
 		refs: statsRefs,

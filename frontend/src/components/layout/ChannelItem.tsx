@@ -408,6 +408,10 @@ export const ChannelItem = observer(
 
 						if (timeSinceLastClick < 500) {
 							void MediaEngineStore.connectToVoiceChannel(guild.id, channel.id);
+							RouterUtils.transitionTo(channelPath);
+							if (MobileLayoutStore.isMobileLayout()) {
+								LayoutActionCreators.updateMobileLayoutState(false, true);
+							}
 						} else {
 							RouterUtils.transitionTo(channelPath);
 							if (MobileLayoutStore.isMobileLayout()) {
@@ -416,6 +420,10 @@ export const ChannelItem = observer(
 						}
 					} else {
 						void MediaEngineStore.connectToVoiceChannel(guild.id, channel.id);
+						RouterUtils.transitionTo(channelPath);
+						if (MobileLayoutStore.isMobileLayout()) {
+							LayoutActionCreators.updateMobileLayoutState(false, true);
+						}
 					}
 				}
 				return;

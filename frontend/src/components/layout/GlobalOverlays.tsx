@@ -25,6 +25,7 @@ import {Modals} from '~/components/modals/Modals';
 import {ContextMenu} from '~/components/uikit/ContextMenu/ContextMenu';
 import {Popouts} from '~/components/uikit/Popout/Popouts';
 import {Toasts} from '~/components/uikit/Toast/Toasts';
+import {PiPOverlay} from '~/components/voice/PiPOverlay';
 import LayerManager from '~/stores/LayerManager';
 import MobileLayoutStore from '~/stores/MobileLayoutStore';
 import QuickSwitcherStore from '~/stores/QuickSwitcherStore';
@@ -49,6 +50,7 @@ const GlobalOverlays: React.FC = observer(() => {
 			<Popouts />
 			<ContextMenu />
 			<Toasts />
+			<PiPOverlay />
 			{isMobile && <QuickSwitcherBottomSheet isOpen={quickSwitcherOpen} onClose={QuickSwitcherActionCreators.hide} />}
 		</>
 	);
