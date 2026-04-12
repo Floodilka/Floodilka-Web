@@ -37,6 +37,7 @@ import {
 	Int32Type,
 	Int64Type,
 	PasswordType,
+	SignedInt32Type,
 	UsernameType,
 	z,
 } from '~/Schema';
@@ -141,6 +142,8 @@ const GuildFolderResponse = z.object({
 	id: z.number().int().nullish(),
 	name: z.string().nullish(),
 	color: z.number().int().nullish(),
+	flags: z.number().int().default(0),
+	icon: z.string().default('folder'),
 	guild_ids: z.array(z.string()),
 });
 
@@ -240,16 +243,20 @@ export const UserSettingsUpdateRequest = z
 		guild_folders: z
 			.array(
 				z.object({
-					id: Int32Type,
-					name: createStringType(1, 32),
+					id: SignedInt32Type,
+					name: createStringType(0, 100).nullish(),
 					color: ColorType.nullish().default(0x000000),
+					flags: z.number().int().min(0).default(0),
+					icon: z
+						.enum(['folder', 'star', 'heart', 'bookmark', 'game_controller', 'shield', 'music_note'])
+						.default('folder'),
 					guild_ids: z
 						.array(Int64Type)
 						.transform((ids) => [...new Set(ids)])
 						.refine((ids) => ids.length <= MAX_GUILDS_PREMIUM, `Maximum ${MAX_GUILDS_PREMIUM} guilds allowed`),
 				}),
 			)
-			.max(100)
+			.max(200)
 			.default([]),
 		custom_status: CustomStatusPayload.nullish(),
 		afk_timeout: z.number().int().min(60).max(600),

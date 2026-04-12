@@ -17,19 +17,17 @@
  * along with Floodilka. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import type {DragEndEvent} from '@dnd-kit/core';
-import {DndContext, PointerSensor, useSensor, useSensors} from '@dnd-kit/core';
-import {restrictToVerticalAxis} from '@dnd-kit/modifiers';
-import {arrayMove, SortableContext, verticalListSortingStrategy} from '@dnd-kit/sortable';
 import {useLingui} from '@lingui/react/macro';
 
 import {ExclamationMarkIcon} from '@phosphor-icons/react';
 import {clsx} from 'clsx';
 import {observer} from 'mobx-react-lite';
 import React from 'react';
+import {useDrop} from 'react-dnd';
 import * as DimensionActionCreators from '~/actions/DimensionActionCreators';
 import * as UserSettingsActionCreators from '~/actions/UserSettingsActionCreators';
 import {ChannelTypes} from '~/Constants';
+import {DND_TYPES, type GuildDragItem, type GuildDropResult} from '~/components/layout/types/dnd';
 import {openClaimAccountModal} from '~/components/modals/ClaimAccountModal';
 import {Tooltip} from '~/components/uikit/Tooltip/Tooltip';
 import {ComponentDispatch} from '~/lib/ComponentDispatch';
@@ -41,12 +39,13 @@ import CallStateStore from '~/stores/CallStateStore';
 import ChannelStore from '~/stores/ChannelStore';
 import DimensionStore from '~/stores/DimensionStore';
 import GuildAvailabilityStore from '~/stores/GuildAvailabilityStore';
-import GuildListStore from '~/stores/GuildListStore';
+import GuildListStore, {type OrganizedItem} from '~/stores/GuildListStore';
 import GuildReadStateStore from '~/stores/GuildReadStateStore';
 import InitializationStore from '~/stores/InitializationStore';
 import MobileLayoutStore from '~/stores/MobileLayoutStore';
 import NagbarStore from '~/stores/NagbarStore';
 import ReadStateStore from '~/stores/ReadStateStore';
+import UserSettingsStore, {type GuildFolder, DEFAULT_GUILD_FOLDER_ICON, UNCATEGORIZED_FOLDER_ID} from '~/stores/UserSettingsStore';
 import UserStore from '~/stores/UserStore';
 import MediaEngineStore from '~/stores/voice/MediaEngineFacade';
 import * as SnowflakeUtils from '~/utils/SnowflakeUtils';
@@ -56,6 +55,7 @@ import {TopNagbarContext} from './app-layout/TopNagbarContext';
 import styles from './GuildsLayout.module.css';
 import {AddGuildButton} from './guild-list/AddGuildButton';
 import {DownloadButton} from './guild-list/DownloadButton';
+import {GuildFolderItem} from './guild-list/GuildFolderItem';
 import {HomeButton} from './guild-list/HomeButton';
 import {DMListItem} from './guild-list/GuildListDMItem';
 import {GuildListItem} from './guild-list/GuildListItem';
@@ -75,12 +75,167 @@ const getUnreadDMChannels = () => {
 	return dmChannels.filter((channel) => ReadStateStore.hasUnread(channel.id));
 };
 
+function getOrganizedItemKey(item: OrganizedItem): string {
+	if (item.type === 'folder') {
+		return `folder-${item.folder.id}`;
+	}
+	return item.guild.id;
+}
+
+function cloneGuildFolder(folder: GuildFolder): GuildFolder {
+	return {
+		id: folder.id,
+		name: folder.name,
+		color: folder.color,
+		flags: folder.flags,
+		icon: folder.icon,
+		guildIds: [...folder.guildIds],
+	};
+}
+
+function getFolderIdFromKey(itemKey: string): number | null {
+	if (!itemKey.startsWith('folder-')) return null;
+	const folderIdRaw = itemKey.slice('folder-'.length);
+	if (folderIdRaw === 'null') return null;
+	const parsedFolderId = Number(folderIdRaw);
+	if (Number.isNaN(parsedFolderId)) return null;
+	return parsedFolderId;
+}
+
+function getNextFolderId(guildFolders: ReadonlyArray<GuildFolder>): number {
+	let maxId = 0;
+	for (const folder of guildFolders) {
+		if (folder.id !== null && folder.id > maxId) {
+			maxId = folder.id;
+		}
+	}
+	return maxId + 1;
+}
+
+interface TopLevelGuildItem {
+	type: 'guild';
+	guildId: string;
+}
+
+interface TopLevelGuildFolderItem {
+	type: 'folder';
+	folder: GuildFolder;
+}
+
+type TopLevelItem = TopLevelGuildItem | TopLevelGuildFolderItem;
+
+function buildTopLevelItems(guildFolders: ReadonlyArray<GuildFolder>): Array<TopLevelItem> {
+	const topLevelItems: Array<TopLevelItem> = [];
+	for (const folder of guildFolders) {
+		if (folder.id === UNCATEGORIZED_FOLDER_ID) {
+			for (const guildId of folder.guildIds) {
+				topLevelItems.push({type: 'guild', guildId});
+			}
+			continue;
+		}
+		if (folder.guildIds.length === 0) continue;
+		topLevelItems.push({type: 'folder', folder: cloneGuildFolder(folder)});
+	}
+	return topLevelItems;
+}
+
+function buildGuildFoldersFromTopLevelItems(topLevelItems: ReadonlyArray<TopLevelItem>): Array<GuildFolder> {
+	const guildFolders: Array<GuildFolder> = [];
+	let pendingUncategorizedGuildIds: Array<string> = [];
+
+	function flushUncategorized(): void {
+		if (pendingUncategorizedGuildIds.length === 0) return;
+		guildFolders.push({
+			id: UNCATEGORIZED_FOLDER_ID,
+			name: null,
+			color: null,
+			flags: 0,
+			icon: DEFAULT_GUILD_FOLDER_ICON,
+			guildIds: pendingUncategorizedGuildIds,
+		});
+		pendingUncategorizedGuildIds = [];
+	}
+
+	for (const topLevelItem of topLevelItems) {
+		if (topLevelItem.type === 'guild') {
+			pendingUncategorizedGuildIds.push(topLevelItem.guildId);
+			continue;
+		}
+		flushUncategorized();
+		if (topLevelItem.folder.guildIds.length === 0) continue;
+		guildFolders.push(cloneGuildFolder(topLevelItem.folder));
+	}
+
+	flushUncategorized();
+	return guildFolders;
+}
+
+function removeGuildIdsFromGuildFolders(
+	guildFolders: ReadonlyArray<GuildFolder>,
+	guildIdsToRemove: ReadonlySet<string>,
+): Array<GuildFolder> {
+	return guildFolders
+		.map((folder) => ({
+			...folder,
+			guildIds: folder.guildIds.filter((guildId) => !guildIdsToRemove.has(guildId)),
+		}))
+		.filter((folder) => folder.guildIds.length > 0);
+}
+
+interface BottomDropZoneProps {
+	onGuildDrop: (item: GuildDragItem, result: GuildDropResult) => void;
+	lastItemKey: string;
+	lastItemIsFolder: boolean;
+	isDragging: boolean;
+}
+
+function BottomDropZone({onGuildDrop, lastItemKey, lastItemIsFolder, isDragging}: BottomDropZoneProps) {
+	const [{isOver, canDrop}, dropRef] = useDrop(
+		() => ({
+			accept: [DND_TYPES.GUILD_ITEM, DND_TYPES.GUILD_FOLDER],
+			drop: (item: GuildDragItem): GuildDropResult => {
+				const result: GuildDropResult = {
+					targetId: lastItemKey,
+					position: 'after',
+					targetIsFolder: lastItemIsFolder,
+				};
+				onGuildDrop(item, result);
+				return result;
+			},
+			collect: (monitor) => ({
+				isOver: monitor.isOver(),
+				canDrop: monitor.canDrop(),
+			}),
+		}),
+		[onGuildDrop, lastItemKey, lastItemIsFolder],
+	);
+
+	const isActive = isOver && canDrop;
+
+	const setRef = React.useCallback(
+		(node: HTMLDivElement | null) => {
+			dropRef(node);
+		},
+		[dropRef],
+	);
+
+	return (
+		<div
+			ref={setRef}
+			className={clsx(
+				styles.guildListDropZone,
+				isDragging && styles.guildListDropZoneEnabled,
+				isActive && styles.guildListDropZoneActive,
+			)}
+		/>
+	);
+}
+
 const GuildList = observer(() => {
 	const {t} = useLingui();
 	const [isDragging, setIsDragging] = React.useState(false);
 	const guilds = GuildListStore.guilds;
-	const mobileLayout = MobileLayoutStore;
-	const sensors = useSensors(useSensor(PointerSensor, {activationConstraint: {distance: 8}}));
+	const organizedItems = GuildListStore.getOrganizedGuildList();
 	const unavailableGuilds = GuildAvailabilityStore.unavailableGuilds;
 	const unreadDMChannelsRaw = getUnreadDMChannels();
 	const unreadDMChannelIds = unreadDMChannelsRaw.map((c) => c.id).join(',');
@@ -167,16 +322,150 @@ const GuildList = observer(() => {
 			);
 		});
 
-	const handleDragEnd = (event: DragEndEvent) => {
-		const {active, over} = event;
-		if (over && active.id !== over.id) {
-			const oldIndex = guilds.findIndex((guild) => guild.id === active.id);
-			const newIndex = guilds.findIndex((guild) => guild.id === over.id);
-			const newArray = arrayMove(guilds.slice(), oldIndex, newIndex);
-			UserSettingsActionCreators.update({guildPositions: newArray.map((guild) => guild.id)});
-		}
-		setIsDragging(false);
-	};
+	const handleGuildDrop = React.useCallback(
+		(item: GuildDragItem, result: GuildDropResult) => {
+			const sourceKey = item.id;
+			const targetKey = result.targetId;
+			if (sourceKey === targetKey) return;
+
+			const {position, targetIsFolder, targetFolderId} = result;
+
+			if (position === 'inside' && targetIsFolder && !item.isFolder) {
+				const sourceGuildId = item.id;
+				const parsedTargetFolderId = getFolderIdFromKey(targetKey);
+				const cleaned = removeGuildIdsFromGuildFolders(UserSettingsStore.guildFolders, new Set([sourceGuildId]));
+				const newGuildFolders = cleaned.map((folder) => {
+					if (folder.id !== parsedTargetFolderId) return folder;
+					return {...folder, guildIds: [...folder.guildIds, sourceGuildId]};
+				});
+				UserSettingsActionCreators.update({guildFolders: newGuildFolders});
+				return;
+			}
+
+			if (
+				targetFolderId != null &&
+				targetFolderId !== UNCATEGORIZED_FOLDER_ID &&
+				!item.isFolder &&
+				(position === 'before' || position === 'after')
+			) {
+				const sourceGuildId = item.id;
+				const targetGuildId = targetKey;
+				const cleaned = removeGuildIdsFromGuildFolders(UserSettingsStore.guildFolders, new Set([sourceGuildId]));
+				const newGuildFolders = cleaned.map((folder) => {
+					if (folder.id !== targetFolderId) return folder;
+					const guildIds = [...folder.guildIds];
+					const targetIdx = guildIds.indexOf(targetGuildId);
+					if (targetIdx !== -1) {
+						const insertIdx = position === 'after' ? targetIdx + 1 : targetIdx;
+						guildIds.splice(insertIdx, 0, sourceGuildId);
+					} else {
+						guildIds.push(sourceGuildId);
+					}
+					return {...folder, guildIds};
+				});
+				UserSettingsActionCreators.update({guildFolders: newGuildFolders});
+				return;
+			}
+
+			if (position === 'combine' && !targetIsFolder && !item.isFolder && result.targetFolderId == null) {
+				const sourceGuildId = item.id;
+				const targetGuildId = targetKey;
+				const cleaned = removeGuildIdsFromGuildFolders(UserSettingsStore.guildFolders, new Set([sourceGuildId]));
+				const topLevelItems = buildTopLevelItems(cleaned);
+				const targetIdx = topLevelItems.findIndex((tli) => tli.type === 'guild' && tli.guildId === targetGuildId);
+				if (targetIdx === -1) return;
+				const newFolder: GuildFolder = {
+					id: getNextFolderId(UserSettingsStore.guildFolders),
+					name: null,
+					color: null,
+					flags: 0,
+					icon: DEFAULT_GUILD_FOLDER_ICON,
+					guildIds: [targetGuildId, sourceGuildId],
+				};
+				topLevelItems[targetIdx] = {type: 'folder', folder: newFolder};
+				const newGuildFolders = buildGuildFoldersFromTopLevelItems(topLevelItems);
+				UserSettingsActionCreators.update({guildFolders: newGuildFolders});
+				return;
+			}
+
+			if (
+				!item.isFolder &&
+				item.folderId != null &&
+				item.folderId !== UNCATEGORIZED_FOLDER_ID &&
+				targetIsFolder &&
+				(position === 'before' || position === 'after')
+			) {
+				const sourceGuildId = item.id;
+				const parsedTargetFolderId = getFolderIdFromKey(targetKey);
+				const originalTopLevelItems = buildTopLevelItems(UserSettingsStore.guildFolders);
+				const originalTargetIdx = originalTopLevelItems.findIndex(
+					(tli) => tli.type === 'folder' && tli.folder.id === parsedTargetFolderId,
+				);
+				if (originalTargetIdx === -1) return;
+				const cleaned = removeGuildIdsFromGuildFolders(UserSettingsStore.guildFolders, new Set([sourceGuildId]));
+				const topLevelItems = buildTopLevelItems(cleaned);
+				let targetIdx = topLevelItems.findIndex(
+					(tli) => tli.type === 'folder' && tli.folder.id === parsedTargetFolderId,
+				);
+				if (targetIdx === -1) {
+					targetIdx = Math.min(originalTargetIdx, topLevelItems.length);
+				}
+				const newItem: TopLevelGuildItem = {type: 'guild', guildId: sourceGuildId};
+				const insertIdx = position === 'after' ? targetIdx + 1 : targetIdx;
+				topLevelItems.splice(Math.min(insertIdx, topLevelItems.length), 0, newItem);
+				const newGuildFolders = buildGuildFoldersFromTopLevelItems(topLevelItems);
+				UserSettingsActionCreators.update({guildFolders: newGuildFolders});
+				return;
+			}
+
+			if (
+				!item.isFolder &&
+				item.folderId != null &&
+				item.folderId !== UNCATEGORIZED_FOLDER_ID &&
+				!targetIsFolder &&
+				result.targetFolderId == null &&
+				(position === 'before' || position === 'after')
+			) {
+				const sourceGuildId = item.id;
+				const targetGuildId = targetKey;
+				const cleaned = removeGuildIdsFromGuildFolders(UserSettingsStore.guildFolders, new Set([sourceGuildId]));
+				const topLevelItems = buildTopLevelItems(cleaned);
+				const targetIdx = topLevelItems.findIndex((tli) => tli.type === 'guild' && tli.guildId === targetGuildId);
+				if (targetIdx === -1) return;
+				const newItem: TopLevelGuildItem = {type: 'guild', guildId: sourceGuildId};
+				const insertIdx = position === 'after' ? targetIdx + 1 : targetIdx;
+				topLevelItems.splice(insertIdx, 0, newItem);
+				const newGuildFolders = buildGuildFoldersFromTopLevelItems(topLevelItems);
+				UserSettingsActionCreators.update({guildFolders: newGuildFolders});
+				return;
+			}
+
+			const oldIndex = organizedItems.findIndex((i) => getOrganizedItemKey(i) === sourceKey);
+			const targetIndex = organizedItems.findIndex((i) => getOrganizedItemKey(i) === targetKey);
+			if (oldIndex === -1 || targetIndex === -1) return;
+
+			let newIndex = position === 'after' ? targetIndex + 1 : targetIndex;
+			if (oldIndex < targetIndex && position === 'after') newIndex--;
+
+			const newOrganizedItems = [...organizedItems];
+			const [movedItem] = newOrganizedItems.splice(oldIndex, 1);
+			newOrganizedItems.splice(newIndex, 0, movedItem);
+
+			const topLevelItems: Array<TopLevelItem> = newOrganizedItems.map((oi) => {
+				if (oi.type === 'folder') {
+					return {type: 'folder' as const, folder: cloneGuildFolder(oi.folder)};
+				}
+				return {type: 'guild' as const, guildId: oi.guild.id};
+			});
+			const newGuildFolders = buildGuildFoldersFromTopLevelItems(topLevelItems);
+			UserSettingsActionCreators.update({guildFolders: newGuildFolders});
+		},
+		[organizedItems],
+	);
+
+	const handleDragStateChange = React.useCallback((item: GuildDragItem | null) => {
+		setIsDragging(item !== null);
+	}, []);
 
 	const handleScroll = React.useCallback((event: React.UIEvent<HTMLDivElement>) => {
 		const scrollTop = event.currentTarget.scrollTop;
@@ -235,35 +524,50 @@ const GuildList = observer(() => {
 
 					{shouldShowTopDivider && <div className={styles.guildDivider} />}
 
-					{guilds.length > 0 && (
-						<DndContext
-							modifiers={[restrictToVerticalAxis]}
-							onDragEnd={handleDragEnd}
-							onDragStart={() => setIsDragging(true)}
-							sensors={sensors}
-						>
-							<SortableContext
-								disabled={guilds.length === 1 || mobileLayout.enabled}
-								items={guilds.map((guild) => guild.id)}
-								strategy={verticalListSortingStrategy}
-							>
-								{(() => {
-									const selectedGuildIndex = guilds.findIndex((g) =>
-										isSelectedPath(location.pathname, Routes.guildChannel(g.id)),
-									);
-									return guilds.map((guild, index) => (
+					{organizedItems.length > 0 && (
+						<div className={styles.guildListItems}>
+							{(() => {
+								const selectedGuildIndex = guilds.findIndex((g) =>
+									isSelectedPath(location.pathname, Routes.guildChannel(g.id)),
+								);
+								return organizedItems.map((item, index) => {
+									if (item.type === 'folder') {
+										const isFolderSelected = item.guilds.some((guild) =>
+											isSelectedPath(location.pathname, Routes.guildChannel(guild.id)),
+										);
+										return (
+											<GuildFolderItem
+												key={getOrganizedItemKey(item)}
+												folder={item.folder}
+												guilds={item.guilds}
+												isSelected={isFolderSelected}
+												onGuildDrop={handleGuildDrop}
+												onDragStateChange={handleDragStateChange}
+											/>
+										);
+									}
+									return (
 										<GuildListItem
-											key={guild.id}
+											key={item.guild.id}
 											isSortingList={isDragging}
-											guild={guild}
-											isSelected={isSelectedPath(location.pathname, Routes.guildChannel(guild.id))}
+											guild={item.guild}
+											isSelected={isSelectedPath(location.pathname, Routes.guildChannel(item.guild.id))}
 											guildIndex={index}
 											selectedGuildIndex={selectedGuildIndex}
+											onGuildDrop={handleGuildDrop}
+											onDragStateChange={handleDragStateChange}
 										/>
-									));
-								})()}
-							</SortableContext>
-						</DndContext>
+									);
+								});
+							})()}
+
+							<BottomDropZone
+								onGuildDrop={handleGuildDrop}
+								lastItemKey={getOrganizedItemKey(organizedItems[organizedItems.length - 1])}
+								lastItemIsFolder={organizedItems[organizedItems.length - 1].type === 'folder'}
+								isDragging={isDragging}
+							/>
+						</div>
 					)}
 
 					{shouldShowEmptyStateDivider && <div className={styles.guildDivider} />}

@@ -342,6 +342,7 @@ export const ColorType = z
 	.max(0xffffff, 'Color value must not exceed 0xffffff');
 
 export const Int32Type = z.number().int().min(0).max(2147483647);
+export const SignedInt32Type = z.number().int().min(-2147483648).max(2147483647);
 
 const INTEGER_STRING_REGEX = /^[+-]?\d+$/;
 

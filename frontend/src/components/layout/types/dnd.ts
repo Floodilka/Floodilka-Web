@@ -21,6 +21,8 @@ export const DND_TYPES = {
 	CHANNEL: 'channel',
 	CATEGORY: 'category',
 	VOICE_PARTICIPANT: 'voice-participant',
+	GUILD_ITEM: 'guild-item',
+	GUILD_FOLDER: 'guild-folder',
 } as const;
 
 export interface DragItem {
@@ -37,4 +39,20 @@ export interface DropResult {
 	targetId: string;
 	position: 'before' | 'after' | 'inside';
 	targetParentId: string | null;
+}
+
+export interface GuildDragItem {
+	type: typeof DND_TYPES.GUILD_ITEM | typeof DND_TYPES.GUILD_FOLDER;
+	id: string;
+	isFolder: boolean;
+	folderId?: number | null;
+}
+
+export type GuildDropPosition = 'before' | 'after' | 'inside' | 'combine';
+
+export interface GuildDropResult {
+	targetId: string;
+	position: GuildDropPosition;
+	targetIsFolder: boolean;
+	targetFolderId?: number | null;
 }

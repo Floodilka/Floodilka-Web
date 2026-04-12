@@ -17,16 +17,19 @@
  * along with Floodilka. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import {useSortable} from '@dnd-kit/sortable';
-import {CSS} from '@dnd-kit/utilities';
 import {useLingui} from '@lingui/react/macro';
 import {BellSlashIcon, ExclamationMarkIcon, PauseIcon, SealCheckIcon, SpeakerHighIcon} from '@phosphor-icons/react';
 import {clsx} from 'clsx';
 import {AnimatePresence, motion} from 'framer-motion';
 import {observer} from 'mobx-react-lite';
 import React from 'react';
+import type {ConnectableElement} from 'react-dnd';
+import {useDrag, useDrop} from 'react-dnd';
+import {getEmptyImage} from 'react-dnd-html5-backend';
 import * as ContextMenuActionCreators from '~/actions/ContextMenuActionCreators';
 import * as NavigationActionCreators from '~/actions/NavigationActionCreators';
+import {computeVerticalDropPosition} from '~/components/layout/dnd/DndDropPosition';
+import {DND_TYPES, type GuildDragItem, type GuildDropResult} from '~/components/layout/types/dnd';
 import {GuildFeatures, Permissions} from '~/Constants';
 import {GuildHeaderBottomSheet} from '~/components/bottomsheets/GuildHeaderBottomSheet';
 import {LongPressable} from '~/components/LongPressable';
@@ -67,10 +70,13 @@ interface GuildListItemProps {
 	isSelected: boolean;
 	guildIndex?: number;
 	selectedGuildIndex?: number;
+	onGuildDrop?: (item: GuildDragItem, result: GuildDropResult) => void;
+	onDragStateChange?: (item: GuildDragItem | null) => void;
+	insideFolderId?: number | null;
 }
 
 export const GuildListItem = observer(
-	({guild, isSortingList = false, isSelected, guildIndex, selectedGuildIndex}: GuildListItemProps) => {
+	({guild, isSortingList = false, isSelected, guildIndex, selectedGuildIndex, onGuildDrop, onDragStateChange, insideFolderId}: GuildListItemProps) => {
 		const {t} = useLingui();
 		const initials = StringUtils.getInitialsFromName(guild.name);
 		const initialsLength = React.useMemo(() => (initials ? getInitialsLength(initials) : null), [initials]);
@@ -118,8 +124,116 @@ export const GuildListItem = observer(
 		const [isStaticLoaded, setIsStaticLoaded] = React.useState(ImageCacheUtils.hasImage(iconUrl));
 		const [isAnimatedLoaded, setIsAnimatedLoaded] = React.useState(ImageCacheUtils.hasImage(hoverIconUrl));
 		const [shouldPlayAnimated, setShouldPlayAnimated] = React.useState(false);
+		const [dropIndicator, setDropIndicator] = React.useState<'top' | 'bottom' | 'combine' | null>(null);
+		const itemRef = React.useRef<HTMLElement | null>(null);
 
-		const {attributes, listeners, setNodeRef, transform, transition, isDragging} = useSortable({id: guild.id});
+		const dragItemData = React.useMemo<GuildDragItem>(
+			() => ({
+				type: DND_TYPES.GUILD_ITEM,
+				id: guild.id,
+				isFolder: false,
+				folderId: insideFolderId,
+			}),
+			[guild.id, insideFolderId],
+		);
+
+		const [{isDragging}, dragRef, preview] = useDrag(
+			() => ({
+				type: DND_TYPES.GUILD_ITEM,
+				item: () => {
+					onDragStateChange?.(dragItemData);
+					return dragItemData;
+				},
+				canDrag: !isMobileExperience,
+				collect: (monitor) => ({isDragging: monitor.isDragging()}),
+				end: () => {
+					onDragStateChange?.(null);
+					setDropIndicator(null);
+				},
+			}),
+			[dragItemData, isMobileExperience, onDragStateChange],
+		);
+
+		const [{isOver}, dropRef] = useDrop(
+			() => ({
+				accept: [DND_TYPES.GUILD_ITEM, DND_TYPES.GUILD_FOLDER],
+				canDrop: (item: GuildDragItem) => item.id !== guild.id,
+				hover: (item: GuildDragItem, monitor) => {
+					if (item.id === guild.id) {
+						setDropIndicator(null);
+						return;
+					}
+					const node = itemRef.current;
+					if (!node) return;
+					const clientOffset = monitor.getClientOffset();
+					if (!clientOffset) return;
+					const boundingRect = node.getBoundingClientRect();
+					const canCombine = !item.isFolder && insideFolderId == null;
+					const dropPos = computeVerticalDropPosition(clientOffset, boundingRect, canCombine ? 0.25 : 0.5);
+
+					if (dropPos === 'center') {
+						setDropIndicator('combine');
+					} else {
+						setDropIndicator(dropPos === 'before' ? 'top' : 'bottom');
+					}
+				},
+				drop: (item: GuildDragItem, monitor): GuildDropResult | undefined => {
+					if (!monitor.canDrop()) {
+						setDropIndicator(null);
+						return;
+					}
+					const node = itemRef.current;
+					if (!node) return;
+					const clientOffset = monitor.getClientOffset();
+					if (!clientOffset) return;
+					const boundingRect = node.getBoundingClientRect();
+					const canCombine = !item.isFolder && insideFolderId == null;
+					const dropPos = computeVerticalDropPosition(clientOffset, boundingRect, canCombine ? 0.25 : 0.5);
+
+					let position: 'before' | 'after' | 'combine';
+					if (dropPos === 'center') {
+						position = 'combine';
+					} else {
+						position = dropPos;
+					}
+
+					const result: GuildDropResult = {
+						targetId: guild.id,
+						position,
+						targetIsFolder: false,
+						targetFolderId: insideFolderId,
+					};
+					onGuildDrop?.(item, result);
+					setDropIndicator(null);
+					return result;
+				},
+				collect: (monitor) => ({
+					isOver: monitor.isOver({shallow: true}),
+				}),
+			}),
+			[guild.id, onGuildDrop, insideFolderId],
+		);
+
+		React.useEffect(() => {
+			if (!isOver) setDropIndicator(null);
+		}, [isOver]);
+
+		React.useEffect(() => {
+			preview(getEmptyImage(), {captureDraggingState: true});
+		}, [preview]);
+
+		const dragConnectorRef = React.useCallback(
+			(node: ConnectableElement | null) => {
+				dragRef(node);
+			},
+			[dragRef],
+		);
+		const dropConnectorRef = React.useCallback(
+			(node: ConnectableElement | null) => {
+				dropRef(node);
+			},
+			[dropRef],
+		);
 
 		React.useEffect(() => {
 			ImageCacheUtils.loadImage(iconUrl, () => setIsStaticLoaded(true));
@@ -175,7 +289,8 @@ export const GuildListItem = observer(
 
 		const focusableRef = React.useRef<HTMLDivElement | null>(null);
 		const focusRingTargetRef = React.useRef<HTMLDivElement | null>(null);
-		const mergedRef = useMergeRefs([setNodeRef, hoverRef, focusableRef]);
+		const dndRef = useMergeRefs([dragConnectorRef, dropConnectorRef, itemRef]);
+		const innerRef = useMergeRefs([hoverRef, focusableRef]);
 
 		React.useEffect(() => {
 			if (isSelected) {
@@ -211,7 +326,7 @@ export const GuildListItem = observer(
 		const navigationKeybind = getNavigationKeybind();
 
 		return (
-			<>
+			<div ref={dndRef} style={{opacity: isDragging ? 0.5 : 1, width: '100%'}}>
 				<Tooltip
 					position="right"
 					maxWidth="xl"
@@ -257,13 +372,18 @@ export const GuildListItem = observer(
 				>
 					<FocusRing focusTarget={focusableRef} ringTarget={focusRingTargetRef} offset={-2}>
 						<LongPressable
-							className={styles.guildListItem}
+							className={clsx(
+								styles.guildListItem,
+								dropIndicator === 'top' && styles.dropIndicatorTop,
+								dropIndicator === 'bottom' && styles.dropIndicatorBottom,
+								dropIndicator === 'combine' && styles.dropIndicatorCombine,
+							)}
 							aria-label={`${guild.name}${isSelected ? ' (selected)' : ''}`}
 							aria-pressed={isSelected}
 							onClick={handleSelect}
 							onContextMenu={handleContextMenu}
 							onKeyDown={(event) => event.key === 'Enter' && handleSelect()}
-							ref={mergedRef as React.Ref<HTMLDivElement>}
+							ref={innerRef as React.Ref<HTMLDivElement>}
 							role="button"
 							tabIndex={0}
 							data-scroll-indicator={guildScrollSeverity}
@@ -288,8 +408,6 @@ export const GuildListItem = observer(
 							<div className={styles.relative}>
 								<motion.div
 									ref={focusRingTargetRef}
-									{...attributes}
-									{...listeners}
 									tabIndex={-1}
 									className={clsx(
 										styles.guildIcon,
@@ -305,9 +423,6 @@ export const GuildListItem = observer(
 											? `url(${shouldPlayAnimated && isAnimatedLoaded ? hoverIconUrl : iconUrl})`
 											: undefined,
 										cursor: isDragging ? 'grabbing' : undefined,
-										opacity: isDragging ? 0.5 : 1,
-										transform: CSS.Transform.toString(transform),
-										transition,
 									}}
 								>
 									{!guild.icon && <span className={styles.guildIconInitials}>{initials}</span>}
@@ -348,7 +463,7 @@ export const GuildListItem = observer(
 				{isMobileExperience && (
 					<GuildHeaderBottomSheet isOpen={bottomSheetOpen} onClose={handleCloseBottomSheet} guild={guild} />
 				)}
-			</>
+			</div>
 		);
 	},
 );

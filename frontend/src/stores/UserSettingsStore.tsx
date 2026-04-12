@@ -38,10 +38,32 @@ import AccessibilityStore from '~/stores/AccessibilityStore';
 import LocalPresenceStore from '~/stores/LocalPresenceStore';
 import MobileLayoutStore from '~/stores/MobileLayoutStore';
 
-interface GuildFolder {
+export const UNCATEGORIZED_FOLDER_ID = -1;
+
+export const GuildFolderFlags = {
+	SHOW_ICON_WHEN_COLLAPSED: 1 << 0,
+} as const;
+
+export const GuildFolderIcons = {
+	FOLDER: 'folder',
+	STAR: 'star',
+	HEART: 'heart',
+	BOOKMARK: 'bookmark',
+	GAME_CONTROLLER: 'game_controller',
+	SHIELD: 'shield',
+	MUSIC_NOTE: 'music_note',
+} as const;
+
+export type GuildFolderIcon = (typeof GuildFolderIcons)[keyof typeof GuildFolderIcons];
+
+export const DEFAULT_GUILD_FOLDER_ICON: GuildFolderIcon = GuildFolderIcons.FOLDER;
+
+export interface GuildFolder {
 	id: number | null;
 	name: string | null;
 	color: number | null;
+	flags: number;
+	icon: GuildFolderIcon;
 	guildIds: Array<string>;
 }
 
@@ -347,6 +369,8 @@ class UserSettingsStore {
 		this.groupDmAddPermissionFlags = camelCaseSettings.groupDmAddPermissionFlags;
 		this.guildFolders = camelCaseSettings.guildFolders.map((folder) => ({
 			...folder,
+			flags: folder.flags ?? 0,
+			icon: folder.icon ?? DEFAULT_GUILD_FOLDER_ICON,
 			guildIds: [...folder.guildIds],
 		}));
 		const newCustomStatus = normalizeCustomStatus(camelCaseSettings.customStatus ?? null);

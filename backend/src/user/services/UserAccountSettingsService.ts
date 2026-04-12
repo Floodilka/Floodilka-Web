@@ -123,8 +123,10 @@ export class UserAccountSettingsService {
 		if (data.guild_folders !== undefined) {
 			updatedRowData.guild_folders = data.guild_folders.map((folder) => ({
 				folder_id: folder.id,
-				name: folder.name,
+				name: folder.name ?? null,
 				color: folder.color ?? 0x000000,
+				flags: folder.flags ?? 0,
+				icon: folder.icon ?? 'folder',
 				guild_ids: folder.guild_ids.map(createGuildID),
 			}));
 		}

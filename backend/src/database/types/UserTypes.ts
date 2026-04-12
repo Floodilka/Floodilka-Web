@@ -187,6 +187,8 @@ export interface GuildFolder {
 	folder_id: number;
 	name: Nullish<string>;
 	color: Nullish<number>;
+	flags: Nullish<number>;
+	icon: Nullish<string>;
 	guild_ids: Nullish<Array<GuildID>>;
 }
 

@@ -12,6 +12,9 @@ declare const styles: {
   readonly "dmUserAvatar": string;
   readonly "dmUserAvatarImage": string;
   readonly "dmUserAvatars": string;
+  readonly "dropIndicatorBottom": string;
+  readonly "dropIndicatorCombine": string;
+  readonly "dropIndicatorTop": string;
   readonly "guildBadge": string;
   readonly "guildBadgeActive": string;
   readonly "guildDivider": string;
@@ -28,9 +31,13 @@ declare const styles: {
   readonly "guildInvitesPausedBadgeInner": string;
   readonly "guildInvitesPausedIcon": string;
   readonly "guildListContent": string;
+  readonly "guildListDropZone": string;
+  readonly "guildListDropZoneActive": string;
+  readonly "guildListDropZoneEnabled": string;
   readonly "guildListGuildsSection": string;
   readonly "guildListItem": string;
   readonly "guildListItemNoMargin": string;
+  readonly "guildListItems": string;
   readonly "guildListScrollContainer": string;
   readonly "guildListTopSection": string;
   readonly "guildMutedIcon": string;

@@ -202,6 +202,8 @@ export const mapUserSettingsToResponse = (params: {settings: UserSettings}): Use
 				id: folder.folderId,
 				name: folder.name,
 				color: folder.color,
+				flags: folder.flags ?? 0,
+				icon: folder.icon ?? 'folder',
 				guild_ids: folder.guildIds.map(String),
 			})) ?? [],
 		custom_status: settings.customStatus && !settings.customStatus.isExpired()

@@ -171,9 +171,38 @@
 	display: flex;
 	width: 100%;
 	justify-content: center;
-	margin-bottom: var(--spacing-1);
-	padding: 2px;
 	z-index: 0;
+}
+
+.dropIndicatorTop::before {
+	content: '';
+	position: absolute;
+	top: -5px;
+	left: 50%;
+	width: var(--guild-icon-size);
+	transform: translateX(-50%);
+	height: 3px;
+	background: var(--brand-primary);
+	border-radius: 1.5px;
+	z-index: 1;
+}
+
+.dropIndicatorBottom::after {
+	content: '';
+	position: absolute;
+	bottom: -5px;
+	left: 50%;
+	width: var(--guild-icon-size);
+	transform: translateX(-50%);
+	height: 3px;
+	background: var(--brand-primary);
+	border-radius: 1.5px;
+	z-index: 1;
+}
+
+.dropIndicatorCombine .guildIcon {
+	outline: 2px solid var(--brand-primary);
+	outline-offset: 2px;
 }
 
 .guildListItemNoMargin {
@@ -619,4 +648,17 @@
 
 .roundedFull {
 	border-radius: var(--radius-full);
+}
+
+.guildListItems {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	width: 100%;
+	gap: 8px;
+}
+
+.guildListDropZone {
+	width: 100%;
+	height: 8px;
 }
