@@ -13,7 +13,7 @@
 	],
 	"scripts": {
 		"build": "pnpm wasm:codegen && pnpm generate:colors && pnpm generate:masks && pnpm generate:css-types && tsc --noEmit && pnpm lingui:compile && rm -rf dist && rspack build --mode production && npx tsx scripts/build-sw.mjs",
-		"dev": "pnpm wasm:codegen && pnpm generate:colors && pnpm generate:masks && pnpm generate:css-types && pnpm lingui:compile && rm -rf dist && rspack serve",
+		"dev": "pnpm wasm:codegen && pnpm generate:colors && pnpm generate:masks && pnpm generate:css-types && pnpm lingui:compile && rm -rf dist && lsof -ti :3000 | xargs kill -9 2>/dev/null; rspack serve",
 		"generate:css-types": "tcm src --pattern '**/*.module.css'",
 		"electron:build:canary": "BUILD_CHANNEL=canary pnpm electron:compile && BUILD_CHANNEL=canary electron-builder --config electron-builder.config.cjs",
 		"electron:build:stable": "pnpm electron:compile && electron-builder --config electron-builder.config.cjs",
