@@ -39,6 +39,7 @@ import CallStateStore from '~/stores/CallStateStore';
 import ChannelStore from '~/stores/ChannelStore';
 import DimensionStore from '~/stores/DimensionStore';
 import GuildAvailabilityStore from '~/stores/GuildAvailabilityStore';
+import GuildFolderExpandedStore from '~/stores/GuildFolderExpandedStore';
 import GuildListStore, {type OrganizedItem} from '~/stores/GuildListStore';
 import GuildReadStateStore from '~/stores/GuildReadStateStore';
 import InitializationStore from '~/stores/InitializationStore';
@@ -370,8 +371,12 @@ const GuildList = observer(() => {
 				const topLevelItems = buildTopLevelItems(cleaned);
 				const targetIdx = topLevelItems.findIndex((tli) => tli.type === 'guild' && tli.guildId === targetGuildId);
 				if (targetIdx === -1) return;
+				const newFolderId = getNextFolderId(UserSettingsStore.guildFolders);
+				if (GuildFolderExpandedStore.isExpanded(newFolderId)) {
+					GuildFolderExpandedStore.toggleExpanded(newFolderId);
+				}
 				const newFolder: GuildFolder = {
-					id: getNextFolderId(UserSettingsStore.guildFolders),
+					id: newFolderId,
 					name: null,
 					color: null,
 					flags: 0,

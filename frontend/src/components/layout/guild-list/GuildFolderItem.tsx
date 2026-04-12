@@ -75,7 +75,7 @@ interface GuildFolderItemProps {
 
 function getFolderColor(color: number | null): string {
 	if (color === null || color === 0) {
-		return 'var(--brand-primary)';
+		return 'var(--cell-color)';
 	}
 	return `#${color.toString(16).padStart(6, '0')}`;
 }

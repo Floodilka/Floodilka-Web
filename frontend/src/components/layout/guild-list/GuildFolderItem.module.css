@@ -25,7 +25,7 @@
 	--folder-item-gap: var(--guild-list-item-gap, 4px);
 	--folder-item-inset: calc((var(--folder-item-box-size) - var(--folder-item-size)) / 2);
 	--folder-expanded-surface-size: calc(var(--folder-item-box-size) + 12px);
-	--folder-surface: var(--cell-color);
+	--folder-surface: color-mix(in srgb, var(--cell-color) calc(100% - var(--folder-fill)), var(--folder-accent) var(--folder-fill));
 	--guild-badge-surface: var(--folder-surface);
 	position: relative;
 	display: flex;
@@ -79,6 +79,7 @@
 	cursor: pointer;
 	border-radius: 30%;
 	padding: 6px;
+	overflow: hidden;
 	transition:
 		border-radius 70ms ease-out,
 		background-color 70ms ease-out;
