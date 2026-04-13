@@ -17,7 +17,7 @@
  * along with Floodilka. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import {Plural, Trans, useLingui} from '@lingui/react/macro';
+import {Trans, useLingui} from '@lingui/react/macro';
 import {observer} from 'mobx-react-lite';
 import type React from 'react';
 import * as Modal from '~/components/modals/Modal';
@@ -29,37 +29,23 @@ import {
 import styles from './VoiceConnectionConfirmModal.module.css';
 
 export const VoiceConnectionConfirmModal: React.FC<VoiceConnectionConfirmModalProps> = observer(
-	({guildId: _guildId, channelId: _channelId, onSwitchDevice, onJustJoin, onCancel}) => {
+	({guildId: _guildId, channelId: _channelId, onSwitchDevice, onCancel}) => {
 		const {t} = useLingui();
-		const {existingConnectionsCount, handleSwitchDevice, handleJustJoin, handleCancel} =
-			useVoiceConnectionConfirmModalLogic({
-				onSwitchDevice,
-				onJustJoin,
-				onCancel,
-			});
+		const {handleSwitchDevice} = useVoiceConnectionConfirmModalLogic({
+			onSwitchDevice,
+			onCancel,
+		});
 
 		return (
 			<Modal.Root size="small" centered>
 				<Modal.Header title={t`Voice Connection Confirmation`} />
 				<Modal.Content>
-					<Trans>
-						You're already connected to this voice channel from{' '}
-						<Plural value={existingConnectionsCount} one="# other device" other="# other devices" />. What would you
-						like to do?
-					</Trans>
+					<Trans>You're already connected to this voice channel from another device.</Trans>
 				</Modal.Content>
 				<Modal.Footer>
 					<div className={styles.footer}>
 						<Button variant="primary" onClick={handleSwitchDevice} className={styles.fullWidth}>
 							<Trans>Switch to This Device</Trans>
-						</Button>
-
-						<Button variant="secondary" onClick={handleJustJoin} className={styles.fullWidth}>
-							<Trans>Just Join (Keep Other Connections)</Trans>
-						</Button>
-
-						<Button variant="secondary" onClick={handleCancel} className={styles.fullWidth}>
-							<Trans>Do nothing, I don't want to join</Trans>
 						</Button>
 					</div>
 				</Modal.Footer>

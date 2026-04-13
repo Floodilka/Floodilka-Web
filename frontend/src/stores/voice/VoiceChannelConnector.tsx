@@ -55,7 +55,6 @@ export function checkMultipleConnections(
 	guildId: string | null,
 	channelId: string,
 	onSwitchDevice: () => Promise<void>,
-	onJustJoin: () => void,
 	onCancel: () => void,
 ): boolean {
 	if (!guildId) return true;
@@ -78,23 +77,7 @@ export function checkMultipleConnections(
 				<VoiceConnectionConfirmModal
 					guildId={guildId}
 					channelId={channelId}
-					onSwitchDevice={async () => {
-						for (const vs of userStates) {
-							if (vs.connection_id) {
-								socket.updateVoiceState({
-									guild_id: guildId,
-									channel_id: null,
-									self_mute: true,
-									self_deaf: true,
-									self_video: false,
-									self_stream: false,
-									connection_id: vs.connection_id,
-								});
-							}
-						}
-						await onSwitchDevice();
-					}}
-					onJustJoin={onJustJoin}
+					onSwitchDevice={onSwitchDevice}
 					onCancel={onCancel}
 				/>
 			)),

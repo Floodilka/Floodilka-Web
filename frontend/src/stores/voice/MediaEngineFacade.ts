@@ -199,7 +199,6 @@ class MediaEngineFacade {
 			guildId,
 			channelId,
 			async () => this.connectDirectly(guildId, channelId),
-			() => void this.connectDirectly(guildId, channelId),
 			() => VoiceConnectionManager.clearInFlightConnect(),
 		);
 		if (!shouldProceed) return;

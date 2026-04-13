@@ -20011,9 +20011,9 @@ msgstr "You'll receive an email when your data package is ready"
 msgid "You're all caught up!"
 msgstr "You're all caught up!"
 
-#: src/components/alerts/VoiceConnectionConfirmModal.tsx:45
-msgid "You're already connected to this voice channel from {existingConnectionsCount, plural, one {# other device} other {# other devices}}. What would you like to do?"
-msgstr "You're already connected to this voice channel from {existingConnectionsCount, plural, one {# other device} other {# other devices}}. What would you like to do?"
+#: src/components/alerts/VoiceConnectionConfirmModal.tsx:43
+msgid "You're already connected to this voice channel from another device."
+msgstr "You're already connected to this voice channel from another device."
 
 #: src/utils/RelationshipActionUtils.tsx:43
 msgid "You're already friends with this user."

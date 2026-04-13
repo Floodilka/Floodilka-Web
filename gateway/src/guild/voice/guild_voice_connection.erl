@@ -177,20 +177,83 @@ handle_update_connection(Context, ChannelIdValue, Member, Channel, VoiceStates, 
 handle_new_connection(Context, Member, Channel, VoiceStates, State) ->
     UserId = maps:get(user_id, Context),
     ChannelIdValue = maps:get(channel_id, Context),
-    GuildId = map_utils:get_integer(State, id, undefined),
-    ViewerKeyResult = resolve_viewer_stream_key(Context, GuildId, ChannelIdValue, VoiceStates, #{}),
+
+    {VoiceStates1, State1} = evict_existing_user_sessions(UserId, VoiceStates, State),
+
+    GuildId = map_utils:get_integer(State1, id, undefined),
+    ViewerKeyResult = resolve_viewer_stream_key(Context, GuildId, ChannelIdValue, VoiceStates1, #{}),
 
     PermCheck = guild_voice_permissions:check_voice_permissions_and_limits(
-        UserId, ChannelIdValue, Channel, VoiceStates, State, false
+        UserId, ChannelIdValue, Channel, VoiceStates1, State1, false
     ),
 
     case {PermCheck, ViewerKeyResult} of
         {{error, _Category, ErrorAtom}, _} ->
-            {reply, gateway_errors:error(ErrorAtom), State};
+            {reply, gateway_errors:error(ErrorAtom), State1};
         {{ok, allowed}, {error, ErrorAtom}} ->
-            {reply, gateway_errors:error(ErrorAtom), State};
+            {reply, gateway_errors:error(ErrorAtom), State1};
         {{ok, allowed}, {ok, ParsedViewerKey}} ->
-            get_voice_token_and_create_state(Context, Member, ParsedViewerKey, State)
+            get_voice_token_and_create_state(Context, Member, ParsedViewerKey, State1)
+    end.
+
+%% Single-session enforcement: a user may only have one active voice
+%% session within this guild. When a new session is about to connect,
+%% forcibly tear down any previous sessions of the same user (broadcast
+%% disconnect so old clients leave LiveKit, and RPC force-kick the old
+%% LiveKit participant as a safety net).
+-spec evict_existing_user_sessions(integer(), voice_state_map(), guild_state()) ->
+    {voice_state_map(), guild_state()}.
+evict_existing_user_sessions(UserId, VoiceStates, State) ->
+    ExistingStates = voice_state_utils:filter_voice_states(VoiceStates, fun(_ConnId, VS) ->
+        voice_state_utils:voice_state_user_id(VS) =:= UserId
+    end),
+    case maps:size(ExistingStates) of
+        0 ->
+            {VoiceStates, State};
+        Count ->
+            logger:info(
+                "[guild_voice_connection] Evicting ~p existing voice session(s) for user_id=~p "
+                "(single-session enforcement)",
+                [Count, UserId]
+            ),
+            NewVoiceStates = voice_state_utils:drop_voice_states(ExistingStates, VoiceStates),
+            State1 = maps:put(voice_states, NewVoiceStates, State),
+            State2 = drop_pending_voice_connections(maps:keys(ExistingStates), State1),
+            voice_state_utils:broadcast_disconnects(ExistingStates, State2),
+            force_disconnect_evicted_sessions(ExistingStates, UserId, State2),
+            {NewVoiceStates, State2}
+    end.
+
+drop_pending_voice_connections(ConnIds, State) ->
+    Pending0 = pending_voice_connections(State),
+    Pending1 = lists:foldl(fun maps:remove/2, Pending0, ConnIds),
+    maps:put(pending_voice_connections, Pending1, State).
+
+force_disconnect_evicted_sessions(EvictedStates, UserId, State) ->
+    maps:foreach(
+        fun(ConnId, VS) ->
+            GuildId = voice_state_utils:voice_state_guild_id(VS),
+            ChannelId = voice_state_utils:voice_state_channel_id(VS),
+            case {GuildId, ChannelId} of
+                {undefined, _} -> ok;
+                {_, undefined} -> ok;
+                {GId, CId} ->
+                    maybe_force_disconnect_evicted(GId, CId, UserId, ConnId, State)
+            end
+        end,
+        EvictedStates
+    ).
+
+maybe_force_disconnect_evicted(GuildId, ChannelId, UserId, ConnectionId, State) ->
+    case maps:get(test_force_disconnect_fun, State, undefined) of
+        Fun when is_function(Fun, 4) ->
+            Fun(GuildId, ChannelId, UserId, ConnectionId);
+        _ ->
+            spawn(fun() ->
+                guild_voice_disconnect:force_disconnect_participant(
+                    GuildId, ChannelId, UserId, ConnectionId
+                )
+            end)
     end.
 
 get_voice_token_and_create_state(Context, Member, ParsedViewerStreamKey, State) ->
@@ -714,5 +777,69 @@ normalize_guild_id_invalid_test() ->
 voice_state_update_invalid_user_id_test() ->
     {error, validation_error, voice_invalid_user_id} =
         voice_state_update(#{channel_id => null}, #{}).
+
+evict_existing_user_sessions_noop_when_absent_test() ->
+    VoiceStates = #{
+        <<"conn-other">> => #{
+            <<"user_id">> => <<"99">>,
+            <<"guild_id">> => <<"10">>,
+            <<"channel_id">> => <<"20">>
+        }
+    },
+    State = #{id => 10, voice_states => VoiceStates, sessions => #{}},
+    {ResultVoiceStates, ResultState} = evict_existing_user_sessions(5, VoiceStates, State),
+    ?assertEqual(VoiceStates, ResultVoiceStates),
+    ?assertEqual(State, ResultState).
+
+evict_existing_user_sessions_drops_prior_sessions_test() ->
+    Self = self(),
+    VoiceStates = #{
+        <<"conn-old-a">> => #{
+            <<"user_id">> => <<"5">>,
+            <<"guild_id">> => <<"10">>,
+            <<"channel_id">> => <<"20">>
+        },
+        <<"conn-old-b">> => #{
+            <<"user_id">> => <<"5">>,
+            <<"guild_id">> => <<"10">>,
+            <<"channel_id">> => <<"21">>
+        },
+        <<"conn-other">> => #{
+            <<"user_id">> => <<"99">>,
+            <<"guild_id">> => <<"10">>,
+            <<"channel_id">> => <<"20">>
+        }
+    },
+    PendingConnections = #{
+        <<"conn-old-a">> => #{user_id => 5},
+        <<"conn-other">> => #{user_id => 99}
+    },
+    State = #{
+        id => 10,
+        voice_states => VoiceStates,
+        sessions => #{},
+        pending_voice_connections => PendingConnections,
+        test_force_disconnect_fun => fun(GId, CId, UId, ConnId) ->
+            Self ! {force_disconnect, GId, CId, UId, ConnId},
+            {ok, #{success => true}}
+        end
+    },
+
+    {NewVoiceStates, NewState} = evict_existing_user_sessions(5, VoiceStates, State),
+
+    ?assertEqual([<<"conn-other">>], maps:keys(NewVoiceStates)),
+    ?assertEqual(NewVoiceStates, maps:get(voice_states, NewState)),
+    ?assertEqual(
+        [<<"conn-other">>], maps:keys(maps:get(pending_voice_connections, NewState))
+    ),
+
+    receive
+        {force_disconnect, 10, 20, 5, <<"conn-old-a">>} -> ok
+    after 100 -> ?assert(false)
+    end,
+    receive
+        {force_disconnect, 10, 21, 5, <<"conn-old-b">>} -> ok
+    after 100 -> ?assert(false)
+    end.
 
 -endif.
