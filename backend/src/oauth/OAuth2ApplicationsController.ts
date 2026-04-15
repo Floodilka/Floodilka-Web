@@ -91,6 +91,7 @@ export const OAuth2ApplicationsController = (app: HonoApp) => {
 					.nullable()
 					.transform((value) => value ?? []),
 				bot_public: z.boolean().optional(),
+				bot_require_code_grant: z.boolean().optional(),
 			}),
 		),
 		async (ctx) => {
@@ -102,6 +103,7 @@ export const OAuth2ApplicationsController = (app: HonoApp) => {
 				name: body.name,
 				redirectUris: body.redirect_uris,
 				botPublic: body.bot_public,
+				botRequireCodeGrant: body.bot_require_code_grant,
 			});
 
 			return ctx.json(
@@ -160,6 +162,7 @@ export const OAuth2ApplicationsController = (app: HonoApp) => {
 					.nullable()
 					.transform((value) => (value === undefined ? undefined : (value ?? []))),
 				bot_public: z.boolean().optional(),
+				bot_require_code_grant: z.boolean().optional(),
 			}),
 		),
 		async (ctx) => {
@@ -174,6 +177,7 @@ export const OAuth2ApplicationsController = (app: HonoApp) => {
 					name: body.name,
 					redirectUris: body.redirect_uris,
 					botPublic: body.bot_public,
+					botRequireCodeGrant: body.bot_require_code_grant,
 				});
 
 				let botUser = null;

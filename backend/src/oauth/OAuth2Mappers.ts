@@ -50,7 +50,7 @@ export const mapApplicationToResponse = (
 		name: application.name,
 		redirect_uris: Array.from(application.oauth2RedirectUris),
 		bot_public: application.botIsPublic,
-		bot_require_code_grant: false,
+		bot_require_code_grant: application.botRequireCodeGrant,
 	};
 
 	if (options?.botUser) {

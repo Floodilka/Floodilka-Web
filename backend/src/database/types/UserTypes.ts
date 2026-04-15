@@ -216,6 +216,8 @@ export interface UserSettingsRow {
 	group_dm_add_permission_flags: number;
 	default_guilds_restricted: boolean;
 	restricted_guilds: Nullish<Set<GuildID>>;
+	bot_default_guilds_restricted: Nullish<boolean>;
+	bot_restricted_guilds: Nullish<Set<GuildID>>;
 	guild_positions: Nullish<Array<GuildID>>;
 	guild_folders: Nullish<Array<GuildFolder>>;
 	afk_timeout: Nullish<number>;
@@ -480,6 +482,8 @@ export const USER_SETTINGS_COLUMNS = [
 	'group_dm_add_permission_flags',
 	'default_guilds_restricted',
 	'restricted_guilds',
+	'bot_default_guilds_restricted',
+	'bot_restricted_guilds',
 	'guild_positions',
 	'guild_folders',
 	'afk_timeout',

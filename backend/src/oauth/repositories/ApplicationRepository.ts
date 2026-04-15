@@ -20,9 +20,9 @@
 import type {ApplicationID, UserID} from '~/BrandedTypes';
 import {BatchBuilder, buildPatchFromData, executeVersionedUpdate, fetchMany, fetchOne} from '~/database/Cassandra';
 import {APPLICATION_COLUMNS} from '~/database/CassandraTypes';
-import type {ApplicationByOwnerRow, ApplicationRow} from '~/database/types/OAuth2Types';
+import type {ApplicationByOwnerRow, ApplicationRow, OAuthBotTokenByClientRow} from '~/database/types/OAuth2Types';
 import {Application} from '~/models/Application';
-import {Applications, ApplicationsByOwner} from '~/Tables';
+import {Applications, ApplicationsByOwner, OAuthBotTokensByClient} from '~/Tables';
 import type {IApplicationRepository} from './IApplicationRepository';
 
 const SELECT_APPLICATION_CQL = Applications.selectCql({
@@ -102,6 +102,38 @@ export class ApplicationRepository implements IApplicationRepository {
 				application_id: applicationId,
 			}),
 		);
+		await batch.execute();
+
+		await this.deleteAllBotTokensByClient(applicationId);
+	}
+
+	async recordBotToken(data: OAuthBotTokenByClientRow): Promise<void> {
+		const batch = new BatchBuilder();
+		batch.addPrepared(OAuthBotTokensByClient.upsertAll(data));
+		await batch.execute();
+	}
+
+	async listBotTokensByClient(clientId: ApplicationID): Promise<Array<OAuthBotTokenByClientRow>> {
+		const cql = OAuthBotTokensByClient.selectCql({
+			where: OAuthBotTokensByClient.where.eq('client_id'),
+		});
+		return fetchMany<OAuthBotTokenByClientRow>(cql, {client_id: clientId});
+	}
+
+	async deleteAllBotTokensByClient(clientId: ApplicationID): Promise<void> {
+		const existing = await this.listBotTokensByClient(clientId);
+		if (existing.length === 0) {
+			return;
+		}
+		const batch = new BatchBuilder();
+		for (const row of existing) {
+			batch.addPrepared(
+				OAuthBotTokensByClient.deleteByPk({
+					client_id: clientId,
+					token_: row.token_,
+				}),
+			);
+		}
 		await batch.execute();
 	}
 }

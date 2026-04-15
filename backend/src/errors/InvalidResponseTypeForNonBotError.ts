@@ -17,21 +17,10 @@
  * along with Floodilka. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import type {UseFormReturn} from 'react-hook-form';
+import {OAuth2Error} from './OAuth2Error';
 
-export interface ApplicationDetailFormValues {
-	name: string;
-	redirectUris: Array<string>;
-	botPublic: boolean;
-	botRequireCodeGrant: boolean;
-	username?: string;
-	avatar?: string | null;
-	bio?: string | null;
-	banner?: string | null;
-	redirectUriInputs: Array<string>;
-	builderScopes: Record<string, boolean>;
-	builderRedirectUri?: string;
-	builderPermissions: Record<string, boolean>;
+export class InvalidResponseTypeForNonBotError extends OAuth2Error {
+	constructor(message = 'response_type должен быть code для не-бот scope') {
+		super({error: 'invalid_request', errorDescription: message, status: 400});
+	}
 }
-
-export type ApplicationDetailForm = UseFormReturn<ApplicationDetailFormValues>;

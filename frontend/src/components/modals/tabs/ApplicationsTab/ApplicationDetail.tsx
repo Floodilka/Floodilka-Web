@@ -84,6 +84,7 @@ export const ApplicationDetail: React.FC<ApplicationDetailProps> = observer(
 			defaultValues: {
 				name: '',
 				botPublic: true,
+				botRequireCodeGrant: false,
 				redirectUris: [],
 				redirectUriInputs: [''],
 				builderScopes: {} as Record<string, boolean>,
@@ -108,6 +109,7 @@ export const ApplicationDetail: React.FC<ApplicationDetailProps> = observer(
 				redirectUris: app.redirect_uris ?? [],
 				redirectUriInputs: redirectList,
 				botPublic: app.bot_public,
+				botRequireCodeGrant: app.bot_require_code_grant,
 				builderScopes: builderScopeMap,
 				builderPermissions: {},
 				username: app.bot?.username || '',
@@ -156,6 +158,7 @@ export const ApplicationDetail: React.FC<ApplicationDetailProps> = observer(
 				(currentValues.redirectUris ?? []).join(',') !== (initialValues.redirectUris ?? []).join(',') ||
 				(currentValues.redirectUriInputs ?? []).join(',') !== (initialValues.redirectUriInputs ?? []).join(',') ||
 				(currentValues.botPublic ?? true) !== (initialValues.botPublic ?? true) ||
+				(currentValues.botRequireCodeGrant ?? false) !== (initialValues.botRequireCodeGrant ?? false) ||
 				(currentValues.username ?? '') !== (initialValues.username ?? '') ||
 				(currentValues.bio ?? '') !== (initialValues.bio ?? '') ||
 				(currentValues.banner ?? '') !== (initialValues.banner ?? '')
@@ -185,6 +188,9 @@ export const ApplicationDetail: React.FC<ApplicationDetailProps> = observer(
 					}
 					if ((data.botPublic ?? true) !== (application.bot_public ?? true)) {
 						changes.bot_public = data.botPublic;
+					}
+					if ((data.botRequireCodeGrant ?? false) !== (application.bot_require_code_grant ?? false)) {
+						changes.bot_require_code_grant = data.botRequireCodeGrant;
 					}
 					return changes;
 				};

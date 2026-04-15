@@ -17,21 +17,13 @@
  * along with Floodilka. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import type {UseFormReturn} from 'react-hook-form';
+import {ForbiddenError} from './ForbiddenError';
 
-export interface ApplicationDetailFormValues {
-	name: string;
-	redirectUris: Array<string>;
-	botPublic: boolean;
-	botRequireCodeGrant: boolean;
-	username?: string;
-	avatar?: string | null;
-	bio?: string | null;
-	banner?: string | null;
-	redirectUriInputs: Array<string>;
-	builderScopes: Record<string, boolean>;
-	builderRedirectUri?: string;
-	builderPermissions: Record<string, boolean>;
+export class BotBlockedByUserGuildRestrictionsError extends ForbiddenError {
+	constructor() {
+		super({
+			code: 'BOT_BLOCKED_BY_USER_GUILD_RESTRICTIONS',
+			message: 'Добавление ботов в этот сервер запрещено вашими настройками',
+		});
+	}
 }
-
-export type ApplicationDetailForm = UseFormReturn<ApplicationDetailFormValues>;

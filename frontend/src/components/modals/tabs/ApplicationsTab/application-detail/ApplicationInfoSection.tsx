@@ -67,6 +67,16 @@ export const ApplicationInfoSection: React.FC<ApplicationInfoSectionProps> = ({
 					/>
 				</div>
 
+				<div className={styles.toggleRow}>
+					<Switch
+						label={t`Require OAuth2 code grant`}
+						description={t`Require completion of the full OAuth2 code grant flow when adding this bot to a community.`}
+						value={form.watch('botRequireCodeGrant')}
+						onChange={(checked) => form.setValue('botRequireCodeGrant', checked, {shouldDirty: true})}
+						className={styles.toggleSwitch}
+					/>
+				</div>
+
 				<div className={styles.redirectList}>
 					{redirectList.map((value, idx) => (
 						<div key={idx} className={styles.redirectRow} data-first={idx === 0 ? 'true' : undefined}>

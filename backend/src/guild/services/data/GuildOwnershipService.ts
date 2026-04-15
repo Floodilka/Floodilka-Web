@@ -19,7 +19,13 @@
 
 import type {GuildID, UserID} from '~/BrandedTypes';
 import {AuditLogActionType} from '~/constants/AuditLogActionType';
-import {MissingAccessError, MissingPermissionsError, UnknownGuildError, UnknownGuildMemberError} from '~/Errors';
+import {
+	CannotTransferOwnershipToBotError,
+	MissingAccessError,
+	MissingPermissionsError,
+	UnknownGuildError,
+	UnknownGuildMemberError,
+} from '~/Errors';
 import type {GuildResponse} from '~/guild/GuildModel';
 import {mapGuildToGuildResponse} from '~/guild/GuildModel';
 import type {IGuildRepository} from '~/guild/IGuildRepository';
@@ -52,6 +58,11 @@ export class GuildOwnershipService {
 		const newOwner = await this.guildRepository.getMember(guildId, newOwnerId);
 		if (!newOwner) {
 			throw new UnknownGuildMemberError();
+		}
+
+		const newOwnerUser = await this.userRepository.findUnique(newOwnerId);
+		if (newOwnerUser?.isBot) {
+			throw new CannotTransferOwnershipToBotError();
 		}
 
 		const guild = await this.guildRepository.findUnique(guildId);

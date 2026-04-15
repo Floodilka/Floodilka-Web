@@ -26,6 +26,7 @@ export class Application {
 	readonly name: string;
 	readonly botUserId: UserID | null;
 	readonly botIsPublic: boolean;
+	readonly botRequireCodeGrant: boolean;
 	readonly oauth2RedirectUris: Set<string>;
 	readonly clientSecretHash: string | null;
 	readonly botTokenHash: string | null;
@@ -40,6 +41,7 @@ export class Application {
 		this.name = row.name;
 		this.botUserId = row.bot_user_id;
 		this.botIsPublic = row.bot_is_public ?? row.bot_user_id !== null;
+		this.botRequireCodeGrant = row.bot_require_code_grant ?? false;
 		this.oauth2RedirectUris = row.oauth2_redirect_uris ?? new Set<string>();
 		this.clientSecretHash = row.client_secret_hash;
 		this.botTokenHash = row.bot_token_hash;
@@ -56,6 +58,7 @@ export class Application {
 			name: this.name,
 			bot_user_id: this.botUserId,
 			bot_is_public: this.botIsPublic,
+			bot_require_code_grant: this.botRequireCodeGrant,
 			oauth2_redirect_uris: this.oauth2RedirectUris,
 			client_secret_hash: this.clientSecretHash,
 			bot_token_hash: this.botTokenHash,

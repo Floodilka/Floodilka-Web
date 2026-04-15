@@ -26,13 +26,16 @@ import {JoinSourceTypes} from '~/constants/Guild';
 import {
 	AccessDeniedError,
 	BotAlreadyInGuildError,
+	BotBlockedByUserGuildRestrictionsError,
 	BotUserNotFoundError,
 	InvalidClientError,
 	InvalidGrantError,
 	InvalidRequestError,
+	InvalidResponseTypeForNonBotError,
 	InvalidTokenError,
 	MissingPermissionsError,
 	NotABotApplicationError,
+	RedirectUriRequiredForNonBotError,
 	UnknownApplicationError,
 	UnknownGuildMemberError,
 } from '~/Errors';
@@ -201,10 +204,10 @@ export const OAuth2Controller = (app: HonoApp) => {
 			}
 
 			if (!isBotOnly && responseType !== 'code') {
-				throw new InvalidRequestError('response_type must be code for non-bot scopes');
+				throw new InvalidResponseTypeForNonBotError();
 			}
 			if (!isBotOnly && !body.redirect_uri) {
-				throw new InvalidRequestError('redirect_uri required for non-bot scopes');
+				throw new RedirectUriRequiredForNonBotError();
 			}
 
 			const {redirectTo} = await ctx.get('oauth2Service').authorizeAndConsent({
@@ -242,6 +245,15 @@ export const OAuth2Controller = (app: HonoApp) => {
 
 					if (!hasManageGuild) {
 						throw new MissingPermissionsError();
+					}
+
+					const issuerSettings = await ctx.get('userRepository').findSettings(user.id);
+					if (issuerSettings) {
+						const isInBotList = issuerSettings.botRestrictedGuilds.has(guildId);
+						const allowed = issuerSettings.botDefaultGuildsRestricted ? isInBotList : !isInBotList;
+						if (!allowed) {
+							throw new BotBlockedByUserGuildRestrictionsError();
+						}
 					}
 
 					try {
@@ -367,7 +379,7 @@ export const OAuth2Controller = (app: HonoApp) => {
 					icon: null,
 					description: null,
 					bot_public: application.botIsPublic,
-					bot_require_code_grant: false,
+					bot_require_code_grant: application.botRequireCodeGrant,
 					verify_key: null,
 					flags: 0,
 				},
@@ -419,6 +431,7 @@ export const OAuth2Controller = (app: HonoApp) => {
 				redirect_uris: Array.from(application.oauth2RedirectUris),
 				scopes,
 				bot_public: application.botIsPublic,
+				bot_require_code_grant: application.botRequireCodeGrant,
 				bot: botUser ? mapUserToPartialResponse(botUser) : null,
 			});
 		},
@@ -467,7 +480,7 @@ export const OAuth2Controller = (app: HonoApp) => {
 			icon: null,
 			description: null,
 			bot_public: application.botIsPublic,
-			bot_require_code_grant: false,
+			bot_require_code_grant: application.botRequireCodeGrant,
 			verify_key: null,
 			flags: 0,
 		};
@@ -577,6 +590,7 @@ export const OAuth2Controller = (app: HonoApp) => {
 						icon: string | null;
 						description: null;
 						bot_public: boolean;
+						bot_require_code_grant: boolean;
 					};
 				}
 			>();
@@ -612,6 +626,7 @@ export const OAuth2Controller = (app: HonoApp) => {
 									icon: botUser?.avatarHash ?? null,
 									description: null,
 									bot_public: application.botIsPublic,
+									bot_require_code_grant: application.botRequireCodeGrant,
 								},
 							});
 						}

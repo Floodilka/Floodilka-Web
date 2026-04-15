@@ -96,6 +96,14 @@ export class UserAccountSettingsService {
 		if (data.default_guilds_restricted !== undefined) {
 			updatedRowData.default_guilds_restricted = data.default_guilds_restricted;
 		}
+		if (data.bot_restricted_guilds !== undefined) {
+			updatedRowData.bot_restricted_guilds = data.bot_restricted_guilds
+				? new Set(data.bot_restricted_guilds.map(createGuildID))
+				: null;
+		}
+		if (data.bot_default_guilds_restricted !== undefined) {
+			updatedRowData.bot_default_guilds_restricted = data.bot_default_guilds_restricted;
+		}
 		if (data.inline_attachment_media !== undefined) {
 			updatedRowData.inline_attachment_media = data.inline_attachment_media;
 		}

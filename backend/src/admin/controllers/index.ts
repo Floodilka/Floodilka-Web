@@ -18,6 +18,7 @@
  */
 
 import type {HonoApp} from '~/App';
+import {ApplicationAdminController} from './ApplicationAdminController';
 import {ArchiveAdminController} from './ArchiveAdminController';
 import {AssetAdminController} from './AssetAdminController';
 import {AuditLogAdminController} from './AuditLogAdminController';
@@ -40,6 +41,7 @@ export const registerAdminControllers = (app: HonoApp) => {
 	UserAdminController(app);
 	CodesAdminController(app);
 	GuildAdminController(app);
+	ApplicationAdminController(app);
 	AssetAdminController(app);
 	BanAdminController(app);
 	InstanceConfigAdminController(app);

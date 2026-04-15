@@ -104,6 +104,7 @@ async function upsertAdminOAuth2Client(repo: ApplicationRepository, config: OAut
 		name: 'Floodilka Admin',
 		bot_user_id: null,
 		bot_is_public: false,
+		bot_require_code_grant: false,
 		oauth2_redirect_uris: new Set<string>([config.redirectUri]),
 		client_secret_hash: secretHash,
 		client_secret_created_at: now,

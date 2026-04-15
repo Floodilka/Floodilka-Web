@@ -21,7 +21,7 @@ import crypto from 'node:crypto';
 import {promisify} from 'node:util';
 import type {UserID} from '~/BrandedTypes';
 import {APIErrorCodes, UserFlags} from '~/Constants';
-import {AccessDeniedError, FloodilkaAPIError, UnauthorizedError} from '~/Errors';
+import {BotUserAuthEndpointAccessDeniedError, FloodilkaAPIError, UnauthorizedError} from '~/Errors';
 import type {IRateLimitService} from '~/infrastructure/IRateLimitService';
 import type {User} from '~/Models';
 import type {IUserRepository} from '~/user/IUserRepository';
@@ -115,7 +115,7 @@ export class AuthUtilityService {
 
 	assertNonBotUser(user: User): void {
 		if (user.isBot) {
-			throw new AccessDeniedError('Боты не могут использовать эндпоинты авторизации');
+			throw new BotUserAuthEndpointAccessDeniedError();
 		}
 	}
 

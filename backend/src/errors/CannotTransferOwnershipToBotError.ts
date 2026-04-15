@@ -17,21 +17,14 @@
  * along with Floodilka. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import type {UseFormReturn} from 'react-hook-form';
+import {APIErrorCodes} from '~/Constants';
+import {BadRequestError} from './BadRequestError';
 
-export interface ApplicationDetailFormValues {
-	name: string;
-	redirectUris: Array<string>;
-	botPublic: boolean;
-	botRequireCodeGrant: boolean;
-	username?: string;
-	avatar?: string | null;
-	bio?: string | null;
-	banner?: string | null;
-	redirectUriInputs: Array<string>;
-	builderScopes: Record<string, boolean>;
-	builderRedirectUri?: string;
-	builderPermissions: Record<string, boolean>;
+export class CannotTransferOwnershipToBotError extends BadRequestError {
+	constructor() {
+		super({
+			code: APIErrorCodes.CANNOT_TRANSFER_OWNERSHIP_TO_BOT,
+			message: 'Владение сервером нельзя передать боту',
+		});
+	}
 }
-
-export type ApplicationDetailForm = UseFormReturn<ApplicationDetailFormValues>;

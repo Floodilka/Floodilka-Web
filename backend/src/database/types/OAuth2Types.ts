@@ -25,6 +25,7 @@ export interface ApplicationRow {
 	name: string;
 	bot_user_id: UserID | null;
 	bot_is_public: boolean | null;
+	bot_require_code_grant: boolean | null;
 	oauth2_redirect_uris: Set<string>;
 	client_secret_hash: string | null;
 	bot_token_hash: string | null;
@@ -75,12 +76,21 @@ export interface OAuth2RefreshTokenByUserRow {
 	token_: string;
 }
 
+export interface OAuthBotTokenByClientRow {
+	client_id: ApplicationID;
+	token_: string;
+	user_id: UserID;
+	scopes: Set<string>;
+	created_at: Date;
+}
+
 export const APPLICATION_COLUMNS = [
 	'application_id',
 	'owner_user_id',
 	'name',
 	'bot_user_id',
 	'bot_is_public',
+	'bot_require_code_grant',
 	'oauth2_redirect_uris',
 	'client_secret_hash',
 	'bot_token_hash',
@@ -115,3 +125,11 @@ export const OAUTH2_REFRESH_TOKEN_COLUMNS = [
 	'scope',
 	'created_at',
 ] as const satisfies ReadonlyArray<keyof OAuth2RefreshTokenRow>;
+
+export const OAUTH_BOT_TOKENS_BY_CLIENT_COLUMNS = [
+	'client_id',
+	'token_',
+	'user_id',
+	'scopes',
+	'created_at',
+] as const satisfies ReadonlyArray<keyof OAuthBotTokenByClientRow>;

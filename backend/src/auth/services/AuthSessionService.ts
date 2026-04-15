@@ -19,7 +19,7 @@
 
 import {type AuthSessionResponse, mapAuthSessionsToResponse} from '~/auth/AuthModel';
 import type {UserID} from '~/BrandedTypes';
-import {AccessDeniedError} from '~/Errors';
+import {BotUserAuthSessionCreationDeniedError} from '~/Errors';
 import type {IGatewayService} from '~/infrastructure/IGatewayService';
 import type {AuthSession, User} from '~/Models';
 import type {IUserRepository} from '~/user/IUserRepository';
@@ -48,7 +48,7 @@ export class AuthSessionService {
 	) {}
 
 	async createAuthSession({user, request}: CreateAuthSessionParams): Promise<[token: string, AuthSession]> {
-		if (user.isBot) throw new AccessDeniedError('Боты не могут создавать сессии авторизации');
+		if (user.isBot) throw new BotUserAuthSessionCreationDeniedError();
 
 		const now = new Date();
 		const token = await this.generateAuthToken();

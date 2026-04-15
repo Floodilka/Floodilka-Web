@@ -114,11 +114,13 @@ import {
 	OAUTH2_ACCESS_TOKEN_COLUMNS,
 	OAUTH2_AUTHORIZATION_CODE_COLUMNS,
 	OAUTH2_REFRESH_TOKEN_COLUMNS,
+	OAUTH_BOT_TOKENS_BY_CLIENT_COLUMNS,
 	type OAuth2AccessTokenByUserRow,
 	type OAuth2AccessTokenRow,
 	type OAuth2AuthorizationCodeRow,
 	type OAuth2RefreshTokenByUserRow,
 	type OAuth2RefreshTokenRow,
+	type OAuthBotTokenByClientRow,
 	PASSWORD_RESET_TOKEN_COLUMNS,
 	PAYMENT_BY_TRANSACTION_COLUMNS,
 	PAYMENT_BY_USER_COLUMNS,
@@ -839,6 +841,12 @@ export const OAuth2RefreshTokensByUser = defineTable<OAuth2RefreshTokenByUserRow
 	name: 'oauth2_refresh_tokens_by_user',
 	columns: OAUTH2_REFRESH_TOKENS_BY_USER_COLUMNS,
 	primaryKey: ['user_id', 'token_'],
+});
+
+export const OAuthBotTokensByClient = defineTable<OAuthBotTokenByClientRow, 'client_id' | 'token_'>({
+	name: 'oauth_bot_tokens_by_client',
+	columns: OAUTH_BOT_TOKENS_BY_CLIENT_COLUMNS,
+	primaryKey: ['client_id', 'token_'],
 });
 
 interface WebhooksByChannelRow {

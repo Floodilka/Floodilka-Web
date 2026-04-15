@@ -185,6 +185,8 @@ export const mapUserSettingsToResponse = (params: {settings: UserSettings}): Use
 		locale: settings.locale,
 		restricted_guilds: [...settings.restrictedGuilds].map(String),
 		default_guilds_restricted: settings.defaultGuildsRestricted,
+		bot_restricted_guilds: [...settings.botRestrictedGuilds].map(String),
+		bot_default_guilds_restricted: settings.botDefaultGuildsRestricted,
 		inline_attachment_media: settings.inlineAttachmentMedia,
 		inline_embed_media: settings.inlineEmbedMedia,
 		gif_auto_play: settings.gifAutoPlay,

@@ -18,7 +18,7 @@
  */
 
 import type {ApplicationID, UserID} from '~/BrandedTypes';
-import type {ApplicationRow} from '~/database/types/OAuth2Types';
+import type {ApplicationRow, OAuthBotTokenByClientRow} from '~/database/types/OAuth2Types';
 import type {Application} from '~/models/Application';
 
 export interface IApplicationRepository {
@@ -26,4 +26,7 @@ export interface IApplicationRepository {
 	listApplicationsByOwner(ownerUserId: UserID): Promise<Array<Application>>;
 	upsertApplication(data: ApplicationRow, oldData?: ApplicationRow | null): Promise<Application>;
 	deleteApplication(applicationId: ApplicationID): Promise<void>;
+	recordBotToken(data: OAuthBotTokenByClientRow): Promise<void>;
+	listBotTokensByClient(clientId: ApplicationID): Promise<Array<OAuthBotTokenByClientRow>>;
+	deleteAllBotTokensByClient(clientId: ApplicationID): Promise<void>;
 }

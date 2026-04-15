@@ -114,6 +114,7 @@ export class ApplicationService {
 		name: string;
 		redirectUris?: Array<string>;
 		botPublic?: boolean;
+		botRequireCodeGrant?: boolean;
 	}): Promise<{
 		application: Application;
 		botUser: User;
@@ -123,6 +124,7 @@ export class ApplicationService {
 		const initialRedirectUris = args.redirectUris ?? [];
 		const owner = await this.deps.userRepository.findUniqueAssert(args.ownerUserId);
 		const botIsPublic = args.botPublic ?? true;
+		const botRequireCodeGrant = args.botRequireCodeGrant ?? false;
 
 		if (owner.isUnclaimedAccount()) {
 			throw new UnclaimedAccountRestrictedError('создавать приложения');
@@ -212,6 +214,7 @@ export class ApplicationService {
 			name: args.name,
 			bot_user_id: botUserId,
 			bot_is_public: botIsPublic,
+			bot_require_code_grant: botRequireCodeGrant,
 			oauth2_redirect_uris: new Set<string>(initialRedirectUris),
 			client_secret_hash: clientSecretHash,
 			bot_token_hash: botTokenHash,
@@ -221,6 +224,14 @@ export class ApplicationService {
 		};
 
 		const application = await this.deps.applicationRepository.upsertApplication(applicationRow);
+
+		await this.deps.applicationRepository.recordBotToken({
+			client_id: applicationId,
+			token_: botTokenHash,
+			user_id: botUserId,
+			scopes: new Set<string>(['bot']),
+			created_at: botTokenCreatedAt,
+		});
 
 		Logger.info(
 			{applicationId: applicationId.toString(), botUserId: botUserId.toString()},
@@ -257,6 +268,7 @@ export class ApplicationService {
 		name?: string;
 		redirectUris?: Array<string>;
 		botPublic?: boolean;
+		botRequireCodeGrant?: boolean;
 	}): Promise<Application> {
 		const application = await this.verifyOwnership(args.userId, args.applicationId);
 
@@ -265,14 +277,38 @@ export class ApplicationService {
 			name: args.name ?? application.name,
 			oauth2_redirect_uris: args.redirectUris ? new Set(args.redirectUris) : application.oauth2RedirectUris,
 			bot_is_public: args.botPublic ?? application.botIsPublic,
+			bot_require_code_grant: args.botRequireCodeGrant ?? application.botRequireCodeGrant,
 		};
 
 		return this.deps.applicationRepository.upsertApplication(updatedRow);
 	}
 
+	async adminDeleteApplication(applicationId: ApplicationID): Promise<void> {
+		const application = await this.deps.applicationRepository.getApplication(applicationId);
+		if (!application) {
+			throw new UnknownApplicationError();
+		}
+		await this.performApplicationDeletion(application);
+	}
+
+	async adminRotateBotToken(applicationId: ApplicationID): Promise<{token: string; preview: string}> {
+		const application = await this.deps.applicationRepository.getApplication(applicationId);
+		if (!application) {
+			throw new UnknownApplicationError();
+		}
+		if (!application.hasBotUser()) {
+			throw new BotUserNotFoundError();
+		}
+		return this.performBotTokenRotation(application);
+	}
+
 	async deleteApplication(userId: UserID, applicationId: ApplicationID): Promise<void> {
 		const application = await this.verifyOwnership(userId, applicationId);
+		await this.performApplicationDeletion(application);
+	}
 
+	private async performApplicationDeletion(application: Application): Promise<void> {
+		const applicationId = application.applicationId;
 		if (application.hasBotUser()) {
 			const botUserId = application.getBotUserId()!;
 			await this.deps.userRepository.deleteUserSecondaryIndices(botUserId);
@@ -327,7 +363,11 @@ export class ApplicationService {
 		if (!application.hasBotUser()) {
 			throw new BotUserNotFoundError();
 		}
+		return this.performBotTokenRotation(application);
+	}
 
+	private async performBotTokenRotation(application: Application): Promise<{token: string; preview: string}> {
+		const applicationId = application.applicationId;
 		const {token, hash, preview} = await this.deps.botAuthService.generateBotToken(applicationId);
 		const botTokenCreatedAt = new Date();
 
@@ -339,6 +379,19 @@ export class ApplicationService {
 		};
 
 		await this.deps.applicationRepository.upsertApplication(updatedRow);
+
+		await this.deps.applicationRepository.deleteAllBotTokensByClient(applicationId);
+		const botUserIdForIndex = application.getBotUserId();
+		if (botUserIdForIndex !== null) {
+			await this.deps.applicationRepository.recordBotToken({
+				client_id: applicationId,
+				token_: hash,
+				user_id: botUserIdForIndex,
+				scopes: new Set<string>(['bot']),
+				created_at: botTokenCreatedAt,
+			});
+		}
+
 		Logger.info({applicationId: applicationId.toString()}, 'Successfully rotated bot token');
 
 		const botUserId = application.getBotUserId();

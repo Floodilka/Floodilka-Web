@@ -17,21 +17,14 @@
  * along with Floodilka. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import type {UseFormReturn} from 'react-hook-form';
+import {APIErrorCodes} from '~/Constants';
+import {ForbiddenError} from './ForbiddenError';
 
-export interface ApplicationDetailFormValues {
-	name: string;
-	redirectUris: Array<string>;
-	botPublic: boolean;
-	botRequireCodeGrant: boolean;
-	username?: string;
-	avatar?: string | null;
-	bio?: string | null;
-	banner?: string | null;
-	redirectUriInputs: Array<string>;
-	builderScopes: Record<string, boolean>;
-	builderRedirectUri?: string;
-	builderPermissions: Record<string, boolean>;
+export class BotUserAuthEndpointAccessDeniedError extends ForbiddenError {
+	constructor() {
+		super({
+			code: APIErrorCodes.BOT_USER_AUTH_ENDPOINT_ACCESS_DENIED,
+			message: 'Боты не могут использовать эндпоинты авторизации',
+		});
+	}
 }
-
-export type ApplicationDetailForm = UseFormReturn<ApplicationDetailFormValues>;

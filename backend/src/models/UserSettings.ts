@@ -56,6 +56,8 @@ export class UserSettings {
 	readonly groupDmAddPermissionFlags: number;
 	readonly defaultGuildsRestricted: boolean;
 	readonly restrictedGuilds: Set<GuildID>;
+	readonly botDefaultGuildsRestricted: boolean;
+	readonly botRestrictedGuilds: Set<GuildID>;
 	readonly guildPositions: Array<GuildID>;
 	readonly guildFolders: Array<UserGuildFolder>;
 	readonly afkTimeout: number;
@@ -86,6 +88,8 @@ export class UserSettings {
 		this.groupDmAddPermissionFlags = row.group_dm_add_permission_flags ?? 0;
 		this.defaultGuildsRestricted = row.default_guilds_restricted ?? false;
 		this.restrictedGuilds = row.restricted_guilds ?? new Set();
+		this.botDefaultGuildsRestricted = row.bot_default_guilds_restricted ?? false;
+		this.botRestrictedGuilds = row.bot_restricted_guilds ?? new Set();
 		this.guildPositions = row.guild_positions ?? [];
 		this.guildFolders = (row.guild_folders ?? []).map((folder) => new UserGuildFolder(folder));
 		this.afkTimeout = row.afk_timeout ?? 600;
@@ -118,6 +122,8 @@ export class UserSettings {
 			group_dm_add_permission_flags: this.groupDmAddPermissionFlags,
 			default_guilds_restricted: this.defaultGuildsRestricted,
 			restricted_guilds: this.restrictedGuilds.size > 0 ? this.restrictedGuilds : null,
+			bot_default_guilds_restricted: this.botDefaultGuildsRestricted,
+			bot_restricted_guilds: this.botRestrictedGuilds.size > 0 ? this.botRestrictedGuilds : null,
 			guild_positions: this.guildPositions.length > 0 ? this.guildPositions : null,
 			guild_folders: this.guildFolders.length > 0 ? this.guildFolders.map((folder) => folder.toGuildFolder()) : null,
 			afk_timeout: this.afkTimeout,
@@ -168,6 +174,8 @@ export class UserSettings {
 			group_dm_add_permission_flags: GroupDmAddPermissionFlags.FRIENDS_ONLY,
 			default_guilds_restricted: false,
 			restricted_guilds: new Set(),
+			bot_default_guilds_restricted: false,
+			bot_restricted_guilds: new Set(),
 			guild_positions: [],
 			guild_folders: [],
 			afk_timeout: 600,

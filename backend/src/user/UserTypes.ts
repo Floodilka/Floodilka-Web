@@ -190,6 +190,8 @@ export const UserSettingsResponse = z.object({
 	locale: z.string(),
 	restricted_guilds: z.array(z.string()),
 	default_guilds_restricted: z.boolean(),
+	bot_restricted_guilds: z.array(z.string()),
+	bot_default_guilds_restricted: z.boolean(),
 	inline_attachment_media: z.boolean(),
 	inline_embed_media: z.boolean(),
 	gif_auto_play: z.boolean(),
@@ -228,6 +230,11 @@ export const UserSettingsUpdateRequest = z
 			.transform((ids) => [...new Set(ids)])
 			.refine((ids) => ids.length <= MAX_GUILDS_PREMIUM, `Maximum ${MAX_GUILDS_PREMIUM} guilds allowed`),
 		default_guilds_restricted: z.boolean(),
+		bot_restricted_guilds: z
+			.array(Int64Type)
+			.transform((ids) => [...new Set(ids)])
+			.refine((ids) => ids.length <= MAX_GUILDS_PREMIUM, `Maximum ${MAX_GUILDS_PREMIUM} guilds allowed`),
+		bot_default_guilds_restricted: z.boolean(),
 		inline_attachment_media: z.boolean(),
 		inline_embed_media: z.boolean(),
 		gif_auto_play: z.boolean(),
