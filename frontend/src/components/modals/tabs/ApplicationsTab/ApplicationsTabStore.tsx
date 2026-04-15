@@ -242,9 +242,10 @@ class ApplicationsTabStore {
 		const nextOrder: Array<string> = [];
 
 		for (const application of applications) {
-			const record = DeveloperApplicationRecord.from(application);
-			nextById[record.id] = record;
-			nextOrder.push(record.id);
+			const existing = nextById[application.id];
+			const merged = this.preserveSecrets(application, existing);
+			nextById[application.id] = DeveloperApplicationRecord.from(merged);
+			nextOrder.push(application.id);
 		}
 
 		this.applicationOrder = nextOrder;
@@ -252,7 +253,9 @@ class ApplicationsTabStore {
 	}
 
 	private cacheApplication(application: DeveloperApplication): DeveloperApplicationRecord {
-		const record = DeveloperApplicationRecord.from(application);
+		const existing = this.applicationsById[application.id];
+		const merged = this.preserveSecrets(application, existing);
+		const record = DeveloperApplicationRecord.from(merged);
 		const nextById = {...this.applicationsById, [record.id]: record};
 		let nextOrder: Array<string> = this.applicationOrder;
 
@@ -264,6 +267,22 @@ class ApplicationsTabStore {
 		this.applicationOrder = nextOrder;
 
 		return record;
+	}
+
+	private preserveSecrets(
+		fresh: DeveloperApplication,
+		existing: DeveloperApplicationRecord | undefined,
+	): DeveloperApplication {
+		if (!existing) return fresh;
+
+		const merged: DeveloperApplication = {...fresh};
+		if (!merged.client_secret && existing.client_secret) {
+			merged.client_secret = existing.client_secret;
+		}
+		if (merged.bot && existing.bot && !merged.bot.token && existing.bot.token) {
+			merged.bot = {...merged.bot, token: existing.bot.token};
+		}
+		return merged;
 	}
 }
 

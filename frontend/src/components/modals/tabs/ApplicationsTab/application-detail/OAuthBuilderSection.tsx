@@ -50,11 +50,19 @@ export const OAuthBuilderSection: React.FC<OAuthBuilderSectionProps> = ({
 	onCopyBuilderUrl,
 }) => {
 	const builderRedirectUri = form.watch('builderRedirectUri');
+	const botRequireCodeGrant = form.watch('botRequireCodeGrant') ?? false;
 
-	const redirectError =
-		!builderScopeList.includes('bot') && !builderRedirectUri
-			? t`Redirect URI is required when not using only the bot scope.`
-			: undefined;
+	const isBotOnly = builderScopeList.length === 1 && builderScopeList[0] === 'bot';
+	const redirectRequired = builderScopeList.length > 0 && (!isBotOnly || botRequireCodeGrant);
+
+	let redirectError: string | undefined;
+	if (redirectRequired && !builderRedirectUri) {
+		if (isBotOnly && botRequireCodeGrant) {
+			redirectError = t`Redirect URI is required because this bot requires OAuth2 code grant.`;
+		} else {
+			redirectError = t`Redirect URI is required when not using only the bot scope.`;
+		}
+	}
 
 	return (
 		<SectionCard
@@ -88,7 +96,7 @@ export const OAuthBuilderSection: React.FC<OAuthBuilderSectionProps> = ({
 					control={form.control}
 					render={({field}) => (
 						<Select
-							label={t`Redirect URI (required unless only bot scope)`}
+							label={t`Redirect URI`}
 							placeholder={t`Select a redirect URI`}
 							value={field.value ?? ''}
 							options={redirectOptions}
@@ -144,11 +152,6 @@ export const OAuthBuilderSection: React.FC<OAuthBuilderSectionProps> = ({
 							</Button>
 						}
 					/>
-					{!builderUrl && (
-						<div className={styles.error}>
-							<Trans>Select scopes and a redirect URI (unless bot-only) to generate a URL.</Trans>
-						</div>
-					)}
 				</div>
 			</div>
 		</SectionCard>
