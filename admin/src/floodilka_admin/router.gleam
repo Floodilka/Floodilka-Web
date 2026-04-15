@@ -25,6 +25,7 @@ import floodilka_admin/components/flash
 import floodilka_admin/constants
 import floodilka_admin/navigation
 import floodilka_admin/oauth2
+import floodilka_admin/pages/applications_page
 import floodilka_admin/pages/archives_page
 import floodilka_admin/pages/dashboard_page
 import floodilka_admin/pages/asset_purge_page
@@ -874,6 +875,60 @@ fn handle_authenticated_request(req: Request, ctx: Context) -> Response {
         Post -> {
           use user_session, current_admin <- with_session_and_admin(req, ctx)
           asset_purge_page.handle_action(req, ctx, user_session, current_admin)
+        }
+        _ -> wisp.method_not_allowed([Get, Post])
+      }
+    ["applications"] ->
+      case req.method {
+        Get -> {
+          use user_session, current_admin <- with_session_and_admin(req, ctx)
+          let flash_data = flash.from_request(req)
+          let admin_acls = case current_admin {
+            option.Some(admin) -> admin.acls
+            _ -> []
+          }
+          let query = wisp.get_query(req)
+          let owner_id =
+            list.key_find(query, "owner_user_id") |> option.from_result
+          let owner_id_filtered = case owner_id {
+            option.Some("") -> option.None
+            other -> other
+          }
+
+          applications_page.view(
+            ctx,
+            user_session,
+            current_admin,
+            flash_data,
+            admin_acls,
+            owner_id_filtered,
+            option.None,
+          )
+        }
+        Post -> {
+          use user_session <- with_session(req, ctx)
+          let query = wisp.get_query(req)
+          let action_name =
+            list.key_find(query, "action") |> option.from_result
+
+          let admin_result = users.get_current_admin(ctx, user_session)
+          let admin_acls = case admin_result {
+            Ok(option.Some(admin)) -> admin.acls
+            _ -> []
+          }
+          let current_admin = case admin_result {
+            Ok(option.Some(admin)) -> option.Some(admin)
+            _ -> option.None
+          }
+
+          applications_page.handle_action(
+            req,
+            ctx,
+            user_session,
+            current_admin,
+            admin_acls,
+            action_name,
+          )
         }
         _ -> wisp.method_not_allowed([Get, Post])
       }

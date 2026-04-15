@@ -135,6 +135,14 @@ pub fn sections() -> List(NavSection) {
         constants.acl_gift_codes_generate,
       ]),
     ]),
+    NavSection("Разработчики", [
+      NavItem("Приложения и боты", "/applications", "applications", [
+        constants.acl_application_list,
+        constants.acl_application_lookup,
+        constants.acl_application_delete,
+        constants.acl_application_revoke_bot_token,
+      ]),
+    ]),
   ]
 }
 

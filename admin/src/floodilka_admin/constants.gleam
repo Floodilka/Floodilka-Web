@@ -373,6 +373,14 @@ pub const acl_instance_snowflake_reservation_view = "instance:snowflake_reservat
 
 pub const acl_instance_snowflake_reservation_manage = "instance:snowflake_reservation:manage"
 
+pub const acl_application_lookup = "application:lookup"
+
+pub const acl_application_list = "application:list"
+
+pub const acl_application_delete = "application:delete"
+
+pub const acl_application_revoke_bot_token = "application:revoke:bot_token"
+
 pub type FeatureFlag {
   FeatureFlag(id: String, name: String, description: String)
 }
@@ -573,5 +581,9 @@ pub fn get_all_acls() -> List(String) {
     acl_feature_flag_manage,
     acl_instance_config_view,
     acl_instance_config_update,
+    acl_application_lookup,
+    acl_application_list,
+    acl_application_delete,
+    acl_application_revoke_bot_token,
   ]
 }

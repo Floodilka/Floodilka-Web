@@ -104,6 +104,7 @@ const DirectMessagesConfirmModal = observer(
 export const ConnectionsTabContent: React.FC = observer(() => {
 	const friendSourceFlags = UserSettingsStore.getFriendSourceFlags();
 	const defaultGuildsRestricted = UserSettingsStore.getDefaultGuildsRestricted();
+	const botDefaultGuildsRestricted = UserSettingsStore.getBotDefaultGuildsRestricted();
 
 	const hasFriendFlag = (flag: number) => (friendSourceFlags & flag) === flag;
 
@@ -187,6 +188,25 @@ export const ConnectionsTabContent: React.FC = observer(() => {
 					description={<Trans>Allow members from communities you're in to send you direct messages</Trans>}
 					value={!defaultGuildsRestricted}
 					onChange={handleDirectMessagesToggle}
+				/>
+			</SettingsTabSection>
+
+			<SettingsTabSection
+				title={<Trans>Bots</Trans>}
+				description={<Trans>Control whether bots can be added to your communities</Trans>}
+			>
+				<Switch
+					label={<Trans>Allow bots in all your communities</Trans>}
+					description={
+						<Trans>When off, nobody (including you) can add bots to any community you own or manage.</Trans>
+					}
+					value={!botDefaultGuildsRestricted}
+					onChange={async (value) => {
+						await UserSettingsActionCreators.update({
+							botDefaultGuildsRestricted: !value,
+							botRestrictedGuilds: [],
+						});
+					}}
 				/>
 			</SettingsTabSection>
 		</>

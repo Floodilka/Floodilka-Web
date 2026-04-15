@@ -78,6 +78,8 @@ export interface UserSettings {
 	locale: string;
 	restrictedGuilds: Array<string>;
 	defaultGuildsRestricted: boolean;
+	botRestrictedGuilds: Array<string>;
+	botDefaultGuildsRestricted: boolean;
 	inlineAttachmentMedia: boolean;
 	inlineEmbedMedia: boolean;
 	gifAutoPlay: boolean;
@@ -157,6 +159,8 @@ class UserSettingsStore {
 	locale: string = 'en-US';
 	restrictedGuilds: Array<string> = [];
 	defaultGuildsRestricted: boolean = false;
+	botRestrictedGuilds: Array<string> = [];
+	botDefaultGuildsRestricted: boolean = false;
 	inlineAttachmentMedia: boolean = true;
 	inlineEmbedMedia: boolean = true;
 	gifAutoPlay: boolean = true;
@@ -216,6 +220,14 @@ class UserSettingsStore {
 
 	getDefaultGuildsRestricted(): boolean {
 		return this.defaultGuildsRestricted;
+	}
+
+	getBotRestrictedGuilds(): ReadonlyArray<string> {
+		return this.botRestrictedGuilds;
+	}
+
+	getBotDefaultGuildsRestricted(): boolean {
+		return this.botDefaultGuildsRestricted;
 	}
 
 	getInlineAttachmentMedia(): boolean {
@@ -343,6 +355,8 @@ class UserSettingsStore {
 		this.locale = normalizedLocale;
 		this.restrictedGuilds = [...camelCaseSettings.restrictedGuilds];
 		this.defaultGuildsRestricted = camelCaseSettings.defaultGuildsRestricted;
+		this.botRestrictedGuilds = [...(camelCaseSettings.botRestrictedGuilds ?? [])];
+		this.botDefaultGuildsRestricted = camelCaseSettings.botDefaultGuildsRestricted ?? false;
 		this.inlineAttachmentMedia = camelCaseSettings.inlineAttachmentMedia;
 		this.inlineEmbedMedia = camelCaseSettings.inlineEmbedMedia;
 		this.gifAutoPlay = camelCaseSettings.gifAutoPlay;
@@ -398,6 +412,8 @@ class UserSettingsStore {
 			locale: this.locale,
 			restrictedGuilds: [...this.restrictedGuilds],
 			defaultGuildsRestricted: this.defaultGuildsRestricted,
+			botRestrictedGuilds: [...this.botRestrictedGuilds],
+			botDefaultGuildsRestricted: this.botDefaultGuildsRestricted,
 			inlineAttachmentMedia: this.inlineAttachmentMedia,
 			inlineEmbedMedia: this.inlineEmbedMedia,
 			gifAutoPlay: this.gifAutoPlay,
