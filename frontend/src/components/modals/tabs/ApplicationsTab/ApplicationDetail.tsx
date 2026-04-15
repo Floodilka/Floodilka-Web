@@ -403,8 +403,14 @@ export const ApplicationDetail: React.FC<ApplicationDetailProps> = observer(
 				const res = await HttpClient.post<{client_secret?: string; token?: string}>(endpoint, sudoPayload);
 				if (type === 'client') {
 					setClientSecret(res.body.client_secret ?? null);
+					if (res.body.client_secret) {
+						store.updateSecrets(application.id, {clientSecret: res.body.client_secret});
+					}
 				} else {
 					setBotToken(res.body.token ?? null);
+					if (res.body.token) {
+						store.updateSecrets(application.id, {botToken: res.body.token});
+					}
 				}
 				sudo.finalize();
 				ToastActionCreators.createToast({

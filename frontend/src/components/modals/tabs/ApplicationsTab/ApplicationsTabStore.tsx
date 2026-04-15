@@ -224,6 +224,25 @@ class ApplicationsTabStore {
 	}
 
 	@action
+	updateSecrets(appId: string, patch: {clientSecret?: string; botToken?: string}): void {
+		const existing = this.applicationsById[appId];
+		if (!existing) return;
+
+		const next: DeveloperApplication = {...existing.toObject()};
+		if (patch.clientSecret !== undefined) {
+			next.client_secret = patch.clientSecret;
+		}
+		if (patch.botToken !== undefined && next.bot) {
+			next.bot = {...next.bot, token: patch.botToken};
+		}
+
+		this.applicationsById = {
+			...this.applicationsById,
+			[appId]: DeveloperApplicationRecord.from(next),
+		};
+	}
+
+	@action
 	clearError(): void {
 		this.error = null;
 		if (this.navigationState === NavigationState.ERROR) {
