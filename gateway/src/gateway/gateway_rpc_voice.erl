@@ -21,10 +21,10 @@
 
 -spec execute_method(binary(), map()) -> term().
 execute_method(<<"voice.confirm_connection">>, Params) ->
-    ChannelIdBin = maps:get(<<"channel_id">>, Params),
     ConnectionId = maps:get(<<"connection_id">>, Params),
     case parse_optional_guild_id(Params) of
         undefined ->
+            ChannelIdBin = maps:get(<<"channel_id">>, Params),
             gateway_rpc_call:execute_method(
                 <<"call.confirm_connection">>,
                 #{
