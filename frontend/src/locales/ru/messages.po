@@ -20366,3 +20366,27 @@ msgstr "Флудилке нужно разрешение на мониторин
 #: src/components/modals/tabs/NotificationsTab/Notifications.tsx:114
 msgid "Флудилка uses push notifications when installed as a mobile PWA. Registering ensures the gateway can reach your device even when the browser is backgrounded."
 msgstr "Флудилка использует push-уведомления при установке как мобильное PWA. Регистрация гарантирует, что шлюз сможет связаться с вашим устройством, даже когда браузер свёрнут."
+
+#: src/components/modals/tabs/ApplicationsTab/application-detail/ApplicationInfoSection.tsx:75
+msgid "Require OAuth2 code grant"
+msgstr "Требовать OAuth2 code grant"
+
+#: src/components/modals/tabs/ApplicationsTab/application-detail/ApplicationInfoSection.tsx:76
+msgid "Require completion of the full OAuth2 code grant flow when adding this bot to a community."
+msgstr "Требовать прохождение полного OAuth2 code grant при добавлении бота на сервер."
+
+#: src/components/modals/tabs/PrivacySafetyTab/ConnectionsTab.tsx:195
+msgid "Bots"
+msgstr "Боты"
+
+#: src/components/modals/tabs/PrivacySafetyTab/ConnectionsTab.tsx:196
+msgid "Control whether bots can be added to your communities"
+msgstr "Управляйте тем, можно ли добавлять ботов на ваши серверы"
+
+#: src/components/modals/tabs/PrivacySafetyTab/ConnectionsTab.tsx:199
+msgid "Allow bots in all your communities"
+msgstr "Разрешить ботов на всех ваших серверах"
+
+#: src/components/modals/tabs/PrivacySafetyTab/ConnectionsTab.tsx:201
+msgid "When off, nobody (including you) can add bots to any community you own or manage."
+msgstr "Когда выключено, никто (включая вас) не сможет добавить ни одного бота на сервер, которым вы владеете или управляете."
