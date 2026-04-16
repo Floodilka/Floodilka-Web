@@ -209,6 +209,7 @@ export class LiveKitWebhookService {
 						channelId: context.channelId.toString(),
 						userId: context.userId.toString(),
 						connectionId: context.connectionId,
+						disconnectReason: participant.disconnectReason,
 					},
 					'LiveKit participant_left - disconnecting DM call user',
 				);
@@ -225,6 +226,7 @@ export class LiveKitWebhookService {
 						userId: context.userId.toString(),
 						channelId: context.channelId.toString(),
 						connectionId: context.connectionId,
+						disconnectReason: participant.disconnectReason,
 					},
 					'LiveKit participant_left - disconnecting guild voice user',
 				);
