@@ -1,0 +1,124 @@
+name: Load Test
+
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: 'Target environment'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+          - staging
+          - production
+      suite:
+        description: 'What to test'
+        required: true
+        default: 'http'
+        type: choice
+        options:
+          - http
+          - ws
+          - both
+      max_vus:
+        description: 'Peak virtual users'
+        required: true
+        default: '1000'
+        type: string
+      duration:
+        description: 'Hold duration at peak (e.g. 3m, 10m)'
+        required: true
+        default: '3m'
+        type: string
+      confirm_prod:
+        description: 'Type YES to confirm production run'
+        required: false
+        default: ''
+        type: string
+
+concurrency:
+  group: load-test-${{ inputs.target }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  guard:
+    name: Guard
+    runs-on: ubuntu-latest
+    steps:
+      - name: Block accidental prod runs
+        if: inputs.target == 'production' && inputs.confirm_prod != 'YES'
+        run: |
+          echo "::error::Production target requires confirm_prod=YES"
+          exit 1
+
+      - name: Resolve base URLs
+        id: urls
+        run: |
+          if [[ "${{ inputs.target }}" == "production" ]]; then
+            echo "http=https://floodilka.com" >> "$GITHUB_OUTPUT"
+            echo "ws=wss://gateway.floodilka.com/?v=10&encoding=json" >> "$GITHUB_OUTPUT"
+          else
+            echo "http=https://stage.floodilka.com" >> "$GITHUB_OUTPUT"
+            echo "ws=wss://gateway.stage.floodilka.com/?v=10&encoding=json" >> "$GITHUB_OUTPUT"
+          fi
+    outputs:
+      http: ${{ steps.urls.outputs.http }}
+      ws: ${{ steps.urls.outputs.ws }}
+
+  http:
+    name: HTTP load
+    needs: guard
+    if: inputs.suite == 'http' || inputs.suite == 'both'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: grafana/setup-k6-action@v1
+
+      - name: Run k6 HTTP
+        env:
+          TARGET_URL: ${{ needs.guard.outputs.http }}
+          MAX_VUS: ${{ inputs.max_vus }}
+          DURATION: ${{ inputs.duration }}
+        run: k6 run --summary-export=http-summary.json tests/load/http.js
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: http-summary
+          path: |
+            summary.json
+            http-summary.json
+          retention-days: 14
+
+  ws:
+    name: WS load
+    needs: guard
+    if: inputs.suite == 'ws' || inputs.suite == 'both'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: grafana/setup-k6-action@v1
+
+      - name: Raise file descriptor limit
+        run: ulimit -n 65536 || true
+
+      - name: Run k6 WS
+        env:
+          GATEWAY_URL: ${{ needs.guard.outputs.ws }}
+          MAX_VUS: ${{ inputs.max_vus }}
+          HOLD: ${{ inputs.duration }}
+        run: k6 run --summary-export=ws-summary-export.json tests/load/ws.js
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ws-summary
+          path: |
+            ws-summary.json
+            ws-summary-export.json
+          retention-days: 14
