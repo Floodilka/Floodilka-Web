@@ -8,6 +8,13 @@ const MAX_VUS = parseInt(__ENV.MAX_VUS || '1000', 10);
 const DURATION = __ENV.DURATION || '5m';
 const BYPASS_SECRET = __ENV.LOAD_TEST_SECRET || '';
 
+export function setup() {
+	const sampleTs = Math.floor(Date.now() / 1000).toString();
+	const sampleSig = BYPASS_SECRET ? crypto.hmac('sha256', BYPASS_SECRET, sampleTs, 'hex') : '';
+	console.log(`[setup] bypass_secret_len=${BYPASS_SECRET.length} sample_ts=${sampleTs} sample_sig_len=${sampleSig.length}`);
+	return {};
+}
+
 function bypassHeader() {
 	if (!BYPASS_SECRET) return {};
 	const ts = Math.floor(Date.now() / 1000).toString();
