@@ -26,7 +26,6 @@ import {UserFlags} from '~/Constants';
 import {RateLimitError} from '~/Errors';
 import type {BucketConfig} from '~/infrastructure/IRateLimitService';
 import {getMetricsService} from '~/infrastructure/MetricsService';
-import {Logger} from '~/Logger';
 import {extractClientIp} from '~/utils/IpUtils';
 
 const LOAD_TEST_HEADER = 'x-load-test-token';
@@ -34,65 +33,31 @@ const LOAD_TEST_MAX_SKEW_SECONDS = 300;
 
 function isLoadTestBypass(ctx: Context<HonoEnv>): boolean {
 	const secret = Config.dev.loadTestBypassSecret;
-	const raw = ctx.req.raw.headers;
-	const viaHono = ctx.req.header(LOAD_TEST_HEADER);
-	const viaRaw = raw.get(LOAD_TEST_HEADER);
-	const path = ctx.req.path;
-
-	if (path === '/gateway/bot') {
-		Logger.info(
-			{
-				secretSet: !!secret,
-				viaHonoLen: viaHono?.length ?? 0,
-				viaRawLen: viaRaw?.length ?? 0,
-				headerNames: Array.from(raw.keys()).join(','),
-			},
-			'load-test bypass probe',
-		);
-	}
-
 	if (!secret) return false;
 
-	const header = viaHono ?? viaRaw;
+	const header = ctx.req.header(LOAD_TEST_HEADER);
 	if (!header) return false;
 
 	const dot = header.indexOf('.');
-	if (dot <= 0 || dot === header.length - 1) {
-		Logger.warn({stage: 'dot', len: header.length}, 'load-test bypass rejected');
-		return false;
-	}
+	if (dot <= 0 || dot === header.length - 1) return false;
 
 	const tsPart = header.slice(0, dot);
 	const sigPart = header.slice(dot + 1);
 
 	const ts = Number(tsPart);
-	if (!Number.isInteger(ts)) {
-		Logger.warn({stage: 'ts_parse', tsPart}, 'load-test bypass rejected');
-		return false;
-	}
+	if (!Number.isInteger(ts)) return false;
 
 	const now = Math.floor(Date.now() / 1000);
-	if (Math.abs(now - ts) > LOAD_TEST_MAX_SKEW_SECONDS) {
-		Logger.warn({stage: 'skew', now, ts, diff: now - ts}, 'load-test bypass rejected');
-		return false;
-	}
+	if (Math.abs(now - ts) > LOAD_TEST_MAX_SKEW_SECONDS) return false;
 
 	const expected = createHmac('sha256', secret).update(tsPart).digest('hex');
-	if (sigPart.length !== expected.length) {
-		Logger.warn({stage: 'sig_len', got: sigPart.length, want: expected.length}, 'load-test bypass rejected');
-		return false;
-	}
+	if (sigPart.length !== expected.length) return false;
 
 	const a = Buffer.from(sigPart, 'utf8');
 	const b = Buffer.from(expected, 'utf8');
 	try {
-		const ok = timingSafeEqual(a, b);
-		if (!ok) {
-			Logger.warn({stage: 'hmac_mismatch', secretLen: secret.length, tsPart}, 'load-test bypass rejected');
-		}
-		return ok;
-	} catch (e) {
-		Logger.warn({stage: 'hmac_throw', err: String(e)}, 'load-test bypass rejected');
+		return timingSafeEqual(a, b);
+	} catch {
 		return false;
 	}
 }
