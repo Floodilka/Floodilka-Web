@@ -5,7 +5,7 @@ bind_addresses:
 rtc:
   tcp_port: 7881
   udp_port: 7882
-  use_external_ip: false
+  use_external_ip: true
   node_ip: ${NODE_IP}
   enable_loopback_candidate: false
 
@@ -18,7 +18,7 @@ redis:
 
 turn:
   enabled: true
-  domain: ${LIVEKIT_DOMAIN_TURN}
+  domain: ${LIVEKIT_DOMAIN_TURN_PROD}
   tls_port: 5349
   udp_port: 3478
   external_tls: true
@@ -39,7 +39,7 @@ room:
   departure_timeout: 20
 
 webhook:
-  api_key: ${LIVEKIT_API_KEY}
+  api_key: ${LIVEKIT_API_KEY_PROD}
   urls:
     - ${LIVEKIT_WEBHOOK_URL}
     - ${LIVEKIT_WEBHOOK_URL_PROD}
