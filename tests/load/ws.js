@@ -1,11 +1,20 @@
 import ws from 'k6/ws';
 import { check } from 'k6';
 import { Counter, Trend, Rate } from 'k6/metrics';
+import crypto from 'k6/crypto';
 
 const GATEWAY = __ENV.GATEWAY_URL || 'wss://gateway.stage.floodilka.com/?v=10&encoding=json';
 const MAX_VUS = parseInt(__ENV.MAX_VUS || '2000', 10);
 const HOLD = __ENV.HOLD || '5m';
 const SESSION_SECONDS = parseInt(__ENV.SESSION_SECONDS || '120', 10);
+const BYPASS_SECRET = __ENV.LOAD_TEST_SECRET || '';
+
+function bypassHeader() {
+	if (!BYPASS_SECRET) return {};
+	const ts = Math.floor(Date.now() / 1000).toString();
+	const sig = crypto.hmac('sha256', BYPASS_SECRET, ts, 'hex');
+	return { 'X-Load-Test-Token': `${ts}.${sig}` };
+}
 
 const connected = new Counter('ws_connected');
 const handshakeTime = new Trend('ws_handshake_time', true);
@@ -33,7 +42,8 @@ export const options = {
 
 export default function () {
 	const start = Date.now();
-	const res = ws.connect(GATEWAY, { tags: { name: 'gateway_ws' } }, (socket) => {
+	const params = { tags: { name: 'gateway_ws' }, headers: bypassHeader() };
+	const res = ws.connect(GATEWAY, params, (socket) => {
 		socket.on('open', () => {
 			handshakeTime.add(Date.now() - start);
 			connected.add(1);

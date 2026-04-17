@@ -17,6 +17,7 @@
  * along with Floodilka. If not, see <https://www.gnu.org/licenses/>.
  */
 
+import {createHmac, timingSafeEqual} from 'node:crypto';
 import type {Context, MiddlewareHandler} from 'hono';
 import {createMiddleware} from 'hono/factory';
 import type {HonoEnv} from '~/App';
@@ -26,6 +27,40 @@ import {RateLimitError} from '~/Errors';
 import type {BucketConfig} from '~/infrastructure/IRateLimitService';
 import {getMetricsService} from '~/infrastructure/MetricsService';
 import {extractClientIp} from '~/utils/IpUtils';
+
+const LOAD_TEST_HEADER = 'x-load-test-token';
+const LOAD_TEST_MAX_SKEW_SECONDS = 300;
+
+function isLoadTestBypass(ctx: Context<HonoEnv>): boolean {
+	const secret = Config.dev.loadTestBypassSecret;
+	if (!secret) return false;
+
+	const header = ctx.req.header(LOAD_TEST_HEADER);
+	if (!header) return false;
+
+	const dot = header.indexOf('.');
+	if (dot <= 0 || dot === header.length - 1) return false;
+
+	const tsPart = header.slice(0, dot);
+	const sigPart = header.slice(dot + 1);
+
+	const ts = Number(tsPart);
+	if (!Number.isInteger(ts)) return false;
+
+	const now = Math.floor(Date.now() / 1000);
+	if (Math.abs(now - ts) > LOAD_TEST_MAX_SKEW_SECONDS) return false;
+
+	const expected = createHmac('sha256', secret).update(tsPart).digest('hex');
+	if (sigPart.length !== expected.length) return false;
+
+	const a = Buffer.from(sigPart, 'utf8');
+	const b = Buffer.from(expected, 'utf8');
+	try {
+		return timingSafeEqual(a, b);
+	} catch {
+		return false;
+	}
+}
 
 export interface RouteRateLimitConfig {
 	bucket: string;
@@ -71,6 +106,15 @@ function setRateLimitHeaders(ctx: Context<HonoEnv>, limit: number, remaining: nu
 export function RateLimitMiddleware(routeConfig: RouteRateLimitConfig): MiddlewareHandler<HonoEnv> {
 	return createMiddleware<HonoEnv>(async (ctx, next) => {
 		if (Config.dev.disableRateLimits || Config.dev.testModeEnabled || process.env.CI === 'true') {
+			await next();
+			return;
+		}
+
+		if (isLoadTestBypass(ctx)) {
+			getMetricsService().counter({
+				name: 'api.ratelimit.bypass',
+				dimensions: {reason: 'load_test'},
+			});
 			await next();
 			return;
 		}

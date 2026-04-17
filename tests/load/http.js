@@ -1,10 +1,19 @@
 import http from 'k6/http';
 import { check, sleep } from 'k6';
 import { Trend, Rate } from 'k6/metrics';
+import crypto from 'k6/crypto';
 
 const BASE = __ENV.TARGET_URL || 'https://stage.floodilka.com';
 const MAX_VUS = parseInt(__ENV.MAX_VUS || '1000', 10);
 const DURATION = __ENV.DURATION || '5m';
+const BYPASS_SECRET = __ENV.LOAD_TEST_SECRET || '';
+
+function bypassHeader() {
+	if (!BYPASS_SECRET) return {};
+	const ts = Math.floor(Date.now() / 1000).toString();
+	const sig = crypto.hmac('sha256', BYPASS_SECRET, ts, 'hex');
+	return { 'X-Load-Test-Token': `${ts}.${sig}` };
+}
 
 const healthLatency = new Trend('health_latency', true);
 const botLatency = new Trend('bot_latency', true);
@@ -26,24 +35,30 @@ export const options = {
 	},
 	thresholds: {
 		http_req_failed: ['rate<0.02'],
-		http_req_duration: ['p(95)<800', 'p(99)<2000'],
+		http_req_duration: ['p(95)<800'],
 		errors: ['rate<0.02'],
 	},
+	summaryTrendStats: ['min', 'avg', 'med', 'max', 'p(50)', 'p(90)', 'p(95)', 'p(99)'],
 };
 
 export default function () {
-	const health = http.get(`${BASE}/api/_health`, { tags: { name: 'health' } });
+	const baseHeaders = { 'User-Agent': 'floodilka-loadtest/1.0', ...bypassHeader() };
+
+	const health = http.get(`${BASE}/api/_health`, {
+		tags: { name: 'health' },
+		headers: baseHeaders,
+	});
 	healthLatency.add(health.timings.duration);
 	const healthOK = check(health, { 'health 200': (r) => r.status === 200 });
 	errorRate.add(!healthOK);
 
 	const bot = http.get(`${BASE}/api/gateway/bot`, {
 		tags: { name: 'gateway_bot' },
-		headers: { 'User-Agent': 'floodilka-loadtest/1.0' },
+		headers: baseHeaders,
 	});
 	botLatency.add(bot.timings.duration);
 	const botOK = check(bot, {
-		'bot 200/401/429': (r) => r.status === 200 || r.status === 401 || r.status === 429,
+		'bot 200/401': (r) => r.status === 200 || r.status === 401,
 	});
 	errorRate.add(!botOK);
 

@@ -272,6 +272,7 @@ const ConfigSchema = z.object({
 		disableRateLimits: z.boolean(),
 		testModeEnabled: z.boolean(),
 		testHarnessToken: z.string().optional(),
+		loadTestBypassSecret: z.string().optional(),
 	}),
 
 	attachmentDecayEnabled: z.boolean(),
@@ -515,6 +516,7 @@ function loadConfig() {
 			disableRateLimits: optionalBool('DISABLE_RATE_LIMITS'),
 			testModeEnabled,
 			testHarnessToken: optional('FLOODILKA_TEST_TOKEN'),
+			loadTestBypassSecret: optional('LOAD_TEST_BYPASS_SECRET'),
 		},
 
 		attachmentDecayEnabled: optionalBool('ATTACHMENT_DECAY_ENABLED', true),

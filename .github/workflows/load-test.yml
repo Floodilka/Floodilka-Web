@@ -83,6 +83,7 @@ jobs:
           TARGET_URL: ${{ needs.guard.outputs.http }}
           MAX_VUS: ${{ inputs.max_vus }}
           DURATION: ${{ inputs.duration }}
+          LOAD_TEST_SECRET: ${{ secrets.LOAD_TEST_BYPASS_SECRET }}
         run: k6 run --summary-export=http-summary.json tests/load/http.js
 
       - uses: actions/upload-artifact@v4
@@ -112,6 +113,7 @@ jobs:
           GATEWAY_URL: ${{ needs.guard.outputs.ws }}
           MAX_VUS: ${{ inputs.max_vus }}
           HOLD: ${{ inputs.duration }}
+          LOAD_TEST_SECRET: ${{ secrets.LOAD_TEST_BYPASS_SECRET }}
         run: k6 run --summary-export=ws-summary-export.json tests/load/ws.js
 
       - uses: actions/upload-artifact@v4
