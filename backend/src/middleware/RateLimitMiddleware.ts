@@ -34,9 +34,26 @@ const LOAD_TEST_MAX_SKEW_SECONDS = 300;
 
 function isLoadTestBypass(ctx: Context<HonoEnv>): boolean {
 	const secret = Config.dev.loadTestBypassSecret;
+	const raw = ctx.req.raw.headers;
+	const viaHono = ctx.req.header(LOAD_TEST_HEADER);
+	const viaRaw = raw.get(LOAD_TEST_HEADER);
+	const path = ctx.req.path;
+
+	if (path === '/gateway/bot') {
+		Logger.info(
+			{
+				secretSet: !!secret,
+				viaHonoLen: viaHono?.length ?? 0,
+				viaRawLen: viaRaw?.length ?? 0,
+				headerNames: Array.from(raw.keys()).join(','),
+			},
+			'load-test bypass probe',
+		);
+	}
+
 	if (!secret) return false;
 
-	const header = ctx.req.header(LOAD_TEST_HEADER);
+	const header = viaHono ?? viaRaw;
 	if (!header) return false;
 
 	const dot = header.indexOf('.');
