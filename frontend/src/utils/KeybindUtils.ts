@@ -56,6 +56,10 @@ export const formatKeyCombo = (combo: KeyCombo): string => {
 		parts.push(shiftLabel);
 	}
 	if (combo.alt) parts.push(isMac() ? '⌥' : 'Alt');
+	if (combo.mouseButton) {
+		parts.push(`Mouse ${combo.mouseButton}`);
+		return parts.join(' + ');
+	}
 	const key = resolveComboKey(combo);
 	if (key === ' ') {
 		parts.push('Space');

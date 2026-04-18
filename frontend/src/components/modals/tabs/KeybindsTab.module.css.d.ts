@@ -1,4 +1,7 @@
 declare const styles: {
+  readonly "badge": string;
+  readonly "badgeMuted": string;
+  readonly "badgeWarning": string;
   readonly "callout": string;
   readonly "calloutIcon": string;
   readonly "calloutTitle": string;
@@ -20,6 +23,7 @@ declare const styles: {
   readonly "headerActions": string;
   readonly "headerRow": string;
   readonly "label": string;
+  readonly "labelRow": string;
   readonly "permissionActions": string;
   readonly "permissionCard": string;
   readonly "permissionDescription": string;

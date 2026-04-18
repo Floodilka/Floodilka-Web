@@ -18,17 +18,19 @@
  */
 
 import {Trans, useLingui} from '@lingui/react/macro';
-import {ArrowCounterClockwiseIcon, KeyboardIcon, PencilSimpleIcon, TrashIcon} from '@phosphor-icons/react';
+import {ArrowCounterClockwiseIcon, KeyboardIcon, PencilSimpleIcon, TrashIcon, WarningIcon} from '@phosphor-icons/react';
 import clsx from 'clsx';
 import React from 'react';
 import {Button} from '~/components/uikit/Button/Button';
 import {Popout} from '~/components/uikit/Popout/Popout';
+import {findConflicts, type KeybindConflict} from '~/lib/KeybindConflict';
 import type {KeybindAction, KeyCombo} from '~/stores/KeybindStore';
 import {formatKeyCombo} from '~/utils/KeybindUtils';
 import styles from './KeybindRecorder.module.css';
 
 interface KeybindRecorderProps {
 	action: KeybindAction;
+	index?: number;
 	value: KeyCombo;
 	defaultValue?: KeyCombo | null;
 	disabled?: boolean;
@@ -44,6 +46,7 @@ const combosEqual = (a: KeyCombo | null | undefined, b: KeyCombo | null | undefi
 	return (
 		a.key === b.key &&
 		a.code === b.code &&
+		(a.mouseButton ?? null) === (b.mouseButton ?? null) &&
 		!!a.ctrlOrMeta === !!b.ctrlOrMeta &&
 		!!a.ctrl === !!b.ctrl &&
 		!!a.alt === !!b.alt &&
@@ -72,6 +75,8 @@ const keyboardEventToCombo = (event: KeyboardEvent): KeyCombo => ({
 });
 
 interface KeybindEditorPopoutProps {
+	action: KeybindAction;
+	index: number;
 	value: KeyCombo;
 	defaultValue: KeyCombo | null;
 	onSave: (combo: KeyCombo) => void;
@@ -81,6 +86,8 @@ interface KeybindEditorPopoutProps {
 }
 
 const KeybindEditorPopout: React.FC<KeybindEditorPopoutProps> = ({
+	action,
+	index,
 	value,
 	defaultValue,
 	onSave,
@@ -95,8 +102,12 @@ const KeybindEditorPopout: React.FC<KeybindEditorPopoutProps> = ({
 	const currentCombo = previewCombo ?? value;
 	const displayValue = formatKeyCombo(currentCombo) || '';
 	const defaultDisplayValue = defaultValue ? formatKeyCombo(defaultValue) : null;
-	const currentHasValue = !!(currentCombo?.key || currentCombo?.code);
+	const currentHasValue = !!(currentCombo?.key || currentCombo?.code || currentCombo?.mouseButton);
 	const currentIsModified = defaultValue ? !combosEqual(currentCombo, defaultValue) : false;
+	const conflicts = React.useMemo<Array<KeybindConflict>>(
+		() => (currentHasValue ? findConflicts(currentCombo, action, index) : []),
+		[currentCombo, action, index, currentHasValue],
+	);
 
 	const cancelRecording = React.useCallback(() => {
 		setRecording(false);
@@ -142,9 +153,33 @@ const KeybindEditorPopout: React.FC<KeybindEditorPopoutProps> = ({
 			finishRecording(savedCombo);
 		};
 
+		const handleMouseDown = (event: MouseEvent) => {
+			const canonical = event.button + 1;
+			if (canonical < 4) return;
+
+			event.preventDefault();
+			event.stopPropagation();
+
+			const savedCombo: KeyCombo = {
+				key: '',
+				mouseButton: canonical,
+				ctrlOrMeta: event.metaKey || event.ctrlKey,
+				ctrl: event.ctrlKey,
+				alt: event.altKey,
+				shift: event.shiftKey,
+				global: value.global,
+				enabled: true,
+			};
+			setPreviewCombo(savedCombo);
+			onSave(savedCombo);
+			finishRecording(savedCombo);
+		};
+
 		window.addEventListener('keydown', handleKeyDown, true);
+		window.addEventListener('mousedown', handleMouseDown, true);
 		return () => {
 			window.removeEventListener('keydown', handleKeyDown, true);
+			window.removeEventListener('mousedown', handleMouseDown, true);
 		};
 	}, [recording, onSave, cancelRecording, finishRecording, value.global]);
 
@@ -197,6 +232,23 @@ const KeybindEditorPopout: React.FC<KeybindEditorPopoutProps> = ({
 				</div>
 			)}
 
+			{conflicts.length > 0 && !recording && (
+				<div className={styles.conflictRow}>
+					<WarningIcon size={16} weight="fill" className={styles.conflictIcon} />
+					<div className={styles.conflictMessages}>
+						{conflicts.map((conflict, i) => (
+							<span key={i} className={styles.conflictMessage}>
+								{conflict.kind === 'action' ? (
+									<Trans>Already used by "{conflict.label}"</Trans>
+								) : (
+									<Trans>System uses this for "{conflict.label}"</Trans>
+								)}
+							</span>
+						))}
+					</div>
+				</div>
+			)}
+
 			<div className={styles.popoutActions}>
 				<div className={styles.popoutActionsLeft}>
 					{onClear && currentHasValue && (
@@ -226,6 +278,7 @@ const KeybindEditorPopout: React.FC<KeybindEditorPopoutProps> = ({
 
 export const KeybindRecorder: React.FC<KeybindRecorderProps> = ({
 	action,
+	index = 0,
 	value,
 	defaultValue = null,
 	disabled = false,
@@ -237,7 +290,7 @@ export const KeybindRecorder: React.FC<KeybindRecorderProps> = ({
 	const {t} = useLingui();
 	const triggerRef = React.useRef<HTMLButtonElement | null>(null);
 
-	const isEmpty = !value?.key && !value?.code;
+	const isEmpty = !value?.key && !value?.code && !value?.mouseButton;
 	const hasValue = !isEmpty;
 	const displayValue = formatKeyCombo(value) || '';
 
@@ -249,6 +302,8 @@ export const KeybindRecorder: React.FC<KeybindRecorderProps> = ({
 			returnFocusRef={triggerRef}
 			render={({onClose}) => (
 				<KeybindEditorPopout
+					action={action}
+					index={index}
 					value={value}
 					defaultValue={defaultValue}
 					onSave={(combo) => {

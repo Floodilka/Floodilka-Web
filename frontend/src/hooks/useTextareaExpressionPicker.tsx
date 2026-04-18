@@ -24,6 +24,7 @@ import * as PopoutActionCreators from '~/actions/PopoutActionCreators';
 import type {ExpressionPickerTabType} from '~/components/popouts/ExpressionPickerPopout';
 import {ExpressionPickerPopout} from '~/components/popouts/ExpressionPickerPopout';
 import {openPopout} from '~/components/uikit/Popout/Popout';
+import {ComponentDispatch} from '~/lib/ComponentDispatch';
 import type {Emoji} from '~/stores/EmojiStore';
 import ExpressionPickerStore from '~/stores/ExpressionPickerStore';
 import MobileLayoutStore from '~/stores/MobileLayoutStore';
@@ -157,27 +158,11 @@ export const useTextareaExpressionPicker = ({
 	}, [channelId, getExpressionPickerPopoutKey, openExpressionPicker, closeExpressionPicker, mobileLayout.enabled]);
 
 	React.useEffect(() => {
-		const handleGlobalKeyDown = (event: KeyboardEvent) => {
-			if (!event.ctrlKey && !event.metaKey) return;
-			if (event.shiftKey || event.altKey) return;
-
-			const key = event.key.toLowerCase();
-			let tab: ExpressionPickerTabType | null = null;
-
-			if (key === 'e') tab = 'emojis';
-			else if (key === 'g') tab = 'gifs';
-			else if (key === 's') tab = 'stickers';
-			else if (key === 'm') tab = 'memes';
-
-			if (tab) {
-				event.preventDefault();
-				event.stopPropagation();
-				handleExpressionPickerTabToggle(tab);
-			}
-		};
-
-		window.addEventListener('keydown', handleGlobalKeyDown, {capture: true});
-		return () => window.removeEventListener('keydown', handleGlobalKeyDown, {capture: true});
+		return ComponentDispatch.subscribe('EXPRESSION_PICKER_TOGGLE', (args?: unknown) => {
+			const payload = args as {tab?: ExpressionPickerTabType} | undefined;
+			if (!payload?.tab) return;
+			handleExpressionPickerTabToggle(payload.tab);
+		});
 	}, [handleExpressionPickerTabToggle]);
 
 	return {

@@ -78,6 +78,7 @@ export type KeybindAction =
 export interface KeyCombo {
 	key: string;
 	code?: string;
+	mouseButton?: number;
 	ctrlOrMeta?: boolean;
 	ctrl?: boolean;
 	alt?: boolean;
@@ -87,14 +88,27 @@ export interface KeyCombo {
 	enabled?: boolean;
 }
 
+export const MOUSE_BUTTON_BACK = 4;
+export const MOUSE_BUTTON_FORWARD = 5;
+
+export type KeybindScope = 'app' | 'chat' | 'call-ringing' | 'voice-connected';
+
 export interface KeybindConfig {
 	action: KeybindAction;
 	label: string;
 	description?: string;
-	combo: KeyCombo;
+	defaultCombo: KeyCombo;
 	allowGlobal?: boolean;
+	scope?: KeybindScope;
 	category: 'navigation' | 'voice' | 'messaging' | 'popouts' | 'calls' | 'system';
 }
+
+export interface ActiveKeybind extends KeybindConfig {
+	combos: Array<KeyCombo>;
+	combo: KeyCombo;
+}
+
+export const MAX_COMBOS_PER_ACTION = 2;
 
 const TRANSMIT_MODES = ['voice_activity', 'push_to_talk'] as const;
 type TransmitMode = (typeof TRANSMIT_MODES)[number];
@@ -110,273 +124,275 @@ const getDefaultKeybinds = (i18n: I18n): ReadonlyArray<KeybindConfig> =>
 			action: 'quick_switcher',
 			label: i18n._(msg`Find or Start a Direct Message`),
 			description: i18n._(msg`Open the quick switcher overlay`),
-			combo: {key: 'k', ctrlOrMeta: true},
+			defaultCombo: {key: 'k', ctrlOrMeta: true},
 			category: 'navigation',
 		},
 		{
 			action: 'navigate_server_previous',
 			label: i18n._(msg`Previous Community`),
 			description: i18n._(msg`Navigate to the previous community`),
-			combo: {key: 'ArrowUp', ctrlOrMeta: true, alt: true},
+			defaultCombo: {key: 'ArrowUp', ctrlOrMeta: true, alt: true},
 			category: 'navigation',
 		},
 		{
 			action: 'navigate_server_next',
 			label: i18n._(msg`Next Community`),
 			description: i18n._(msg`Navigate to the next community`),
-			combo: {key: 'ArrowDown', ctrlOrMeta: true, alt: true},
+			defaultCombo: {key: 'ArrowDown', ctrlOrMeta: true, alt: true},
 			category: 'navigation',
 		},
 		{
 			action: 'navigate_channel_previous',
 			label: i18n._(msg`Previous Channel`),
 			description: i18n._(msg`Navigate to the previous channel in the community`),
-			combo: {key: 'ArrowUp', alt: true},
+			defaultCombo: {key: 'ArrowUp', alt: true},
 			category: 'navigation',
 		},
 		{
 			action: 'navigate_channel_next',
 			label: i18n._(msg`Next Channel`),
 			description: i18n._(msg`Navigate to the next channel in the community`),
-			combo: {key: 'ArrowDown', alt: true},
+			defaultCombo: {key: 'ArrowDown', alt: true},
 			category: 'navigation',
 		},
 		{
 			action: 'navigate_unread_channel_previous',
 			label: i18n._(msg`Previous Unread Channel`),
 			description: i18n._(msg`Jump to the previous unread channel`),
-			combo: {key: 'ArrowUp', alt: true, shift: true},
+			defaultCombo: {key: 'ArrowUp', alt: true, shift: true},
 			category: 'navigation',
 		},
 		{
 			action: 'navigate_unread_channel_next',
 			label: i18n._(msg`Next Unread Channel`),
 			description: i18n._(msg`Jump to the next unread channel`),
-			combo: {key: 'ArrowDown', alt: true, shift: true},
+			defaultCombo: {key: 'ArrowDown', alt: true, shift: true},
 			category: 'navigation',
 		},
 		{
 			action: 'navigate_unread_mentions_previous',
 			label: i18n._(msg`Previous Unread Mention`),
 			description: i18n._(msg`Jump to the previous unread channel with mentions`),
-			combo: {key: 'ArrowUp', alt: true, shift: true, ctrlOrMeta: true},
+			defaultCombo: {key: 'ArrowUp', alt: true, shift: true, ctrlOrMeta: true},
 			category: 'navigation',
 		},
 		{
 			action: 'navigate_unread_mentions_next',
 			label: i18n._(msg`Next Unread Mention`),
 			description: i18n._(msg`Jump to the next unread channel with mentions`),
-			combo: {key: 'ArrowDown', alt: true, shift: true, ctrlOrMeta: true},
+			defaultCombo: {key: 'ArrowDown', alt: true, shift: true, ctrlOrMeta: true},
 			category: 'navigation',
 		},
 		{
 			action: 'navigate_history_back',
 			label: i18n._(msg`Navigate Back`),
 			description: i18n._(msg`Go back in navigation history`),
-			combo: {key: '[', ctrlOrMeta: true},
+			defaultCombo: {key: '[', ctrlOrMeta: true},
 			category: 'navigation',
 		},
 		{
 			action: 'navigate_history_forward',
 			label: i18n._(msg`Navigate Forward`),
 			description: i18n._(msg`Go forward in navigation history`),
-			combo: {key: ']', ctrlOrMeta: true},
+			defaultCombo: {key: ']', ctrlOrMeta: true},
 			category: 'navigation',
 		},
 		{
 			action: 'navigate_to_current_call',
 			label: i18n._(msg`Go to Current Call`),
 			description: i18n._(msg`Jump to the channel of the active call`),
-			combo: {key: 'v', alt: true, shift: true, ctrlOrMeta: true},
+			defaultCombo: {key: 'v', alt: true, shift: true, ctrlOrMeta: true},
 			category: 'navigation',
 		},
 		{
 			action: 'navigate_last_server_or_dm',
 			label: i18n._(msg`Toggle Last Community / DMs`),
 			description: i18n._(msg`Switch between the last community and direct messages`),
-			combo: {key: 'ArrowRight', alt: true, ctrlOrMeta: true},
+			defaultCombo: {key: 'ArrowRight', alt: true, ctrlOrMeta: true},
 			category: 'navigation',
 		},
 		{
 			action: 'return_previous_text_channel',
 			label: i18n._(msg`Return to Previous Text Channel`),
 			description: i18n._(msg`Go back to the previously focused text channel`),
-			combo: {key: 'b', ctrlOrMeta: true},
+			defaultCombo: {key: 'b', ctrlOrMeta: true},
 			category: 'navigation',
 		},
 		{
 			action: 'return_previous_text_channel_alt',
 			label: i18n._(msg`Return to Previous Text Channel (Alt)`),
 			description: i18n._(msg`Alternate binding to jump back to the previously focused text channel`),
-			combo: {key: 'ArrowRight', alt: true},
+			defaultCombo: {key: 'ArrowRight', alt: true},
 			category: 'navigation',
 		},
 		{
 			action: 'return_connected_audio_channel',
 			label: i18n._(msg`Return to Active Audio Channel`),
 			description: i18n._(msg`Focus the audio channel you are currently connected to`),
-			combo: {key: 'a', alt: true, ctrlOrMeta: true},
+			defaultCombo: {key: 'a', alt: true, ctrlOrMeta: true},
 			category: 'voice',
 		},
 		{
 			action: 'return_connected_audio_channel_alt',
 			label: i18n._(msg`Return to Connected Audio Channel`),
 			description: i18n._(msg`Alternate binding to focus the audio channel you are connected to`),
-			combo: {key: 'ArrowLeft', alt: true},
+			defaultCombo: {key: 'ArrowLeft', alt: true},
 			category: 'voice',
 		},
 		{
 			action: 'toggle_settings',
 			label: i18n._(msg`Open User Settings`),
 			description: i18n._(msg`Open user settings modal`),
-			combo: {key: ',', ctrlOrMeta: true},
+			defaultCombo: {key: ',', ctrlOrMeta: true},
 			category: 'navigation',
 		},
 		{
 			action: 'toggle_hotkeys',
 			label: i18n._(msg`Toggle Hotkeys`),
 			description: i18n._(msg`Show or hide keyboard shortcut help`),
-			combo: {key: '/', ctrlOrMeta: true},
+			defaultCombo: {key: '/', ctrlOrMeta: true},
 			category: 'system',
 		},
 		{
 			action: 'toggle_pins_popout',
 			label: i18n._(msg`Toggle Pins Popout`),
 			description: i18n._(msg`Open or close pinned messages`),
-			combo: {key: 'p', ctrlOrMeta: true},
+			defaultCombo: {key: 'p', ctrlOrMeta: true},
 			category: 'popouts',
 		},
 		{
 			action: 'toggle_mentions_popout',
 			label: i18n._(msg`Toggle Mentions Popout`),
 			description: i18n._(msg`Open or close recent mentions`),
-			combo: {key: 'i', ctrlOrMeta: true},
+			defaultCombo: {key: 'i', ctrlOrMeta: true},
 			category: 'popouts',
 		},
 		{
 			action: 'toggle_channel_member_list',
 			label: i18n._(msg`Toggle Channel Member List`),
 			description: i18n._(msg`Show or hide the member list for the current channel`),
-			combo: {key: 'u', ctrlOrMeta: true},
+			defaultCombo: {key: 'u', ctrlOrMeta: true},
 			category: 'popouts',
 		},
 		{
 			action: 'toggle_emoji_picker',
 			label: i18n._(msg`Toggle Emoji Picker`),
 			description: i18n._(msg`Open or close the emoji picker`),
-			combo: {key: 'e', ctrlOrMeta: true},
+			defaultCombo: {key: 'e', ctrlOrMeta: true},
 			category: 'popouts',
 		},
 		{
 			action: 'toggle_gif_picker',
 			label: i18n._(msg`Toggle GIF Picker`),
 			description: i18n._(msg`Open or close the GIF picker`),
-			combo: {key: 'g', ctrlOrMeta: true},
+			defaultCombo: {key: 'g', ctrlOrMeta: true},
 			category: 'popouts',
 		},
 		{
 			action: 'toggle_sticker_picker',
 			label: i18n._(msg`Toggle Sticker Picker`),
 			description: i18n._(msg`Open or close the sticker picker`),
-			combo: {key: 's', ctrlOrMeta: true},
+			defaultCombo: {key: 's', ctrlOrMeta: true},
 			category: 'popouts',
 		},
 		{
 			action: 'toggle_memes_picker',
 			label: i18n._(msg`Toggle Memes Picker`),
 			description: i18n._(msg`Open or close the memes picker`),
-			combo: {key: 'm', ctrlOrMeta: true},
+			defaultCombo: {key: 'm', ctrlOrMeta: true},
 			category: 'popouts',
 		},
 		{
 			action: 'scroll_chat_up',
 			label: i18n._(msg`Scroll Chat Up`),
 			description: i18n._(msg`Scroll the chat history up`),
-			combo: {key: 'PageUp'},
+			defaultCombo: {key: 'PageUp'},
 			category: 'messaging',
 		},
 		{
 			action: 'scroll_chat_down',
 			label: i18n._(msg`Scroll Chat Down`),
 			description: i18n._(msg`Scroll the chat history down`),
-			combo: {key: 'PageDown'},
+			defaultCombo: {key: 'PageDown'},
 			category: 'messaging',
 		},
 		{
 			action: 'jump_to_oldest_unread',
 			label: i18n._(msg`Jump to Oldest Unread Message`),
 			description: i18n._(msg`Jump to the oldest unread message in the channel`),
-			combo: {key: 'PageUp', shift: true},
+			defaultCombo: {key: 'PageUp', shift: true},
 			category: 'messaging',
 		},
 		{
 			action: 'mark_channel_read',
 			label: i18n._(msg`Mark Channel as Read`),
 			description: i18n._(msg`Mark the current channel as read`),
-			combo: {key: 'Escape'},
+			defaultCombo: {key: 'Escape'},
 			category: 'messaging',
 		},
 		{
 			action: 'mark_server_read',
 			label: i18n._(msg`Mark Community as Read`),
 			description: i18n._(msg`Mark the current community as read`),
-			combo: {key: 'Escape', shift: true},
+			defaultCombo: {key: 'Escape', shift: true},
 			category: 'messaging',
 		},
 		{
 			action: 'mark_top_inbox_read',
 			label: i18n._(msg`Mark Top Inbox Channel as Read`),
 			description: i18n._(msg`Mark the first unread channel in your inbox as read`),
-			combo: {key: 'e', ctrlOrMeta: true, shift: true},
+			defaultCombo: {key: 'e', ctrlOrMeta: true, shift: true},
 			category: 'messaging',
 		},
 		{
 			action: 'create_or_join_server',
 			label: i18n._(msg`Create or Join a Community`),
 			description: i18n._(msg`Open the create or join community flow`),
-			combo: {key: 'n', ctrlOrMeta: true, shift: true},
+			defaultCombo: {key: 'n', ctrlOrMeta: true, shift: true},
 			category: 'system',
 		},
 		{
 			action: 'create_private_group',
 			label: i18n._(msg`Create a Private Group`),
 			description: i18n._(msg`Start a new private group`),
-			combo: {key: 't', ctrlOrMeta: true, shift: true},
+			defaultCombo: {key: 't', ctrlOrMeta: true, shift: true},
 			category: 'system',
 		},
 		{
 			action: 'start_pm_call',
 			label: i18n._(msg`Start Call in Private Message or Group`),
 			description: i18n._(msg`Begin a call in the current private conversation`),
-			combo: {key: "'", ctrl: true},
+			defaultCombo: {key: "'", ctrlOrMeta: true},
 			category: 'calls',
 		},
 		{
 			action: 'answer_incoming_call',
 			label: i18n._(msg`Answer Incoming Call`),
 			description: i18n._(msg`Accept the incoming call`),
-			combo: {key: 'Enter', ctrlOrMeta: true},
+			defaultCombo: {key: 'Enter', ctrlOrMeta: true},
+			scope: 'call-ringing',
 			category: 'calls',
 		},
 		{
 			action: 'decline_incoming_call',
 			label: i18n._(msg`Decline Incoming Call`),
 			description: i18n._(msg`Decline or dismiss the incoming call`),
-			combo: {key: 'Escape'},
+			defaultCombo: {key: 'Escape'},
+			scope: 'call-ringing',
 			category: 'calls',
 		},
 		{
 			action: 'focus_text_area',
 			label: i18n._(msg`Focus Text Area`),
 			description: i18n._(msg`Move focus to the message composer`),
-			combo: {key: 'Tab'},
+			defaultCombo: {key: 'Tab'},
 			category: 'messaging',
 		},
 		{
 			action: 'toggle_mute',
 			label: i18n._(msg`Toggle Mute`),
 			description: i18n._(msg`Mute / unmute microphone`),
-			combo: {key: 'm', ctrlOrMeta: true, shift: true, global: true, enabled: true},
+			defaultCombo: {key: 'm', ctrlOrMeta: true, shift: true, global: true, enabled: true},
 			allowGlobal: true,
 			category: 'voice',
 		},
@@ -384,7 +400,7 @@ const getDefaultKeybinds = (i18n: I18n): ReadonlyArray<KeybindConfig> =>
 			action: 'toggle_deafen',
 			label: i18n._(msg`Toggle Deaf`),
 			description: i18n._(msg`Deafen / undeafen`),
-			combo: {key: 'd', ctrlOrMeta: true, shift: true, global: true, enabled: true},
+			defaultCombo: {key: 'd', ctrlOrMeta: true, shift: true, global: true, enabled: true},
 			allowGlobal: true,
 			category: 'voice',
 		},
@@ -392,35 +408,35 @@ const getDefaultKeybinds = (i18n: I18n): ReadonlyArray<KeybindConfig> =>
 			action: 'toggle_video',
 			label: i18n._(msg`Toggle Camera`),
 			description: i18n._(msg`Turn camera on or off`),
-			combo: {key: 'v', ctrlOrMeta: true, shift: true},
+			defaultCombo: {key: 'v', ctrlOrMeta: true, shift: true},
 			category: 'voice',
 		},
 		{
 			action: 'toggle_screen_share',
 			label: i18n._(msg`Toggle Screen Share`),
 			description: i18n._(msg`Start / stop screen sharing`),
-			combo: {key: 's', ctrlOrMeta: true, shift: true},
+			defaultCombo: {key: 's', ctrlOrMeta: true, shift: true},
 			category: 'voice',
 		},
-{
+		{
 			action: 'search',
 			label: i18n._(msg`Search`),
 			description: i18n._(msg`Search within the current view`),
-			combo: {key: 'f', ctrlOrMeta: true},
+			defaultCombo: {key: 'f', ctrlOrMeta: true},
 			category: 'system',
 		},
 		{
 			action: 'upload_file',
 			label: i18n._(msg`Upload a File`),
 			description: i18n._(msg`Open the upload file dialog`),
-			combo: {key: 'u', ctrlOrMeta: true, shift: true},
+			defaultCombo: {key: 'u', ctrlOrMeta: true, shift: true},
 			category: 'messaging',
 		},
 		{
 			action: 'push_to_talk',
 			label: i18n._(msg`Push-To-Talk (hold)`),
 			description: i18n._(msg`Hold to temporarily unmute when push-to-talk is enabled`),
-			combo: {key: '', enabled: false, global: false},
+			defaultCombo: {key: '', enabled: false, global: false},
 			allowGlobal: true,
 			category: 'voice',
 		},
@@ -428,33 +444,74 @@ const getDefaultKeybinds = (i18n: I18n): ReadonlyArray<KeybindConfig> =>
 			action: 'toggle_push_to_talk_mode',
 			label: i18n._(msg`Toggle Push-To-Talk Mode`),
 			description: i18n._(msg`Enable or disable push-to-talk`),
-			combo: {key: 'p', ctrlOrMeta: true, shift: true},
+			defaultCombo: {key: 'p', ctrlOrMeta: true, shift: true},
 			category: 'voice',
 		},
 		{
 			action: 'zoom_in',
 			label: i18n._(msg`Zoom In`),
 			description: i18n._(msg`Increase app zoom level`),
-			combo: {key: '=', ctrlOrMeta: true},
+			defaultCombo: {key: '=', ctrlOrMeta: true},
 			category: 'system',
 		},
 		{
 			action: 'zoom_out',
 			label: i18n._(msg`Zoom Out`),
 			description: i18n._(msg`Decrease app zoom level`),
-			combo: {key: '-', ctrlOrMeta: true},
+			defaultCombo: {key: '-', ctrlOrMeta: true},
 			category: 'system',
 		},
 		{
 			action: 'zoom_reset',
 			label: i18n._(msg`Reset Zoom`),
 			description: i18n._(msg`Reset zoom to 100%`),
-			combo: {key: '0', ctrlOrMeta: true},
+			defaultCombo: {key: '0', ctrlOrMeta: true},
 			category: 'system',
 		},
 	] as const;
 
-type KeybindState = Record<KeybindAction, KeyCombo>;
+type StoredCombos = KeyCombo | Array<KeyCombo>;
+type KeybindState = Record<KeybindAction, StoredCombos>;
+
+const PERSIST_KEY = 'KeybindStore';
+
+const normalizeCombos = (value: StoredCombos | undefined): Array<KeyCombo> | undefined => {
+	if (!value) return undefined;
+	return Array.isArray(value) ? value : [value];
+};
+
+const applyPttAutoGlobal = (action: KeybindAction, combos: Array<KeyCombo>): Array<KeyCombo> => {
+	if (action !== 'push_to_talk' || !isDesktop()) return combos;
+	return combos.map((c) => (c.key || c.code ? {...c, global: true} : c));
+};
+
+export function migrateLegacyKeybindPersist(storage: Pick<Storage, 'getItem' | 'setItem'>): boolean {
+	try {
+		const raw = storage.getItem(PERSIST_KEY);
+		if (!raw) return false;
+		const parsed = JSON.parse(raw);
+		const keybinds = parsed?.keybinds;
+		if (!keybinds || typeof keybinds !== 'object' || Array.isArray(keybinds)) return false;
+
+		let changed = false;
+		for (const [action, value] of Object.entries(keybinds)) {
+			if (value && !Array.isArray(value) && typeof value === 'object') {
+				(keybinds as Record<string, unknown>)[action] = [value];
+				changed = true;
+			}
+		}
+
+		if (!changed) return false;
+		storage.setItem(PERSIST_KEY, JSON.stringify(parsed));
+		return true;
+	} catch {
+		return false;
+	}
+}
+
+if (typeof window !== 'undefined' && 'localStorage' in window) {
+	migrateLegacyKeybindPersist(window.localStorage);
+}
 
 class KeybindStore {
 	keybinds: KeybindState = {} as KeybindState;
@@ -474,7 +531,7 @@ class KeybindStore {
 
 		void makePersistent(
 			this,
-			'KeybindStore',
+			PERSIST_KEY,
 			['keybinds', 'transmitMode', 'pushToTalkReleaseDelay', 'pushToTalkLatching'],
 			{version: 3},
 		);
@@ -495,59 +552,88 @@ class KeybindStore {
 		}
 	}
 
-	/** Migrate existing PTT keybinds to global: true on desktop. */
 	private migratePttGlobal(): void {
 		if (!isDesktop()) return;
-		const ptt = this.keybinds.push_to_talk;
-		if (ptt && (ptt.key || ptt.code) && !ptt.global) {
-			console.info('[KeybindStore] Migrating PTT keybind to global: true');
-			runInAction(() => {
-				this.keybinds.push_to_talk = {...ptt, global: true};
-			});
-		}
+		const stored = this.keybinds.push_to_talk;
+		const combos = normalizeCombos(stored);
+		if (!combos || combos.length === 0) return;
+		const needsMigration = combos.some((ptt) => (ptt.key || ptt.code) && !ptt.global);
+		if (!needsMigration) return;
+		console.info('[KeybindStore] Migrating PTT keybind to global: true');
+		runInAction(() => {
+			this.keybinds.push_to_talk = combos.map((ptt) => (ptt.key || ptt.code ? {...ptt, global: true} : ptt));
+		});
 	}
 
-	getAll(): Array<KeybindConfig & {combo: KeyCombo}> {
-		if (!this.i18n) {
-			throw new Error('KeybindStore: i18n not initialized');
-		}
-		const defaultKeybinds = getDefaultKeybinds(this.i18n);
-		return defaultKeybinds.map((entry) => ({
-			...entry,
-			combo: this.keybinds[entry.action] ?? entry.combo,
-		}));
+	private getCombosForAction(action: KeybindAction, defaultCombo: KeyCombo): Array<KeyCombo> {
+		return normalizeCombos(this.keybinds[action]) ?? [defaultCombo];
 	}
 
-	getByAction(action: KeybindAction): KeybindConfig & {combo: KeyCombo} {
-		if (!this.i18n) {
-			throw new Error('KeybindStore: i18n not initialized');
-		}
-		const defaultKeybinds = getDefaultKeybinds(this.i18n);
-		const base = defaultKeybinds.find((k) => k.action === action);
-		if (!base) throw new Error(`Unknown keybind action: ${action}`);
-
+	private toActiveKeybind(entry: KeybindConfig): ActiveKeybind {
+		const combos = this.getCombosForAction(entry.action, entry.defaultCombo);
 		return {
-			...base,
-			combo: this.keybinds[action] ?? base.combo,
+			...entry,
+			combos,
+			combo: combos[0] ?? entry.defaultCombo,
 		};
 	}
 
-	setKeybind(action: KeybindAction, combo: KeyCombo): void {
+	getAll(): Array<ActiveKeybind> {
+		if (!this.i18n) {
+			throw new Error('KeybindStore: i18n not initialized');
+		}
+		return getDefaultKeybinds(this.i18n).map((entry) => this.toActiveKeybind(entry));
+	}
+
+	getByAction(action: KeybindAction): ActiveKeybind {
+		if (!this.i18n) {
+			throw new Error('KeybindStore: i18n not initialized');
+		}
+		const base = getDefaultKeybinds(this.i18n).find((k) => k.action === action);
+		if (!base) throw new Error(`Unknown keybind action: ${action}`);
+		return this.toActiveKeybind(base);
+	}
+
+	setKeybinds(action: KeybindAction, combos: Array<KeyCombo>): void {
 		runInAction(() => {
-			// PTT is useless without global shortcut on desktop — auto-enable
-			if (action === 'push_to_talk' && isDesktop() && combo.key) {
-				this.keybinds[action] = {...combo, global: true};
-			} else {
-				this.keybinds[action] = combo;
-			}
+			this.keybinds[action] = applyPttAutoGlobal(action, combos);
 		});
+	}
+
+	setKeybind(action: KeybindAction, combo: KeyCombo): void {
+		this.setKeybinds(action, [combo]);
+	}
+
+	setKeybindAt(action: KeybindAction, index: number, combo: KeyCombo): void {
+		const current = normalizeCombos(this.keybinds[action]) ?? [];
+		const updated = [...current];
+		if (index < 0 || index > MAX_COMBOS_PER_ACTION - 1) return;
+		updated[index] = combo;
+		this.setKeybinds(action, updated);
+	}
+
+	addKeybind(action: KeybindAction, combo: KeyCombo): void {
+		const current = normalizeCombos(this.keybinds[action]) ?? [];
+		if (current.length >= MAX_COMBOS_PER_ACTION) return;
+		this.setKeybinds(action, [...current, combo]);
+	}
+
+	removeKeybindAt(action: KeybindAction, index: number): void {
+		const current = normalizeCombos(this.keybinds[action]) ?? [];
+		if (index < 0 || index >= current.length) return;
+		this.setKeybinds(
+			action,
+			current.filter((_, i) => i !== index),
+		);
 	}
 
 	toggleGlobal(action: KeybindAction, enabled: boolean): void {
 		const config = this.getByAction(action);
 		if (!config.allowGlobal) return;
-
-		this.setKeybind(action, {...config.combo, global: enabled});
+		this.setKeybinds(
+			action,
+			config.combos.map((c) => ({...c, global: enabled})),
+		);
 	}
 
 	resetToDefaults(): void {
@@ -557,7 +643,7 @@ class KeybindStore {
 		const defaultKeybinds = getDefaultKeybinds(this.i18n);
 		runInAction(() => {
 			this.keybinds = defaultKeybinds.reduce<KeybindState>((acc, entry) => {
-				acc[entry.action] = {...entry.combo};
+				acc[entry.action] = [{...entry.defaultCombo}];
 				return acc;
 			}, {} as KeybindState);
 		});
@@ -587,8 +673,8 @@ class KeybindStore {
 	}
 
 	hasPushToTalkKeybind(): boolean {
-		const {combo} = this.getByAction('push_to_talk');
-		return Boolean(combo.key || combo.code);
+		const {combos} = this.getByAction('push_to_talk');
+		return combos.some((c) => Boolean(c.key || c.code));
 	}
 
 	isPushToTalkEffective(): boolean {
@@ -678,5 +764,5 @@ export default new KeybindStore();
 export const getDefaultKeybind = (action: KeybindAction, i18n: I18n): KeyCombo | null => {
 	const defaultKeybinds = getDefaultKeybinds(i18n);
 	const found = defaultKeybinds.find((k) => k.action === action);
-	return found ? {...found.combo} : null;
+	return found ? {...found.defaultCombo} : null;
 };

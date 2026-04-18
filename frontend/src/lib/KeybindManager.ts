@@ -19,7 +19,6 @@
 
 import type {I18n} from '@lingui/core';
 import {msg} from '@lingui/core/macro';
-import CombokeysImport from 'combokeys';
 import {autorun, reaction} from 'mobx';
 import React from 'react';
 import * as CallActionCreators from '~/actions/CallActionCreators';
@@ -35,11 +34,13 @@ import {CreateDMModal} from '~/components/modals/CreateDMModal';
 import {UserSettingsModal} from '~/components/modals/UserSettingsModal';
 import {Routes} from '~/Routes';
 import AccessibilityStore from '~/stores/AccessibilityStore';
+import AuthenticationStore from '~/stores/AuthenticationStore';
+import CallStateStore from '~/stores/CallStateStore';
 import ChannelStore from '~/stores/ChannelStore';
 import GuildListStore from '~/stores/GuildListStore';
 import GuildStore from '~/stores/GuildStore';
 import InboxStore from '~/stores/InboxStore';
-import KeybindStore, {type KeybindAction, type KeybindConfig, type KeyCombo} from '~/stores/KeybindStore';
+import KeybindStore, {type KeybindAction, type KeybindScope, type KeyCombo} from '~/stores/KeybindStore';
 import KeyboardModeStore from '~/stores/KeyboardModeStore';
 import QuickSwitcherStore from '~/stores/QuickSwitcherStore';
 import ReadStateStore from '~/stores/ReadStateStore';
@@ -48,120 +49,35 @@ import SavedMessagesStore from '~/stores/SavedMessagesStore';
 import SelectedChannelStore from '~/stores/SelectedChannelStore';
 import SelectedGuildStore from '~/stores/SelectedGuildStore';
 import MediaEngineStore from '~/stores/voice/MediaEngineFacade';
-import {resolveComboKey} from '~/utils/KeybindUtils';
 import {goToMessage} from '~/utils/MessageNavigator';
 import {checkNativePermission} from '~/utils/NativePermissions';
 import {getElectronAPI, isNativeMacOS} from '~/utils/NativeUtils';
 import * as RouterUtils from '~/utils/RouterUtils';
 import {jsKeyToUiohookKeycode} from '~/utils/UiohookKeycodes';
 import {ComponentDispatch} from './ComponentDispatch';
-
-interface CombokeysInstance {
-	bind: (
-		key: string,
-		callback: (event?: KeyboardEvent | undefined) => void,
-		action?: 'keydown' | 'keyup' | 'keypress',
-	) => void;
-	unbind: (key: string, action?: 'keydown' | 'keyup' | 'keypress') => void;
-	detach: () => void;
-	reset: () => void;
-	stopCallback: () => boolean;
-}
-
-type CombokeysConstructor = new (element?: HTMLElement) => CombokeysInstance;
-
-const Combokeys = CombokeysImport as unknown as CombokeysConstructor;
-
-type ShortcutSource = 'local' | 'global';
+import {type KeybindDescriptor, resolveBindingCode, ShortcutMatcher, type ShortcutSource} from './ShortcutMatcher';
 
 type KeybindHandler = (payload: {type: 'press' | 'release'; source: ShortcutSource}) => void;
 
-const NON_TEXT_INPUT_TYPES = new Set([
-	'button',
-	'checkbox',
-	'radio',
-	'range',
-	'color',
-	'file',
-	'image',
-	'submit',
-	'reset',
-]);
-
-const isEditableElement = (target: EventTarget | null): target is HTMLElement => {
-	if (!(target instanceof HTMLElement)) return false;
-	if (target.isContentEditable) return true;
-	const tagName = target.tagName;
-	if (tagName === 'TEXTAREA') return true;
-	if (tagName === 'INPUT') {
-		const type = ((target as HTMLInputElement).type || '').toLowerCase();
-		return !NON_TEXT_INPUT_TYPES.has(type);
-	}
-	return false;
-};
+interface ActiveBinding {
+	action: KeybindAction;
+	combo: KeyCombo;
+	allowGlobal: boolean;
+	scope?: KeybindScope;
+}
 
 const isAltOnlyArrowCombo = (combo: KeyCombo): boolean => {
 	if (!combo.alt || combo.ctrlOrMeta || combo.ctrl || combo.meta) return false;
-	const key = resolveComboKey(combo);
-	return key === 'ArrowLeft' || key === 'ArrowRight' || key === 'ArrowUp' || key === 'ArrowDown';
+	const code = resolveBindingCode(combo);
+	return code === 'ArrowLeft' || code === 'ArrowRight' || code === 'ArrowUp' || code === 'ArrowDown';
 };
 
-const keyFromComboForCombokeys = (combo: KeyCombo): string | null => {
-	const raw = resolveComboKey(combo);
-	if (!raw) return null;
-
-	if (raw === ' ') return 'space';
-	if (raw.length === 1) {
-		return raw.toLowerCase();
-	}
-
-	switch (raw) {
-		case 'Space':
-		case 'Spacebar':
-			return 'space';
-		case 'Escape':
-		case 'Esc':
-			return 'esc';
-		case 'Enter':
-		case 'NumpadEnter':
-			return 'enter';
-		case 'Tab':
-			return 'tab';
-		case 'Backspace':
-			return 'backspace';
-		case 'ArrowUp':
-		case 'Up':
-			return 'up';
-		case 'ArrowDown':
-		case 'Down':
-			return 'down';
-		case 'ArrowLeft':
-		case 'Left':
-			return 'left';
-		case 'ArrowRight':
-		case 'Right':
-			return 'right';
-		default:
-			return raw.toLowerCase();
-	}
-};
-
-const comboToCombokeysString = (combo: KeyCombo): string | null => {
-	const parts: Array<string> = [];
-	if (combo.ctrl) {
-		parts.push('ctrl');
-	} else if (combo.ctrlOrMeta) {
-		parts.push('mod');
-	}
-	if (combo.meta) parts.push('meta');
-	if (combo.shift) parts.push('shift');
-	if (combo.alt) parts.push('alt');
-
-	const key = keyFromComboForCombokeys(combo);
-	if (!key) return null;
-
-	parts.push(key);
-	return parts.join('+');
+const computeAllowInEditable = (action: KeybindAction, combo: KeyCombo): boolean => {
+	if (action === 'push_to_talk') return true;
+	const hasNonShiftModifier = !!(combo.ctrl || combo.ctrlOrMeta || combo.alt || combo.meta);
+	if (!hasNonShiftModifier) return false;
+	if (isAltOnlyArrowCombo(combo)) return false;
+	return true;
 };
 
 class KeybindManager {
@@ -170,10 +86,9 @@ class KeybindManager {
 	private globalShortcutsEnabled = false;
 	private suspended = false;
 	private disposers: Array<() => void> = [];
-	private combokeys: CombokeysInstance | null = null;
+	private matcher: ShortcutMatcher | null = null;
 	private accessibilityStatus: 'unknown' | 'granted' | 'denied' = 'unknown';
 	private pttReleaseTimer: ReturnType<typeof setTimeout> | null = null;
-	private pttKeyupHandler: ((e: KeyboardEvent) => void) | null = null;
 	private globalKeyHookUnsubscribes: Array<() => void> = [];
 	private globalKeyHookStarted = false;
 
@@ -209,11 +124,31 @@ class KeybindManager {
 		}
 	}
 
-	private get activeKeybinds(): Array<KeybindConfig & {combo: KeyCombo}> {
-		return KeybindStore.getAll().filter(({combo}) => combo.enabled ?? true);
+	private get activeKeybinds(): Array<ActiveBinding> {
+		const result: Array<ActiveBinding> = [];
+		for (const entry of KeybindStore.getAll()) {
+			for (const combo of entry.combos) {
+				if (!(combo.enabled ?? true)) continue;
+				result.push({
+					action: entry.action,
+					combo,
+					allowGlobal: entry.allowGlobal ?? false,
+					scope: entry.scope,
+				});
+			}
+		}
+		return result;
 	}
 
-	private get activeGlobalKeybinds(): Array<KeybindConfig & {combo: KeyCombo}> {
+	private isScopeActive(scope: KeybindScope | undefined): boolean {
+		if (!scope || scope === 'app') return true;
+		if (scope === 'call-ringing') return this.getIncomingRingingChannelId() !== null;
+		if (scope === 'voice-connected') return MediaEngineStore.connected;
+		if (scope === 'chat') return this.currentChannelId !== null;
+		return true;
+	}
+
+	private get activeGlobalKeybinds(): Array<ActiveBinding> {
 		return this.activeKeybinds.filter(
 			(k) => k.allowGlobal && (k.combo.global ?? false) && ((k.combo.key ?? '') !== '' || (k.combo.code ?? '') !== ''),
 		);
@@ -232,12 +167,37 @@ class KeybindManager {
 		return selectableChannel?.id;
 	}
 
-	private ensureCombokeys(): CombokeysInstance | null {
-		if (!this.combokeys && Combokeys) {
-			this.combokeys = new Combokeys(document.documentElement);
-			this.combokeys.stopCallback = () => false;
+	private getIncomingRingingChannelId(): string | null {
+		const userId = AuthenticationStore.currentUserId;
+		if (!userId) return null;
+		const call = CallStateStore.getActiveCalls().find(
+			(c) =>
+				CallStateStore.isUserPendingRinging(c.channelId, userId) &&
+				!(MediaEngineStore.connected && MediaEngineStore.channelId === c.channelId),
+		);
+		return call?.channelId ?? null;
+	}
+
+	private markCurrentChannelRead(): void {
+		const channelId = this.currentChannelId;
+		if (!channelId) return;
+		if (ReadStateStore.hasUnread(channelId)) {
+			ReadStateActionCreators.ack(channelId, true, true);
 		}
-		return this.combokeys;
+	}
+
+	private togglePicker(tab: 'emojis' | 'gifs' | 'stickers' | 'memes'): void {
+		const channelId = this.currentChannelId;
+		if (!channelId) return;
+		ComponentDispatch.dispatch('EXPRESSION_PICKER_TOGGLE', {tab});
+	}
+
+	private ensureMatcher(): ShortcutMatcher {
+		if (!this.matcher) {
+			this.matcher = new ShortcutMatcher({isMac: isNativeMacOS()});
+			this.matcher.attach(document.documentElement);
+		}
+		return this.matcher;
 	}
 
 	private async checkInputMonitoringPermission(): Promise<boolean> {
@@ -262,7 +222,7 @@ class KeybindManager {
 		if (this.initialized) return;
 		this.initialized = true;
 
-		this.ensureCombokeys();
+		this.ensureMatcher();
 
 		this.registerDefaultHandlers(i18n);
 
@@ -322,11 +282,6 @@ class KeybindManager {
 			this.pttReleaseTimer = null;
 		}
 
-		if (this.pttKeyupHandler) {
-			document.removeEventListener('keyup', this.pttKeyupHandler);
-			this.pttKeyupHandler = null;
-		}
-
 		this.disposers.forEach((dispose) => dispose());
 		this.disposers = [];
 
@@ -337,8 +292,8 @@ class KeybindManager {
 
 		this.handlers.clear();
 
-		this.combokeys?.detach();
-		this.combokeys = null;
+		this.matcher?.detach();
+		this.matcher = null;
 	}
 
 	private async startGlobalKeyHook(): Promise<boolean> {
@@ -357,16 +312,7 @@ class KeybindManager {
 		this.globalKeyHookStarted = true;
 
 		const triggeredUnsub = electronApi.onGlobalKeybindTriggered?.((event) => {
-			console.info('[PTT:globalHook] Keybind triggered from main process', {id: event.id, type: event.type});
-			const handler = this.handlers.get(event.id as KeybindAction);
-			if (handler) {
-				handler({
-					type: event.type === 'keydown' ? 'press' : 'release',
-					source: 'global',
-				});
-			} else {
-				console.warn('[PTT:globalHook] No handler found for keybind:', event.id);
-			}
+			this.matcher?.triggerFromGlobal(event.id, event.type === 'keydown' ? 'press' : 'release');
 		});
 		if (triggeredUnsub) this.globalKeyHookUnsubscribes.push(triggeredUnsub);
 
@@ -388,7 +334,7 @@ class KeybindManager {
 
 	suspend(): void {
 		this.suspended = true;
-		this.combokeys?.reset();
+		this.matcher?.setBindings([]);
 	}
 
 	resume(): void {
@@ -539,11 +485,41 @@ class KeybindManager {
 
 		this.register('mark_channel_read', ({type}) => {
 			if (type !== 'press') return;
-			const channelId = this.currentChannelId;
+			this.markCurrentChannelRead();
+		});
+
+		this.register('toggle_emoji_picker', ({type}) => {
+			if (type !== 'press') return;
+			this.togglePicker('emojis');
+		});
+
+		this.register('toggle_gif_picker', ({type}) => {
+			if (type !== 'press') return;
+			this.togglePicker('gifs');
+		});
+
+		this.register('toggle_sticker_picker', ({type}) => {
+			if (type !== 'press') return;
+			this.togglePicker('stickers');
+		});
+
+		this.register('toggle_memes_picker', ({type}) => {
+			if (type !== 'press') return;
+			this.togglePicker('memes');
+		});
+
+		this.register('answer_incoming_call', ({type}) => {
+			if (type !== 'press') return;
+			const channelId = this.getIncomingRingingChannelId();
 			if (!channelId) return;
-			if (ReadStateStore.hasUnread(channelId)) {
-				ReadStateActionCreators.ack(channelId, true, true);
-			}
+			CallActionCreators.joinCall(channelId);
+		});
+
+		this.register('decline_incoming_call', ({type}) => {
+			if (type !== 'press') return;
+			const ringingChannelId = this.getIncomingRingingChannelId();
+			if (!ringingChannelId) return;
+			CallActionCreators.rejectCall(ringingChannelId);
 		});
 
 		this.register('mark_server_read', ({type}) => {
@@ -787,6 +763,7 @@ class KeybindManager {
 
 		this.register('focus_text_area', ({type}) => {
 			if (type !== 'press') return;
+			if (KeyboardModeStore.keyboardModeEnabled) return;
 			const channelId = this.currentChannelId;
 			if (!channelId) return;
 			ComponentDispatch.dispatch('FOCUS_TEXTAREA', {channelId});
@@ -829,13 +806,16 @@ class KeybindManager {
 		}
 
 		const keybinds = this.activeGlobalKeybinds;
-		console.info('[PTT:refreshGlobal] Active global keybinds:', keybinds.map((k) => ({
-			action: k.action,
-			key: k.combo.key,
-			code: k.combo.code,
-			global: k.combo.global,
-			enabled: k.combo.enabled,
-		})));
+		console.info(
+			'[PTT:refreshGlobal] Active global keybinds:',
+			keybinds.map((k) => ({
+				action: k.action,
+				key: k.combo.key,
+				code: k.combo.code,
+				global: k.combo.global,
+				enabled: k.combo.enabled,
+			})),
+		);
 
 		if (!keybinds.length) {
 			console.info('[PTT:refreshGlobal] No global keybinds → stopping hook');
@@ -858,26 +838,18 @@ class KeybindManager {
 		const isMac = isNativeMacOS();
 
 		for (const keybind of keybinds) {
-			const keycode = jsKeyToUiohookKeycode(keybind.combo.code ?? keybind.combo.key);
-			console.info('[PTT:refreshGlobal] Registering keybind', {
-				action: keybind.action,
-				key: keybind.combo.key,
-				code: keybind.combo.code,
-				keycode,
-				ctrl: !!(keybind.combo.ctrl || (!isMac && keybind.combo.ctrlOrMeta)),
-				alt: !!keybind.combo.alt,
-				shift: !!keybind.combo.shift,
-				meta: !!(keybind.combo.meta || (isMac && keybind.combo.ctrlOrMeta)),
-			});
-			if (keycode === null) {
-				console.warn('[PTT:refreshGlobal] SKIP: keycode is null for', keybind.combo.code ?? keybind.combo.key);
+			const mouseButton = keybind.combo.mouseButton;
+			const keycode = mouseButton ? null : jsKeyToUiohookKeycode(keybind.combo.code ?? keybind.combo.key);
+			if (!mouseButton && keycode === null) {
+				console.warn('[PTT:refreshGlobal] SKIP: no keycode/mouseButton for', keybind);
 				continue;
 			}
 
 			try {
 				await electronApi.globalKeyHookRegister?.({
 					id: keybind.action,
-					keycode,
+					keycode: keycode ?? 0,
+					mouseButton,
 					ctrl: !!(keybind.combo.ctrl || (!isMac && keybind.combo.ctrlOrMeta)),
 					alt: !!keybind.combo.alt,
 					shift: !!keybind.combo.shift,
@@ -893,122 +865,38 @@ class KeybindManager {
 	}
 
 	private refreshLocalShortcuts() {
-		if (!this.combokeys || this.suspended) return;
+		if (!this.matcher || this.suspended) return;
 
-		this.combokeys.reset();
-
-		this.activeKeybinds.forEach((entry) => this.bindLocalShortcut(entry));
-
-		this.refreshPttKeyupListener();
-	}
-
-	/**
-	 * Combokeys does not reliably fire keyup events, and on macOS the browser
-	 * swallows keyup for letter keys while Cmd is held. PTT requires keyup
-	 * to re-mute, so we listen for keyup of the main key OR any required
-	 * modifier — releasing any part of the combo triggers PTT release.
-	 */
-	private refreshPttKeyupListener() {
-		if (this.pttKeyupHandler) {
-			document.removeEventListener('keyup', this.pttKeyupHandler);
-			this.pttKeyupHandler = null;
+		const descriptors: Array<KeybindDescriptor<KeybindAction>> = [];
+		for (const entry of this.activeKeybinds) {
+			const descriptor = this.buildDescriptor(entry);
+			if (descriptor) descriptors.push(descriptor);
 		}
 
-		const pttKeybind = KeybindStore.getByAction('push_to_talk');
-		if (!pttKeybind.combo.key && !pttKeybind.combo.code) return;
-		if (!(pttKeybind.combo.enabled ?? true)) return;
-
-		// If global shortcuts handle PTT, skip local keyup listener
-		if (this.globalShortcutsEnabled && (pttKeybind.combo.global ?? false)) return;
-
-		const pttHandler = this.handlers.get('push_to_talk');
-		if (!pttHandler) return;
-
-		const {combo} = pttKeybind;
-		const resolvedKey = resolveComboKey(combo);
-		const isMac = navigator.platform?.includes('Mac') ?? false;
-		const needsCtrl = !!(combo.ctrl || (!isMac && combo.ctrlOrMeta));
-		const needsMeta = !!(combo.meta || (isMac && combo.ctrlOrMeta));
-		const needsAlt = !!combo.alt;
-		const needsShift = !!combo.shift;
-		const hasModifiers = needsCtrl || needsMeta || needsAlt || needsShift;
-
-		console.info('[PTT:keyup-direct] Registering listener', {
-			resolvedKey, needsCtrl, needsMeta, needsAlt, needsShift, hasModifiers,
-		});
-
-		this.pttKeyupHandler = (event: KeyboardEvent) => {
-			// Only fire if PTT is currently held
-			if (!KeybindStore.pushToTalkHeld) return;
-
-			const eventKey = resolveComboKey({key: event.key, code: event.code});
-			const isMainKey = eventKey.toLowerCase() === resolvedKey.toLowerCase();
-
-			// On Mac, keyup for the letter doesn't fire while Cmd is held.
-			// So also check if a required modifier was released.
-			const isRequiredModifier =
-				(needsCtrl && (event.key === 'Control')) ||
-				(needsMeta && (event.key === 'Meta')) ||
-				(needsAlt && (event.key === 'Alt')) ||
-				(needsShift && (event.key === 'Shift'));
-
-			if (!isMainKey && !isRequiredModifier) return;
-
-			console.info('[PTT:keyup-direct] PTT release detected', {
-				eventKey, isMainKey, isRequiredModifier, key: event.key,
-			});
-			pttHandler({type: 'release', source: 'local'});
-		};
-
-		document.addEventListener('keyup', this.pttKeyupHandler);
-		console.info('[PTT:keyup-direct] Registered for PTT key:', resolvedKey);
+		this.matcher.setBindings(descriptors);
 	}
 
-	private bindLocalShortcut(entry: KeybindConfig & {combo: KeyCombo}) {
-		const {combo, action} = entry;
-		const handler = this.handlers.get(action);
-		if (!handler) return;
+	private buildDescriptor(entry: ActiveBinding): KeybindDescriptor<KeybindAction> | null {
+		const handler = this.handlers.get(entry.action);
+		if (!handler) return null;
 
-		const shortcut = comboToCombokeysString(combo);
-		if (!shortcut) return;
+		const {action, combo, scope} = entry;
+		const isPtt = action === 'push_to_talk';
 
-		const hasModifier = !!(combo.ctrl || combo.ctrlOrMeta || combo.alt || combo.meta);
-		const ignoreInEditable = isAltOnlyArrowCombo(combo);
-
-		const shouldIgnoreEvent = (event: KeyboardEvent): boolean => {
-			// PTT must work even when typing in a text field
-			if (action === 'push_to_talk') return false;
-			const target = event.target ?? null;
-			if (!isEditableElement(target)) return false;
-			if (!hasModifier) return true;
-			return ignoreInEditable;
+		const invoke = (type: 'press' | 'release', source: ShortcutSource): void => {
+			if (source === 'local' && this.globalShortcutsEnabled && (combo.global ?? false)) return;
+			handler({type, source});
 		};
 
-		const wrapHandler = (type: 'press' | 'release') => (event?: KeyboardEvent) => {
-			if (!event) return;
-
-			if (shouldIgnoreEvent(event)) return;
-
-			if (this.globalShortcutsEnabled && (combo.global ?? false)) {
-				if (action === 'push_to_talk') console.info('[PTT:local] Skipped — handled by global hook');
-				return;
-			}
-
-			if (action === 'focus_text_area' && KeyboardModeStore.keyboardModeEnabled) {
-				return;
-			}
-
-			if (action === 'push_to_talk') console.info('[PTT:local] Firing local handler', {type});
-			handler({type, source: 'local'});
-			// Don't preventDefault for PTT — let the key be typed in text fields
-			if (type === 'press' && action !== 'push_to_talk') event.preventDefault();
+		return {
+			action,
+			combo,
+			allowInEditable: computeAllowInEditable(action, combo),
+			preventDefault: !isPtt,
+			isActive: scope ? () => this.isScopeActive(scope) : undefined,
+			onPress: (source) => invoke('press', source),
+			onRelease: (source) => invoke('release', source),
 		};
-
-		const combokeys = this.ensureCombokeys();
-		if (combokeys) {
-			combokeys.bind(shortcut, wrapHandler('press'), 'keydown');
-			combokeys.bind(shortcut, wrapHandler('release'), 'keyup');
-		}
 	}
 }
 

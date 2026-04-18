@@ -1,5 +1,9 @@
 declare const styles: {
   readonly "button": string;
+  readonly "conflictIcon": string;
+  readonly "conflictMessage": string;
+  readonly "conflictMessages": string;
+  readonly "conflictRow": string;
   readonly "defaultLabel": string;
   readonly "defaultRow": string;
   readonly "defaultValue": string;

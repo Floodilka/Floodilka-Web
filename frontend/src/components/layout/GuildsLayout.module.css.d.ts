@@ -32,8 +32,6 @@ declare const styles: {
   readonly "guildInvitesPausedIcon": string;
   readonly "guildListContent": string;
   readonly "guildListDropZone": string;
-  readonly "guildListDropZoneActive": string;
-  readonly "guildListDropZoneEnabled": string;
   readonly "guildListGuildsSection": string;
   readonly "guildListItem": string;
   readonly "guildListItemNoMargin": string;

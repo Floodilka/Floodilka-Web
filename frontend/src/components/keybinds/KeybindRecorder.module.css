@@ -219,6 +219,34 @@
 	color: var(--text-primary);
 }
 
+.conflictRow {
+	display: flex;
+	align-items: flex-start;
+	gap: 0.5rem;
+	padding: 0.5rem 0.625rem;
+	border-radius: var(--radius-md);
+	background-color: color-mix(in oklab, var(--status-warning, #f5a623) 18%, transparent);
+	color: var(--text-primary);
+	font-size: 0.8125rem;
+	line-height: 1.3;
+}
+
+.conflictIcon {
+	color: var(--status-warning, #f5a623);
+	flex-shrink: 0;
+	margin-top: 0.1rem;
+}
+
+.conflictMessages {
+	display: flex;
+	flex-direction: column;
+	gap: 0.125rem;
+}
+
+.conflictMessage {
+	color: var(--text-primary);
+}
+
 .popoutActions {
 	display: flex;
 	align-items: center;

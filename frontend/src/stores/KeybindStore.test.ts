@@ -20,7 +20,7 @@
 import type {I18n} from '@lingui/core';
 import {autorun, reaction, runInAction} from 'mobx';
 import {afterEach, beforeEach, describe, expect, test, vi} from 'vitest';
-import KeybindStore from '~/stores/KeybindStore';
+import KeybindStore, {migrateLegacyKeybindPersist} from '~/stores/KeybindStore';
 import LocalVoiceStateStore from '~/stores/LocalVoiceStateStore';
 
 const mockI18n = {_: (descriptor: any) => descriptor?.message ?? descriptor ?? ''} as unknown as I18n;
@@ -225,5 +225,134 @@ describe('PTT reaction does not feedback-loop on selfMute changes', () => {
 		expect(autorunHandler).toHaveBeenCalled(); // autorun DID fire — this was the bug
 
 		disposeAutorun();
+	});
+});
+
+describe('KeybindStore multibinding', () => {
+	beforeEach(() => KeybindStore.setI18n(mockI18n));
+
+	test('addKeybind appends a second combo (up to MAX_COMBOS_PER_ACTION)', () => {
+		KeybindStore.setKeybind('push_to_talk', {key: 'v', code: 'KeyV', enabled: true});
+		KeybindStore.addKeybind('push_to_talk', {key: 'b', code: 'KeyB', enabled: true});
+
+		const ptt = KeybindStore.getByAction('push_to_talk');
+		expect(ptt.combos).toHaveLength(2);
+		expect(ptt.combos[0].code).toBe('KeyV');
+		expect(ptt.combos[1].code).toBe('KeyB');
+	});
+
+	test('addKeybind does not exceed MAX_COMBOS_PER_ACTION', () => {
+		KeybindStore.setKeybind('push_to_talk', {key: 'v', code: 'KeyV', enabled: true});
+		KeybindStore.addKeybind('push_to_talk', {key: 'b', code: 'KeyB', enabled: true});
+		KeybindStore.addKeybind('push_to_talk', {key: 'n', code: 'KeyN', enabled: true});
+
+		const ptt = KeybindStore.getByAction('push_to_talk');
+		expect(ptt.combos).toHaveLength(2);
+	});
+
+	test('removeKeybindAt drops the requested combo', () => {
+		KeybindStore.setKeybinds('push_to_talk', [
+			{key: 'v', code: 'KeyV', enabled: true},
+			{key: 'b', code: 'KeyB', enabled: true},
+		]);
+		KeybindStore.removeKeybindAt('push_to_talk', 0);
+
+		const ptt = KeybindStore.getByAction('push_to_talk');
+		expect(ptt.combos).toHaveLength(1);
+		expect(ptt.combos[0].code).toBe('KeyB');
+	});
+
+	test('setKeybindAt replaces one combo without touching siblings', () => {
+		KeybindStore.setKeybinds('push_to_talk', [
+			{key: 'v', code: 'KeyV', enabled: true},
+			{key: 'b', code: 'KeyB', enabled: true},
+		]);
+		KeybindStore.setKeybindAt('push_to_talk', 1, {key: 'n', code: 'KeyN', enabled: true});
+
+		const ptt = KeybindStore.getByAction('push_to_talk');
+		expect(ptt.combos[0].code).toBe('KeyV');
+		expect(ptt.combos[1].code).toBe('KeyN');
+	});
+
+	test('legacy singular persist shape reads as array', () => {
+		runInAction(() => {
+			(KeybindStore as any).keybinds = {
+				push_to_talk: {key: 'v', code: 'KeyV', enabled: true, global: true},
+			};
+		});
+
+		const ptt = KeybindStore.getByAction('push_to_talk');
+		expect(Array.isArray(ptt.combos)).toBe(true);
+		expect(ptt.combos).toHaveLength(1);
+		expect(ptt.combos[0].code).toBe('KeyV');
+		expect(ptt.combo.code).toBe('KeyV');
+	});
+
+	test('toggleGlobal applies to every combo for the action', () => {
+		KeybindStore.setKeybinds('toggle_mute', [
+			{key: 'm', ctrlOrMeta: true, shift: true, enabled: true, global: false},
+			{key: 'n', ctrlOrMeta: true, shift: true, enabled: true, global: false},
+		]);
+		KeybindStore.toggleGlobal('toggle_mute', true);
+
+		const entry = KeybindStore.getByAction('toggle_mute');
+		expect(entry.combos.every((c) => c.global === true)).toBe(true);
+	});
+
+	test('hasPushToTalkKeybind returns true if any combo has a key', () => {
+		KeybindStore.setKeybinds('push_to_talk', [
+			{key: '', enabled: false},
+			{key: 'v', code: 'KeyV', enabled: true},
+		]);
+		expect(KeybindStore.hasPushToTalkKeybind()).toBe(true);
+
+		KeybindStore.setKeybinds('push_to_talk', [{key: '', enabled: false}]);
+		expect(KeybindStore.hasPushToTalkKeybind()).toBe(false);
+	});
+});
+
+describe('migrateLegacyKeybindPersist', () => {
+	function makeStorage(initial: Record<string, string> = {}) {
+		const data = {...initial};
+		return {
+			data,
+			getItem: (key: string) => data[key] ?? null,
+			setItem: (key: string, value: string) => {
+				data[key] = value;
+			},
+		};
+	}
+
+	test('wraps singular legacy entries in arrays', () => {
+		const storage = makeStorage({
+			KeybindStore: JSON.stringify({
+				keybinds: {
+					push_to_talk: {key: 'v', code: 'KeyV', enabled: true},
+					quick_switcher: {key: 'k', ctrlOrMeta: true},
+				},
+			}),
+		});
+		expect(migrateLegacyKeybindPersist(storage)).toBe(true);
+		const parsed = JSON.parse(storage.data.KeybindStore!);
+		expect(Array.isArray(parsed.keybinds.push_to_talk)).toBe(true);
+		expect(parsed.keybinds.push_to_talk[0].code).toBe('KeyV');
+		expect(Array.isArray(parsed.keybinds.quick_switcher)).toBe(true);
+	});
+
+	test('is a no-op if data already in new shape', () => {
+		const storage = makeStorage({
+			KeybindStore: JSON.stringify({
+				keybinds: {
+					push_to_talk: [{key: 'v', code: 'KeyV', enabled: true}],
+				},
+			}),
+		});
+		expect(migrateLegacyKeybindPersist(storage)).toBe(false);
+	});
+
+	test('survives missing or malformed storage', () => {
+		expect(migrateLegacyKeybindPersist(makeStorage())).toBe(false);
+		expect(migrateLegacyKeybindPersist(makeStorage({KeybindStore: '{{{'}))).toBe(false);
+		expect(migrateLegacyKeybindPersist(makeStorage({KeybindStore: 'null'}))).toBe(false);
 	});
 });
