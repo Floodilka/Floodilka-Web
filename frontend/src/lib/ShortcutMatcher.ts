@@ -158,7 +158,6 @@ export class ShortcutMatcher {
 	private bindings: Array<InternalBinding> = [];
 	private readonly pressedCodes = new Set<string>();
 	private readonly active = new Map<string, InternalBinding>();
-	private readonly activeActionCount = new Map<string, number>();
 	private attachedRoot: Node | null = null;
 
 	constructor(options: ShortcutMatcherOptions = {}) {
@@ -218,34 +217,27 @@ export class ShortcutMatcher {
 	triggerFromGlobal(action: string, type: 'press' | 'release'): void {
 		const binding = this.bindings.find((b) => b.descriptor.action === action);
 		if (!binding) return;
-		if (type === 'press') this.firePress(binding, 'global');
-		else this.fireRelease(binding, 'global');
+		if (type === 'press') binding.descriptor.onPress('global');
+		else binding.descriptor.onRelease('global');
 	}
 
-	private firePress(binding: InternalBinding, source: ShortcutSource): void {
-		const action = binding.descriptor.action;
-		const count = this.activeActionCount.get(action) ?? 0;
-		this.activeActionCount.set(action, count + 1);
-		if (count === 0) binding.descriptor.onPress(source);
-	}
-
-	private fireRelease(binding: InternalBinding, source: ShortcutSource): void {
-		const action = binding.descriptor.action;
-		const count = this.activeActionCount.get(action) ?? 0;
-		if (count <= 1) {
-			this.activeActionCount.delete(action);
-			binding.descriptor.onRelease(source);
-		} else {
-			this.activeActionCount.set(action, count - 1);
+	private hasActiveBindingForAction(action: string, excludeKey?: string): boolean {
+		for (const [key, b] of this.active) {
+			if (excludeKey !== undefined && key === excludeKey) continue;
+			if (b.descriptor.action === action) return true;
 		}
+		return false;
 	}
 
 	private releaseAll(source: ShortcutSource): void {
+		const fired = new Set<string>();
 		for (const [, binding] of this.active) {
-			this.fireRelease(binding, source);
+			const action = binding.descriptor.action;
+			if (fired.has(action)) continue;
+			fired.add(action);
+			binding.descriptor.onRelease(source);
 		}
 		this.active.clear();
-		this.activeActionCount.clear();
 	}
 
 	private handleBlur = () => {
@@ -255,6 +247,7 @@ export class ShortcutMatcher {
 
 	readonly handleKeyDown = (event: KeyboardEvent): void => {
 		if (event.isComposing) return;
+		if (event.repeat) return;
 		if (!event.code) return;
 
 		this.pressedCodes.add(event.code);
@@ -272,7 +265,7 @@ export class ShortcutMatcher {
 		if (!lastMatch) return;
 
 		this.active.set(activeKey(lastMatch), lastMatch);
-		this.firePress(lastMatch, 'local');
+		lastMatch.descriptor.onPress('local');
 
 		if (lastMatch.descriptor.preventDefault !== false) {
 			event.preventDefault();
@@ -286,9 +279,10 @@ export class ShortcutMatcher {
 
 		for (const [key, binding] of Array.from(this.active)) {
 			if (binding.mouseButton !== null) continue;
-			if (this.shouldReleaseKey(event, binding)) {
-				this.active.delete(key);
-				this.fireRelease(binding, 'local');
+			if (!this.shouldReleaseKey(event, binding)) continue;
+			this.active.delete(key);
+			if (!this.hasActiveBindingForAction(binding.descriptor.action)) {
+				binding.descriptor.onRelease('local');
 			}
 		}
 	};
@@ -309,7 +303,7 @@ export class ShortcutMatcher {
 		if (!lastMatch) return;
 
 		this.active.set(activeKey(lastMatch), lastMatch);
-		this.firePress(lastMatch, 'local');
+		lastMatch.descriptor.onPress('local');
 
 		if (lastMatch.descriptor.preventDefault !== false) {
 			event.preventDefault();
@@ -321,9 +315,10 @@ export class ShortcutMatcher {
 
 		for (const [key, binding] of Array.from(this.active)) {
 			if (binding.mouseButton === null) continue;
-			if (binding.mouseButton === canonical) {
-				this.active.delete(key);
-				this.fireRelease(binding, 'local');
+			if (binding.mouseButton !== canonical) continue;
+			this.active.delete(key);
+			if (!this.hasActiveBindingForAction(binding.descriptor.action)) {
+				binding.descriptor.onRelease('local');
 			}
 		}
 	};

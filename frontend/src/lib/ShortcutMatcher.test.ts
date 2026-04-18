@@ -549,8 +549,8 @@ describe('ShortcutMatcher — mouse buttons', () => {
 	});
 });
 
-describe('ShortcutMatcher — action reference count (multibinding)', () => {
-	test('two combos for same action: onPress fires once, release only when last held combo drops', () => {
+describe('ShortcutMatcher — multibinding overlap', () => {
+	test('release fires only when last held combo for the action drops', () => {
 		const calls: Array<RecordedCall> = [];
 		const matcher = new ShortcutMatcher({isMac: false});
 		matcher.setBindings([
@@ -562,13 +562,47 @@ describe('ShortcutMatcher — action reference count (multibinding)', () => {
 		expect(calls.map((c) => c.type)).toEqual(['press']);
 
 		fireMouse(matcher, 'mousedown', {button: 3});
-		expect(calls.map((c) => c.type)).toEqual(['press']);
+		expect(calls.map((c) => c.type)).toEqual(['press', 'press']);
 
 		fireKey(matcher, 'keyup', {code: 'KeyV'});
-		expect(calls.map((c) => c.type)).toEqual(['press']);
+		expect(calls.map((c) => c.type)).toEqual(['press', 'press']);
 
 		fireMouse(matcher, 'mouseup', {button: 3});
-		expect(calls.map((c) => c.type)).toEqual(['press', 'release']);
+		expect(calls.map((c) => c.type)).toEqual(['press', 'press', 'release']);
+
+		matcher.detach();
+	});
+
+	test('tap sequence survives a missed keyup (Mac Cmd+Letter keyup swallow)', () => {
+		const calls: Array<RecordedCall> = [];
+		const matcher = new ShortcutMatcher({isMac: true});
+		matcher.setBindings([makeDescriptor('toggle_settings', {key: ',', ctrlOrMeta: true}, {}, calls)]);
+
+		fireKey(matcher, 'keydown', {code: 'Comma', metaKey: true});
+		expect(calls.map((c) => c.type)).toEqual(['press']);
+		// keyup for Comma swallowed by macOS while Cmd held
+
+		fireKey(matcher, 'keydown', {code: 'Comma', metaKey: true});
+		expect(calls.map((c) => c.type)).toEqual(['press', 'press']);
+
+		matcher.detach();
+	});
+
+	test('auto-repeat keydown does not fan out onPress', () => {
+		const calls: Array<RecordedCall> = [];
+		const matcher = new ShortcutMatcher({isMac: false});
+		matcher.setBindings([makeDescriptor('quick_switcher', {key: 'k', ctrlOrMeta: true}, {}, calls)]);
+
+		fireKey(matcher, 'keydown', {code: 'KeyK', ctrlKey: true});
+		const repeat = new KeyboardEvent('keydown', {
+			code: 'KeyK',
+			ctrlKey: true,
+			bubbles: true,
+			cancelable: true,
+			repeat: true,
+		});
+		matcher.handleKeyDown(repeat);
+		expect(calls.map((c) => c.type)).toEqual(['press']);
 
 		matcher.detach();
 	});
