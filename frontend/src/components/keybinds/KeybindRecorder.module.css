@@ -23,8 +23,7 @@
 	border: 1px solid var(--background-modifier-accent);
 	border-radius: var(--radius-lg);
 	min-height: 44px;
-	width: 220px;
-	flex: 0 0 auto;
+	width: 100%;
 	cursor: pointer;
 	background-color: var(--background-tertiary);
 	font-family: var(--font-sans);
@@ -32,13 +31,6 @@
 	transition:
 		border-color 0.15s ease,
 		box-shadow 0.15s ease;
-}
-
-@media (max-width: 479px) {
-	.recorder {
-		width: 100%;
-		flex: 1 1 auto;
-	}
 }
 
 .recorder:not(.disabled):hover,
