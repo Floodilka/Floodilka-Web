@@ -28,6 +28,7 @@
 	align-items: flex-start;
 	justify-content: space-between;
 	gap: var(--spacing-3);
+	padding: var(--spacing-4) 0;
 }
 
 .header {
