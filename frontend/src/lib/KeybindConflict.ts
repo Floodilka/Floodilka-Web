@@ -17,6 +17,8 @@
  * along with Floodilka. If not, see <https://www.gnu.org/licenses/>.
  */
 
+import type {MessageDescriptor} from '@lingui/core';
+import {msg} from '@lingui/core/macro';
 import KeybindStore, {type KeybindAction, type KeyCombo} from '~/stores/KeybindStore';
 import {resolveBindingCode} from './ShortcutMatcher';
 
@@ -32,31 +34,35 @@ export interface ActionConflict {
 
 export interface ReservedConflict {
 	kind: 'reserved';
-	label: string;
+	label: MessageDescriptor;
 }
 
 export type KeybindConflict = ActionConflict | ReservedConflict;
 
 interface ReservedComboSpec {
 	combo: KeyCombo;
-	label: string;
+	label: MessageDescriptor;
 	platforms: ReadonlyArray<ConflictPlatform>;
 }
 
 const RESERVED_COMBOS: ReadonlyArray<ReservedComboSpec> = [
-	{combo: {key: 'q', ctrlOrMeta: true}, label: 'Quit application', platforms: ['mac']},
-	{combo: {key: 'w', ctrlOrMeta: true}, label: 'Close window', platforms: ['mac', 'win', 'linux']},
-	{combo: {key: 'n', ctrlOrMeta: true}, label: 'New window', platforms: ['mac', 'win', 'linux']},
+	{combo: {key: 'q', ctrlOrMeta: true}, label: msg`Quit application`, platforms: ['mac']},
+	{combo: {key: 'w', ctrlOrMeta: true}, label: msg`Close window`, platforms: ['mac', 'win', 'linux']},
+	{combo: {key: 'n', ctrlOrMeta: true}, label: msg`New window`, platforms: ['mac', 'win', 'linux']},
 	{
 		combo: {key: 'n', ctrlOrMeta: true, shift: true},
-		label: 'New incognito window',
+		label: msg`New incognito window`,
 		platforms: ['mac', 'win', 'linux'],
 	},
-	{combo: {key: 't', ctrlOrMeta: true, shift: true}, label: 'Reopen closed tab', platforms: ['mac', 'win', 'linux']},
-	{combo: {key: 'r', ctrlOrMeta: true}, label: 'Reload page', platforms: ['mac', 'win', 'linux']},
-	{combo: {key: 'r', ctrlOrMeta: true, shift: true}, label: 'Hard reload', platforms: ['mac', 'win', 'linux']},
-	{combo: {key: 'Tab', ctrl: true}, label: 'Next tab', platforms: ['mac', 'win', 'linux']},
-	{combo: {key: 'Tab', ctrl: true, shift: true}, label: 'Previous tab', platforms: ['mac', 'win', 'linux']},
+	{
+		combo: {key: 't', ctrlOrMeta: true, shift: true},
+		label: msg`Reopen closed tab`,
+		platforms: ['mac', 'win', 'linux'],
+	},
+	{combo: {key: 'r', ctrlOrMeta: true}, label: msg`Reload page`, platforms: ['mac', 'win', 'linux']},
+	{combo: {key: 'r', ctrlOrMeta: true, shift: true}, label: msg`Hard reload`, platforms: ['mac', 'win', 'linux']},
+	{combo: {key: 'Tab', ctrl: true}, label: msg`Next tab`, platforms: ['mac', 'win', 'linux']},
+	{combo: {key: 'Tab', ctrl: true, shift: true}, label: msg`Previous tab`, platforms: ['mac', 'win', 'linux']},
 ];
 
 export function detectPlatform(): ConflictPlatform {

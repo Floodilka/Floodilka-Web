@@ -704,11 +704,11 @@ msgstr "{totalSeconds} second"
 msgid "{totalSeconds} seconds"
 msgstr "{totalSeconds} seconds"
 
-#: src/components/layout/GuildsLayout.tsx:514
+#: src/components/layout/GuildsLayout.tsx:515
 msgid "{unavailableCount} communities are temporarily unavailable."
 msgstr "{unavailableCount} communities are temporarily unavailable."
 
-#: src/components/layout/GuildsLayout.tsx:513
+#: src/components/layout/GuildsLayout.tsx:514
 msgid "{unavailableCount} community is temporarily unavailable."
 msgstr "{unavailableCount} community is temporarily unavailable."
 
@@ -1362,7 +1362,7 @@ msgstr "Accept invite"
 msgid "Accept Invite"
 msgstr "Accept Invite"
 
-#: src/stores/KeybindStore.ts:357
+#: src/stores/KeybindStore.ts:371
 msgid "Accept the incoming call"
 msgstr "Accept the incoming call"
 
@@ -1512,6 +1512,7 @@ msgstr "Activity Status"
 #: src/components/modals/AddFriendsToGroupModal.tsx:64
 #: src/components/modals/meme-form/MemeFormFields.tsx:137
 #: src/components/modals/sticker-form/StickerFormFields.tsx:134
+#: src/components/modals/tabs/KeybindsTab.tsx:146
 msgid "Add"
 msgstr "Add"
 
@@ -1557,6 +1558,10 @@ msgstr "Add account"
 #: src/components/modals/tabs/ComponentGalleryTab/ButtonsTab.tsx:141
 msgid "Add action!"
 msgstr "Add action!"
+
+#: src/components/modals/tabs/KeybindsTab.tsx:144
+msgid "Add alternative shortcut"
+msgstr "Add alternative shortcut"
 
 #: src/components/accounts/AccountSelector.tsx:178
 #: src/components/accounts/AccountSwitcherModal.tsx:112
@@ -1649,7 +1654,7 @@ msgstr "Add Reaction"
 msgid "Add Reactions"
 msgstr "Add Reactions"
 
-#: src/components/modals/tabs/ApplicationsTab/application-detail/ApplicationInfoSection.tsx:93
+#: src/components/modals/tabs/ApplicationsTab/application-detail/ApplicationInfoSection.tsx:103
 msgid "Add redirect"
 msgstr "Add redirect"
 
@@ -1916,9 +1921,13 @@ msgstr "Allow anyone to call you, even strangers"
 msgid "Allow anyone to invite this bot to their communities."
 msgstr "Allow anyone to invite this bot to their communities."
 
-#: src/components/modals/tabs/PrivacySafetyTab/ConnectionsTab.tsx:163
+#: src/components/modals/tabs/PrivacySafetyTab/ConnectionsTab.tsx:164
 msgid "Allow anyone to send you friend requests"
 msgstr "Allow anyone to send you friend requests"
+
+#: src/components/modals/tabs/PrivacySafetyTab/ConnectionsTab.tsx:199
+msgid "Allow bots in all your communities"
+msgstr "Allow bots in all your communities"
 
 #: src/components/modals/tabs/VideoTab.tsx:126
 msgid "Allow Camera"
@@ -1928,7 +1937,7 @@ msgstr "Allow Camera"
 msgid "Allow community members to contact you"
 msgstr "Allow community members to contact you"
 
-#: src/components/modals/tabs/PrivacySafetyTab/ConnectionsTab.tsx:186
+#: src/components/modals/tabs/PrivacySafetyTab/ConnectionsTab.tsx:187
 msgid "Allow direct messages from community members"
 msgstr "Allow direct messages from community members"
 
@@ -1952,7 +1961,7 @@ msgstr "Allow for all communities"
 msgid "Allow friends of friends to contact you"
 msgstr "Allow friends of friends to contact you"
 
-#: src/components/modals/tabs/PrivacySafetyTab/ConnectionsTab.tsx:169
+#: src/components/modals/tabs/PrivacySafetyTab/ConnectionsTab.tsx:170
 msgid "Allow friends of your friends to send you requests"
 msgstr "Allow friends of your friends to send you requests"
 
@@ -1964,11 +1973,11 @@ msgstr "Allow friends plus additional groups to add you"
 msgid "Allow friends plus additional groups you choose"
 msgstr "Allow friends plus additional groups you choose"
 
-#: src/components/modals/tabs/PrivacySafetyTab/ConnectionsTab.tsx:187
+#: src/components/modals/tabs/PrivacySafetyTab/ConnectionsTab.tsx:188
 msgid "Allow members from communities you're in to send you direct messages"
 msgstr "Allow members from communities you're in to send you direct messages"
 
-#: src/components/modals/tabs/PrivacySafetyTab/ConnectionsTab.tsx:175
+#: src/components/modals/tabs/PrivacySafetyTab/ConnectionsTab.tsx:176
 msgid "Allow members from communities you're in to send you requests"
 msgstr "Allow members from communities you're in to send you requests"
 
@@ -2031,6 +2040,10 @@ msgstr "Already joined"
 msgid "Already redeemed"
 msgstr "Already redeemed"
 
+#: src/components/keybinds/KeybindRecorder.tsx:245
+msgid "Already used by \"{conflictLabel}\""
+msgstr "Already used by \"{conflictLabel}\""
+
 #: src/components/modals/meme-form/MemeFormFields.tsx:105
 msgid "Alt Text"
 msgstr "Alt Text"
@@ -2039,11 +2052,11 @@ msgstr "Alt Text"
 msgid "Alt text must be 500 characters or less"
 msgstr "Alt text must be 500 characters or less"
 
-#: src/stores/KeybindStore.ts:224
+#: src/stores/KeybindStore.ts:238
 msgid "Alternate binding to focus the audio channel you are connected to"
 msgstr "Alternate binding to focus the audio channel you are connected to"
 
-#: src/stores/KeybindStore.ts:210
+#: src/stores/KeybindStore.ts:224
 msgid "Alternate binding to jump back to the previously focused text channel"
 msgstr "Alternate binding to jump back to the previously focused text channel"
 
@@ -2202,7 +2215,7 @@ msgstr "Another Checkbox"
 msgid "Another Round Checkbox"
 msgstr "Another Round Checkbox"
 
-#: src/stores/KeybindStore.ts:356
+#: src/stores/KeybindStore.ts:370
 msgid "Answer Incoming Call"
 msgstr "Answer Incoming Call"
 
@@ -2255,7 +2268,7 @@ msgstr "Application Name"
 msgid "Application name is required"
 msgstr "Application name is required"
 
-#: src/components/modals/tabs/ApplicationsTab/ApplicationDetail.tsx:250
+#: src/components/modals/tabs/ApplicationsTab/ApplicationDetail.tsx:256
 msgid "Application updated successfully"
 msgstr "Application updated successfully"
 
@@ -2345,7 +2358,7 @@ msgid "Are you sure you want to delete #{channelName}? This cannot be undone."
 msgstr "Are you sure you want to delete #{channelName}? This cannot be undone."
 
 #. placeholder {0}: application.name
-#: src/components/modals/tabs/ApplicationsTab/ApplicationDetail.tsx:356
+#: src/components/modals/tabs/ApplicationsTab/ApplicationDetail.tsx:362
 msgid "Are you sure you want to delete <0>{0}</0>?"
 msgstr "Are you sure you want to delete <0>{0}</0>?"
 
@@ -2467,7 +2480,7 @@ msgstr "Are you sure you want to remove {0} from the group?"
 msgid "Are you sure you want to remove your phone number <0>{0}</0>?"
 msgstr "Are you sure you want to remove your phone number <0>{0}</0>?"
 
-#: src/components/modals/tabs/KeybindsTab.tsx:153
+#: src/components/modals/tabs/KeybindsTab.tsx:221
 msgid "Are you sure you want to reset all keyboard shortcuts to their default values?"
 msgstr "Are you sure you want to reset all keyboard shortcuts to their default values?"
 
@@ -2654,7 +2667,7 @@ msgstr "Authorize"
 msgid "Authorize Application"
 msgstr "Authorize Application"
 
-#: src/components/modals/tabs/ApplicationsTab/application-detail/OAuthBuilderSection.tsx:127
+#: src/components/modals/tabs/ApplicationsTab/application-detail/OAuthBuilderSection.tsx:135
 msgid "Authorize URL"
 msgstr "Authorize URL"
 
@@ -2759,7 +2772,7 @@ msgstr "Back to Applications"
 msgid "Back to call"
 msgstr "Back to call"
 
-#: src/components/modals/tabs/ApplicationsTab/ApplicationDetail.tsx:547
+#: src/components/modals/tabs/ApplicationsTab/ApplicationDetail.tsx:557
 msgid "Back to list"
 msgstr "Back to list"
 
@@ -2939,7 +2952,7 @@ msgstr "Because {reason}."
 msgid "before:"
 msgstr "before:"
 
-#: src/stores/KeybindStore.ts:350
+#: src/stores/KeybindStore.ts:364
 msgid "Begin a call in the current private conversation"
 msgstr "Begin a call in the current private conversation"
 
@@ -3104,7 +3117,7 @@ msgstr "Bot invite (no external redirect)"
 msgid "Bot is already in this guild."
 msgstr "Bot is already in this guild."
 
-#: src/components/modals/tabs/ApplicationsTab/application-detail/OAuthBuilderSection.tsx:105
+#: src/components/modals/tabs/ApplicationsTab/application-detail/OAuthBuilderSection.tsx:113
 msgid "Bot permissions"
 msgstr "Bot permissions"
 
@@ -3120,7 +3133,7 @@ msgstr "Bot scope requested"
 msgid "Bot token"
 msgstr "Bot token"
 
-#: src/components/modals/tabs/ApplicationsTab/ApplicationDetail.tsx:409
+#: src/components/modals/tabs/ApplicationsTab/ApplicationDetail.tsx:421
 msgid "Bot token regenerated. Update any code that uses the old token."
 msgstr "Bot token regenerated. Update any code that uses the old token."
 
@@ -3135,6 +3148,10 @@ msgstr "Both Sides"
 #: src/components/modals/tabs/ApplicationsTab/application-detail/BotProfileSection.tsx:99
 msgid "BotName"
 msgstr "BotName"
+
+#: src/components/modals/tabs/PrivacySafetyTab/ConnectionsTab.tsx:195
+msgid "Bots"
+msgstr "Bots"
 
 #: src/components/modals/tabs/ComponentGalleryTab/OverlaysTab.tsx:65
 msgid "Bottom"
@@ -3235,7 +3252,7 @@ msgstr "Call participants"
 msgid "Call Sound"
 msgstr "Call Sound"
 
-#: src/components/modals/tabs/KeybindsTab.tsx:132
+#: src/components/modals/tabs/KeybindsTab.tsx:200
 msgid "Calls"
 msgstr "Calls"
 
@@ -3932,7 +3949,7 @@ msgstr "Claim your account to create applications."
 
 #: src/components/layout/ChannelItem.tsx:206
 #: src/components/layout/ChannelItem.tsx:382
-#: src/stores/voice/MediaEngineFacade.ts:582
+#: src/stores/voice/MediaEngineFacade.ts:581
 msgid "Claim your account to join this voice channel."
 msgstr "Claim your account to join this voice channel."
 
@@ -3983,7 +4000,7 @@ msgstr "Class of '24"
 
 #: src/components/auth/BrowserLoginHandoffModal.tsx:304
 #: src/components/channel/MessageSearchBar/HistorySection.tsx:111
-#: src/components/keybinds/KeybindRecorder.tsx:204
+#: src/components/keybinds/KeybindRecorder.tsx:260
 msgid "Clear"
 msgstr "Clear"
 
@@ -4124,11 +4141,11 @@ msgstr "Click to open the dropdown menu and select different options."
 msgid "Click to react"
 msgstr "Click to react"
 
-#: src/components/keybinds/KeybindRecorder.tsx:187
+#: src/components/keybinds/KeybindRecorder.tsx:222
 msgid "Click to record"
 msgstr "Click to record"
 
-#: src/components/keybinds/KeybindRecorder.tsx:168
+#: src/components/keybinds/KeybindRecorder.tsx:203
 msgid "Click to record a new shortcut, or press Escape to cancel."
 msgstr "Click to record a new shortcut, or press Escape to cancel."
 
@@ -4152,7 +4169,7 @@ msgstr "Click to view all reactions"
 msgid "Client secret"
 msgstr "Client secret"
 
-#: src/components/modals/tabs/ApplicationsTab/ApplicationDetail.tsx:408
+#: src/components/modals/tabs/ApplicationsTab/ApplicationDetail.tsx:420
 msgid "Client secret regenerated. Update any code that uses the old secret."
 msgstr "Client secret regenerated. Update any code that uses the old secret."
 
@@ -4196,6 +4213,10 @@ msgstr "Close DM"
 #: src/components/modals/MediaModal.tsx:261
 msgid "Close modal"
 msgstr "Close modal"
+
+#: src/lib/KeybindConflict.ts:50
+msgid "Close window"
+msgstr "Close window"
 
 #: src/components/layout/ChannelItem.tsx:208
 msgid "Closed Channel"
@@ -4308,7 +4329,7 @@ msgstr "Community Deafen"
 #: src/components/layout/UserArea.tsx:250
 #: src/components/layout/VoiceStateIcons.tsx:61
 #: src/components/voice/VoiceControlBar.tsx:247
-#: src/lib/KeybindManager.ts:457
+#: src/lib/KeybindManager.ts:403
 msgid "Community Deafened"
 msgstr "Community Deafened"
 
@@ -4348,7 +4369,7 @@ msgstr "Community Member Debug"
 
 #: src/components/modals/tabs/PrivacySafetyTab/CommunicationTab.tsx:184
 #: src/components/modals/tabs/PrivacySafetyTab/CommunicationTab.tsx:260
-#: src/components/modals/tabs/PrivacySafetyTab/ConnectionsTab.tsx:174
+#: src/components/modals/tabs/PrivacySafetyTab/ConnectionsTab.tsx:175
 #: src/components/modals/utils/settingsSearchIndex.ts:574
 msgid "Community Members"
 msgstr "Community Members"
@@ -4361,7 +4382,7 @@ msgstr "Community Mute"
 #: src/components/layout/UserArea.tsx:219
 #: src/components/layout/VoiceStateIcons.tsx:53
 #: src/components/voice/VoiceControlBar.tsx:237
-#: src/lib/KeybindManager.ts:432
+#: src/lib/KeybindManager.ts:378
 msgid "Community Muted"
 msgstr "Community Muted"
 
@@ -4600,6 +4621,10 @@ msgstr "Confirm New Group"
 msgid "Confirm new password"
 msgstr "Confirm new password"
 
+#: src/components/modals/tabs/KeybindsTab.tsx:113
+msgid "Conflict"
+msgstr "Conflict"
+
 #: src/utils/PermissionUtils.tsx:379
 #: src/utils/PermissionUtils.tsx:493
 msgid "Connect (Join Voice)"
@@ -4648,7 +4673,7 @@ msgstr "Connections"
 msgid "Consent Required"
 msgstr "Consent Required"
 
-#: src/components/modals/tabs/ApplicationsTab/application-detail/OAuthBuilderSection.tsx:62
+#: src/components/modals/tabs/ApplicationsTab/application-detail/OAuthBuilderSection.tsx:70
 msgid "Construct an authorize URL with scopes and permissions."
 msgstr "Construct an authorize URL with scopes and permissions."
 
@@ -4746,6 +4771,10 @@ msgstr "Control keyboard shortcut hints in tooltips"
 msgid "Control sticker animations"
 msgstr "Control sticker animations"
 
+#: src/components/modals/tabs/PrivacySafetyTab/ConnectionsTab.tsx:196
+msgid "Control whether bots can be added to your communities"
+msgstr "Control whether bots can be added to your communities"
+
 #: src/components/modals/guildTabs/GuildOverviewTab/sections/DisallowUnclaimedAccountsSection.tsx:37
 msgid "Control whether unclaimed accounts can access this community"
 msgstr "Control whether unclaimed accounts can access this community"
@@ -4775,11 +4804,11 @@ msgstr "Control who can call you and add you to group chats"
 msgid "Control who can DM you"
 msgstr "Control who can DM you"
 
-#: src/components/modals/tabs/PrivacySafetyTab/ConnectionsTab.tsx:183
+#: src/components/modals/tabs/PrivacySafetyTab/ConnectionsTab.tsx:184
 msgid "Control who can send you direct messages"
 msgstr "Control who can send you direct messages"
 
-#: src/components/modals/tabs/PrivacySafetyTab/ConnectionsTab.tsx:159
+#: src/components/modals/tabs/PrivacySafetyTab/ConnectionsTab.tsx:160
 msgid "Control who can send you friend requests"
 msgstr "Control who can send you friend requests"
 
@@ -4801,7 +4830,7 @@ msgstr "Copied"
 msgid "Copied to clipboard"
 msgstr "Copied to clipboard"
 
-#: src/components/modals/tabs/ApplicationsTab/ApplicationDetail.tsx:525
+#: src/components/modals/tabs/ApplicationsTab/ApplicationDetail.tsx:535
 msgid "Copied URL to clipboard"
 msgstr "Copied URL to clipboard"
 
@@ -4813,7 +4842,7 @@ msgstr "Copied!"
 #: src/components/channel/textarea/TextareaContextMenu.tsx:124
 #: src/components/modals/BackupCodesModal.tsx:82
 #: src/components/modals/shared/CopyLinkSection.tsx:61
-#: src/components/modals/tabs/ApplicationsTab/application-detail/OAuthBuilderSection.tsx:142
+#: src/components/modals/tabs/ApplicationsTab/application-detail/OAuthBuilderSection.tsx:150
 #: src/components/modals/tabs/GiftInventoryTab.tsx:142
 msgid "Copy"
 msgstr "Copy"
@@ -4826,7 +4855,7 @@ msgstr "Copy Attachment ID"
 msgid "Copy Audio"
 msgstr "Copy Audio"
 
-#: src/components/modals/tabs/ApplicationsTab/application-detail/OAuthBuilderSection.tsx:136
+#: src/components/modals/tabs/ApplicationsTab/application-detail/OAuthBuilderSection.tsx:144
 msgid "Copy authorize URL"
 msgstr "Copy authorize URL"
 
@@ -4971,6 +5000,10 @@ msgstr "Copying image..."
 msgid "Could not crop this GIF. The original image will be used instead."
 msgstr "Could not crop this GIF. The original image will be used instead."
 
+#: src/components/modals/tabs/KeybindsTab.tsx:261
+msgid "Could not read preset file"
+msgstr "Could not read preset file"
+
 #: src/utils/accounts/AccountSwitcherModalUtils.tsx:121
 msgid "Could not remove this account. Please try again."
 msgstr "Could not remove this account. Please try again."
@@ -5020,7 +5053,7 @@ msgstr "Create a new community or join an existing one."
 msgid "Create a new group with {0}"
 msgstr "Create a new group with {0}"
 
-#: src/stores/KeybindStore.ts:342
+#: src/stores/KeybindStore.ts:356
 msgid "Create a Private Group"
 msgstr "Create a Private Group"
 
@@ -5119,7 +5152,7 @@ msgstr "Create new group"
 msgid "Create New Link"
 msgstr "Create New Link"
 
-#: src/stores/KeybindStore.ts:335
+#: src/stores/KeybindStore.ts:349
 msgid "Create or Join a Community"
 msgstr "Create or Join a Community"
 
@@ -5376,7 +5409,7 @@ msgstr "Customize interface elements and behaviors."
 msgid "Customize keyboard navigation behavior."
 msgstr "Customize keyboard navigation behavior."
 
-#: src/components/modals/tabs/KeybindsTab.tsx:181
+#: src/components/modals/tabs/KeybindsTab.tsx:299
 msgid "Customize keyboard shortcuts for navigation and actions."
 msgstr "Customize keyboard shortcuts for navigation and actions."
 
@@ -5444,7 +5477,7 @@ msgstr "Danger Secondary"
 msgid "Danger secondary clicked!"
 msgstr "Danger secondary clicked!"
 
-#: src/components/modals/tabs/ApplicationsTab/ApplicationDetail.tsx:650
+#: src/components/modals/tabs/ApplicationsTab/ApplicationDetail.tsx:660
 msgid "Danger zone"
 msgstr "Danger zone"
 
@@ -5516,7 +5549,7 @@ msgstr "Days"
 msgid "Deafen"
 msgstr "Deafen"
 
-#: src/stores/KeybindStore.ts:386
+#: src/stores/KeybindStore.ts:402
 msgid "Deafen / undeafen"
 msgstr "Deafen / undeafen"
 
@@ -5586,11 +5619,11 @@ msgstr "Debug Message"
 msgid "Debug User"
 msgstr "Debug User"
 
-#: src/stores/KeybindStore.ts:363
+#: src/stores/KeybindStore.ts:378
 msgid "Decline Incoming Call"
 msgstr "Decline Incoming Call"
 
-#: src/stores/KeybindStore.ts:364
+#: src/stores/KeybindStore.ts:379
 msgid "Decline or dismiss the incoming call"
 msgstr "Decline or dismiss the incoming call"
 
@@ -5598,7 +5631,7 @@ msgstr "Decline or dismiss the incoming call"
 msgid "Decorative divider"
 msgstr "Decorative divider"
 
-#: src/stores/KeybindStore.ts:444
+#: src/stores/KeybindStore.ts:460
 msgid "Decrease app zoom level"
 msgstr "Decrease app zoom level"
 
@@ -5631,7 +5664,7 @@ msgstr "Default Notifications"
 msgid "Default Tab"
 msgstr "Default Tab"
 
-#: src/components/keybinds/KeybindRecorder.tsx:194
+#: src/components/keybinds/KeybindRecorder.tsx:229
 msgid "Default:"
 msgstr "Default:"
 
@@ -5698,9 +5731,9 @@ msgstr "Delete all messages form"
 msgid "Delete all my messages"
 msgstr "Delete all my messages"
 
-#: src/components/modals/tabs/ApplicationsTab/ApplicationDetail.tsx:353
-#: src/components/modals/tabs/ApplicationsTab/ApplicationDetail.tsx:367
-#: src/components/modals/tabs/ApplicationsTab/ApplicationDetail.tsx:665
+#: src/components/modals/tabs/ApplicationsTab/ApplicationDetail.tsx:359
+#: src/components/modals/tabs/ApplicationsTab/ApplicationDetail.tsx:373
+#: src/components/modals/tabs/ApplicationsTab/ApplicationDetail.tsx:675
 msgid "Delete Application"
 msgstr "Delete Application"
 
@@ -6022,7 +6055,7 @@ msgstr "Direct Message"
 #: src/components/layout/guild-list/HomeButton.tsx:64
 #: src/components/layout/guild-list/HomeButton.tsx:69
 #: src/components/modals/GuildPrivacySettingsModal.tsx:60
-#: src/components/modals/tabs/PrivacySafetyTab/ConnectionsTab.tsx:182
+#: src/components/modals/tabs/PrivacySafetyTab/ConnectionsTab.tsx:183
 #: src/components/modals/utils/settingsSearchIndex.ts:519
 #: src/stores/QuickSwitcherStore.tsx:820
 msgid "Direct Messages"
@@ -6308,10 +6341,6 @@ msgstr "DM Settings"
 msgid "Do Not Disturb"
 msgstr "Do Not Disturb"
 
-#: src/components/alerts/VoiceConnectionConfirmModal.tsx:62
-msgid "Do nothing, I don't want to join"
-msgstr "Do nothing, I don't want to join"
-
 #: src/components/modals/tabs/PrivacySafetyTab/ConnectionsTab.tsx:81
 msgid "Do you also want to allow direct messages from members of your existing communities?"
 msgstr "Do you also want to allow direct messages from members of your existing communities?"
@@ -6378,7 +6407,7 @@ msgstr "Don't show this again"
 msgid "Don't show typing indicators in the channel list"
 msgstr "Don't show typing indicators in the channel list"
 
-#: src/components/keybinds/KeybindRecorder.tsx:220
+#: src/components/keybinds/KeybindRecorder.tsx:276
 #: src/components/modals/GuildNotificationSettingsModal.tsx:347
 #: src/components/modals/GuildPrivacySettingsModal.tsx:68
 #: src/components/pages/report/ReportBreadcrumbs.tsx:50
@@ -6590,7 +6619,7 @@ msgstr "Edit group form"
 msgid "Edit invite link"
 msgstr "Edit invite link"
 
-#: src/components/keybinds/KeybindRecorder.tsx:268
+#: src/components/keybinds/KeybindRecorder.tsx:327
 msgid "Edit keyboard shortcut for {action}"
 msgstr "Edit keyboard shortcut for {action}"
 
@@ -6634,7 +6663,7 @@ msgstr "Edit Saved Media"
 msgid "Edit saved media form"
 msgstr "Edit saved media form"
 
-#: src/components/keybinds/KeybindRecorder.tsx:165
+#: src/components/keybinds/KeybindRecorder.tsx:200
 msgid "Edit Shortcut"
 msgstr "Edit Shortcut"
 
@@ -6941,7 +6970,7 @@ msgstr "Enable Notifications"
 msgid "Enable notifications to stay updated on mentions when you're away from the app."
 msgstr "Enable notifications to stay updated on mentions when you're away from the app."
 
-#: src/stores/KeybindStore.ts:430
+#: src/stores/KeybindStore.ts:446
 msgid "Enable or disable push-to-talk"
 msgstr "Enable or disable push-to-talk"
 
@@ -7210,7 +7239,7 @@ msgstr "EU Central"
 
 #: src/components/modals/tabs/PrivacySafetyTab/CommunicationTab.tsx:166
 #: src/components/modals/tabs/PrivacySafetyTab/CommunicationTab.tsx:242
-#: src/components/modals/tabs/PrivacySafetyTab/ConnectionsTab.tsx:162
+#: src/components/modals/tabs/PrivacySafetyTab/ConnectionsTab.tsx:163
 msgid "Everyone"
 msgstr "Everyone"
 
@@ -7317,6 +7346,10 @@ msgstr "Explicit"
 #: src/components/modals/guildTabs/GuildModerationTab.tsx:238
 msgid "Explicit content filter setting"
 msgstr "Explicit content filter setting"
+
+#: src/components/modals/tabs/KeybindsTab.tsx:304
+msgid "Export"
+msgstr "Export"
 
 #: src/components/modals/utils/settingsSearchIndex.ts:592
 msgid "Export your data"
@@ -7439,7 +7472,7 @@ msgstr "Failed to crop banner. Please try again."
 msgid "Failed to crop icon. Please try again."
 msgstr "Failed to crop icon. Please try again."
 
-#: src/components/modals/tabs/ApplicationsTab/ApplicationDetail.tsx:378
+#: src/components/modals/tabs/ApplicationsTab/ApplicationDetail.tsx:384
 msgid "Failed to delete application. Please try again."
 msgstr "Failed to delete application. Please try again."
 
@@ -7655,7 +7688,7 @@ msgstr "Failed to revoke ban. Please try again."
 msgid "Failed to revoke invite"
 msgstr "Failed to revoke invite"
 
-#: src/components/modals/tabs/ApplicationsTab/ApplicationDetail.tsx:415
+#: src/components/modals/tabs/ApplicationsTab/ApplicationDetail.tsx:427
 msgid "Failed to rotate. Please try again."
 msgstr "Failed to rotate. Please try again."
 
@@ -7894,7 +7927,7 @@ msgstr "Filter mentions"
 msgid "Finalizing camera..."
 msgstr "Finalizing camera..."
 
-#: src/stores/KeybindStore.ts:111
+#: src/stores/KeybindStore.ts:125
 msgid "Find or Start a Direct Message"
 msgstr "Find or Start a Direct Message"
 
@@ -7986,11 +8019,11 @@ msgstr "Floodilka Premium Subscription"
 msgid "Floodilka Staff"
 msgstr "Floodilka Staff"
 
-#: src/stores/KeybindStore.ts:370
+#: src/stores/KeybindStore.ts:386
 msgid "Focus Text Area"
 msgstr "Focus Text Area"
 
-#: src/stores/KeybindStore.ts:217
+#: src/stores/KeybindStore.ts:231
 msgid "Focus the audio channel you are currently connected to"
 msgstr "Focus the audio channel you are currently connected to"
 
@@ -8328,7 +8361,7 @@ msgstr "Friend Request Sent"
 msgid "Friend request sent!"
 msgstr "Friend request sent!"
 
-#: src/components/modals/tabs/PrivacySafetyTab/ConnectionsTab.tsx:158
+#: src/components/modals/tabs/PrivacySafetyTab/ConnectionsTab.tsx:159
 #: src/components/modals/utils/settingsSearchIndex.ts:527
 msgid "Friend Requests"
 msgstr "Friend Requests"
@@ -8353,7 +8386,7 @@ msgstr "Friends Forever"
 
 #: src/components/modals/tabs/PrivacySafetyTab/CommunicationTab.tsx:178
 #: src/components/modals/tabs/PrivacySafetyTab/CommunicationTab.tsx:254
-#: src/components/modals/tabs/PrivacySafetyTab/ConnectionsTab.tsx:168
+#: src/components/modals/tabs/PrivacySafetyTab/ConnectionsTab.tsx:169
 #: src/components/modals/utils/settingsSearchIndex.ts:566
 msgid "Friends of Friends"
 msgstr "Friends of Friends"
@@ -8452,7 +8485,7 @@ msgstr "Germany"
 msgid "Get crystal clear screen sharing with High (1080p) resolution and frame rates up to 60 fps for the smoothest experience."
 msgstr "Get crystal clear screen sharing with High (1080p) resolution and frame rates up to 60 fps for the smoothest experience."
 
-#: src/components/modals/tabs/KeybindsTab.tsx:113
+#: src/components/modals/tabs/KeybindsTab.tsx:182
 msgid "Get desktop app"
 msgstr "Get desktop app"
 
@@ -8619,11 +8652,11 @@ msgstr "Global emoji & sticker access"
 msgid "Global Profile"
 msgstr "Global Profile"
 
-#: src/components/modals/tabs/KeybindsTab.tsx:90
+#: src/components/modals/tabs/KeybindsTab.tsx:159
 msgid "Global shortcut"
 msgstr "Global shortcut"
 
-#: src/components/modals/tabs/KeybindsTab.tsx:111
+#: src/components/modals/tabs/KeybindsTab.tsx:180
 msgid "Global shortcuts are available in the desktop app"
 msgstr "Global shortcuts are available in the desktop app"
 
@@ -8636,15 +8669,15 @@ msgstr "Glorification of violence or disturbing imagery"
 msgid "Go back"
 msgstr "Go back"
 
-#: src/stores/KeybindStore.ts:175
+#: src/stores/KeybindStore.ts:189
 msgid "Go back in navigation history"
 msgstr "Go back in navigation history"
 
-#: src/stores/KeybindStore.ts:203
+#: src/stores/KeybindStore.ts:217
 msgid "Go back to the previously focused text channel"
 msgstr "Go back to the previously focused text channel"
 
-#: src/stores/KeybindStore.ts:182
+#: src/stores/KeybindStore.ts:196
 msgid "Go forward in navigation history"
 msgstr "Go forward in navigation history"
 
@@ -8653,7 +8686,7 @@ msgstr "Go forward in navigation history"
 msgid "Go to Community"
 msgstr "Go to Community"
 
-#: src/stores/KeybindStore.ts:188
+#: src/stores/KeybindStore.ts:202
 msgid "Go to Current Call"
 msgstr "Go to Current Call"
 
@@ -8863,6 +8896,10 @@ msgstr "Harassment"
 msgid "Harassment or Bullying"
 msgstr "Harassment or Bullying"
 
+#: src/lib/KeybindConflict.ts:63
+msgid "Hard reload"
+msgstr "Hard reload"
+
 #: src/components/modals/utils/settingsSearchIndex.ts:664
 msgid "Hardware Acceleration"
 msgstr "Hardware Acceleration"
@@ -9037,7 +9074,7 @@ msgstr "Hold a key to transmit — works system-wide"
 msgid "Hold for instant upload"
 msgstr "Hold for instant upload"
 
-#: src/stores/KeybindStore.ts:422
+#: src/stores/KeybindStore.ts:438
 msgid "Hold to temporarily unmute when push-to-talk is enabled"
 msgstr "Hold to temporarily unmute when push-to-talk is enabled"
 
@@ -9070,7 +9107,7 @@ msgstr "How long this user should be timed out for."
 msgid "How many months of Premium the mock gift provides"
 msgstr "How many months of Premium the mock gift provides"
 
-#: src/components/modals/tabs/ApplicationsTab/application-detail/ApplicationInfoSection.tsx:77
+#: src/components/modals/tabs/ApplicationsTab/application-detail/ApplicationInfoSection.tsx:87
 msgid "https://example.com/callback"
 msgstr "https://example.com/callback"
 
@@ -9200,6 +9237,15 @@ msgstr "Images"
 #: src/constants/IARConstants.tsx:124
 msgid "Impersonation"
 msgstr "Impersonation"
+
+#: src/components/modals/tabs/KeybindsTab.tsx:271
+#: src/components/modals/tabs/KeybindsTab.tsx:307
+msgid "Import"
+msgstr "Import"
+
+#: src/components/modals/tabs/KeybindsTab.tsx:269
+msgid "Import Keybind Preset"
+msgstr "Import Keybind Preset"
 
 #: src/lib/markdown/renderers/common/block-elements.tsx:216
 msgid "Important"
@@ -9339,7 +9385,7 @@ msgstr "Incoming friend request"
 msgid "Incoming friend requests"
 msgstr "Incoming friend requests"
 
-#: src/stores/KeybindStore.ts:437
+#: src/stores/KeybindStore.ts:453
 msgid "Increase app zoom level"
 msgstr "Increase app zoom level"
 
@@ -9902,7 +9948,7 @@ msgstr "Jump to {labelText}"
 msgid "Jump to Message"
 msgstr "Jump to Message"
 
-#: src/stores/KeybindStore.ts:307
+#: src/stores/KeybindStore.ts:321
 msgid "Jump to Oldest Unread Message"
 msgstr "Jump to Oldest Unread Message"
 
@@ -9914,7 +9960,7 @@ msgstr "Jump to page"
 msgid "Jump to Present"
 msgstr "Jump to Present"
 
-#: src/stores/KeybindStore.ts:189
+#: src/stores/KeybindStore.ts:203
 msgid "Jump to the channel of the active call"
 msgstr "Jump to the channel of the active call"
 
@@ -9930,29 +9976,25 @@ msgstr "Jump to the linked message"
 msgid "Jump to the message in {labelText}"
 msgstr "Jump to the message in {labelText}"
 
-#: src/stores/KeybindStore.ts:154
+#: src/stores/KeybindStore.ts:168
 msgid "Jump to the next unread channel"
 msgstr "Jump to the next unread channel"
 
-#: src/stores/KeybindStore.ts:168
+#: src/stores/KeybindStore.ts:182
 msgid "Jump to the next unread channel with mentions"
 msgstr "Jump to the next unread channel with mentions"
 
-#: src/stores/KeybindStore.ts:308
+#: src/stores/KeybindStore.ts:322
 msgid "Jump to the oldest unread message in the channel"
 msgstr "Jump to the oldest unread message in the channel"
 
-#: src/stores/KeybindStore.ts:147
+#: src/stores/KeybindStore.ts:161
 msgid "Jump to the previous unread channel"
 msgstr "Jump to the previous unread channel"
 
-#: src/stores/KeybindStore.ts:161
+#: src/stores/KeybindStore.ts:175
 msgid "Jump to the previous unread channel with mentions"
 msgstr "Jump to the previous unread channel with mentions"
-
-#: src/components/alerts/VoiceConnectionConfirmModal.tsx:58
-msgid "Just Join (Keep Other Connections)"
-msgstr "Just Join (Keep Other Connections)"
 
 #: src/lib/markdown/utils/date-formatter.ts:140
 msgid "just now"
@@ -9992,7 +10034,7 @@ msgstr "Keyboard Mode"
 msgid "Keyboard Navigation"
 msgstr "Keyboard Navigation"
 
-#: src/components/modals/tabs/KeybindsTab.tsx:178
+#: src/components/modals/tabs/KeybindsTab.tsx:296
 #: src/components/modals/utils/settingsSearchIndex.ts:628
 msgid "Keyboard Shortcuts"
 msgstr "Keyboard Shortcuts"
@@ -10600,11 +10642,11 @@ msgstr "Mark as spoiler"
 msgid "Mark as Unread"
 msgstr "Mark as Unread"
 
-#: src/stores/KeybindStore.ts:314
+#: src/stores/KeybindStore.ts:328
 msgid "Mark Channel as Read"
 msgstr "Mark Channel as Read"
 
-#: src/stores/KeybindStore.ts:321
+#: src/stores/KeybindStore.ts:335
 msgid "Mark Community as Read"
 msgstr "Mark Community as Read"
 
@@ -10616,19 +10658,19 @@ msgstr "Mark Folder as Read"
 msgid "Mark Read"
 msgstr "Mark Read"
 
-#: src/stores/KeybindStore.ts:315
+#: src/stores/KeybindStore.ts:329
 msgid "Mark the current channel as read"
 msgstr "Mark the current channel as read"
 
-#: src/stores/KeybindStore.ts:322
+#: src/stores/KeybindStore.ts:336
 msgid "Mark the current community as read"
 msgstr "Mark the current community as read"
 
-#: src/stores/KeybindStore.ts:329
+#: src/stores/KeybindStore.ts:343
 msgid "Mark the first unread channel in your inbox as read"
 msgstr "Mark the first unread channel in your inbox as read"
 
-#: src/stores/KeybindStore.ts:328
+#: src/stores/KeybindStore.ts:342
 msgid "Mark Top Inbox Channel as Read"
 msgstr "Mark Top Inbox Channel as Read"
 
@@ -11065,7 +11107,7 @@ msgstr "Messages Deleted"
 msgid "Messages failed to load"
 msgstr "Messages failed to load"
 
-#: src/components/modals/tabs/KeybindsTab.tsx:130
+#: src/components/modals/tabs/KeybindsTab.tsx:198
 msgid "Messaging"
 msgstr "Messaging"
 
@@ -11118,11 +11160,11 @@ msgstr "Mobile Push Notifications"
 msgid "Mock Avatars"
 msgstr "Mock Avatars"
 
-#: src/components/modals/tabs/KeybindsTab.tsx:196
+#: src/components/modals/tabs/KeybindsTab.tsx:327
 msgid "Mock desktop"
 msgstr "Mock desktop"
 
-#: src/components/modals/tabs/KeybindsTab.tsx:194
+#: src/components/modals/tabs/KeybindsTab.tsx:325
 msgid "Mock desktop mode"
 msgstr "Mock desktop mode"
 
@@ -11257,7 +11299,7 @@ msgstr "Move Device To..."
 msgid "Move focus across buttons, inputs, and links."
 msgstr "Move focus across buttons, inputs, and links."
 
-#: src/stores/KeybindStore.ts:371
+#: src/stores/KeybindStore.ts:387
 msgid "Move focus to the message composer"
 msgstr "Move focus to the message composer"
 
@@ -11328,7 +11370,7 @@ msgstr "Mute {0}"
 msgid "Mute {displayLabel}"
 msgstr "Mute {displayLabel}"
 
-#: src/stores/KeybindStore.ts:378
+#: src/stores/KeybindStore.ts:394
 msgid "Mute / unmute microphone"
 msgstr "Mute / unmute microphone"
 
@@ -11501,31 +11543,31 @@ msgstr "Name: {0}."
 msgid "Nature"
 msgstr "Nature"
 
-#: src/stores/KeybindStore.ts:174
+#: src/stores/KeybindStore.ts:188
 msgid "Navigate Back"
 msgstr "Navigate Back"
 
-#: src/stores/KeybindStore.ts:181
+#: src/stores/KeybindStore.ts:195
 msgid "Navigate Forward"
 msgstr "Navigate Forward"
 
-#: src/stores/KeybindStore.ts:140
+#: src/stores/KeybindStore.ts:154
 msgid "Navigate to the next channel in the community"
 msgstr "Navigate to the next channel in the community"
 
-#: src/stores/KeybindStore.ts:126
+#: src/stores/KeybindStore.ts:140
 msgid "Navigate to the next community"
 msgstr "Navigate to the next community"
 
-#: src/stores/KeybindStore.ts:133
+#: src/stores/KeybindStore.ts:147
 msgid "Navigate to the previous channel in the community"
 msgstr "Navigate to the previous channel in the community"
 
-#: src/stores/KeybindStore.ts:119
+#: src/stores/KeybindStore.ts:133
 msgid "Navigate to the previous community"
 msgstr "Navigate to the previous community"
 
-#: src/components/modals/tabs/KeybindsTab.tsx:128
+#: src/components/modals/tabs/KeybindsTab.tsx:196
 msgid "Navigation"
 msgstr "Navigation"
 
@@ -11572,7 +11614,7 @@ msgstr "never expires"
 #: src/components/channel/Divider.tsx:51
 #: src/components/channel/Divider.tsx:60
 #: src/components/channel/UnreadDividerSlot.tsx:45
-#: src/components/layout/GuildsLayout.tsx:582
+#: src/components/layout/GuildsLayout.tsx:583
 msgid "New"
 msgstr "New"
 
@@ -11596,6 +11638,10 @@ msgstr "New email form"
 msgid "New Group"
 msgstr "New Group"
 
+#: src/lib/KeybindConflict.ts:54
+msgid "New incognito window"
+msgstr "New incognito window"
+
 #: src/components/layout/ChannelListContent.tsx:403
 msgid "New Messages"
 msgstr "New Messages"
@@ -11609,6 +11655,10 @@ msgstr "New password"
 #: src/components/modals/guildTabs/GuildRolesTab.tsx:586
 msgid "New Role"
 msgstr "New Role"
+
+#: src/lib/KeybindConflict.ts:51
+msgid "New window"
+msgstr "New window"
 
 #: src/components/modals/ChannelCreateModal.tsx:82
 msgid "new-channel"
@@ -11634,11 +11684,11 @@ msgstr "Next"
 msgid "Next attachment"
 msgstr "Next attachment"
 
-#: src/stores/KeybindStore.ts:139
+#: src/stores/KeybindStore.ts:153
 msgid "Next Channel"
 msgstr "Next Channel"
 
-#: src/stores/KeybindStore.ts:125
+#: src/stores/KeybindStore.ts:139
 msgid "Next Community"
 msgstr "Next Community"
 
@@ -11646,11 +11696,15 @@ msgstr "Next Community"
 msgid "next month"
 msgstr "next month"
 
-#: src/stores/KeybindStore.ts:153
+#: src/lib/KeybindConflict.ts:64
+msgid "Next tab"
+msgstr "Next tab"
+
+#: src/stores/KeybindStore.ts:167
 msgid "Next Unread Channel"
 msgstr "Next Unread Channel"
 
-#: src/stores/KeybindStore.ts:167
+#: src/stores/KeybindStore.ts:181
 msgid "Next Unread Mention"
 msgstr "Next Unread Mention"
 
@@ -11732,7 +11786,7 @@ msgstr "No cameras detected"
 msgid "No Category"
 msgstr "No Category"
 
-#: src/components/modals/tabs/ApplicationsTab/ApplicationDetail.tsx:237
+#: src/components/modals/tabs/ApplicationsTab/ApplicationDetail.tsx:243
 msgid "No changes to save"
 msgstr "No changes to save"
 
@@ -11819,7 +11873,7 @@ msgstr "No invite links"
 msgid "No invites created"
 msgstr "No invites created"
 
-#: src/components/keybinds/KeybindRecorder.tsx:275
+#: src/components/keybinds/KeybindRecorder.tsx:334
 msgid "No keybind set"
 msgstr "No keybind set"
 
@@ -12049,6 +12103,10 @@ msgstr "None (Normal Behavior)"
 msgid "Not 16:9 aspect ratio"
 msgstr "Not 16:9 aspect ratio"
 
+#: src/components/modals/tabs/KeybindsTab.tsx:117
+msgid "Not bound"
+msgstr "Not bound"
+
 #: src/components/modals/tabs/components/InputMonitoringSection.tsx:55
 #: src/components/modals/tabs/components/InputMonitoringSection.tsx:55
 msgid "Not granted"
@@ -12175,7 +12233,7 @@ msgstr "NSFW Gates"
 msgid "NSFW Policy Violation"
 msgstr "NSFW Policy Violation"
 
-#: src/components/modals/tabs/ApplicationsTab/application-detail/OAuthBuilderSection.tsx:61
+#: src/components/modals/tabs/ApplicationsTab/application-detail/OAuthBuilderSection.tsx:69
 msgid "OAuth2 URL Builder"
 msgstr "OAuth2 URL Builder"
 
@@ -12215,8 +12273,8 @@ msgid "OK"
 msgstr "OK"
 
 #: src/components/alerts/SlowmodeRateLimitedModal.tsx:65
-#: src/lib/KeybindManager.ts:434
-#: src/lib/KeybindManager.ts:459
+#: src/lib/KeybindManager.ts:380
+#: src/lib/KeybindManager.ts:405
 #: src/lib/markdown/renderers/link-renderer.tsx:205
 msgid "Okay"
 msgstr "Okay"
@@ -12243,7 +12301,7 @@ msgstr "On click"
 msgid "on:"
 msgstr "on:"
 
-#: src/components/modals/tabs/ApplicationsTab/ApplicationDetail.tsx:655
+#: src/components/modals/tabs/ApplicationsTab/ApplicationDetail.tsx:665
 msgid "Once deleted, the application and its credentials are permanently removed."
 msgstr "Once deleted, the application and its credentials are permanently removed."
 
@@ -12413,27 +12471,27 @@ msgstr "Open Menu (icon)"
 msgid "Open Operators Community"
 msgstr "Open Operators Community"
 
-#: src/stores/KeybindStore.ts:245
+#: src/stores/KeybindStore.ts:259
 msgid "Open or close pinned messages"
 msgstr "Open or close pinned messages"
 
-#: src/stores/KeybindStore.ts:252
+#: src/stores/KeybindStore.ts:266
 msgid "Open or close recent mentions"
 msgstr "Open or close recent mentions"
 
-#: src/stores/KeybindStore.ts:266
+#: src/stores/KeybindStore.ts:280
 msgid "Open or close the emoji picker"
 msgstr "Open or close the emoji picker"
 
-#: src/stores/KeybindStore.ts:273
+#: src/stores/KeybindStore.ts:287
 msgid "Open or close the GIF picker"
 msgstr "Open or close the GIF picker"
 
-#: src/stores/KeybindStore.ts:287
+#: src/stores/KeybindStore.ts:301
 msgid "Open or close the memes picker"
 msgstr "Open or close the memes picker"
 
-#: src/stores/KeybindStore.ts:280
+#: src/stores/KeybindStore.ts:294
 msgid "Open or close the sticker picker"
 msgstr "Open or close the sticker picker"
 
@@ -12453,11 +12511,11 @@ msgstr "Open profile for {displayName}"
 msgid "Open Settings"
 msgstr "Open Settings"
 
-#: src/stores/KeybindStore.ts:336
+#: src/stores/KeybindStore.ts:350
 msgid "Open the create or join community flow"
 msgstr "Open the create or join community flow"
 
-#: src/stores/KeybindStore.ts:112
+#: src/stores/KeybindStore.ts:126
 msgid "Open the quick switcher overlay"
 msgstr "Open the quick switcher overlay"
 
@@ -12465,15 +12523,15 @@ msgstr "Open the quick switcher overlay"
 msgid "Open the shortcuts list anytime for quick actions."
 msgstr "Open the shortcuts list anytime for quick actions."
 
-#: src/stores/KeybindStore.ts:415
+#: src/stores/KeybindStore.ts:431
 msgid "Open the upload file dialog"
 msgstr "Open the upload file dialog"
 
-#: src/stores/KeybindStore.ts:230
+#: src/stores/KeybindStore.ts:244
 msgid "Open User Settings"
 msgstr "Open User Settings"
 
-#: src/stores/KeybindStore.ts:231
+#: src/stores/KeybindStore.ts:245
 msgid "Open user settings modal"
 msgstr "Open user settings modal"
 
@@ -13024,7 +13082,7 @@ msgstr "Please paste the message link you are reporting."
 msgid "Please provide an email address."
 msgstr "Please provide an email address."
 
-#: src/components/modals/tabs/ApplicationsTab/ApplicationDetail.tsx:539
+#: src/components/modals/tabs/ApplicationsTab/ApplicationDetail.tsx:549
 msgid "Please retry or go back to the applications list."
 msgstr "Please retry or go back to the applications list."
 
@@ -13072,7 +13130,7 @@ msgstr "Poland"
 msgid "poll"
 msgstr "poll"
 
-#: src/components/modals/tabs/KeybindsTab.tsx:131
+#: src/components/modals/tabs/KeybindsTab.tsx:199
 msgid "Popouts"
 msgstr "Popouts"
 
@@ -13126,7 +13184,11 @@ msgstr "Premium Subscription Scenarios"
 msgid "Premium Type Override"
 msgstr "Premium Type Override"
 
-#: src/components/keybinds/KeybindRecorder.tsx:187
+#: src/components/modals/tabs/KeybindsTab.tsx:275
+msgid "Preset imported"
+msgstr "Preset imported"
+
+#: src/components/keybinds/KeybindRecorder.tsx:222
 msgid "Press keys..."
 msgstr "Press keys..."
 
@@ -13205,19 +13267,23 @@ msgstr "Previous 7 Days"
 msgid "Previous attachment"
 msgstr "Previous attachment"
 
-#: src/stores/KeybindStore.ts:132
+#: src/stores/KeybindStore.ts:146
 msgid "Previous Channel"
 msgstr "Previous Channel"
 
-#: src/stores/KeybindStore.ts:118
+#: src/stores/KeybindStore.ts:132
 msgid "Previous Community"
 msgstr "Previous Community"
 
-#: src/stores/KeybindStore.ts:146
+#: src/lib/KeybindConflict.ts:65
+msgid "Previous tab"
+msgstr "Previous tab"
+
+#: src/stores/KeybindStore.ts:160
 msgid "Previous Unread Channel"
 msgstr "Previous Unread Channel"
 
-#: src/stores/KeybindStore.ts:160
+#: src/stores/KeybindStore.ts:174
 msgid "Previous Unread Mention"
 msgstr "Previous Unread Mention"
 
@@ -13394,7 +13460,7 @@ msgstr "Push to Talk Key"
 msgid "Push-to-Talk"
 msgstr "Push-to-Talk"
 
-#: src/stores/KeybindStore.ts:421
+#: src/stores/KeybindStore.ts:437
 msgid "Push-To-Talk (hold)"
 msgstr "Push-To-Talk (hold)"
 
@@ -13438,6 +13504,10 @@ msgstr "Quick Switcher"
 #: src/components/bottomsheets/QuickSwitcherBottomSheet.tsx:319
 msgid "Quick switcher tabs"
 msgstr "Quick switcher tabs"
+
+#: src/lib/KeybindConflict.ts:49
+msgid "Quit application"
+msgstr "Quit application"
 
 #: src/components/modals/tabs/ComponentGalleryTab/SelectionsTab.tsx:226
 msgid "Radio buttons allow selecting one option from a group."
@@ -13544,7 +13614,7 @@ msgstr "Recipients will be taken to {0} <0>{1}</0>"
 msgid "Reconnecting…"
 msgstr "Reconnecting…"
 
-#: src/components/keybinds/KeybindRecorder.tsx:183
+#: src/components/keybinds/KeybindRecorder.tsx:218
 msgid "Record shortcut"
 msgstr "Record shortcut"
 
@@ -13578,15 +13648,19 @@ msgstr "Redeemed {0}"
 msgid "Redeemed by {0}"
 msgstr "Redeemed by {0}"
 
-#: src/components/modals/tabs/ApplicationsTab/application-detail/OAuthBuilderSection.tsx:91
-msgid "Redirect URI (required unless only bot scope)"
-msgstr "Redirect URI (required unless only bot scope)"
+#: src/components/modals/tabs/ApplicationsTab/application-detail/OAuthBuilderSection.tsx:99
+msgid "Redirect URI"
+msgstr "Redirect URI"
 
-#: src/components/modals/tabs/ApplicationsTab/application-detail/OAuthBuilderSection.tsx:56
+#: src/components/modals/tabs/ApplicationsTab/application-detail/OAuthBuilderSection.tsx:61
+msgid "Redirect URI is required because this bot requires OAuth2 code grant."
+msgstr "Redirect URI is required because this bot requires OAuth2 code grant."
+
+#: src/components/modals/tabs/ApplicationsTab/application-detail/OAuthBuilderSection.tsx:63
 msgid "Redirect URI is required when not using only the bot scope."
 msgstr "Redirect URI is required when not using only the bot scope."
 
-#: src/components/modals/tabs/ApplicationsTab/application-detail/ApplicationInfoSection.tsx:74
+#: src/components/modals/tabs/ApplicationsTab/application-detail/ApplicationInfoSection.tsx:84
 msgid "Redirect URIs"
 msgstr "Redirect URIs"
 
@@ -13613,7 +13687,7 @@ msgstr "Refresh push subscription"
 #: src/components/modals/BackupCodesModal.tsx:90
 #: src/components/modals/tabs/ApplicationsTab/application-detail/SecretsSection.tsx:68
 #: src/components/modals/tabs/ApplicationsTab/application-detail/SecretsSection.tsx:85
-#: src/components/modals/tabs/ApplicationsTab/ApplicationDetail.tsx:512
+#: src/components/modals/tabs/ApplicationsTab/ApplicationDetail.tsx:522
 msgid "Regenerate"
 msgstr "Regenerate"
 
@@ -13621,19 +13695,19 @@ msgstr "Regenerate"
 msgid "Regenerate backup codes"
 msgstr "Regenerate backup codes"
 
-#: src/components/modals/tabs/ApplicationsTab/ApplicationDetail.tsx:510
+#: src/components/modals/tabs/ApplicationsTab/ApplicationDetail.tsx:520
 msgid "Regenerate bot token?"
 msgstr "Regenerate bot token?"
 
-#: src/components/modals/tabs/ApplicationsTab/ApplicationDetail.tsx:510
+#: src/components/modals/tabs/ApplicationsTab/ApplicationDetail.tsx:520
 msgid "Regenerate client secret?"
 msgstr "Regenerate client secret?"
 
-#: src/components/modals/tabs/ApplicationsTab/ApplicationDetail.tsx:503
+#: src/components/modals/tabs/ApplicationsTab/ApplicationDetail.tsx:513
 msgid "Regenerating will invalidate the current secret. Update any code that uses the old value."
 msgstr "Regenerating will invalidate the current secret. Update any code that uses the old value."
 
-#: src/components/modals/tabs/ApplicationsTab/ApplicationDetail.tsx:505
+#: src/components/modals/tabs/ApplicationsTab/ApplicationDetail.tsx:515
 msgid "Regenerating will invalidate the current token. Update any code that uses the old value."
 msgstr "Regenerating will invalidate the current token. Update any code that uses the old value."
 
@@ -13669,6 +13743,10 @@ msgstr "Relevant"
 #: src/components/ErrorFallback.tsx:109
 msgid "Reload app"
 msgstr "Reload app"
+
+#: src/lib/KeybindConflict.ts:62
+msgid "Reload page"
+msgstr "Reload page"
 
 #: src/components/modals/tabs/AdvancedTab.tsx:109
 msgid "Remember size & position"
@@ -13824,7 +13902,7 @@ msgstr "Remove Phone"
 msgid "Remove Phone Number"
 msgstr "Remove Phone Number"
 
-#: src/components/modals/tabs/ApplicationsTab/application-detail/ApplicationInfoSection.tsx:85
+#: src/components/modals/tabs/ApplicationsTab/application-detail/ApplicationInfoSection.tsx:95
 msgid "Remove redirect URI"
 msgstr "Remove redirect URI"
 
@@ -13999,6 +14077,10 @@ msgstr "Render all your messages as unknown message type"
 msgid "Renews on <0>{renewalDate}</0>."
 msgstr "Renews on <0>{renewalDate}</0>."
 
+#: src/lib/KeybindConflict.ts:59
+msgid "Reopen closed tab"
+msgstr "Reopen closed tab"
+
 #: src/components/modals/tabs/AdvancedTab.tsx:116
 msgid "Reopen in maximized mode if that’s how you last used Флудилка."
 msgstr "Reopen in maximized mode if that’s how you last used Флудилка."
@@ -14102,9 +14184,17 @@ msgstr "Requested scopes"
 msgid "Require 2FA for moderation actions"
 msgstr "Require 2FA for moderation actions"
 
+#: src/components/modals/tabs/ApplicationsTab/application-detail/ApplicationInfoSection.tsx:73
+msgid "Require completion of the full OAuth2 code grant flow when adding this bot to a community."
+msgstr "Require completion of the full OAuth2 code grant flow when adding this bot to a community."
+
 #: src/components/modals/tabs/AppearanceTab/InterfaceTab.tsx:141
 msgid "Require double-click to join voice channels"
 msgstr "Require double-click to join voice channels"
+
+#: src/components/modals/tabs/ApplicationsTab/application-detail/ApplicationInfoSection.tsx:72
+msgid "Require OAuth2 code grant"
+msgstr "Require OAuth2 code grant"
 
 #: src/components/modals/guildTabs/GuildModerationTab.tsx:250
 msgid "Require two-factor authentication for moderators before they can ban, kick, timeout, or remove messages."
@@ -14185,11 +14275,11 @@ msgstr "Resend Outcome"
 msgid "Resend Verification Email"
 msgstr "Resend Verification Email"
 
-#: src/components/keybinds/KeybindRecorder.tsx:215
+#: src/components/keybinds/KeybindRecorder.tsx:271
 #: src/components/modals/components/MobileSettingsView.tsx:123
 #: src/components/modals/components/SettingsModalHeader.tsx:81
 #: src/components/modals/ImageCropModal.tsx:997
-#: src/components/modals/tabs/KeybindsTab.tsx:154
+#: src/components/modals/tabs/KeybindsTab.tsx:222
 #: src/components/popouts/ColorPickerPopout.tsx:74
 msgid "Reset"
 msgstr "Reset"
@@ -14206,7 +14296,7 @@ msgstr "Reset app data"
 msgid "Reset App Data"
 msgstr "Reset App Data"
 
-#: src/components/modals/tabs/KeybindsTab.tsx:152
+#: src/components/modals/tabs/KeybindsTab.tsx:220
 msgid "Reset Keyboard Shortcuts"
 msgstr "Reset Keyboard Shortcuts"
 
@@ -14230,15 +14320,15 @@ msgstr "Reset to Actual Values"
 msgid "Reset to Default"
 msgstr "Reset to Default"
 
-#: src/components/modals/tabs/KeybindsTab.tsx:186
+#: src/components/modals/tabs/KeybindsTab.tsx:310
 msgid "Reset to defaults"
 msgstr "Reset to defaults"
 
-#: src/stores/KeybindStore.ts:450
+#: src/stores/KeybindStore.ts:466
 msgid "Reset Zoom"
 msgstr "Reset Zoom"
 
-#: src/stores/KeybindStore.ts:451
+#: src/stores/KeybindStore.ts:467
 msgid "Reset zoom to 100%"
 msgstr "Reset zoom to 100%"
 
@@ -14279,7 +14369,7 @@ msgstr "Resubscribe"
 #: src/components/modals/guildTabs/GuildInvitesTab.tsx:124
 #: src/components/modals/guildTabs/GuildStickersTab.tsx:211
 #: src/components/modals/guildTabs/GuildWebhooksTab.tsx:137
-#: src/components/modals/tabs/ApplicationsTab/ApplicationDetail.tsx:543
+#: src/components/modals/tabs/ApplicationsTab/ApplicationDetail.tsx:553
 #: src/components/modals/tabs/ApplicationsTab/index.tsx:112
 #: src/components/modals/tabs/AuthorizedAppsTab.tsx:121
 #: src/components/modals/tabs/DevicesTab.tsx:234
@@ -14287,11 +14377,11 @@ msgstr "Resubscribe"
 msgid "Retry"
 msgstr "Retry"
 
-#: src/stores/KeybindStore.ts:216
+#: src/stores/KeybindStore.ts:230
 msgid "Return to Active Audio Channel"
 msgstr "Return to Active Audio Channel"
 
-#: src/stores/KeybindStore.ts:223
+#: src/stores/KeybindStore.ts:237
 msgid "Return to Connected Audio Channel"
 msgstr "Return to Connected Audio Channel"
 
@@ -14303,11 +14393,11 @@ msgstr "Return to fullscreen automatically when you had it enabled last time."
 msgid "Return to login"
 msgstr "Return to login"
 
-#: src/stores/KeybindStore.ts:202
+#: src/stores/KeybindStore.ts:216
 msgid "Return to Previous Text Channel"
 msgstr "Return to Previous Text Channel"
 
-#: src/stores/KeybindStore.ts:209
+#: src/stores/KeybindStore.ts:223
 msgid "Return to Previous Text Channel (Alt)"
 msgstr "Return to Previous Text Channel (Alt)"
 
@@ -14477,7 +14567,7 @@ msgstr "Round Style Checkbox"
 msgid "Row"
 msgstr "Row"
 
-#: src/components/modals/tabs/KeybindsTab.tsx:93
+#: src/components/modals/tabs/KeybindsTab.tsx:162
 msgid "Run this shortcut even when Флудилка is not focused."
 msgstr "Run this shortcut even when Флудилка is not focused."
 
@@ -14627,7 +14717,7 @@ msgstr "Scheduled messages can be at most 30 days in the future."
 msgid "Scope"
 msgstr "Scope"
 
-#: src/components/modals/tabs/ApplicationsTab/application-detail/OAuthBuilderSection.tsx:67
+#: src/components/modals/tabs/ApplicationsTab/application-detail/OAuthBuilderSection.tsx:75
 #: src/components/pages/OAuthAuthorizePage.tsx:600
 #: src/components/pages/OAuthAuthorizePage.tsx:736
 msgid "Scopes"
@@ -14673,11 +14763,11 @@ msgstr "Screen sharing quality"
 msgid "Screen Sharing Quality"
 msgstr "Screen Sharing Quality"
 
-#: src/stores/KeybindStore.ts:300
+#: src/stores/KeybindStore.ts:314
 msgid "Scroll Chat Down"
 msgstr "Scroll Chat Down"
 
-#: src/stores/KeybindStore.ts:293
+#: src/stores/KeybindStore.ts:307
 msgid "Scroll Chat Up"
 msgstr "Scroll Chat Up"
 
@@ -14686,11 +14776,11 @@ msgstr "Scroll Chat Up"
 msgid "Scroll down to view all the sweet perks you get with Premium"
 msgstr "Scroll down to view all the sweet perks you get with Premium"
 
-#: src/stores/KeybindStore.ts:301
+#: src/stores/KeybindStore.ts:315
 msgid "Scroll the chat history down"
 msgstr "Scroll the chat history down"
 
-#: src/stores/KeybindStore.ts:294
+#: src/stores/KeybindStore.ts:308
 msgid "Scroll the chat history up"
 msgstr "Scroll the chat history up"
 
@@ -14700,7 +14790,7 @@ msgstr "Scroll the chat history up"
 #: src/components/channel/ChannelHeader.tsx:523
 #: src/components/channel/shared/PickerSearchInput.tsx:203
 #: src/components/modals/tabs/ComponentGalleryTab/InputsTab.tsx:126
-#: src/stores/KeybindStore.ts:407
+#: src/stores/KeybindStore.ts:423
 #: src/utils/quick-switcher/QuickSwitcherModalUtils.tsx:84
 msgid "Search"
 msgstr "Search"
@@ -14839,7 +14929,7 @@ msgstr "Search suggestions"
 msgid "Search users"
 msgstr "Search users"
 
-#: src/stores/KeybindStore.ts:408
+#: src/stores/KeybindStore.ts:424
 msgid "Search within the current view"
 msgstr "Search within the current view"
 
@@ -14942,7 +15032,7 @@ msgstr "Select a community where you have <0>Manage Community</0> permissions."
 msgid "Select a country"
 msgstr "Select a country"
 
-#: src/components/modals/tabs/ApplicationsTab/application-detail/OAuthBuilderSection.tsx:92
+#: src/components/modals/tabs/ApplicationsTab/application-detail/OAuthBuilderSection.tsx:100
 msgid "Select a redirect URI"
 msgstr "Select a redirect URI"
 
@@ -15005,13 +15095,9 @@ msgstr "Select media size for uploaded attachments"
 msgid "Select mutual view"
 msgstr "Select mutual view"
 
-#: src/components/modals/tabs/ApplicationsTab/application-detail/OAuthBuilderSection.tsx:130
+#: src/components/modals/tabs/ApplicationsTab/application-detail/OAuthBuilderSection.tsx:138
 msgid "Select scopes (and redirect URI if required)"
 msgstr "Select scopes (and redirect URI if required)"
-
-#: src/components/modals/tabs/ApplicationsTab/application-detail/OAuthBuilderSection.tsx:149
-msgid "Select scopes and a redirect URI (unless bot-only) to generate a URL."
-msgstr "Select scopes and a redirect URI (unless bot-only) to generate a URL."
 
 #: src/components/modals/ScreenShareSourceModal.tsx:49
 msgid "Select screen or window"
@@ -15466,7 +15552,7 @@ msgstr "Shield"
 msgid "Shortcut"
 msgstr "Shortcut"
 
-#: src/components/modals/tabs/KeybindsTab.tsx:171
+#: src/components/modals/tabs/KeybindsTab.tsx:289
 msgid "Shortcuts are paused while editing"
 msgstr "Shortcuts are paused while editing"
 
@@ -15639,11 +15725,11 @@ msgstr "Show oldest messages first"
 msgid "Show only More button"
 msgstr "Show only More button"
 
-#: src/stores/KeybindStore.ts:238
+#: src/stores/KeybindStore.ts:252
 msgid "Show or hide keyboard shortcut help"
 msgstr "Show or hide keyboard shortcut help"
 
-#: src/stores/KeybindStore.ts:259
+#: src/stores/KeybindStore.ts:273
 msgid "Show or hide the member list for the current channel"
 msgstr "Show or hide the member list for the current channel"
 
@@ -16142,15 +16228,15 @@ msgstr "Star"
 msgid "Start"
 msgstr "Start"
 
-#: src/stores/KeybindStore.ts:401
+#: src/stores/KeybindStore.ts:417
 msgid "Start / stop screen sharing"
 msgstr "Start / stop screen sharing"
 
-#: src/stores/KeybindStore.ts:343
+#: src/stores/KeybindStore.ts:357
 msgid "Start a new private group"
 msgstr "Start a new private group"
 
-#: src/stores/KeybindStore.ts:349
+#: src/stores/KeybindStore.ts:363
 msgid "Start Call in Private Message or Group"
 msgstr "Start Call in Private Message or Group"
 
@@ -16509,7 +16595,7 @@ msgstr "Switch account"
 msgid "Switch Accounts"
 msgstr "Switch Accounts"
 
-#: src/stores/KeybindStore.ts:196
+#: src/stores/KeybindStore.ts:210
 msgid "Switch between the last community and direct messages"
 msgstr "Switch between the last community and direct messages"
 
@@ -16536,7 +16622,7 @@ msgstr "Switch to single column"
 msgid "Switch to this account"
 msgstr "Switch to this account"
 
-#: src/components/alerts/VoiceConnectionConfirmModal.tsx:54
+#: src/components/alerts/VoiceConnectionConfirmModal.tsx:48
 msgid "Switch to This Device"
 msgstr "Switch to This Device"
 
@@ -16563,7 +16649,7 @@ msgid "Sync with Category"
 msgstr "Sync with Category"
 
 #: src/components/channel/UserTag.tsx:36
-#: src/components/modals/tabs/KeybindsTab.tsx:133
+#: src/components/modals/tabs/KeybindsTab.tsx:201
 msgid "System"
 msgstr "System"
 
@@ -16578,6 +16664,10 @@ msgstr "System audio capture is not supported on this platform."
 #: src/components/modals/tabs/LanguageTab.tsx:78
 msgid "System locale ({browserLocale}): {format}"
 msgstr "System locale ({browserLocale}): {format}"
+
+#: src/components/keybinds/KeybindRecorder.tsx:247
+msgid "System uses this for \"{conflictLabel}\""
+msgstr "System uses this for \"{conflictLabel}\""
 
 #: src/components/modals/tabs/ComponentGalleryTab/MarkdownTab.tsx:141
 msgid "Tables"
@@ -16842,7 +16932,7 @@ msgstr "Think, McFly! Did you type the right address?"
 msgid "Third Option"
 msgstr "Third Option"
 
-#: src/components/modals/tabs/ApplicationsTab/ApplicationDetail.tsx:361
+#: src/components/modals/tabs/ApplicationsTab/ApplicationDetail.tsx:367
 msgid "This action cannot be undone. All associated data, including the bot user, will be permanently deleted."
 msgstr "This action cannot be undone. All associated data, including the bot user, will be permanently deleted."
 
@@ -16858,7 +16948,7 @@ msgstr "This application"
 msgid "This bot is requesting the Administrator permission. We do not recommend granting this to production apps unless you fully trust the developer. Consider asking them to request a reduced set of permissions. Close this page if you are unsure."
 msgstr "This bot is requesting the Administrator permission. We do not recommend granting this to production apps unless you fully trust the developer. Consider asking them to request a reduced set of permissions. Close this page if you are unsure."
 
-#: src/components/modals/tabs/ApplicationsTab/ApplicationDetail.tsx:651
+#: src/components/modals/tabs/ApplicationsTab/ApplicationDetail.tsx:661
 msgid "This cannot be undone. Removing the application also deletes its bot."
 msgstr "This cannot be undone. Removing the application also deletes its bot."
 
@@ -17170,6 +17260,10 @@ msgstr "This will remove the only saved account on this device."
 msgid "This will remove the saved session for this account."
 msgstr "This will remove the saved session for this account."
 
+#: src/components/modals/tabs/KeybindsTab.tsx:270
+msgid "This will replace all current keyboard shortcuts. Continue?"
+msgstr "This will replace all current keyboard shortcuts. Continue?"
+
 #: src/components/channel/embeds/media/EmbedVideo.tsx:89
 #: src/components/channel/embeds/media/EmbedVideo.tsx:98
 msgid "Thumbnail for {title}"
@@ -17274,11 +17368,11 @@ msgstr "Today"
 msgid "Today at {timeString}"
 msgstr "Today at {timeString}"
 
-#: src/stores/KeybindStore.ts:393
+#: src/stores/KeybindStore.ts:409
 msgid "Toggle Camera"
 msgstr "Toggle Camera"
 
-#: src/stores/KeybindStore.ts:258
+#: src/stores/KeybindStore.ts:272
 msgid "Toggle Channel Member List"
 msgstr "Toggle Channel Member List"
 
@@ -17286,15 +17380,15 @@ msgstr "Toggle Channel Member List"
 msgid "Toggle Compact Mode"
 msgstr "Toggle Compact Mode"
 
-#: src/stores/KeybindStore.ts:385
+#: src/stores/KeybindStore.ts:401
 msgid "Toggle Deaf"
 msgstr "Toggle Deaf"
 
-#: src/stores/KeybindStore.ts:265
+#: src/stores/KeybindStore.ts:279
 msgid "Toggle Emoji Picker"
 msgstr "Toggle Emoji Picker"
 
-#: src/stores/KeybindStore.ts:272
+#: src/stores/KeybindStore.ts:286
 msgid "Toggle GIF Picker"
 msgstr "Toggle GIF Picker"
 
@@ -17302,11 +17396,11 @@ msgstr "Toggle GIF Picker"
 msgid "Toggle hardware acceleration"
 msgstr "Toggle hardware acceleration"
 
-#: src/stores/KeybindStore.ts:237
+#: src/stores/KeybindStore.ts:251
 msgid "Toggle Hotkeys"
 msgstr "Toggle Hotkeys"
 
-#: src/stores/KeybindStore.ts:195
+#: src/stores/KeybindStore.ts:209
 msgid "Toggle Last Community / DMs"
 msgstr "Toggle Last Community / DMs"
 
@@ -17314,19 +17408,19 @@ msgstr "Toggle Last Community / DMs"
 msgid "Toggle member list visibility"
 msgstr "Toggle member list visibility"
 
-#: src/stores/KeybindStore.ts:286
+#: src/stores/KeybindStore.ts:300
 msgid "Toggle Memes Picker"
 msgstr "Toggle Memes Picker"
 
-#: src/stores/KeybindStore.ts:251
+#: src/stores/KeybindStore.ts:265
 msgid "Toggle Mentions Popout"
 msgstr "Toggle Mentions Popout"
 
-#: src/stores/KeybindStore.ts:377
+#: src/stores/KeybindStore.ts:393
 msgid "Toggle Mute"
 msgstr "Toggle Mute"
 
-#: src/stores/KeybindStore.ts:244
+#: src/stores/KeybindStore.ts:258
 msgid "Toggle Pins Popout"
 msgstr "Toggle Pins Popout"
 
@@ -17334,7 +17428,7 @@ msgstr "Toggle Pins Popout"
 msgid "Toggle premium_enabled_override on the backend"
 msgstr "Toggle premium_enabled_override on the backend"
 
-#: src/stores/KeybindStore.ts:429
+#: src/stores/KeybindStore.ts:445
 msgid "Toggle Push-To-Talk Mode"
 msgstr "Toggle Push-To-Talk Mode"
 
@@ -17342,11 +17436,11 @@ msgstr "Toggle Push-To-Talk Mode"
 msgid "Toggle Reduced Motion"
 msgstr "Toggle Reduced Motion"
 
-#: src/stores/KeybindStore.ts:400
+#: src/stores/KeybindStore.ts:416
 msgid "Toggle Screen Share"
 msgstr "Toggle Screen Share"
 
-#: src/stores/KeybindStore.ts:279
+#: src/stores/KeybindStore.ts:293
 msgid "Toggle Sticker Picker"
 msgstr "Toggle Sticker Picker"
 
@@ -17537,7 +17631,7 @@ msgstr "Try security key / passkey instead"
 msgid "Try Turnstile instead"
 msgstr "Try Turnstile instead"
 
-#: src/stores/KeybindStore.ts:394
+#: src/stores/KeybindStore.ts:410
 msgid "Turn camera on or off"
 msgstr "Turn camera on or off"
 
@@ -18279,7 +18373,7 @@ msgstr "Upload a custom sound that plays automatically when you join a voice cha
 msgid "Upload a custom sound that plays when you join a voice channel (max 5.2 seconds, 2MB). Supported formats: MP3, WAV, OGG, M4A, AAC, FLAC, Opus, WebM."
 msgstr "Upload a custom sound that plays when you join a voice channel (max 5.2 seconds, 2MB). Supported formats: MP3, WAV, OGG, M4A, AAC, FLAC, Opus, WebM."
 
-#: src/stores/KeybindStore.ts:414
+#: src/stores/KeybindStore.ts:430
 msgid "Upload a File"
 msgstr "Upload a File"
 
@@ -18482,7 +18576,7 @@ msgstr "Use these codes to access your account if you lose your authenticator ap
 msgid "Use this button to quickly clear all permissions."
 msgstr "Use this button to quickly clear all permissions."
 
-#: src/components/modals/tabs/KeybindsTab.tsx:101
+#: src/components/modals/tabs/KeybindsTab.tsx:170
 msgid "Use this shortcut system-wide"
 msgstr "Use this shortcut system-wide"
 
@@ -19030,7 +19124,7 @@ msgid "Visual indicators showing user status, rendered using the same masked sta
 msgstr "Visual indicators showing user status, rendered using the same masked status badges as avatars: online, idle, do not disturb, invisible, and offline."
 
 #: src/components/layout/MobileBottomNav.tsx:97
-#: src/components/modals/tabs/KeybindsTab.tsx:129
+#: src/components/modals/tabs/KeybindsTab.tsx:197
 #: src/utils/ChannelUtils.tsx:60
 msgid "Voice"
 msgstr "Voice"
@@ -19102,7 +19196,7 @@ msgstr "Voice Connected"
 msgid "Voice Connection"
 msgstr "Voice Connection"
 
-#: src/components/alerts/VoiceConnectionConfirmModal.tsx:43
+#: src/components/alerts/VoiceConnectionConfirmModal.tsx:41
 msgid "Voice Connection Confirmation"
 msgstr "Voice Connection Confirmation"
 
@@ -19190,7 +19284,7 @@ msgstr "We couldn't join this community at this time."
 msgid "We couldn't load the invites at this time."
 msgstr "We couldn't load the invites at this time."
 
-#: src/components/modals/tabs/ApplicationsTab/ApplicationDetail.tsx:538
+#: src/components/modals/tabs/ApplicationsTab/ApplicationDetail.tsx:548
 msgid "We couldn't load this application"
 msgstr "We couldn't load this application"
 
@@ -19460,6 +19554,10 @@ msgstr "When enabled, you'll need to double-click on voice channels to join them
 msgid "When moderators begin moderating, you can moderate the moderation here."
 msgstr "When moderators begin moderating, you can moderate the moderation here."
 
+#: src/components/modals/tabs/PrivacySafetyTab/ConnectionsTab.tsx:201
+msgid "When off, nobody (including you) can add bots to any community you own or manage."
+msgstr "When off, nobody (including you) can add bots to any community you own or manage."
+
 #: src/components/modals/tabs/ChatSettingsTab/DisplayTab.tsx:68
 msgid "When posted as links to chat"
 msgstr "When posted as links to chat"
@@ -19700,7 +19798,7 @@ msgstr "You can't interact with reactions in search results as it might disrupt 
 #: src/components/layout/ChannelItem.tsx:204
 #: src/components/layout/ChannelItem.tsx:375
 #: src/stores/voice/MediaEngineFacade.ts:158
-#: src/stores/voice/MediaEngineFacade.ts:574
+#: src/stores/voice/MediaEngineFacade.ts:573
 msgid "You can't join while you're on timeout."
 msgstr "You can't join while you're on timeout."
 
@@ -19773,11 +19871,11 @@ msgstr "You cannot send friend requests to bots."
 msgid "You cannot send messages in this community."
 msgstr "You cannot send messages in this community."
 
-#: src/lib/KeybindManager.ts:458
+#: src/lib/KeybindManager.ts:404
 msgid "You cannot undeafen yourself because you have been deafened by a moderator."
 msgstr "You cannot undeafen yourself because you have been deafened by a moderator."
 
-#: src/lib/KeybindManager.ts:433
+#: src/lib/KeybindManager.ts:379
 msgid "You cannot unmute yourself because you have been muted by a moderator."
 msgstr "You cannot unmute yourself because you have been muted by a moderator."
 
@@ -20283,11 +20381,11 @@ msgstr "YouTube video"
 msgid "Zoom"
 msgstr "Zoom"
 
-#: src/stores/KeybindStore.ts:436
+#: src/stores/KeybindStore.ts:452
 msgid "Zoom In"
 msgstr "Zoom In"
 
-#: src/stores/KeybindStore.ts:443
+#: src/stores/KeybindStore.ts:459
 msgid "Zoom Out"
 msgstr "Zoom Out"
 

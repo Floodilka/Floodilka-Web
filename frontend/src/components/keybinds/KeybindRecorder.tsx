@@ -95,7 +95,7 @@ const KeybindEditorPopout: React.FC<KeybindEditorPopoutProps> = ({
 	onReset,
 	onClose,
 }) => {
-	const {t} = useLingui();
+	const {t, i18n} = useLingui();
 	const [recording, setRecording] = React.useState(false);
 	const [previewCombo, setPreviewCombo] = React.useState<KeyCombo | null>(null);
 
@@ -236,15 +236,19 @@ const KeybindEditorPopout: React.FC<KeybindEditorPopoutProps> = ({
 				<div className={styles.conflictRow}>
 					<WarningIcon size={16} weight="fill" className={styles.conflictIcon} />
 					<div className={styles.conflictMessages}>
-						{conflicts.map((conflict, i) => (
-							<span key={i} className={styles.conflictMessage}>
-								{conflict.kind === 'action' ? (
-									<Trans>Already used by "{conflict.label}"</Trans>
-								) : (
-									<Trans>System uses this for "{conflict.label}"</Trans>
-								)}
-							</span>
-						))}
+						{conflicts.map((conflict, i) => {
+							const conflictLabel =
+								conflict.kind === 'action' ? conflict.label : i18n._(conflict.label);
+							return (
+								<span key={i} className={styles.conflictMessage}>
+									{conflict.kind === 'action' ? (
+										<Trans>Already used by "{conflictLabel}"</Trans>
+									) : (
+										<Trans>System uses this for "{conflictLabel}"</Trans>
+									)}
+								</span>
+							);
+						})}
 					</div>
 				</div>
 			)}
