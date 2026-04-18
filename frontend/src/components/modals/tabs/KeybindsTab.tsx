@@ -106,8 +106,8 @@ const KeybindRow = observer(({entry, isNativeDesktop}: {entry: ActiveKeybind; is
 		<div className={`${styles.rowWrapper} ${entry.allowGlobal ? styles.hasFooterWrapper : ''}`}>
 			<div className={styles.row}>
 				<div className={styles.rowText}>
-					<div className={styles.labelRow}>
-						<div className={styles.label}>{entry.label}</div>
+					<div className={styles.label}>
+						<span className={styles.labelText}>{entry.label}</span>
 						{conflictCombo ? (
 							<span className={clsx(styles.badge, styles.badgeWarning)}>
 								<Trans>Conflict</Trans>

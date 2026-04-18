@@ -190,32 +190,31 @@
 	min-width: 0;
 }
 
-.labelRow {
-	display: flex;
-	align-items: center;
-	gap: var(--spacing-2);
-	flex-wrap: wrap;
+.rowText .label {
+	display: block;
 }
 
-.rowText .label {
-	white-space: nowrap;
-	text-overflow: ellipsis;
-	overflow: hidden;
+.labelText {
+	margin-right: var(--spacing-2);
 }
 
 .badge {
 	display: inline-flex;
 	align-items: center;
 	gap: 0.25rem;
-	padding: 0.125rem 0.5rem;
+	padding: 0.0625rem 0.5rem;
 	border-radius: 9999px;
 	font-size: 0.6875rem;
 	font-weight: 600;
 	letter-spacing: 0.04em;
 	text-transform: uppercase;
 	line-height: 1.4;
+	vertical-align: middle;
+	position: relative;
+	top: -1px;
 	background-color: var(--background-secondary);
 	color: var(--text-primary-muted);
+	white-space: nowrap;
 }
 
 .badgeWarning {

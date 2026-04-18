@@ -23,7 +23,7 @@ declare const styles: {
   readonly "headerActions": string;
   readonly "headerRow": string;
   readonly "label": string;
-  readonly "labelRow": string;
+  readonly "labelText": string;
   readonly "permissionActions": string;
   readonly "permissionCard": string;
   readonly "permissionDescription": string;
