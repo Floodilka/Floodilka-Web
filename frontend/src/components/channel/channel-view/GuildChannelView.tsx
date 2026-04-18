@@ -42,7 +42,6 @@ import {useChannelMemberListVisibility} from '~/hooks/useChannelMemberListVisibi
 import {useChannelSearchVisibility} from '~/hooks/useChannelSearchVisibility';
 import {useDocumentTitle} from '~/hooks/useDocumentTitle';
 import {useMemberListVisible} from '~/hooks/useMemberListVisible';
-import {ComponentDispatch} from '~/lib/ComponentDispatch';
 import {useLocation} from '~/lib/router';
 import ChannelStore from '~/stores/ChannelStore';
 import DeveloperOptionsStore from '~/stores/DeveloperOptionsStore';
@@ -106,12 +105,6 @@ export const GuildChannelView = observer(({channelId, guildId, messageId}: Guild
 			document.removeEventListener('keydown', handleGlobalKeydown, {capture: true} as any);
 		};
 	}, [isSearchActive, searchState]);
-
-	React.useEffect(() => {
-		return ComponentDispatch.subscribe('MESSAGE_SEARCH_OPEN', () => {
-			searchState.setIsSearchActive(true);
-		});
-	}, [searchState]);
 
 	const channelTitlePart = channel
 		? `${channel.type === ChannelTypes.GUILD_VOICE ? '' : '#'}${channel.name ?? ''}`

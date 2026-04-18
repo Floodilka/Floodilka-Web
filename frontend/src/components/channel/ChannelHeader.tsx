@@ -192,6 +192,14 @@ export const ChannelHeader = observer(
 		}, []);
 
 		React.useEffect(() => {
+			return ComponentDispatch.subscribe('MESSAGE_SEARCH_OPEN', () => {
+				setInitialTab('members');
+				setOpenSearchImmediately(true);
+				setChannelDetailsOpen(true);
+			});
+		}, []);
+
+		React.useEffect(() => {
 			if (!showMembersToggle) return;
 			return ComponentDispatch.subscribe('CHANNEL_MEMBER_LIST_TOGGLE', () => {
 				if (canFitMemberList) {
