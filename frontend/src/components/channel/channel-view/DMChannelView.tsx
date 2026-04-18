@@ -40,6 +40,7 @@ import {useChannelMemberListVisibility} from '~/hooks/useChannelMemberListVisibi
 import {useChannelSearchVisibility} from '~/hooks/useChannelSearchVisibility';
 import {useDocumentTitle} from '~/hooks/useDocumentTitle';
 import {useMemberListVisible} from '~/hooks/useMemberListVisible';
+import {ComponentDispatch} from '~/lib/ComponentDispatch';
 import {Logger} from '~/lib/Logger';
 import type {ChannelRecord} from '~/records/ChannelRecord';
 import type {UserRecord} from '~/records/UserRecord';
@@ -199,6 +200,12 @@ export const DMChannelView = observer(({channelId}: DMChannelViewProps) => {
 
 	useChannelSearchVisibility(channelId, isSearchActive);
 	useChannelMemberListVisibility(channelId, isMemberListVisible);
+
+	React.useEffect(() => {
+		return ComponentDispatch.subscribe('MESSAGE_SEARCH_OPEN', () => {
+			searchState.setIsSearchActive(true);
+		});
+	}, [searchState]);
 
 	const isDM = channel?.type === ChannelTypes.DM;
 	const displayName = channel ? ChannelUtils.getDMDisplayName(channel) : null;

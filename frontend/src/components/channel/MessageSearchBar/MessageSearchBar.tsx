@@ -40,6 +40,7 @@ import {ContextMenuCloseProvider} from '~/components/uikit/ContextMenu/ContextMe
 import {MenuGroup} from '~/components/uikit/ContextMenu/MenuGroup';
 import {MenuItemRadio} from '~/components/uikit/ContextMenu/MenuItemRadio';
 import {Tooltip} from '~/components/uikit/Tooltip/Tooltip';
+import {ComponentDispatch} from '~/lib/ComponentDispatch';
 import {useParams} from '~/lib/router';
 import type {ChannelRecord} from '~/records/ChannelRecord';
 import type {GuildMemberRecord} from '~/records/GuildMemberRecord';
@@ -382,25 +383,15 @@ export const MessageSearchBar = observer(
 		}, [i18n, activeScopeOption?.label]);
 
 		React.useEffect(() => {
-			const handleGlobalKeydown = (event: KeyboardEvent) => {
-				const isFind = (event.key === 'f' || event.key === 'F') && (event.metaKey || event.ctrlKey);
-				if (!isFind) return;
-
-				event.preventDefault();
-				event.stopPropagation();
-
+			return ComponentDispatch.subscribe('MESSAGE_SEARCH_OPEN', () => {
 				const el = inputRef.current;
 				if (!el) return;
-
 				el.focus();
 				const pos = el.value.length;
 				try {
 					el.setSelectionRange(pos, pos);
 				} catch {}
-			};
-
-			document.addEventListener('keydown', handleGlobalKeydown, true);
-			return () => document.removeEventListener('keydown', handleGlobalKeydown, true);
+			});
 		}, []);
 
 		React.useEffect(() => {
