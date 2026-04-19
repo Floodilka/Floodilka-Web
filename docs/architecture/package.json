@@ -1,0 +1,14 @@
+{
+  "name": "floodilka-architecture",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "likec4 serve",
+    "build": "likec4 build -o ./dist --title \"Floodilka Architecture\"",
+    "validate": "likec4 validate",
+    "export:png": "likec4 export png -o ./png"
+  },
+  "devDependencies": {
+    "likec4": "latest"
+  }
+}

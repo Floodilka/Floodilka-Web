@@ -1,0 +1,365 @@
+specification {
+  element actor {
+    style {
+      shape: person
+      color: muted
+    }
+  }
+
+  element system {
+    style {
+      color: green
+    }
+  }
+
+  element host {
+    style {
+      color: slate
+      shape: rectangle
+    }
+  }
+
+  element edge {
+    style {
+      color: sky
+    }
+  }
+
+  element service {
+    style {
+      color: green
+    }
+  }
+
+  element worker {
+    style {
+      color: green
+    }
+  }
+
+  element database {
+    style {
+      shape: storage
+      color: indigo
+    }
+  }
+
+  element saas {
+    style {
+      color: amber
+      shape: rectangle
+    }
+  }
+
+  element module {
+    style {
+      color: green
+    }
+  }
+
+  element client {
+    style {
+      color: indigo
+      shape: rectangle
+    }
+  }
+
+  tag publicly_exposed
+  tag swarm
+  tag plain_docker
+  tag risky
+}
+
+model {
+  web = actor 'Web user' {
+    description 'Браузер на floodilka.com'
+  }
+  desktopApp = actor 'Desktop user' {
+    description 'Electron-приложение'
+  }
+  mobile = actor 'Mobile user' {
+    description 'iOS / Android клиент'
+  }
+
+  s3 = saas 'S3 / MinIO' {
+    description 'Object storage: cdn · uploads · reports · harvests · downloads'
+  }
+  smtp = saas 'SMTP' {
+    description 'Транзакционные письма (nodemailer)'
+  }
+  fcm = saas 'FCM' {
+    description 'Firebase Cloud Messaging — push на Android'
+  }
+  apns = saas 'APNS' {
+    description 'Apple Push Notification Service — push на iOS'
+  }
+  twilio = saas 'Twilio Verify' {
+    description 'SMS-коды верификации'
+  }
+
+  floodilka = system 'Floodilka' {
+    description 'Мессенджер: чаты, голосовые комнаты, файлы, поиск, push.'
+
+    main = host 'Main host' {
+      #swarm
+      description 'ssh floodilka · Docker Swarm · overlay floodilka-shared'
+
+      nginx = edge 'nginx' {
+        description 'SNI L4 router на хосте (не в Docker). :80 / :443'
+      }
+
+      caddy = edge 'caddy' {
+        description 'caddy-docker-proxy. Главный edge для floodilka.com. :8443/:8080'
+        technology 'Caddy'
+      }
+
+      caddyGw = edge 'caddy-gateway' {
+        description 'Edge для gateway.floodilka.com. :9443'
+        technology 'Caddy'
+      }
+
+      frontend = edge 'frontend' {
+        description 'caddy:2-alpine, отдаёт React 18 SPA'
+        technology 'Caddy + React'
+      }
+
+      static = edge 'static' {
+        description 'caddy:2-alpine, отдаёт статические ассеты'
+        technology 'Caddy'
+      }
+
+      redirect = edge 'redirect' {
+        description 'alpine, редиректы старых ссылок'
+      }
+
+      api = service 'backend_api ×2' {
+        description 'Hono / Node TS · :8080 · 2 реплики · REST API'
+        technology 'Hono · Node.ts'
+
+        router = module 'HTTP router' {
+          description 'Hono /api/* + middleware'
+        }
+        auth = module 'Auth · sessions · WebAuthn'
+        rate = module 'Rate-limit · throttling'
+
+        users = module 'Users / profiles'
+        guilds = module 'Guilds · channels · roles'
+        messages = module 'Messages · attachments'
+        voice = module 'Voice rooms (LiveKit ctrl)'
+        search = module 'Search proxy'
+        push = module 'Push dispatcher'
+        mediaModule = module 'Media uploads · ClamAV scan'
+
+        pgClient = client 'pg (Postgres pool)'
+        csClient = client 'cassandra-driver'
+        redisClient = client 'ioredis (Valkey)'
+        meiliClient = client 'meilisearch client'
+        s3Client = client 'aws-sdk/s3'
+        lkClient = client 'livekit-server-sdk'
+        gwClient = client 'gateway RPC client'
+        metricsClient = client 'metrics emitter'
+
+        router -> auth
+        auth -> rate
+        rate -> users
+        rate -> guilds
+        rate -> messages
+        rate -> voice
+        rate -> search
+        rate -> mediaModule
+        rate -> push
+
+        users -> pgClient
+        users -> redisClient
+        guilds -> pgClient
+        guilds -> redisClient
+        messages -> csClient
+        messages -> redisClient
+        messages -> gwClient
+        voice -> lkClient
+        voice -> gwClient
+        search -> meiliClient
+        mediaModule -> s3Client
+        users -> metricsClient
+      }
+
+      worker = worker 'backend_worker ×1' {
+        description 'Тот же образ что api. Фоновые задачи: транскодинг медиа, push-fanout, retention, GDPR-экспорт.'
+        technology 'Hono · Node.ts'
+      }
+
+      gateway = service 'gateway' {
+        description 'Realtime WS-фронт + HTTP-RPC для backend. WS :8080 / RPC :8081'
+        technology 'Erlang/OTP · Cowboy'
+      }
+
+      mediaProxy = service 'media-proxy' {
+        description 'Ресайз / конвертация / thumbhash изображений. :8080'
+        technology 'Hono · sharp · onnxruntime'
+      }
+
+      admin = service 'admin' {
+        description 'Админ-панель. :8080'
+        technology 'Gleam · Mist'
+      }
+
+      metrics = service 'metrics' {
+        description 'Приём метрик от сервисов, агрегация в ClickHouse. :8080'
+        technology 'Rust · Axum'
+      }
+
+      postgres = database 'postgres' {
+        #publicly_exposed
+        #risky
+        description 'Реляционка: users, guilds, channels, auth · postgres:17-alpine · :5432'
+      }
+      cassandra = database 'cassandra' {
+        #publicly_exposed
+        #risky
+        description 'История сообщений / wide-column · cassandra:5.0 · :9042'
+      }
+      cassandraBackup = service 'cassandra-backup' {
+        description 'Sidecar для снапшотов Cassandra'
+      }
+      valkey = database 'valkey' {
+        #publicly_exposed
+        #risky
+        description 'Кэш / сессии / pubsub · valkey:8-alpine · :6379'
+      }
+      meilisearch = database 'meilisearch' {
+        #publicly_exposed
+        #risky
+        description 'Полнотекстовый поиск · v1.23 · :7700'
+      }
+      clickhouse = database 'clickhouse' {
+        #publicly_exposed
+        #risky
+        description 'Аналитика · v24.8 · :8123/:9000'
+      }
+      clamav = service 'clamav' {
+        #publicly_exposed
+        #risky
+        description 'Антивирус для загрузок · :3310'
+      }
+    }
+
+    livekitHost = host 'LiveKit host' {
+      #plain_docker
+      description 'ssh floodilka-livekit · plain Docker · 192.168.0.18'
+
+      lkCaddy = edge 'livekit-caddy' {
+        description ':80 / :443 / :5349 (TURN-over-TLS)'
+        technology 'Caddy'
+      }
+      lkServer = service 'livekit-server' {
+        description 'TCP :7881 · UDP :7882 · UDP :3478 (STUN/TURN)'
+        technology 'LiveKit'
+      }
+      lkValkey = database 'livekit-valkey' {
+        description 'Internal-only · valkey:7.2-alpine'
+      }
+
+      lkCaddy -> lkServer 'reverse-proxy'
+      lkServer -> lkValkey 'state'
+    }
+  }
+
+  web -> floodilka 'HTTPS · WSS · WebRTC'
+  desktopApp -> floodilka 'HTTPS · WSS · WebRTC'
+  mobile -> floodilka 'HTTPS · WSS · push'
+
+  floodilka -> s3 'media · uploads'
+  floodilka -> smtp 'транзакционные письма'
+  floodilka -> fcm 'push (Android)'
+  floodilka -> apns 'push (iOS)'
+  floodilka -> twilio 'SMS-коды'
+
+  web -> floodilka.main.nginx 'HTTPS :443'
+  desktopApp -> floodilka.main.nginx 'HTTPS :443'
+  mobile -> floodilka.main.nginx 'HTTPS :443'
+
+  web -> floodilka.livekitHost.lkCaddy 'livekit.floodilka.com'
+  web -> floodilka.livekitHost.lkServer 'WebRTC media :3478/:7882 udp · :7881 tcp'
+
+  floodilka.main.nginx -> floodilka.main.caddyGw 'SNI gateway.floodilka.com'
+  floodilka.main.nginx -> floodilka.main.caddy 'SNI *.floodilka.com'
+
+  floodilka.main.caddy -> floodilka.main.frontend '/'
+  floodilka.main.caddy -> floodilka.main.api '/api/*'
+  floodilka.main.caddy -> floodilka.main.mediaProxy '/media/*'
+  floodilka.main.caddy -> floodilka.main.admin '/admin*'
+  floodilka.main.caddy -> floodilka.main.static '/static/*'
+  floodilka.main.caddyGw -> floodilka.main.gateway 'WSS'
+
+  floodilka.main.api -> floodilka.main.gateway 'RPC :8081'
+  floodilka.main.gateway -> floodilka.main.api 'callbacks'
+  floodilka.main.admin -> floodilka.main.api 'admin API'
+  floodilka.main.admin -> floodilka.main.meilisearch 'индексы'
+
+  floodilka.main.api -> floodilka.main.postgres
+  floodilka.main.api -> floodilka.main.cassandra
+  floodilka.main.api -> floodilka.main.valkey
+  floodilka.main.api -> floodilka.main.meilisearch
+  floodilka.main.api -> floodilka.main.clamav 'scan upload'
+  floodilka.main.api -> floodilka.main.metrics 'metrics'
+  floodilka.main.metrics -> floodilka.main.clickhouse
+
+  floodilka.main.worker -> floodilka.main.postgres
+  floodilka.main.worker -> floodilka.main.cassandra
+  floodilka.main.worker -> floodilka.main.valkey
+
+  floodilka.main.cassandraBackup -> floodilka.main.cassandra 'snapshot'
+
+  floodilka.main.api -> s3
+  floodilka.main.api -> smtp
+  floodilka.main.api -> fcm
+  floodilka.main.api -> apns
+  floodilka.main.api -> twilio
+  floodilka.main.mediaProxy -> s3
+
+  floodilka.main.api -> floodilka.livekitHost.lkCaddy 'LiveKit API'
+  floodilka.main.api -> floodilka.livekitHost.lkServer 'LiveKit signal'
+}
+
+views {
+  view index {
+    title 'Floodilka — System Context (C4 / L1)'
+    description 'Кто пользуется системой и с какими внешними сервисами она общается.'
+
+    include *
+  }
+
+  view containers of floodilka {
+    title 'Floodilka — Containers (C4 / L2)'
+    description 'Все сервисы в проде на 2026-04-19, сгруппированы по двум хостам.'
+
+    include
+      *,
+      floodilka.main.*,
+      floodilka.livekitHost.*
+  }
+
+  view backend of floodilka.main.api {
+    title 'Backend — Components (C4 / L3)'
+    description 'Логические модули внутри backend_api / backend_worker.'
+
+    include *
+  }
+
+  view dataPlane {
+    title 'Data plane'
+    description 'Какие сервисы пишут в какие хранилища.'
+
+    include
+      floodilka.main.api,
+      floodilka.main.worker,
+      floodilka.main.mediaProxy,
+      floodilka.main.metrics,
+      floodilka.main.postgres,
+      floodilka.main.cassandra,
+      floodilka.main.valkey,
+      floodilka.main.meilisearch,
+      floodilka.main.clickhouse,
+      s3
+  }
+}
