@@ -18,7 +18,7 @@
  */
 
 import {Trans} from '@lingui/react/macro';
-import {GearIcon, NotePencilIcon, PencilIcon} from '@phosphor-icons/react';
+import {GearIcon, NotePencilIcon} from '@phosphor-icons/react';
 import {observer} from 'mobx-react-lite';
 import React from 'react';
 import * as ModalActionCreators from '~/actions/ModalActionCreators';
@@ -118,7 +118,6 @@ export const YouPage = observer(({onAvatarClick}: YouPageProps) => {
 								</div>
 
 								<button type="button" onClick={handleEditProfile} className={styles.editButton}>
-									<PencilIcon className={styles.editIcon} />
 									<span className={styles.editLabel}>
 										<Trans>Edit Profile</Trans>
 									</span>

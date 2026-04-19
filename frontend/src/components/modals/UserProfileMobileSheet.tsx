@@ -24,7 +24,6 @@ import {
 	ClockCounterClockwiseIcon,
 	DotsThreeIcon,
 	NotePencilIcon,
-	PencilIcon,
 	PhoneIcon,
 	ProhibitIcon,
 	UserMinusIcon,
@@ -481,7 +480,6 @@ const UserProfileMobileSheetContent: React.FC<UserProfileMobileSheetContentProps
 											{isCurrentUser ? (
 												<div className={styles.actionButtonsContainer}>
 													<button type="button" onClick={handleEditProfile} className={styles.editProfileButton}>
-														<PencilIcon className={styles.editProfileIcon} />
 														<span className={styles.editProfileText}>
 															<Trans>Edit Profile</Trans>
 														</span>

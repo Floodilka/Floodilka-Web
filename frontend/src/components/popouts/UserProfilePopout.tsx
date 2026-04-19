@@ -18,7 +18,7 @@
  */
 
 import {Trans, useLingui} from '@lingui/react/macro';
-import {ChatTeardropIcon, PencilIcon} from '@phosphor-icons/react';
+import {ChatTeardropIcon} from '@phosphor-icons/react';
 import {observer} from 'mobx-react-lite';
 import React from 'react';
 import * as ModalActionCreators from '~/actions/ModalActionCreators';
@@ -289,11 +289,7 @@ export const UserProfilePopout: React.FC<UserProfilePopoutProps> = observer(
 											</div>
 										</Tooltip>
 									) : (
-										<Button
-											small={true}
-											leftIcon={<PencilIcon className={styles.iconSmall} />}
-											onClick={handleEditProfile}
-										>
+										<Button small={true} onClick={handleEditProfile}>
 											<Trans>Edit Profile</Trans>
 										</Button>
 									)

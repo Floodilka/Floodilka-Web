@@ -25,7 +25,6 @@ import {
 	CheckCircleIcon,
 	ClockCounterClockwiseIcon,
 	DotsThreeIcon,
-	PencilIcon,
 	ProhibitIcon,
 	UserMinusIcon,
 	UserPlusIcon,
@@ -1220,11 +1219,7 @@ export const UserProfileModal: UserProfileModalComponent = observer(
 			if (isCurrentUser && !disableEditProfile) {
 				return (
 					<div className={userProfileModalStyles.actionButtons}>
-						<Button
-							small={true}
-							leftIcon={<PencilIcon className={userProfileModalStyles.buttonIcon} />}
-							onClick={handleEditProfile}
-						>
+						<Button small={true} onClick={handleEditProfile}>
 							<Trans>Edit Profile</Trans>
 						</Button>
 						<Button
