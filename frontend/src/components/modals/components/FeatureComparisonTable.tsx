@@ -46,7 +46,7 @@ export const FeatureComparisonTable = observer(({formatter}: {formatter: Intl.Nu
 			<div className={styles.rows}>
 				<ComparisonCheckRow feature={t`Per-community profiles`} freeHas={false} premiumHas={true} />
 				<ComparisonCheckRow feature={t`Profile badge`} freeHas={false} premiumHas={true} />
-				<ComparisonCheckRow feature={t`Nameplate`} freeHas={false} premiumHas={true} />
+				<ComparisonCheckRow feature={t`Animated nameplate`} freeHas={false} premiumHas={true} />
 				<ComparisonRow
 					feature={t`Custom video backgrounds`}
 					freeValue={formatter.format(1)}
@@ -83,7 +83,8 @@ export const FeatureComparisonTable = observer(({formatter}: {formatter: Intl.Nu
 				<ComparisonCheckRow feature={t`Use animated emojis`} freeHas={true} premiumHas={true} />
 				<ComparisonCheckRow feature={t`Global emoji & sticker access`} freeHas={false} premiumHas={true} />
 				<ComparisonRow feature={t`Video quality`} freeValue={t`720p/30fps`} premiumValue={t`1080p/60fps`} />
-				<ComparisonCheckRow feature={t`Animated avatars & banners`} freeHas={false} premiumHas={true} />
+				<ComparisonCheckRow feature={t`Animated avatars`} freeHas={false} premiumHas={true} />
+				<ComparisonCheckRow feature={t`Profile banners`} freeHas={false} premiumHas={true} />
 				<ComparisonCheckRow feature={t`Early access to new features`} freeHas={false} premiumHas={true} />
 			</div>
 		</div>

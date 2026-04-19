@@ -2129,13 +2129,13 @@ msgstr "и ещё {remainingCount}"
 msgid "Animate on interaction"
 msgstr "Анимировать при взаимодействии"
 
+#: src/components/modals/components/FeatureComparisonTable.tsx:86
+msgid "Animated avatars"
+msgstr "Анимированные аватары"
+
 #: src/components/modals/tabs/MyProfileTab/AvatarUploader.tsx:109
 msgid "Animated avatars (GIFs) are a premium feature exclusively available to Premium subscribers."
 msgstr "Анимированные аватары (GIF) — эксклюзивная функция, доступная только подписчикам Премиума."
-
-#: src/components/modals/components/FeatureComparisonTable.tsx:86
-msgid "Animated avatars & banners"
-msgstr "Анимированные аватары и баннеры"
 
 #: src/components/modals/tabs/MyProfileTab/AvatarUploader.tsx:105
 msgid "Animated Avatars Require Premium"
@@ -2189,6 +2189,10 @@ msgstr "Анимированные иконки требуют функции с
 #: src/components/modals/guildTabs/GuildOverviewTab/hooks/useGuildImageAssetField.tsx:162
 msgid "Animated images are not supported for this asset."
 msgstr "Анимированные изображения не поддерживаются для этого элемента."
+
+#: src/components/modals/components/FeatureComparisonTable.tsx:49
+msgid "Animated nameplate"
+msgstr "Анимированный бейджик"
 
 #: src/components/modals/MediaViewerModal.tsx:305
 msgid "Animated video"
@@ -6558,7 +6562,7 @@ msgstr "Каждое сообщение ниже демонстрирует од
 msgid "Each unique invite can only be used once."
 msgstr "Каждое уникальное приглашение можно использовать только один раз."
 
-#: src/components/modals/components/FeatureComparisonTable.tsx:87
+#: src/components/modals/components/FeatureComparisonTable.tsx:88
 msgid "Early access to new features"
 msgstr "Ранний доступ к новым функциям"
 
@@ -11562,7 +11566,6 @@ msgstr "Форма именного ключа"
 msgid "Name: {0}."
 msgstr "Имя: {0}."
 
-#: src/components/modals/components/FeatureComparisonTable.tsx:49
 #: src/components/modals/tabs/MyProfileTab/NameplateUploader.tsx:103
 msgid "Nameplate"
 msgstr "Бейджик"
@@ -13381,6 +13384,10 @@ msgstr "Профиль"
 #: src/components/modals/components/FeatureComparisonTable.tsx:48
 msgid "Profile badge"
 msgstr "Значок профиля"
+
+#: src/components/modals/components/FeatureComparisonTable.tsx:87
+msgid "Profile banners"
+msgstr "Баннеры профиля"
 
 #: src/constants/IARConstants.tsx:135
 msgid "Profile contains offensive or NSFW content"
