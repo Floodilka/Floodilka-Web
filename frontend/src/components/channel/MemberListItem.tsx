@@ -115,34 +115,63 @@ export const MemberListItem: React.FC<MemberListItemProps> = observer((props) =>
 
 	const nameplateAsset = AvatarUtils.getUserNameplateAsset({id: user.id, nameplate: user.nameplate ?? null});
 
-	const videoRef = React.useRef<HTMLVideoElement | null>(null);
+	const buttonRef = React.useRef<HTMLButtonElement | null>(null);
+	const [isRowVisible, setIsRowVisible] = React.useState(false);
+	const [prefersReducedMotion, setPrefersReducedMotion] = React.useState(() => {
+		if (typeof window === 'undefined' || !window.matchMedia) return false;
+		return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+	});
+	const [isTabVisible, setIsTabVisible] = React.useState(() => {
+		if (typeof document === 'undefined') return true;
+		return !document.hidden;
+	});
 
 	React.useEffect(() => {
-		const videoNode = videoRef.current;
-		if (!videoNode || !nameplateAsset?.animated) return;
+		if (typeof window === 'undefined' || !window.matchMedia) return;
+		const media = window.matchMedia('(prefers-reduced-motion: reduce)');
+		const onChange = (event: MediaQueryListEvent) => setPrefersReducedMotion(event.matches);
+		media.addEventListener('change', onChange);
+		return () => media.removeEventListener('change', onChange);
+	}, []);
+
+	React.useEffect(() => {
+		if (typeof document === 'undefined') return;
+		const onVisibility = () => setIsTabVisible(!document.hidden);
+		document.addEventListener('visibilitychange', onVisibility);
+		return () => document.removeEventListener('visibilitychange', onVisibility);
+	}, []);
+
+	const shouldAnimateNameplate =
+		nameplateAsset?.animated === true && isRowVisible && isTabVisible && !prefersReducedMotion;
+
+	const attachButtonRef = React.useCallback((node: HTMLButtonElement | null) => {
+		buttonRef.current = node;
+		hoverRef(node);
+	}, [hoverRef]);
+
+	React.useEffect(() => {
+		const node = buttonRef.current;
+		if (!node || nameplateAsset?.animated !== true) {
+			if (isRowVisible) setIsRowVisible(false);
+			return;
+		}
 
 		const observer = new IntersectionObserver(
 			(entries) => {
 				for (const entry of entries) {
-					if (entry.isIntersecting) {
-						videoNode.play().catch(() => {
-							/* autoplay blocked — poster remains */
-						});
-					} else {
-						videoNode.pause();
-					}
+					setIsRowVisible(entry.isIntersecting);
 				}
 			},
-			{threshold: 0.1},
+			{threshold: 0.1, rootMargin: '200px 0px'},
 		);
-		observer.observe(videoNode);
+		observer.observe(node);
 		return () => observer.disconnect();
-	}, [nameplateAsset?.animated, nameplateAsset?.videoUrl]);
+	}, [nameplateAsset?.animated, isRowVisible]);
 
 	const content = (
 		<FocusRingWrapper focusRingClassName={styles.memberFocusRing}>
 			<button
-				ref={hoverRef}
+				ref={attachButtonRef}
 				type="button"
 				className={clsx(
 					styles.button,
@@ -151,10 +180,9 @@ export const MemberListItem: React.FC<MemberListItemProps> = observer((props) =>
 				)}
 				onContextMenu={handleContextMenu}
 			>
-				{nameplateAsset?.animated && nameplateAsset.videoUrl ? (
+				{shouldAnimateNameplate && nameplateAsset?.videoUrl ? (
 					<>
 						<video
-							ref={videoRef}
 							className={styles.nameplateVideo}
 							src={nameplateAsset.videoUrl}
 							poster={nameplateAsset.imageUrl}
