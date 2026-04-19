@@ -241,7 +241,8 @@ handle_identify_request(
                 ),
                 <<"bot">> => map_utils:get_safe(UserDataMap, <<"bot">>, undefined),
                 <<"system">> => map_utils:get_safe(UserDataMap, <<"system">>, undefined),
-                <<"flags">> => maps:get(<<"flags">>, UserDataMap)
+                <<"flags">> => maps:get(<<"flags">>, UserDataMap),
+                <<"nameplate">> => map_utils:get_safe(UserDataMap, <<"nameplate">>, undefined)
             },
             UserData = user_utils:normalize_user(UserData0),
             SessionData = #{

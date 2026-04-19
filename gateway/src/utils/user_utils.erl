@@ -30,7 +30,8 @@ normalize_user(User) when is_map(User) ->
         <<"system">>,
         <<"flags">>,
         <<"banner">>,
-        <<"banner_color">>
+        <<"banner_color">>,
+        <<"nameplate">>
     ],
     CleanPairs =
         lists:foldl(
