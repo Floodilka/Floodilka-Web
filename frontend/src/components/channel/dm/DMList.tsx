@@ -54,6 +54,7 @@ import * as UserActionCreators from '~/actions/UserActionCreators';
 import {ChannelTypes, ME, MessageTypes, RelationshipTypes} from '~/Constants';
 
 import {CreateDMBottomSheet} from '~/components/bottomsheets/CreateDMBottomSheet';
+import {UserBadgesInline} from '~/components/channel/UserBadgesInline';
 import {UserTag} from '~/components/channel/UserTag';
 import {CustomStatusDisplay} from '~/components/common/CustomStatusDisplay/CustomStatusDisplay';
 import {GroupDMAvatar} from '~/components/common/GroupDMAvatar';
@@ -491,6 +492,7 @@ const DMListItem = observer(({channel, isSelected}: {channel: ChannelRecord; isS
 								<span className={styles.dmItemName}>
 									{channel.isPinned && <PushPinIcon weight="fill" className={styles.dmItemPinIcon} />}
 									<span className={styles.dmItemNameText}>{displayName}</span>
+									{!isGroupDM && recipient && <UserBadgesInline user={recipient} />}
 									{!isGroupDM && isBotDM && <UserTag className={styles.dmItemUserTag} system={recipient?.system} />}
 								</span>
 								{!isGroupDM && recipient && !messagePreview && (
