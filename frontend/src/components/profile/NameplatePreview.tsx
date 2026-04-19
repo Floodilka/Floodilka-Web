@@ -44,14 +44,16 @@ export const NameplatePreview: React.FC<NameplatePreviewProps> = observer(
 			return AvatarUtils.getUserAvatarURL({id: user.id, avatar: user.avatar}, false, 64);
 		}, [previewAvatarUrl, hasClearedAvatar, user.id, user.avatar]);
 
-		const nameplateImageUrl = React.useMemo(() => {
+		const nameplateAsset = React.useMemo(() => {
 			if (hasClearedNameplate) return null;
-			if (previewNameplateUrl) return previewNameplateUrl;
-			const asset = AvatarUtils.getUserNameplateAsset({id: user.id, nameplate: user.nameplate ?? null});
-			return asset?.imageUrl ?? null;
+			if (previewNameplateUrl) {
+				return {animated: false as const, videoUrl: null, imageUrl: previewNameplateUrl};
+			}
+			return AvatarUtils.getUserNameplateAsset({id: user.id, nameplate: user.nameplate ?? null});
 		}, [hasClearedNameplate, previewNameplateUrl, user.id, user.nameplate]);
 
 		const displayName = previewNickname || user.globalName || user.username;
+		const hasNameplate = Boolean(nameplateAsset);
 
 		return (
 			<div className={styles.wrapper}>
@@ -60,17 +62,31 @@ export const NameplatePreview: React.FC<NameplatePreviewProps> = observer(
 				</div>
 				<div className={styles.card}>
 					<SkeletonMemberItem index={0} />
-					<div className={clsx(styles.row, nameplateImageUrl && styles.nameplateActive)}>
-						{nameplateImageUrl && (
+					<div className={clsx(styles.row, hasNameplate && styles.nameplateActive)}>
+						{nameplateAsset?.animated && nameplateAsset.videoUrl ? (
 							<>
-								<span
-									className={styles.nameplate}
-									style={{backgroundImage: `url(${nameplateImageUrl})`}}
+								<video
+									className={styles.nameplateVideo}
+									src={nameplateAsset.videoUrl}
+									poster={nameplateAsset.imageUrl}
+									autoPlay
+									loop
+									muted
+									playsInline
 									aria-hidden="true"
 								/>
 								<span className={styles.nameplateOverlay} aria-hidden="true" />
 							</>
-						)}
+						) : nameplateAsset ? (
+							<>
+								<span
+									className={styles.nameplate}
+									style={{backgroundImage: `url(${nameplateAsset.imageUrl})`}}
+									aria-hidden="true"
+								/>
+								<span className={styles.nameplateOverlay} aria-hidden="true" />
+							</>
+						) : null}
 						<div className={styles.content}>
 							{avatarUrl ? (
 								<img className={styles.avatar} src={avatarUrl} alt="" />
