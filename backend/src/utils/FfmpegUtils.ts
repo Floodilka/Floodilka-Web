@@ -62,23 +62,39 @@ const runCommand = async (
 
 		const stdoutChunks: Array<Buffer> = [];
 		const stderrChunks: Array<Buffer> = [];
+		let settled = false;
+
+		const settle = (result: {stdout: Buffer; stderr: string; code: number} | Error) => {
+			if (settled) return;
+			settled = true;
+			clearTimeout(timer);
+			if (result instanceof Error) {
+				reject(result);
+			} else {
+				resolve(result);
+			}
+		};
 
 		child.stdout?.on('data', (chunk: Buffer) => stdoutChunks.push(chunk));
 		child.stderr?.on('data', (chunk: Buffer) => stderrChunks.push(chunk));
+		child.stdout?.on('error', () => {
+			/* ignore stream errors — we rely on close event */
+		});
+		child.stderr?.on('error', () => {
+			/* ignore stream errors — we rely on close event */
+		});
 
 		const timer = setTimeout(() => {
 			child.kill('SIGKILL');
-			reject(new Error(`${binary} timed out after ${timeoutMs}ms`));
+			settle(new Error(`${binary} timed out after ${timeoutMs}ms`));
 		}, timeoutMs);
 
 		child.on('error', (error) => {
-			clearTimeout(timer);
-			reject(error);
+			settle(error);
 		});
 
 		child.on('close', (code) => {
-			clearTimeout(timer);
-			resolve({
+			settle({
 				stdout: Buffer.concat(stdoutChunks),
 				stderr: Buffer.concat(stderrChunks).toString('utf8'),
 				code: code ?? -1,
@@ -86,13 +102,18 @@ const runCommand = async (
 		});
 
 		if (stdinData && child.stdin) {
-			child.stdin.write(Buffer.from(stdinData));
-			child.stdin.end();
+			child.stdin.on('error', (error: NodeJS.ErrnoException) => {
+				if (error.code === 'EPIPE') {
+					return;
+				}
+				Logger.warn({error, binary}, 'Child stdin errored');
+			});
+			child.stdin.end(Buffer.from(stdinData));
 		}
 	});
 };
 
-export const probeMedia = async (input: Uint8Array): Promise<ProbeResult> => {
+const probeMediaFile = async (filePath: string): Promise<ProbeResult> => {
 	const {stdout, stderr, code} = await runCommand(
 		'ffprobe',
 		[
@@ -104,10 +125,9 @@ export const probeMedia = async (input: Uint8Array): Promise<ProbeResult> => {
 			'stream=width,height,nb_frames,r_frame_rate:format=duration',
 			'-of',
 			'json',
-			'pipe:0',
+			filePath,
 		],
 		FFPROBE_TIMEOUT_MS,
-		input,
 	);
 
 	if (code !== 0) {
@@ -217,12 +237,18 @@ export const transcodeToNameplateWebM = async (
 
 		const [webm, poster] = await Promise.all([readFile(webmPath), readFile(posterPath)]);
 
-		const probed = await probeMedia(new Uint8Array(webm));
+		let durationSeconds = 0;
+		try {
+			const probed = await probeMediaFile(webmPath);
+			durationSeconds = probed.durationSeconds;
+		} catch (error) {
+			Logger.warn({error, webmPath}, 'Failed to probe transcoded nameplate; defaulting duration to 0');
+		}
 
 		return {
 			webm: new Uint8Array(webm),
 			poster: new Uint8Array(poster),
-			durationSeconds: probed.durationSeconds,
+			durationSeconds,
 		};
 	} finally {
 		await rm(workDir, {recursive: true, force: true}).catch((error) => {
