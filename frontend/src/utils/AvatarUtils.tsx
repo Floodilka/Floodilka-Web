@@ -32,6 +32,7 @@ export const getDefaultAvatarPrimaryColor = (id: string) => DEFAULT_AVATAR_PRIMA
 
 type AvatarOptions = Pick<UserRecord, 'id' | 'avatar'>;
 type BannerOptions = Pick<UserRecord, 'id' | 'banner'>;
+type NameplateOptions = Pick<UserRecord, 'id' | 'nameplate'>;
 
 interface IconOptions {
 	id: string;
@@ -157,6 +158,23 @@ export const getUserBannerURL = ({id, banner}: BannerOptions, animated = false, 
 		path: 'bnnrs',
 		id,
 		hash: parsedBanner.hash,
+		size,
+		format: shouldAnimate ? 'gif' : 'webp',
+	});
+};
+
+export const getUserNameplateURL = ({id, nameplate}: NameplateOptions, animated = false, size = 480) => {
+	if (!nameplate) {
+		return null;
+	}
+
+	const parsedNameplate = parseAvatar(nameplate);
+	const shouldAnimate = parsedNameplate.animated ? animated : false;
+
+	return getMediaURL({
+		path: 'nmplts',
+		id,
+		hash: parsedNameplate.hash,
 		size,
 		format: shouldAnimate ? 'gif' : 'webp',
 	});

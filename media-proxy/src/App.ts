@@ -116,6 +116,7 @@ if (Config.STATIC_MODE) {
 	app.get('/avatars/:id/:filename', async (ctx) => handleImageRoute(ctx, 'avatars'));
 	app.get('/icons/:id/:filename', async (ctx) => handleImageRoute(ctx, 'icons'));
 	app.get('/bnnrs/:id/:filename', async (ctx) => handleImageRoute(ctx, 'banners'));
+	app.get('/nmplts/:id/:filename', async (ctx) => handleImageRoute(ctx, 'nameplates'));
 	app.get('/splashes/:id/:filename', async (ctx) => handleImageRoute(ctx, 'splashes'));
 	app.get('/embed-splashes/:id/:filename', async (ctx) => handleImageRoute(ctx, 'embed-splashes'));
 	app.get('/emojis/:id', async (ctx) => handleSimpleImageRoute(ctx, 'emojis'));

@@ -52,6 +52,7 @@ export const UserPartialResponse = z.object({
 	system: z.boolean().optional(),
 	flags: z.number().int(),
 	premium_type: z.number().int().optional(),
+	nameplate: z.string().nullish(),
 });
 
 export type UserPartialResponse = z.infer<typeof UserPartialResponse>;
@@ -60,6 +61,7 @@ export const UserPrivateResponse = z.object({
 	...UserPartialResponse.shape,
 	banner: z.string().nullish(),
 	banner_color: z.number().int().nullish(),
+	nameplate: z.string().nullish(),
 	acls: z.array(z.string()),
 	email: z.string().nullish(),
 	phone: z.string().nullish(),
@@ -114,6 +116,7 @@ export const UserUpdateRequest = z
 		password: z.string().min(1).max(256),
 		avatar: createBase64StringType(1, AVATAR_MAX_SIZE * 1.33).nullish(),
 		banner: createBase64StringType(1, AVATAR_MAX_SIZE * 1.33).nullish(),
+		nameplate: createBase64StringType(1, AVATAR_MAX_SIZE * 1.33).nullish(),
 		bio: createStringType(1, 320).nullish(),
 		premium_badge_hidden: z.boolean(),
 		premium_badge_masked: z.boolean(),

@@ -27,12 +27,46 @@
 	display: block;
 	width: 100%;
 	text-align: left;
+	overflow: hidden;
 }
 
 .button:hover {
 	background-color: var(--background-modifier-hover);
 	color: var(--text-primary);
 	opacity: 1;
+}
+
+.nameplate {
+	position: absolute;
+	inset: 0;
+	background-size: cover;
+	background-position: center;
+	background-repeat: no-repeat;
+	pointer-events: none;
+	z-index: 0;
+	border-radius: inherit;
+}
+
+.nameplate::after {
+	content: '';
+	position: absolute;
+	inset: 0;
+	background: linear-gradient(
+		to right,
+		var(--background-secondary) 0%,
+		rgba(0, 0, 0, 0.35) 40%,
+		rgba(0, 0, 0, 0.15) 100%
+	);
+	border-radius: inherit;
+}
+
+.button:hover .nameplate::after {
+	background: linear-gradient(
+		to right,
+		var(--background-modifier-hover) 0%,
+		rgba(0, 0, 0, 0.2) 40%,
+		rgba(0, 0, 0, 0) 100%
+	);
 }
 
 .button[aria-expanded='true'] {
@@ -64,6 +98,8 @@
 	gap: 0.25rem;
 	padding-left: 0.5rem;
 	padding-right: 0.5rem;
+	position: relative;
+	z-index: 1;
 }
 
 .content {

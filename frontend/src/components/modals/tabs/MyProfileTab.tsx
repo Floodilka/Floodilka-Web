@@ -53,6 +53,7 @@ import {UnclaimedAccountAlert} from '../components/UnclaimedAccountAlert';
 import {type AvatarMode, AvatarUploader} from './MyProfileTab/AvatarUploader';
 import {type BannerMode, BannerUploader} from './MyProfileTab/BannerUploader';
 import {BioEditor} from './MyProfileTab/BioEditor';
+import {NameplateUploader} from './MyProfileTab/NameplateUploader';
 import {PerGuildPremiumUpsell} from './MyProfileTab/PerGuildPremiumUpsell';
 import {PremiumBadgeSettings} from './MyProfileTab/PremiumBadgeSettings';
 import {ProfileTypeSelector} from './MyProfileTab/ProfileTypeSelector';
@@ -62,6 +63,7 @@ import styles from './MyProfileTab.module.css';
 interface FormInputs {
 	avatar?: string | null;
 	banner?: string | null;
+	nameplate?: string | null;
 	bio: string | null;
 	global_name: string | null;
 	nick?: string | null;
@@ -89,6 +91,8 @@ const MyProfileTabComponent = observer(function MyProfileTabComponent({
 	const [previewAvatarUrl, setPreviewAvatarUrl] = React.useState<string | null>(null);
 	const [hasClearedBanner, setHasClearedBanner] = React.useState(false);
 	const [previewBannerUrl, setPreviewBannerUrl] = React.useState<string | null>(null);
+	const [hasClearedNameplate, setHasClearedNameplate] = React.useState(false);
+	const [previewNameplateUrl, setPreviewNameplateUrl] = React.useState<string | null>(null);
 	const bioTextareaRef = React.useRef<HTMLTextAreaElement | null>(null);
 
 	const isPerGuildProfile = selectedGuildId !== null;
@@ -254,12 +258,21 @@ const MyProfileTabComponent = observer(function MyProfileTabComponent({
 		setPreviewAvatarUrl(null);
 		setHasClearedBanner(false);
 		setPreviewBannerUrl(null);
+		setHasClearedNameplate(false);
+		setPreviewNameplateUrl(null);
 	}, [isPerGuildProfile, guildMember, profileData, user, form, updateBioFromMarkdown]);
 
 	const isFormDirty = form.formState.isDirty;
 	const hasModeChanges = isPerGuildProfile && (avatarMode !== initialAvatarMode || bannerMode !== initialBannerMode);
 	const hasUnsavedChanges = Boolean(
-		isFormDirty || previewAvatarUrl || hasClearedAvatar || previewBannerUrl || hasClearedBanner || hasModeChanges,
+		isFormDirty ||
+			previewAvatarUrl ||
+			hasClearedAvatar ||
+			previewBannerUrl ||
+			hasClearedBanner ||
+			previewNameplateUrl ||
+			hasClearedNameplate ||
+			hasModeChanges,
 	);
 
 	const hasPremium = React.useMemo(() => user?.isPremium() ?? false, [user]);
@@ -337,6 +350,7 @@ const MyProfileTabComponent = observer(function MyProfileTabComponent({
 				const updateData: Record<string, unknown> = {
 					avatar: data.avatar,
 					banner: data.banner,
+					nameplate: data.nameplate,
 					bio: data.bio,
 					global_name: data.global_name,
 				};
@@ -368,6 +382,8 @@ const MyProfileTabComponent = observer(function MyProfileTabComponent({
 			setHasClearedAvatar(false);
 			setPreviewBannerUrl(null);
 			setHasClearedBanner(false);
+			setPreviewNameplateUrl(null);
+			setHasClearedNameplate(false);
 		},
 		[form, isPerGuildProfile, selectedGuildId, updateBioFromMarkdown, user, avatarMode, bannerMode],
 	);
@@ -417,6 +433,8 @@ const MyProfileTabComponent = observer(function MyProfileTabComponent({
 		setPreviewAvatarUrl(null);
 		setHasClearedBanner(false);
 		setPreviewBannerUrl(null);
+		setHasClearedNameplate(false);
+		setPreviewNameplateUrl(null);
 	}, [
 		form,
 		user,
@@ -480,6 +498,22 @@ const MyProfileTabComponent = observer(function MyProfileTabComponent({
 			setHasCustomBanner(false);
 		}
 	}, [form, isPerGuildProfile]);
+
+	const handleNameplateChange = React.useCallback(
+		(base64: string) => {
+			form.setValue('nameplate', base64, {shouldDirty: true});
+			setPreviewNameplateUrl(base64);
+			setHasClearedNameplate(false);
+			form.clearErrors('nameplate');
+		},
+		[form],
+	);
+
+	const handleNameplateClear = React.useCallback(() => {
+		form.setValue('nameplate', null, {shouldDirty: true});
+		setPreviewNameplateUrl(null);
+		setHasClearedNameplate(true);
+	}, [form]);
 
 	const handleAvatarModeChange = React.useCallback(
 		(mode: AvatarMode) => {
@@ -653,6 +687,18 @@ const MyProfileTabComponent = observer(function MyProfileTabComponent({
 											onBannerModeChange={handleBannerModeChange}
 										/>
 									</div>
+
+									{!isPerGuildProfile && (
+										<div>
+											<NameplateUploader
+												hasNameplate={Boolean(user.nameplate || previewNameplateUrl) && !hasClearedNameplate}
+												onNameplateChange={handleNameplateChange}
+												onNameplateClear={handleNameplateClear}
+												hasPremium={hasPremium}
+												errorMessage={form.formState.errors.nameplate?.message}
+											/>
+										</div>
+									)}
 
 									<div className={isPerGuildProfile && !hasPremium ? styles.opacityHalf : ''}>
 										<BioEditor

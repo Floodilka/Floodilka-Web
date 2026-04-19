@@ -38,6 +38,7 @@ export interface ProfileUpdateResult {
 	updates: UserFieldUpdates;
 	preparedAvatarUpload: PreparedAssetUpload | null;
 	preparedBannerUpload: PreparedAssetUpload | null;
+	preparedNameplateUpload: PreparedAssetUpload | null;
 }
 
 interface UserAccountProfileServiceDeps {
@@ -56,11 +57,13 @@ export class UserAccountProfileService {
 		const updates: UserFieldUpdates = {
 			avatar_hash: user.avatarHash,
 			banner_hash: user.bannerHash,
+			nameplate_hash: user.nameplateHash,
 			flags: user.flags,
 		};
 
 		let preparedAvatarUpload: PreparedAssetUpload | null = null;
 		let preparedBannerUpload: PreparedAssetUpload | null = null;
+		let preparedNameplateUpload: PreparedAssetUpload | null = null;
 
 		if (data.bio !== undefined) {
 			await this.processBioUpdate({user, bio: data.bio, updates});
@@ -81,6 +84,20 @@ export class UserAccountProfileService {
 			}
 		}
 
+		if (data.nameplate !== undefined) {
+			try {
+				preparedNameplateUpload = await this.processNameplateUpdate({user, nameplate: data.nameplate, updates});
+			} catch (error) {
+				if (preparedAvatarUpload) {
+					await this.deps.entityAssetService.rollbackAssetUpload(preparedAvatarUpload);
+				}
+				if (preparedBannerUpload) {
+					await this.deps.entityAssetService.rollbackAssetUpload(preparedBannerUpload);
+				}
+				throw error;
+			}
+		}
+
 		if (!user.isBot) {
 			this.processPremiumBadgeFlags({user, data, updates});
 			this.processPremiumOnboardingDismissal({user, data, updates});
@@ -88,7 +105,7 @@ export class UserAccountProfileService {
 			this.processUsedMobileClient({user, data, updates});
 		}
 
-		return {updates, preparedAvatarUpload, preparedBannerUpload};
+		return {updates, preparedAvatarUpload, preparedBannerUpload, preparedNameplateUpload};
 	}
 
 	async commitAssetChanges(result: ProfileUpdateResult): Promise<void> {
@@ -105,6 +122,13 @@ export class UserAccountProfileService {
 				deferDeletion: true,
 			});
 		}
+
+		if (result.preparedNameplateUpload) {
+			await this.deps.entityAssetService.commitAssetChange({
+				prepared: result.preparedNameplateUpload,
+				deferDeletion: true,
+			});
+		}
 	}
 
 	async rollbackAssetChanges(result: ProfileUpdateResult): Promise<void> {
@@ -114,6 +138,10 @@ export class UserAccountProfileService {
 
 		if (result.preparedBannerUpload) {
 			await this.deps.entityAssetService.rollbackAssetUpload(result.preparedBannerUpload);
+		}
+
+		if (result.preparedNameplateUpload) {
+			await this.deps.entityAssetService.rollbackAssetUpload(result.preparedNameplateUpload);
 		}
 	}
 
@@ -268,6 +296,48 @@ export class UserAccountProfileService {
 
 		if (prepared.newHash !== user.bannerHash) {
 			updates.banner_hash = prepared.newHash;
+			return prepared;
+		}
+
+		return null;
+	}
+
+	private async processNameplateUpdate(params: {
+		user: User;
+		nameplate: string | null;
+		updates: UserFieldUpdates;
+	}): Promise<PreparedAssetUpload | null> {
+		const {user, nameplate, updates} = params;
+
+		if (nameplate && !user.isPremium()) {
+			throw InputValidationError.create('nameplate', 'Фон ячейки доступен только премиум-пользователям');
+		}
+
+		const nameplateRateLimit = await this.deps.rateLimitService.checkLimit({
+			identifier: `nameplate_change:${user.id}`,
+			maxAttempts: 25,
+			windowMs: 30 * 60 * 1000,
+		});
+
+		if (!nameplateRateLimit.allowed) {
+			const minutes = Math.ceil((nameplateRateLimit.retryAfter || 0) / 60);
+			throw InputValidationError.create(
+				'nameplate',
+				`Вы слишком часто меняли фон ячейки. Попробуйте снова через ${minutes} мин.`,
+			);
+		}
+
+		const prepared = await this.deps.entityAssetService.prepareAssetUpload({
+			assetType: 'nameplate',
+			entityType: 'user',
+			entityId: user.id,
+			previousHash: user.nameplateHash,
+			base64Image: nameplate,
+			errorPath: 'nameplate',
+		});
+
+		if (prepared.newHash !== user.nameplateHash) {
+			updates.nameplate_hash = prepared.newHash;
 			return prepared;
 		}
 

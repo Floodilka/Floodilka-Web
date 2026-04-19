@@ -40,6 +40,7 @@ export class User {
 	readonly avatarColor: number | null;
 	readonly bannerHash: string | null;
 	readonly bannerColor: number | null;
+	readonly nameplateHash: string | null;
 	readonly bio: string | null;
 	readonly dateOfBirth: string | null;
 	readonly locale: string | null;
@@ -90,6 +91,7 @@ export class User {
 		this.avatarColor = row.avatar_color ?? null;
 		this.bannerHash = row.banner_hash ?? null;
 		this.bannerColor = row.banner_color ?? null;
+		this.nameplateHash = row.nameplate_hash ?? null;
 		this.bio = row.bio ?? null;
 		this.dateOfBirth = row.date_of_birth ? row.date_of_birth.toString() : null;
 		this.locale = row.locale ?? null;
@@ -154,6 +156,7 @@ export class User {
 			avatar_color: this.avatarColor,
 			banner_hash: this.bannerHash,
 			banner_color: this.bannerColor,
+			nameplate_hash: this.nameplateHash,
 			bio: this.bio,
 			date_of_birth: this.dateOfBirth ? types.LocalDate.fromString(this.dateOfBirth) : null,
 			locale: this.locale,

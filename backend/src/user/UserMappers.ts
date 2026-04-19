@@ -57,6 +57,7 @@ export const mapUserToPartialResponse = (user: User): UserPartialResponse => {
 		system: user.isSystem || undefined,
 		flags: Number((user.flags ?? 0n) & PUBLIC_USER_FLAGS),
 		premium_type: isPremium && !((user.flags ?? 0n) & UserFlags.PREMIUM_BADGE_HIDDEN) ? user.premiumType : undefined,
+		nameplate: isPremium ? user.nameplateHash : null,
 	};
 };
 
@@ -72,7 +73,8 @@ export const hasPartialUserFieldsChanged = (oldUser: User, newUser: User): boole
 		oldPartial.bot !== newPartial.bot ||
 		oldPartial.system !== newPartial.system ||
 		oldPartial.flags !== newPartial.flags ||
-		oldPartial.premium_type !== newPartial.premium_type
+		oldPartial.premium_type !== newPartial.premium_type ||
+		oldPartial.nameplate !== newPartial.nameplate
 	);
 };
 
@@ -100,6 +102,7 @@ export const mapUserToPrivateResponse = (user: User): UserPrivateResponse => {
 		bio: user.bio,
 		banner: isPremium ? user.bannerHash : null,
 		banner_color: isPremium ? user.bannerColor : null,
+		nameplate: isPremium ? user.nameplateHash : null,
 		mfa_enabled: (user.authenticatorTypes?.size ?? 0) > 0,
 		authenticator_types: user.authenticatorTypes ? Array.from(user.authenticatorTypes) : undefined,
 		verified: user.emailVerified,

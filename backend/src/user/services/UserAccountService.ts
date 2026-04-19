@@ -177,6 +177,9 @@ export class UserAccountService {
 		if (updates.banner_hash === null) {
 			updatedUserRow.banner_hash = null;
 		}
+		if (updates.nameplate_hash === null) {
+			updatedUserRow.nameplate_hash = null;
+		}
 
 		const emailChanged = data.email !== undefined;
 		if (emailChanged) {

@@ -28,6 +28,7 @@ export enum AssetType {
 	CHANNEL_ICON = 'channel_icon',
 	GUILD_BANNER = 'guild_banner',
 	PROFILE_BANNER = 'profile_banner',
+	PROFILE_NAMEPLATE = 'profile_nameplate',
 	SPLASH = 'splash',
 	EMBED_SPLASH = 'embed_splash',
 }
@@ -88,6 +89,15 @@ const ASSET_CONFIGS: Record<AssetType, AssetConfig> = {
 		minHeight: 240,
 		sizeLimitBytes: 10 * 1024 * 1024,
 	},
+	[AssetType.PROFILE_NAMEPLATE]: {
+		aspectRatio: 5,
+		cropShape: 'rect',
+		maxWidth: 2000,
+		maxHeight: 400,
+		minWidth: 480,
+		minHeight: 96,
+		sizeLimitBytes: 10 * 1024 * 1024,
+	},
 	[AssetType.SPLASH]: {
 		aspectRatio: 16 / 9,
 		cropShape: 'rect',
@@ -122,6 +132,8 @@ const getTitle = (assetType: AssetType): React.ReactNode => {
 			return <Trans>Crop Banner</Trans>;
 		case AssetType.PROFILE_BANNER:
 			return <Trans>Crop Profile Banner</Trans>;
+		case AssetType.PROFILE_NAMEPLATE:
+			return <Trans>Crop Nameplate</Trans>;
 		case AssetType.SPLASH:
 			return <Trans>Crop Invite Background</Trans>;
 		case AssetType.EMBED_SPLASH:
@@ -168,6 +180,13 @@ const getDescription = (assetType: AssetType): React.ReactNode => {
 					{config.minWidth}×{config.minHeight} pixels (17:6).
 				</Trans>
 			);
+		case AssetType.PROFILE_NAMEPLATE:
+			return (
+				<Trans>
+					Drag to reposition your nameplate and use the scroll wheel or pinch to zoom. The recommended minimum size is{' '}
+					{config.minWidth}×{config.minHeight} pixels (5:1).
+				</Trans>
+			);
 		case AssetType.SPLASH:
 			return (
 				<Trans>
@@ -195,6 +214,8 @@ const getSaveButtonLabel = (assetType: AssetType): React.ReactNode => {
 		case AssetType.GUILD_BANNER:
 		case AssetType.PROFILE_BANNER:
 			return <Trans>Save Banner</Trans>;
+		case AssetType.PROFILE_NAMEPLATE:
+			return <Trans>Save Nameplate</Trans>;
 		case AssetType.SPLASH:
 		case AssetType.EMBED_SPLASH:
 			return <Trans>Save Background</Trans>;
@@ -212,6 +233,8 @@ const getErrorMessage = (assetType: AssetType): string => {
 		case AssetType.GUILD_BANNER:
 		case AssetType.PROFILE_BANNER:
 			return t`Failed to crop banner. Please try again.`;
+		case AssetType.PROFILE_NAMEPLATE:
+			return t`Failed to crop nameplate. Please try again.`;
 		case AssetType.SPLASH:
 		case AssetType.EMBED_SPLASH:
 			return t`Failed to crop background. Please try again.`;

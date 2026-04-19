@@ -56,6 +56,7 @@ export type UserPartial = Readonly<{
 	system?: boolean;
 	flags: number;
 	premium_type?: number | null;
+	nameplate?: string | null;
 }>;
 
 export type RequiredAction =
@@ -122,6 +123,7 @@ export class UserRecord {
 	readonly bio?: string | null;
 	readonly banner?: string | null;
 	readonly bannerColor?: number | null;
+	readonly nameplate?: string | null;
 	readonly mfaEnabled?: boolean;
 	readonly phone?: string | null;
 	readonly authenticatorTypes?: Array<number>;
@@ -159,6 +161,7 @@ export class UserRecord {
 		if ('bio' in user) this.bio = user.bio;
 		if ('banner' in user) this.banner = user.banner;
 		if ('banner_color' in user) this.bannerColor = user.banner_color;
+		if ('nameplate' in user) this.nameplate = user.nameplate;
 		if ('mfa_enabled' in user) this.mfaEnabled = user.mfa_enabled;
 		if ('phone' in user) this.phone = user.phone;
 		if ('authenticator_types' in user) this.authenticatorTypes = user.authenticator_types;
@@ -313,6 +316,14 @@ export class UserRecord {
 							'banner_color' in updates && updates.banner_color !== undefined
 								? (updates.banner_color as number | null)
 								: this.bannerColor,
+					}
+				: {}),
+			...(this.nameplate !== undefined || 'nameplate' in updates
+				? {
+						nameplate:
+							'nameplate' in updates && updates.nameplate !== undefined
+								? (updates.nameplate as string | null)
+								: this.nameplate,
 					}
 				: {}),
 			...(this.globalName !== undefined || 'global_name' in updates
@@ -472,6 +483,7 @@ export class UserRecord {
 			this.bio === other.bio &&
 			this.banner === other.banner &&
 			this.bannerColor === other.bannerColor &&
+			this.nameplate === other.nameplate &&
 			this.mfaEnabled === other.mfaEnabled &&
 			this.phone === other.phone &&
 			JSON.stringify(this.authenticatorTypes) === JSON.stringify(other.authenticatorTypes) &&
@@ -525,6 +537,7 @@ export class UserRecord {
 			...(this.banner !== undefined ? {banner: this.banner} : {}),
 			...(this.avatarColor !== undefined ? {avatar_color: this.avatarColor} : {}),
 			...(this.bannerColor !== undefined ? {banner_color: this.bannerColor} : {}),
+			...(this.nameplate !== undefined ? {nameplate: this.nameplate} : {}),
 			...(this.mfaEnabled !== undefined ? {mfa_enabled: this.mfaEnabled} : {}),
 			...(this.phone !== undefined ? {phone: this.phone} : {}),
 			...(this.authenticatorTypes !== undefined ? {authenticator_types: this.authenticatorTypes} : {}),

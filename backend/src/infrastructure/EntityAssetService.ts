@@ -26,13 +26,14 @@ import type {IAssetDeletionQueue} from './IAssetDeletionQueue';
 import type {IMediaService} from './IMediaService';
 import type {IStorageService} from './IStorageService';
 
-export type AssetType = 'avatar' | 'banner' | 'icon' | 'splash' | 'embed_splash';
+export type AssetType = 'avatar' | 'banner' | 'nameplate' | 'icon' | 'splash' | 'embed_splash';
 
 export type EntityType = 'user' | 'guild' | 'guild_member';
 
 const ASSET_TYPE_TO_PREFIX: Record<AssetType, string> = {
 	avatar: 'avatars',
 	banner: 'banners',
+	nameplate: 'nameplates',
 	icon: 'icons',
 	splash: 'splashes',
 	embed_splash: 'embed-splashes',
@@ -41,6 +42,7 @@ const ASSET_TYPE_TO_PREFIX: Record<AssetType, string> = {
 const ASSET_TYPE_TO_URL_PREFIX: Record<AssetType, string> = {
 	avatar: 'avatars',
 	banner: 'bnnrs',
+	nameplate: 'nmplts',
 	icon: 'icons',
 	splash: 'splashes',
 	embed_splash: 'embed-splashes',

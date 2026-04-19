@@ -119,6 +119,7 @@ export async function processUserDeletion(
 		avatar_color: null,
 		banner_hash: null,
 		banner_color: null,
+		nameplate_hash: null,
 		bio: null,
 		date_of_birth: null,
 		locale: null,
@@ -376,6 +377,16 @@ export async function processUserDeletion(
 		}
 	}
 
+	if (user.nameplateHash) {
+		try {
+			await storageService.deleteAvatar({prefix: 'nameplates', key: `${userId}/${user.nameplateHash}`});
+			await cloudflarePurgeQueue.addUrls([`${Config.endpoints.media}/nameplates/${userId}/${user.nameplateHash}`]);
+			Logger.debug({userId, nameplateHash: user.nameplateHash}, 'Deleted nameplate');
+		} catch (error) {
+			Logger.error({error, userId}, 'Failed to delete nameplate');
+		}
+	}
+
 	const favoriteMemes = await favoriteMemeRepository.findByUserId(userId);
 	for (const meme of favoriteMemes) {
 		try {
@@ -439,6 +450,7 @@ export async function processUserDeletion(
 		totp_secret: null,
 		avatar_hash: null,
 		banner_hash: null,
+		nameplate_hash: null,
 		bio: null,
 		date_of_birth: null,
 		flags: UserFlags.DELETED,

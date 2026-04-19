@@ -378,6 +378,7 @@ export class AuthRegistrationService {
 			avatar_color: null,
 			banner_hash: null,
 			banner_color: null,
+			nameplate_hash: null,
 			bio: null,
 			date_of_birth: parseDobLocalDate(data.date_of_birth),
 			locale: pending.locale,

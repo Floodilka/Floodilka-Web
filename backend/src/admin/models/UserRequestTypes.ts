@@ -41,7 +41,7 @@ export type CancelBulkMessageDeletionRequest = z.infer<typeof CancelBulkMessageD
 
 export const ClearUserFieldsRequest = z.object({
 	user_id: Int64Type,
-	fields: z.array(z.enum(['avatar', 'banner', 'bio', 'global_name'])),
+	fields: z.array(z.enum(['avatar', 'banner', 'nameplate', 'bio', 'global_name'])),
 });
 
 export type ClearUserFieldsRequest = z.infer<typeof ClearUserFieldsRequest>;

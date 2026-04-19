@@ -40,6 +40,7 @@ export interface UserRow {
 	avatar_color: Nullish<number>;
 	banner_hash: Nullish<string>;
 	banner_color: Nullish<number>;
+	nameplate_hash: Nullish<string>;
 	bio: Nullish<string>;
 	date_of_birth: Nullish<types.LocalDate>;
 	locale: Nullish<string>;
@@ -91,6 +92,7 @@ export const USER_COLUMNS = [
 	'avatar_color',
 	'banner_hash',
 	'banner_color',
+	'nameplate_hash',
 	'bio',
 	'date_of_birth',
 	'locale',
@@ -142,6 +144,7 @@ export const EMPTY_USER_ROW: UserRow = {
 	avatar_color: null,
 	banner_hash: null,
 	banner_color: null,
+	nameplate_hash: null,
 	bio: null,
 	date_of_birth: null,
 	locale: null,

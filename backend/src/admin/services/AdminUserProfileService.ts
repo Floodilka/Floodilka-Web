@@ -81,6 +81,17 @@ export class AdminUserProfileService {
 				});
 				preparedAssets.push(prepared);
 				updates.banner_hash = prepared.newHash;
+			} else if (field === 'nameplate') {
+				const prepared = await entityAssetService.prepareAssetUpload({
+					assetType: 'nameplate',
+					entityType: 'user',
+					entityId: userId,
+					previousHash: user.nameplateHash,
+					base64Image: null,
+					errorPath: 'nameplate',
+				});
+				preparedAssets.push(prepared);
+				updates.nameplate_hash = prepared.newHash;
 			} else if (field === 'bio') {
 				updates.bio = null;
 			} else if (field === 'global_name') {

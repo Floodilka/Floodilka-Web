@@ -26,6 +26,7 @@ const getRouteFromPath = (path: string): string | null => {
 	if (path.startsWith('/avatars/')) return 'avatars';
 	if (path.startsWith('/icons/')) return 'icons';
 	if (path.startsWith('/bnnrs/')) return 'banners';
+	if (path.startsWith('/nmplts/')) return 'nameplates';
 	if (path.startsWith('/emojis/')) return 'emojis';
 	if (path.startsWith('/stickers/')) return 'stickers';
 	if (path.startsWith('/attachments/')) return 'attachments';

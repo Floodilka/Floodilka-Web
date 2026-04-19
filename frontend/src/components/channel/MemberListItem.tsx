@@ -41,6 +41,7 @@ import type {UserRecord} from '~/records/UserRecord';
 import AuthenticationStore from '~/stores/AuthenticationStore';
 import ContextMenuStore from '~/stores/ContextMenuStore';
 import TypingStore from '~/stores/TypingStore';
+import * as AvatarUtils from '~/utils/AvatarUtils';
 import * as NicknameUtils from '~/utils/NicknameUtils';
 import styles from './MemberListItem.module.css';
 
@@ -112,6 +113,11 @@ export const MemberListItem: React.FC<MemberListItemProps> = observer((props) =>
 	const ownerTitle = guildId ? t`Community Owner` : t`Group Owner`;
 	const nickname = displayName || NicknameUtils.getNickname(user, guildId, channelId);
 
+	const nameplateUrl = AvatarUtils.getUserNameplateURL(
+		{id: user.id, nameplate: user.nameplate ?? null},
+		isHovering,
+	);
+
 	const content = (
 		<FocusRingWrapper focusRingClassName={styles.memberFocusRing}>
 			<button
@@ -124,6 +130,9 @@ export const MemberListItem: React.FC<MemberListItemProps> = observer((props) =>
 				)}
 				onContextMenu={handleContextMenu}
 			>
+				{nameplateUrl && (
+					<span className={styles.nameplate} style={{backgroundImage: `url(${nameplateUrl})`}} aria-hidden="true" />
+				)}
 				<div className={styles.grid}>
 					<span className={styles.content}>
 						<div className={styles.avatarContainer}>

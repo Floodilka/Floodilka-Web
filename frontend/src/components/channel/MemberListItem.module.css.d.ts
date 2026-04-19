@@ -10,6 +10,7 @@ declare const styles: {
   readonly "memberFocusRing": string;
   readonly "name": string;
   readonly "nameContainer": string;
+  readonly "nameplate": string;
   readonly "ownerIcon": string;
   readonly "userInfoContainer": string;
   readonly "userTag": string;
