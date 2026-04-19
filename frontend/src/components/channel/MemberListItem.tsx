@@ -115,15 +115,9 @@ export const MemberListItem: React.FC<MemberListItemProps> = observer((props) =>
 
 	const nameplateAsset = AvatarUtils.getUserNameplateAsset({id: user.id, nameplate: user.nameplate ?? null});
 
-	const buttonRef = React.useRef<HTMLButtonElement | null>(null);
-	const [isRowVisible, setIsRowVisible] = React.useState(false);
 	const [prefersReducedMotion, setPrefersReducedMotion] = React.useState(() => {
 		if (typeof window === 'undefined' || !window.matchMedia) return false;
 		return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-	});
-	const [isTabVisible, setIsTabVisible] = React.useState(() => {
-		if (typeof document === 'undefined') return true;
-		return !document.hidden;
 	});
 
 	React.useEffect(() => {
@@ -134,44 +128,13 @@ export const MemberListItem: React.FC<MemberListItemProps> = observer((props) =>
 		return () => media.removeEventListener('change', onChange);
 	}, []);
 
-	React.useEffect(() => {
-		if (typeof document === 'undefined') return;
-		const onVisibility = () => setIsTabVisible(!document.hidden);
-		document.addEventListener('visibilitychange', onVisibility);
-		return () => document.removeEventListener('visibilitychange', onVisibility);
-	}, []);
-
 	const shouldAnimateNameplate =
-		nameplateAsset?.animated === true && isRowVisible && isTabVisible && !prefersReducedMotion;
-
-	const attachButtonRef = React.useCallback((node: HTMLButtonElement | null) => {
-		buttonRef.current = node;
-		hoverRef(node);
-	}, [hoverRef]);
-
-	React.useEffect(() => {
-		const node = buttonRef.current;
-		if (!node || nameplateAsset?.animated !== true) {
-			if (isRowVisible) setIsRowVisible(false);
-			return;
-		}
-
-		const observer = new IntersectionObserver(
-			(entries) => {
-				for (const entry of entries) {
-					setIsRowVisible(entry.isIntersecting);
-				}
-			},
-			{threshold: 0.1, rootMargin: '200px 0px'},
-		);
-		observer.observe(node);
-		return () => observer.disconnect();
-	}, [nameplateAsset?.animated, isRowVisible]);
+		nameplateAsset?.animated === true && isHovering && !prefersReducedMotion;
 
 	const content = (
 		<FocusRingWrapper focusRingClassName={styles.memberFocusRing}>
 			<button
-				ref={attachButtonRef}
+				ref={hoverRef}
 				type="button"
 				className={clsx(
 					styles.button,
