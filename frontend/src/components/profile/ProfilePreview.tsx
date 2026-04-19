@@ -267,13 +267,8 @@ export const ProfilePreview: React.FC<ProfilePreviewProps> = observer(
 							<ProfileCardFooter>
 								<Tooltip text={t`You can't message yourself`} maxWidth="xl">
 									<div className={styles.messageButtonWrapper}>
-										<Button
-											small={true}
-											fitContainer={true}
-											leftIcon={<ChatTeardropIcon className={styles.messageIcon} />}
-											disabled={true}
-										>
-											<Trans>Message</Trans>
+										<Button small={true} fitContainer={true} disabled={true}>
+											<Trans>Send message</Trans>
 										</Button>
 									</div>
 								</Tooltip>

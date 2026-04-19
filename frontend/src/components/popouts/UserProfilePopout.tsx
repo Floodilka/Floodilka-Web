@@ -279,12 +279,8 @@ export const UserProfilePopout: React.FC<UserProfilePopoutProps> = observer(
 									isPreview ? (
 										<Tooltip text={t`You can't message yourself`} maxWidth="xl">
 											<div>
-												<Button
-													small={true}
-													leftIcon={<ChatTeardropIcon className={styles.iconSmall} />}
-													disabled={true}
-												>
-													<Trans>Message</Trans>
+												<Button small={true} disabled={true}>
+													<Trans>Send message</Trans>
 												</Button>
 											</div>
 										</Tooltip>
@@ -294,12 +290,8 @@ export const UserProfilePopout: React.FC<UserProfilePopoutProps> = observer(
 										</Button>
 									)
 								) : (
-									<Button
-										small={true}
-										leftIcon={<ChatTeardropIcon className={styles.iconSmall} />}
-										onClick={handleMessage}
-									>
-										<Trans>Message</Trans>
+									<Button small={true} onClick={handleMessage}>
+										<Trans>Send message</Trans>
 									</Button>
 								)}
 							</ProfileCardFooter>

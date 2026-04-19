@@ -1348,7 +1348,7 @@ msgstr "Accept"
 
 #: src/components/bottomsheets/DMBottomSheet.tsx:490
 #: src/components/modals/guildTabs/GuildMemberActionsSheet.tsx:262
-#: src/components/modals/UserProfileModal.tsx:1276
+#: src/components/modals/UserProfileModal.tsx:1272
 #: src/components/uikit/ContextMenu/items/RelationshipMenuItems.tsx:109
 msgid "Accept Friend Request"
 msgstr "Accept Friend Request"
@@ -3398,7 +3398,7 @@ msgstr "Cancel"
 #: src/components/channel/dm/DMWelcomeSection.tsx:144
 #: src/components/channel/friends/FriendListItem.tsx:164
 #: src/components/channel/friends/FriendListItem.tsx:166
-#: src/components/modals/UserProfileModal.tsx:1291
+#: src/components/modals/UserProfileModal.tsx:1287
 #: src/components/uikit/ContextMenu/items/RelationshipMenuItems.tsx:192
 msgid "Cancel Friend Request"
 msgstr "Cancel Friend Request"
@@ -3987,7 +3987,7 @@ msgstr "Claim your account to redeem this gift."
 
 #: src/components/channel/dm/AddFriendForm.tsx:54
 #: src/components/channel/dm/DMWelcomeSection.tsx:115
-#: src/components/modals/UserProfileModal.tsx:1306
+#: src/components/modals/UserProfileModal.tsx:1302
 #: src/components/uikit/ContextMenu/items/RelationshipMenuItems.tsx:65
 msgid "Claim your account to send friend requests."
 msgstr "Claim your account to send friend requests."
@@ -6661,10 +6661,10 @@ msgid "Edit overwrites for roles and members in this channel."
 msgstr "Edit overwrites for roles and members in this channel."
 
 #: src/components/modals/UserProfileMobileSheet.tsx:484
-#: src/components/modals/UserProfileModal.tsx:1223
+#: src/components/modals/UserProfileModal.tsx:1219
 #: src/components/pages/YouPage.tsx:122
 #: src/components/popouts/UserAreaPopout.tsx:515
-#: src/components/popouts/UserProfilePopout.tsx:293
+#: src/components/popouts/UserProfilePopout.tsx:289
 msgid "Edit Profile"
 msgstr "Edit Profile"
 
@@ -10997,11 +10997,6 @@ msgstr "mentions:"
 #: src/components/modals/guildTabs/GuildMemberActionsSheet.tsx:220
 #: src/components/modals/tabs/ComponentGalleryTab/InputsTab.tsx:164
 #: src/components/modals/UserProfileMobileSheet.tsx:495
-#: src/components/modals/UserProfileModal.tsx:1211
-#: src/components/modals/UserProfileModal.tsx:1333
-#: src/components/popouts/UserProfilePopout.tsx:287
-#: src/components/popouts/UserProfilePopout.tsx:302
-#: src/components/profile/ProfilePreview.tsx:276
 #: src/components/uikit/ContextMenu/items/MessageUserMenuItem.tsx:47
 msgid "Message"
 msgstr "Message"
@@ -13894,7 +13889,7 @@ msgstr "Remove filter"
 #: src/components/modals/UserProfileMobileSheet.tsx:301
 #: src/components/modals/UserProfileMobileSheet.tsx:303
 #: src/components/modals/UserProfileModal.tsx:1164
-#: src/components/modals/UserProfileModal.tsx:1246
+#: src/components/modals/UserProfileModal.tsx:1242
 #: src/components/uikit/ContextMenu/items/RelationshipMenuItems.tsx:129
 #: src/utils/RelationshipActionUtils.tsx:113
 #: src/utils/RelationshipActionUtils.tsx:115
@@ -15258,9 +15253,17 @@ msgstr "Send Code"
 
 #: src/components/channel/dm/DMWelcomeSection.tsx:118
 #: src/components/modals/guildTabs/GuildMemberActionsSheet.tsx:272
-#: src/components/modals/UserProfileModal.tsx:1307
+#: src/components/modals/UserProfileModal.tsx:1303
 msgid "Send Friend Request"
 msgstr "Send Friend Request"
+
+#: src/components/modals/UserProfileModal.tsx:1207
+#: src/components/modals/UserProfileModal.tsx:1325
+#: src/components/popouts/UserProfilePopout.tsx:283
+#: src/components/popouts/UserProfilePopout.tsx:294
+#: src/components/profile/ProfilePreview.tsx:271
+msgid "Send message"
+msgstr "Send message"
 
 #: src/components/channel/friends/FriendListItem.tsx:223
 msgid "Send Message"
@@ -17917,7 +17920,7 @@ msgstr "Unblock this user before sending a friend request."
 #: src/components/modals/tabs/BlockedUsersTab.tsx:56
 #: src/components/modals/UserProfileActionsSheet.tsx:149
 #: src/components/modals/UserProfileMobileSheet.tsx:317
-#: src/components/modals/UserProfileModal.tsx:1261
+#: src/components/modals/UserProfileModal.tsx:1257
 #: src/utils/RelationshipActionUtils.tsx:167
 msgid "Unblock User"
 msgstr "Unblock User"
