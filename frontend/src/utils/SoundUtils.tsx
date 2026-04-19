@@ -23,6 +23,8 @@ import deafSound from '~/sounds/deaf.mp3';
 import incomingRingSound from '~/sounds/incoming-ring.mp3';
 import messageSound from '~/sounds/message.mp3';
 import muteSound from '~/sounds/mute.mp3';
+import pttActiveSound from '~/sounds/ptt-active.mp3';
+import pttInactiveSound from '~/sounds/ptt-inactive.mp3';
 import streamSound from '~/sounds/stream-start.mp3';
 import streamStopSound from '~/sounds/stream-stop.mp3';
 import undeafSound from '~/sounds/undeaf.mp3';
@@ -58,6 +60,8 @@ export const SoundType = {
 	CameraOff: 'camera-off',
 	ScreenShareStart: 'screen-share-start',
 	ScreenShareStop: 'screen-share-stop',
+	PttActive: 'ptt-active',
+	PttInactive: 'ptt-inactive',
 } as const;
 
 export type SoundType = (typeof SoundType)[keyof typeof SoundType];
@@ -79,6 +83,8 @@ const SOUND_FILES: Record<SoundType, string> = {
 	[SoundType.CameraOff]: cameraOffSound,
 	[SoundType.ScreenShareStart]: streamSound,
 	[SoundType.ScreenShareStop]: streamStopSound,
+	[SoundType.PttActive]: pttActiveSound,
+	[SoundType.PttInactive]: pttInactiveSound,
 };
 
 interface AudioInstance {

@@ -26,6 +26,7 @@ import * as ModalActionCreators from '~/actions/ModalActionCreators';
 import {modal} from '~/actions/ModalActionCreators';
 import * as NavigationActionCreators from '~/actions/NavigationActionCreators';
 import * as ReadStateActionCreators from '~/actions/ReadStateActionCreators';
+import * as SoundActionCreators from '~/actions/SoundActionCreators';
 import * as VoiceStateActionCreators from '~/actions/VoiceStateActionCreators';
 import {ChannelTypes, JumpTypes, ME} from '~/Constants';
 import {AddGuildModal} from '~/components/modals/AddGuildModal';
@@ -54,6 +55,7 @@ import {checkNativePermission} from '~/utils/NativePermissions';
 import {getElectronAPI, isNativeMacOS} from '~/utils/NativeUtils';
 import * as RouterUtils from '~/utils/RouterUtils';
 import {jsKeyToUiohookKeycode} from '~/utils/UiohookKeycodes';
+import {SoundType} from '~/utils/SoundUtils';
 import {ComponentDispatch} from './ComponentDispatch';
 import {type KeybindDescriptor, resolveBindingCode, ShortcutMatcher, type ShortcutSource} from './ShortcutMatcher';
 
@@ -437,6 +439,7 @@ class KeybindManager {
 		this.register('push_to_talk', ({type, source}) => {
 			console.info('[PTT:KeybindManager] push_to_talk handler fired', {type, source});
 			if (type === 'press') {
+				const wasHeld = KeybindStore.pushToTalkHeld;
 				if (this.pttReleaseTimer) {
 					clearTimeout(this.pttReleaseTimer);
 					this.pttReleaseTimer = null;
@@ -445,12 +448,16 @@ class KeybindManager {
 				const shouldUnmute = KeybindStore.handlePushToTalkPress();
 				console.info('[PTT:KeybindManager] PRESS → shouldUnmute:', shouldUnmute);
 				if (shouldUnmute) {
+					if (!wasHeld) SoundActionCreators.playSound(SoundType.PttActive);
 					MediaEngineStore.applyPushToTalkHold(true);
+				} else if (wasHeld) {
+					SoundActionCreators.playSound(SoundType.PttInactive);
 				}
 			} else {
 				const shouldMute = KeybindStore.handlePushToTalkRelease();
 				console.info('[PTT:KeybindManager] RELEASE → shouldMute:', shouldMute);
 				if (shouldMute) {
+					SoundActionCreators.playSound(SoundType.PttInactive);
 					const delay = KeybindStore.pushToTalkReleaseDelay;
 					console.info('[PTT:KeybindManager] Setting release timer with delay:', delay);
 					this.pttReleaseTimer = setTimeout(() => {

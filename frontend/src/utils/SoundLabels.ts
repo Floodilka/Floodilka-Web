@@ -38,4 +38,6 @@ export const getSoundLabels = (i18n: I18n): Record<SoundType, string> => ({
 	[SoundType.CameraOff]: i18n._(msg`Camera Off`),
 	[SoundType.ScreenShareStart]: i18n._(msg`Screen Share Start`),
 	[SoundType.ScreenShareStop]: i18n._(msg`Screen Share Stop`),
+	[SoundType.PttActive]: i18n._(msg`Push-to-Talk Activate`),
+	[SoundType.PttInactive]: i18n._(msg`Push-to-Talk Deactivate`),
 });
