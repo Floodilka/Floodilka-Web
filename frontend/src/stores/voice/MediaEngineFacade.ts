@@ -427,7 +427,10 @@ class MediaEngineFacade {
 	handlePushToTalkModeChange(): void {
 		VoiceMediaManager.handlePushToTalkModeChange(this.room, () => this.getCurrentUserVoiceState());
 	}
-	getMuteReason(voiceState: VoiceState | null): 'guild' | 'push_to_talk' | 'self' | null {
+	reconcileTransmissionState(): void {
+		VoiceMediaManager.reconcileTransmissionState(this.room, this.getCurrentUserVoiceState());
+	}
+	getMuteReason(voiceState: VoiceState | null): 'guild' | 'self' | null {
 		return VoiceMediaManager.getMuteReason(voiceState);
 	}
 	async toggleCameraFromKeybind(): Promise<void> {

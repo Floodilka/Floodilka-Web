@@ -35,7 +35,7 @@ export interface VoicePermissions {
 }
 
 export type TrackSource = 'audio' | 'video' | 'screenShare';
-export type MuteReason = 'guild' | 'push_to_talk' | 'self' | null;
+export type MuteReason = 'guild' | 'self' | null;
 
 export interface VoiceState {
 	guild_id: string;

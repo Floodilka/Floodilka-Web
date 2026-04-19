@@ -28,6 +28,7 @@ import {
 	MicrophoneSlashIcon,
 	MonitorIcon,
 	PhoneXIcon,
+	RadioIcon,
 	SpeakerHighIcon,
 	SpeakerSlashIcon,
 } from '@phosphor-icons/react';
@@ -83,12 +84,13 @@ const VoiceControlBarInner = observer(function VoiceControlBarInner() {
 	const isGuildMuted = voiceState?.mute ?? false;
 	const isGuildDeafened = voiceState?.deaf ?? false;
 
-	const muteReason = MediaEngineStore.getMuteReason(voiceState);
-	const effectiveMuted = muteReason !== null || isMuted;
-
 	const isPushToTalkEffective = KeybindStore.isPushToTalkEffective();
+	const isPushToTalkTransmitting = KeybindStore.isPushToTalkTransmitting();
 	const pushToTalkCombo = KeybindStore.getByAction('push_to_talk').combo;
 	const pushToTalkHint = isPushToTalkEffective ? formatKeyCombo(pushToTalkCombo) : '';
+
+	const showExplicitMute = isGuildMuted || isMuted;
+	const showPttIcon = !showExplicitMute && isPushToTalkEffective;
 
 	const {renderAudioSettingsMenu, handleAudioSettingsContextMenu} = useAudioSettingsMenu({
 		inputDevices,
@@ -109,6 +111,7 @@ const VoiceControlBarInner = observer(function VoiceControlBarInner() {
 						noiseSuppression: true,
 						autoGainControl: true,
 					});
+					MediaEngineStore.reconcileTransmissionState();
 				} catch (error) {
 					console.error('Failed to switch microphone:', error);
 				}
@@ -236,12 +239,12 @@ const VoiceControlBarInner = observer(function VoiceControlBarInner() {
 	const getMuteTooltipLabel = useCallback(() => {
 		if (isGuildMuted) return t`Community Muted`;
 
-		if (isPushToTalkEffective && pushToTalkHint) {
+		if (showPttIcon && pushToTalkHint) {
 			return t`Push-to-talk enabled — hold ${pushToTalkHint} to speak`;
 		}
 
-		return effectiveMuted ? t`Unmute` : t`Mute`;
-	}, [effectiveMuted, isGuildMuted, isPushToTalkEffective, pushToTalkHint, t]);
+		return isMuted ? t`Unmute` : t`Mute`;
+	}, [isMuted, isGuildMuted, showPttIcon, pushToTalkHint, t]);
 
 	const getDeafenTooltipLabel = useCallback(() => {
 		if (isGuildDeafened) return t`Community Deafened`;
@@ -268,15 +271,21 @@ const VoiceControlBarInner = observer(function VoiceControlBarInner() {
 								type="button"
 								className={clsx(
 									styles.button,
-									effectiveMuted || isGuildMuted ? styles.buttonMuted : styles.buttonUnmuted,
+									showExplicitMute
+										? styles.buttonMuted
+										: showPttIcon && isPushToTalkTransmitting
+											? styles.buttonPttActive
+											: styles.buttonUnmuted,
 									isGuildMuted && 'disabled',
 								)}
 								onClick={isGuildMuted ? undefined : handleToggleMute}
 								onContextMenu={handleAudioSettingsContextMenu}
 								disabled={isGuildMuted}
 							>
-								{effectiveMuted || isGuildMuted ? (
+								{showExplicitMute ? (
 									<MicrophoneSlashIcon weight="fill" className={styles.icon} />
+								) : showPttIcon ? (
+									<RadioIcon weight="fill" className={styles.icon} />
 								) : (
 									<MicrophoneIcon weight="fill" className={styles.icon} />
 								)}

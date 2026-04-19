@@ -17,8 +17,7 @@
  * along with Floodilka. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import type {LocalTrackPublication, RemoteParticipant, Room} from 'livekit-client';
-import {Track} from 'livekit-client';
+import type {RemoteParticipant, Room} from 'livekit-client';
 import * as ModalActionCreators from '~/actions/ModalActionCreators';
 import {modal} from '~/actions/ModalActionCreators';
 import * as SoundActionCreators from '~/actions/SoundActionCreators';
@@ -26,7 +25,6 @@ import {MicrophonePermissionDeniedModal} from '~/components/alerts/MicrophonePer
 import {Logger} from '~/lib/Logger';
 import ChannelStore from '~/stores/ChannelStore';
 import ConnectionStore from '~/stores/ConnectionStore';
-import KeybindStore from '~/stores/KeybindStore';
 import LocalVoiceStateStore from '~/stores/LocalVoiceStateStore';
 import MediaPermissionStore from '~/stores/MediaPermissionStore';
 import ParticipantVolumeStore from '~/stores/ParticipantVolumeStore';
@@ -83,32 +81,15 @@ export const toggleSelfDeaf = async (_guildId: string | null = null): Promise<vo
 	const room = MediaEngineStore.room;
 	if (room?.localParticipant) {
 		if (!newMuteState && room.localParticipant.audioTrackPublications.size === 0) {
-			// Microphone was never enabled (e.g. joined while deafened) — enable it now
 			const channelId = MediaEngineStore.channelId;
 			if (channelId) {
 				await requestMicrophoneInVoiceChannel(room, channelId);
 			}
-		} else {
-			room.localParticipant.audioTrackPublications.forEach((publication: LocalTrackPublication) => {
-				if (publication.source === Track.Source.ScreenShareAudio) return;
-				const track = publication.track;
-				if (!track) return;
-				const operation = newMuteState ? track.mute() : track.unmute();
-				operation.catch((error) =>
-					logger.error(newMuteState ? 'Failed to mute local track' : 'Failed to unmute local track', {error}),
-				);
-			});
 		}
+		MediaEngineStore.reconcileTransmissionState();
 
 		room.remoteParticipants.forEach((participant: RemoteParticipant) => {
 			ParticipantVolumeStore.applySettingsToParticipant(participant, newDeafState);
-		});
-
-		logger.debug('Applied mute/deafen state to LiveKit tracks immediately', {
-			newDeafState,
-			newMuteState,
-			localTrackCount: room.localParticipant.audioTrackPublications.size,
-			remoteParticipantCount: room.remoteParticipants.size,
 		});
 	}
 
@@ -297,23 +278,9 @@ export const toggleSelfMute = async (_guildId: string | null = null): Promise<vo
 
 	if (room?.localParticipant) {
 		if (!newMute && room.localParticipant.audioTrackPublications.size === 0) {
-			// Microphone was never enabled (e.g. joined while muted) — enable it now
 			await requestMicrophoneInVoiceChannel(room, connectedChannelId);
-		} else {
-			room.localParticipant.audioTrackPublications.forEach((publication: LocalTrackPublication) => {
-				if (publication.source === Track.Source.ScreenShareAudio) return;
-				const operation = newMute ? publication.mute() : publication.unmute();
-				operation.catch((error) =>
-					logger.error(newMute ? 'Failed to mute publication' : 'Failed to unmute publication', {error}),
-				);
-			});
 		}
-
-		logger.debug('Applied mute state to LiveKit tracks immediately', {
-			newMute,
-			newDeaf,
-			localTrackCount: room.localParticipant.audioTrackPublications.size,
-		});
+		MediaEngineStore.reconcileTransmissionState();
 	}
 
 	if (!newMute) {
@@ -327,14 +294,6 @@ export const toggleSelfMute = async (_guildId: string | null = null): Promise<vo
 			self_mute: newMute,
 			self_deaf: newDeaf,
 		});
-	}
-
-	// When user unmutes while PTT is active, PTT should take control back.
-	// Clear the manual mute override and let PTT re-mute (key is not held).
-	if (!newMute && KeybindStore.isPushToTalkEffective() && !KeybindStore.pushToTalkHeld) {
-		logger.info('[toggleSelfMute] User unmuted in PTT mode — PTT taking control, re-muting');
-		LocalVoiceStateStore.clearHasUserSetMute();
-		MediaEngineStore.applyPushToTalkHold(false);
 	}
 };
 

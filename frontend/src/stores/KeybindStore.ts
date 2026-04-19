@@ -665,11 +665,9 @@ class KeybindStore {
 		});
 	}
 
-	isPushToTalkMuted(userMuted: boolean): boolean {
+	isPushToTalkTransmitting(): boolean {
 		if (!this.isPushToTalkEnabled()) return false;
-		if (userMuted) return false;
-		if (this.pushToTalkLatched) return false;
-		return !this.pushToTalkHeld;
+		return this.pushToTalkHeld || this.pushToTalkLatched;
 	}
 
 	hasPushToTalkKeybind(): boolean {

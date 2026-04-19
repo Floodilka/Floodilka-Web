@@ -17,7 +17,6 @@
  * along with Floodilka. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import {createRNNoiseProcessor, RNNoiseProcessor} from '~/lib/RNNoiseProcessor';
 import type {Room, ScreenShareCaptureOptions, TrackPublishOptions} from 'livekit-client';
 import {type LocalAudioTrack, Track, VideoPresets} from 'livekit-client';
 import {makeAutoObservable} from 'mobx';
@@ -27,6 +26,7 @@ import * as SoundActionCreators from '~/actions/SoundActionCreators';
 import {CameraPermissionDeniedModal} from '~/components/alerts/CameraPermissionDeniedModal';
 import {MicrophonePermissionDeniedModal} from '~/components/alerts/MicrophonePermissionDeniedModal';
 import {Logger} from '~/lib/Logger';
+import {createRNNoiseProcessor, RNNoiseProcessor} from '~/lib/RNNoiseProcessor';
 import CallMediaPrefsStore from '~/stores/CallMediaPrefsStore';
 import ChannelStore from '~/stores/ChannelStore';
 import KeybindStore from '~/stores/KeybindStore';
@@ -43,6 +43,7 @@ import {
 	applyPushToTalkHold as applyPushToTalkHoldFn,
 	getMuteReason as getMuteReasonFn,
 	handlePushToTalkModeChange as handlePushToTalkModeChangeFn,
+	reconcileTransmissionState as reconcileTransmissionStateFn,
 } from './VoiceAudioManager';
 import {playEntranceSound} from './VoiceEntranceSoundManager';
 import VoiceScreenShareManager from './VoiceScreenShareManager';
@@ -82,38 +83,26 @@ class VoiceMediaManager {
 		const selfMute = LocalVoiceStateStore.getSelfMute();
 		const selfDeaf = LocalVoiceStateStore.getSelfDeaf();
 		const denied = MediaPermissionStore.isMicrophoneExplicitlyDenied();
+		const isPttEffective = KeybindStore.isPushToTalkEffective();
 
 		logger.info('[ensureMicrophone] START', {
 			selfMute,
 			selfDeaf,
 			denied,
-			isPttEnabled: KeybindStore.isPushToTalkEnabled(),
-			isPttEffective: KeybindStore.isPushToTalkEffective(),
-			hasUserSetMute: LocalVoiceStateStore.getHasUserSetMute(),
+			isPttEffective,
 			channelId,
 			hasLocalParticipant: !!room.localParticipant,
 		});
 
-		const isPttMuted = KeybindStore.isPushToTalkEffective() && selfMute && !LocalVoiceStateStore.getHasUserSetMute();
-
-		if ((selfMute || selfDeaf) && !isPttMuted) {
-			logger.info('[ensureMicrophone] SKIP: user is muted or deafened (not PTT)', {selfMute, selfDeaf});
-			if (selfMute) {
-				this.syncVoiceState({self_mute: true});
-			}
+		if (denied) {
+			if (!selfMute) LocalVoiceStateStore.updateSelfMute(true);
+			this.syncVoiceState({self_mute: true});
 			return;
 		}
 
-		if (isPttMuted) {
-			logger.info('[ensureMicrophone] PTT muted — will publish mic then mute publication');
-		}
-
-		if (denied) {
-			logger.debug('[ensureMicrophone] Microphone explicitly denied');
-			if (!LocalVoiceStateStore.getSelfMute()) {
-				LocalVoiceStateStore.updateSelfMute(true);
-			}
-			this.syncVoiceState({self_mute: true});
+		if ((selfMute || selfDeaf) && !isPttEffective) {
+			logger.info('[ensureMicrophone] SKIP publish: user is muted/deafened and not in PTT mode');
+			if (selfMute) this.syncVoiceState({self_mute: true});
 			return;
 		}
 
@@ -125,17 +114,7 @@ class VoiceMediaManager {
 		try {
 			await this.enableMicrophone(room, channelId);
 			MediaPermissionStore.updateMicrophonePermissionGranted();
-
-			if (isPttMuted) {
-				logger.info('[ensureMicrophone] Mic published, now muting publications for PTT');
-				room.localParticipant.audioTrackPublications.forEach((publication) => {
-					if (publication.source === Track.Source.ScreenShareAudio) return;
-					publication.mute().catch((error) =>
-						logger.error('[ensureMicrophone] Failed to mute publication for PTT', {error}),
-					);
-				});
-			}
-
+			reconcileTransmissionStateFn(room, this.getCurrentVoiceState());
 			this.syncVoiceState({self_mute: selfMute});
 		} catch (e: unknown) {
 			if (e instanceof Error && (e.name === 'NotAllowedError' || e.name === 'PermissionDeniedError')) {
@@ -147,6 +126,19 @@ class VoiceMediaManager {
 				this.syncVoiceState({self_mute: true});
 			}
 		}
+	}
+
+	private getCurrentVoiceState(): VoiceState | null {
+		try {
+			if ('_mediaEngineStore' in window) {
+				const store = (window as {_mediaEngineStore?: {getCurrentUserVoiceState?: () => VoiceState | null}})
+					._mediaEngineStore;
+				return store?.getCurrentUserVoiceState?.() ?? null;
+			}
+		} catch (e) {
+			logger.error('[getCurrentVoiceState] Failed', e);
+		}
+		return null;
 	}
 
 	async enableMicrophone(room: Room, channelId: string): Promise<void> {
@@ -183,7 +175,11 @@ class VoiceMediaManager {
 			}
 
 			const useRNNoise = VoiceSettingsStore.noiseSuppression && RNNoiseProcessor.isSupported();
-			logger.info('[enableMicrophone] Noise suppression', {enabled: VoiceSettingsStore.noiseSuppression, supported: RNNoiseProcessor.isSupported(), useRNNoise});
+			logger.info('[enableMicrophone] Noise suppression', {
+				enabled: VoiceSettingsStore.noiseSuppression,
+				supported: RNNoiseProcessor.isSupported(),
+				useRNNoise,
+			});
 
 			// Pre-create RNNoise processor BEFORE enabling mic so it's ready immediately
 			if (useRNNoise) {
@@ -192,6 +188,11 @@ class VoiceMediaManager {
 			}
 
 			await room.localParticipant.setMicrophoneEnabled(true, getMicConstraints(inputDeviceId, audioBitrate));
+
+			// Immediately mute the publication if PTT/self-mute says so.
+			// LiveKit publishes as unmuted; we close the window before RNNoise/gain setup (25-120ms)
+			// during which audio could otherwise transmit.
+			reconcileTransmissionStateFn(room, this.getCurrentVoiceState());
 
 			if (useRNNoise && this.noiseFilterProcessor) {
 				const pub = room.localParticipant.getTrackPublication(Track.Source.Microphone);
@@ -415,7 +416,11 @@ class VoiceMediaManager {
 		this.destroyNoiseFilter();
 
 		const useRNNoise = VoiceSettingsStore.noiseSuppression && RNNoiseProcessor.isSupported();
-		logger.info('[applyNoiseSuppression] Toggling', {enabled: VoiceSettingsStore.noiseSuppression, supported: RNNoiseProcessor.isSupported(), useRNNoise});
+		logger.info('[applyNoiseSuppression] Toggling', {
+			enabled: VoiceSettingsStore.noiseSuppression,
+			supported: RNNoiseProcessor.isSupported(),
+			useRNNoise,
+		});
 		if (useRNNoise) {
 			this.noiseFilterProcessor = createRNNoiseProcessor();
 			await track.setProcessor(this.noiseFilterProcessor);
@@ -426,6 +431,7 @@ class VoiceMediaManager {
 		}
 
 		await track.restartTrack(getMicConstraints(VoiceSettingsStore.getInputDeviceId()));
+		reconcileTransmissionStateFn(room, this.getCurrentVoiceState());
 		await this.setupInputGain(room);
 	}
 
@@ -516,14 +522,18 @@ class VoiceMediaManager {
 	}
 
 	applyPushToTalkHold(held: boolean, room: Room | null, getCurrentUserVoiceState: () => VoiceState | null): void {
-		applyPushToTalkHoldFn(held, room, getCurrentUserVoiceState, this.syncVoiceState);
+		applyPushToTalkHoldFn(held, room, getCurrentUserVoiceState);
 	}
 
 	handlePushToTalkModeChange(room: Room | null, getCurrentUserVoiceState: () => VoiceState | null): void {
-		handlePushToTalkModeChangeFn(room, getCurrentUserVoiceState, this.syncVoiceState);
+		handlePushToTalkModeChangeFn(room, getCurrentUserVoiceState);
 	}
 
-	getMuteReason(voiceState: VoiceState | null): 'guild' | 'push_to_talk' | 'self' | null {
+	reconcileTransmissionState(room: Room | null, voiceState: VoiceState | null): void {
+		reconcileTransmissionStateFn(room, voiceState);
+	}
+
+	getMuteReason(voiceState: VoiceState | null): 'guild' | 'self' | null {
 		return getMuteReasonFn(voiceState);
 	}
 }

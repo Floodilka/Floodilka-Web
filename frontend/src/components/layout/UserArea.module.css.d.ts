@@ -8,6 +8,7 @@ declare const styles: {
   readonly "forceHover": string;
   readonly "hoverRoll": string;
   readonly "hovered": string;
+  readonly "pttActive": string;
   readonly "separator": string;
   readonly "userAreaContainer": string;
   readonly "userAreaInnerWrapper": string;

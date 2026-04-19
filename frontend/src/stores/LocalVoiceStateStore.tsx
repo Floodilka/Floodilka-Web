@@ -34,7 +34,6 @@ class LocalVoiceStateStore {
 	selfStreamAudioMute = false;
 	viewerStreamKey: string | null = null;
 
-	hasUserSetMute = false;
 	hasUserSetDeaf = false;
 
 	private shouldUnmuteOnUndeafen = false;
@@ -73,12 +72,7 @@ class LocalVoiceStateStore {
 	}
 
 	private async initPersistence(): Promise<void> {
-		await makePersistent(this, 'LocalVoiceStateStore', [
-			'selfMute',
-			'selfDeaf',
-			'hasUserSetMute',
-			'hasUserSetDeaf',
-		]);
+		await makePersistent(this, 'LocalVoiceStateStore', ['selfMute', 'selfDeaf', 'hasUserSetDeaf']);
 		logger.debug('LocalVoiceStateStore hydrated from localStorage on reload');
 	}
 
@@ -89,7 +83,6 @@ class LocalVoiceStateStore {
 
 	private async initializePermissionSync(): Promise<void> {
 		try {
-			let defaultMuteInitialized = false;
 			await this.persistenceHydrationPromise;
 
 			const syncWithPermission = (source: 'init' | 'change') => {
@@ -106,7 +99,6 @@ class LocalVoiceStateStore {
 					isMicGranted,
 					permissionState,
 					currentMute: this.selfMute,
-					hasUserSetMute: this.hasUserSetMute,
 					mutedByPermission: this.mutedByPermission,
 				});
 
@@ -115,23 +107,14 @@ class LocalVoiceStateStore {
 					return;
 				}
 
-				const shouldAutoUnmute = this.mutedByPermission && this.selfMute && !this.hasUserSetMute;
-				const shouldApplyDefaultUnmute = !defaultMuteInitialized && !this.hasUserSetMute && this.selfMute;
-
-				if (shouldAutoUnmute || shouldApplyDefaultUnmute) {
-					logger.info(
-						shouldAutoUnmute
-							? 'Microphone permission granted, auto-unmuting after forced mute'
-							: 'Microphone permission granted, defaulting to unmuted state',
-						{permissionState},
-					);
+				if (this.mutedByPermission && this.selfMute) {
+					logger.info('Microphone permission granted, auto-unmuting after forced mute', {permissionState});
 					runInAction(() => {
 						this.selfMute = false;
 					});
 				}
 
 				this.mutedByPermission = false;
-				defaultMuteInitialized = true;
 			};
 
 			syncWithPermission('init');
@@ -198,7 +181,7 @@ class LocalVoiceStateStore {
 		await this.persistenceHydrationPromise;
 		runInAction(() => {
 			this.microphonePermissionGranted = true;
-			if (this.mutedByPermission && this.selfMute && !this.hasUserSetMute) {
+			if (this.mutedByPermission && this.selfMute) {
 				this.selfMute = false;
 			}
 			this.mutedByPermission = false;
@@ -264,17 +247,6 @@ class LocalVoiceStateStore {
 		});
 	}
 
-	getHasUserSetMute(): boolean {
-		return this.hasUserSetMute;
-	}
-
-	clearHasUserSetMute(): void {
-		logger.info('[PTT:LocalVoiceState] clearHasUserSetMute (was:', this.hasUserSetMute, ')');
-		runInAction(() => {
-			this.hasUserSetMute = false;
-		});
-	}
-
 	getHasUserSetDeaf(): boolean {
 		return this.hasUserSetDeaf;
 	}
@@ -285,7 +257,6 @@ class LocalVoiceStateStore {
 			const micDenied = this.microphonePermissionGranted === false;
 
 			if (this.selfDeaf && !newSelfMute) {
-				this.hasUserSetMute = true;
 				this.hasUserSetDeaf = true;
 				this.shouldUnmuteOnUndeafen = false;
 
@@ -303,20 +274,18 @@ class LocalVoiceStateStore {
 			}
 
 			if (micDenied && !newSelfMute) {
-				this.hasUserSetMute = true;
 				this.mutedByPermission = true;
 				logger.debug('Microphone permission denied, keeping self mute enabled despite toggle');
 				return;
 			}
 
-			this.hasUserSetMute = true;
 			this.selfMute = newSelfMute;
 
 			if (!this.selfDeaf) {
 				this.shouldUnmuteOnUndeafen = false;
 			}
 
-			logger.debug('User toggled self mute', {newSelfMute, hasUserSetMute: true});
+			logger.debug('User toggled self mute', {newSelfMute});
 		});
 	}
 
@@ -429,7 +398,6 @@ class LocalVoiceStateStore {
 
 	resetUserPreferences(): void {
 		runInAction(() => {
-			this.hasUserSetMute = false;
 			this.hasUserSetDeaf = false;
 			this.selfMute = false;
 			this.selfDeaf = false;

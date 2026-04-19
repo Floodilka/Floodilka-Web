@@ -7,6 +7,7 @@ declare const styles: {
   readonly "buttonDisconnect": string;
   readonly "buttonMoreOptions": string;
   readonly "buttonMuted": string;
+  readonly "buttonPttActive": string;
   readonly "buttonScreenShareOff": string;
   readonly "buttonScreenShareOn": string;
   readonly "buttonUndeafened": string;

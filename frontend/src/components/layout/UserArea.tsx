@@ -18,7 +18,14 @@
  */
 
 import {useLingui} from '@lingui/react/macro';
-import {GearIcon, MicrophoneIcon, MicrophoneSlashIcon, SpeakerHighIcon, SpeakerSlashIcon} from '@phosphor-icons/react';
+import {
+	GearIcon,
+	MicrophoneIcon,
+	MicrophoneSlashIcon,
+	RadioIcon,
+	SpeakerHighIcon,
+	SpeakerSlashIcon,
+} from '@phosphor-icons/react';
 import {clsx} from 'clsx';
 import {observer} from 'mobx-react-lite';
 import {useLayoutEffect, useRef} from 'react';
@@ -64,7 +71,6 @@ const UserAreaWithRoom = observer(function UserAreaWithRoom({user}: {user: UserR
 	const isDeafened = voiceState ? voiceState.self_deaf : localSelfDeaf;
 	const isGuildMuted = voiceState?.mute ?? false;
 	const isGuildDeafened = voiceState?.deaf ?? false;
-	const muteReason = MediaEngineStore.getMuteReason(voiceState);
 
 	return (
 		<UserAreaInner
@@ -73,7 +79,6 @@ const UserAreaWithRoom = observer(function UserAreaWithRoom({user}: {user: UserR
 			isDeafened={isDeafened}
 			isGuildMuted={isGuildMuted}
 			isGuildDeafened={isGuildDeafened}
-			muteReason={muteReason}
 		/>
 	);
 });
@@ -85,14 +90,12 @@ const UserAreaInner = observer(
 		isDeafened,
 		isGuildMuted = false,
 		isGuildDeafened = false,
-		muteReason = null,
 	}: {
 		user: UserRecord;
 		isMuted: boolean;
 		isDeafened: boolean;
 		isGuildMuted?: boolean;
 		isGuildDeafened?: boolean;
-		muteReason?: 'guild' | 'push_to_talk' | 'self' | null;
 	}) => {
 		const {t, i18n} = useLingui();
 		const {isOpen, openProps} = usePopout('user-area');
@@ -154,9 +157,12 @@ const UserAreaInner = observer(
 		);
 
 		const isPushToTalkEffective = KeybindStore.isPushToTalkEffective();
+		const isPushToTalkTransmitting = KeybindStore.isPushToTalkTransmitting();
 		const pushToTalkCombo = KeybindStore.getByAction('push_to_talk').combo;
 		const pushToTalkHint = isPushToTalkEffective ? formatKeyCombo(pushToTalkCombo) : '';
-		const effectiveMuted = muteReason !== null || isMuted;
+
+		const showExplicitMute = isGuildMuted || isMuted;
+		const showPttIcon = !showExplicitMute && isPushToTalkEffective;
 
 		return (
 			<div className={wrapperClassName}>
@@ -202,9 +208,9 @@ const UserAreaInner = observer(
 									label={
 										isGuildMuted
 											? t`Community Muted`
-											: isPushToTalkEffective && pushToTalkHint
+											: showPttIcon && pushToTalkHint
 												? t`Push-to-talk enabled — hold ${pushToTalkHint} to speak`
-												: effectiveMuted
+												: isMuted
 													? t`Unmute`
 													: t`Mute`
 									}
@@ -216,18 +222,21 @@ const UserAreaInner = observer(
 								<div>
 									<button
 										type="button"
-										aria-label={isGuildMuted ? t`Community Muted` : effectiveMuted ? t`Unmute` : t`Mute`}
+										aria-label={isGuildMuted ? t`Community Muted` : isMuted ? t`Unmute` : t`Mute`}
 										className={clsx(
 											styles.controlButton,
-											(effectiveMuted || isGuildMuted) && styles.active,
+											showExplicitMute && styles.active,
+											showPttIcon && isPushToTalkTransmitting && styles.pttActive,
 											isGuildMuted && styles.disabled,
 										)}
 										onClick={isGuildMuted ? undefined : () => VoiceStateActionCreators.toggleSelfMute(null)}
 										onContextMenu={handleMicContextMenu}
 										disabled={isGuildMuted}
 									>
-										{effectiveMuted || isGuildMuted ? (
+										{showExplicitMute ? (
 											<MicrophoneSlashIcon weight="fill" className={styles.controlIcon} />
+										) : showPttIcon ? (
+											<RadioIcon weight="fill" className={styles.controlIcon} />
 										) : (
 											<MicrophoneIcon weight="fill" className={styles.controlIcon} />
 										)}

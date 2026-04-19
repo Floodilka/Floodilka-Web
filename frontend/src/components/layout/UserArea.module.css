@@ -228,6 +228,16 @@
 	color: var(--control-button-danger-text);
 }
 
+.controlButton.pttActive {
+	background-color: rgb(34 197 94 / 0.15);
+	color: rgb(34 197 94);
+}
+
+.controlButton.pttActive:hover {
+	background-color: rgb(34 197 94 / 0.25);
+	color: rgb(34 197 94);
+}
+
 .controlButton.disabled {
 	cursor: not-allowed;
 	opacity: 0.5;

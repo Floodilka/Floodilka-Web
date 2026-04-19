@@ -56,152 +56,52 @@ export function applyAllLocalAudioPreferences(room: Room | null): void {
 	ParticipantVolumeStore.applySettingsToRoom(room, selfDeaf);
 }
 
+function setPublicationsMuted(room: Room | null, muted: boolean): void {
+	if (!room?.localParticipant) return;
+
+	room.localParticipant.audioTrackPublications.forEach((publication: LocalTrackPublication) => {
+		if (publication.source === Track.Source.ScreenShareAudio) return;
+		if (publication.isMuted === muted) return;
+		const op = muted ? publication.mute() : publication.unmute();
+		op.catch((error) => logger.error(muted ? 'Failed to mute publication' : 'Failed to unmute publication', {error}));
+	});
+}
+
+function computeTransmissionMuted(voiceState: VoiceState | null): boolean {
+	if (voiceState?.mute) return true;
+	if (LocalVoiceStateStore.getSelfMute()) return true;
+	if (LocalVoiceStateStore.getSelfDeaf()) return true;
+	if (KeybindStore.isPushToTalkEffective() && !KeybindStore.isPushToTalkTransmitting()) return true;
+	return false;
+}
+
+export function reconcileTransmissionState(room: Room | null, voiceState: VoiceState | null): void {
+	setPublicationsMuted(room, computeTransmissionMuted(voiceState));
+}
+
 export function applyPushToTalkHold(
 	held: boolean,
 	room: Room | null,
 	getCurrentUserVoiceState: () => VoiceState | null,
-	syncVoiceState: (partial: {self_mute?: boolean}) => void,
 ): void {
-	logger.info('[PTT:applyHold] START', {
-		held,
-		hasRoom: !!room,
-		isPttEnabled: KeybindStore.isPushToTalkEnabled(),
-		isPttEffective: KeybindStore.isPushToTalkEffective(),
-		hasUserSetMute: LocalVoiceStateStore.getHasUserSetMute(),
-		selfMute: LocalVoiceStateStore.getSelfMute(),
-		selfDeaf: LocalVoiceStateStore.getSelfDeaf(),
-		pttHeld: KeybindStore.pushToTalkHeld,
-		pttLatched: KeybindStore.isPushToTalkLatched(),
-	});
-
 	KeybindStore.setPushToTalkHeld(held);
 
-	if (!KeybindStore.isPushToTalkEnabled()) {
-		logger.info('[PTT:applyHold] SKIP: PTT not enabled');
-		return;
-	}
+	if (!KeybindStore.isPushToTalkEnabled()) return;
 
-	const serverVoiceState = getCurrentUserVoiceState();
-	if (serverVoiceState?.mute) {
-		logger.info('[PTT:applyHold] SKIP: guild muted', {serverMute: serverVoiceState.mute});
-		return;
-	}
-
-	const hasUserSetMute = LocalVoiceStateStore.getHasUserSetMute();
-	const selfMute = LocalVoiceStateStore.getSelfMute();
-	const userMuted = hasUserSetMute && selfMute;
-	const shouldMute = userMuted || !held;
-
-	logger.info('[PTT:applyHold] DECISION', {hasUserSetMute, selfMute, userMuted, held, shouldMute});
-
-	applyLocalMuteState(shouldMute, room, syncVoiceState);
+	reconcileTransmissionState(room, getCurrentUserVoiceState());
 }
 
-export function handlePushToTalkModeChange(
-	room: Room | null,
-	getCurrentUserVoiceState: () => VoiceState | null,
-	syncVoiceState: (partial: {self_mute?: boolean}) => void,
-): void {
-	logger.info('[PTT:modeChange] START', {
-		hasRoom: !!room,
-		transmitMode: KeybindStore.transmitMode,
-		isPttEnabled: KeybindStore.isPushToTalkEnabled(),
-		isPttEffective: KeybindStore.isPushToTalkEffective(),
-		hasPttKeybind: KeybindStore.hasPushToTalkKeybind(),
-		hasUserSetMute: LocalVoiceStateStore.getHasUserSetMute(),
-		selfMute: LocalVoiceStateStore.getSelfMute(),
-		selfDeaf: LocalVoiceStateStore.getSelfDeaf(),
-	});
-
-	const serverVoiceState = getCurrentUserVoiceState();
-	if (serverVoiceState?.mute) {
-		logger.info('[PTT:modeChange] SKIP: guild muted');
-		return;
-	}
-
+export function handlePushToTalkModeChange(room: Room | null, getCurrentUserVoiceState: () => VoiceState | null): void {
 	if (KeybindStore.isPushToTalkEffective()) {
-		logger.info('[PTT:modeChange] PTT effective → resetting state and applying initial mute');
-		KeybindStore.setPushToTalkHeld(false);
 		KeybindStore.resetPushToTalkState();
-		LocalVoiceStateStore.clearHasUserSetMute();
-		applyLocalMuteState(true, room, syncVoiceState);
-	} else if (!LocalVoiceStateStore.getHasUserSetMute()) {
-		logger.info('[PTT:modeChange] PTT not effective, user has not set mute → unmuting');
-		applyLocalMuteState(false, room, syncVoiceState);
-	} else {
-		logger.info('[PTT:modeChange] PTT not effective, user has set mute → keeping current state');
 	}
+
+	reconcileTransmissionState(room, getCurrentUserVoiceState());
 }
 
-export function getMuteReason(voiceState: VoiceState | null): 'guild' | 'push_to_talk' | 'self' | null {
-	const isGuildMuted = voiceState?.mute ?? false;
-	if (isGuildMuted) return 'guild';
-
+export function getMuteReason(voiceState: VoiceState | null): 'guild' | 'self' | null {
+	if (voiceState?.mute) return 'guild';
 	const selfMuted = voiceState?.self_mute ?? LocalVoiceStateStore.getSelfMute();
-	// isPushToTalkMuted expects whether the user MANUALLY muted (not the current mute state).
-	// Passing selfMuted here would always return false when muted, defeating the purpose.
-	const hasUserSetMute = LocalVoiceStateStore.getHasUserSetMute() && selfMuted;
-	if (KeybindStore.isPushToTalkEffective() && KeybindStore.isPushToTalkMuted(hasUserSetMute)) return 'push_to_talk';
 	if (selfMuted) return 'self';
 	return null;
-}
-
-export function applyLocalMuteState(
-	muted: boolean,
-	room: Room | null,
-	syncVoiceState: (partial: {self_mute?: boolean}) => void,
-): void {
-	const selfDeaf = LocalVoiceStateStore.getSelfDeaf();
-	const targetMute = selfDeaf ? true : muted;
-	const currentMute = LocalVoiceStateStore.getSelfMute();
-
-	logger.info('[PTT:applyMuteState] START', {
-		requestedMute: muted,
-		selfDeaf,
-		targetMute,
-		currentMute,
-		hasRoom: !!room,
-		hasLocalParticipant: !!room?.localParticipant,
-		audioTrackCount: room?.localParticipant?.audioTrackPublications.size ?? 0,
-	});
-
-	if (currentMute === targetMute) {
-		logger.info('[PTT:applyMuteState] SKIP: no change needed (current === target)', {targetMute});
-		return;
-	}
-
-	if (room?.localParticipant) {
-		const hasAudioTracks = room.localParticipant.audioTrackPublications.size > 0;
-
-		if (!targetMute && !hasAudioTracks) {
-			logger.warn('[PTT:applyMuteState] SKIP unmute: no audio tracks exist. Enable microphone first.');
-			syncVoiceState({self_mute: true});
-			return;
-		}
-
-		logger.info('[PTT:applyMuteState] Applying to LiveKit publications', {
-			targetMute,
-			publicationCount: room.localParticipant.audioTrackPublications.size,
-		});
-
-		room.localParticipant.audioTrackPublications.forEach((publication: LocalTrackPublication) => {
-			if (publication.source === Track.Source.ScreenShareAudio) return;
-			logger.info('[PTT:applyMuteState] Muting/unmuting publication', {
-				trackSid: publication.trackSid,
-				source: publication.source,
-				targetMute,
-				currentlyMuted: publication.isMuted,
-			});
-			const operation = targetMute ? publication.mute() : publication.unmute();
-			operation.catch((error) =>
-				logger.error(targetMute ? 'Failed to mute publication' : 'Failed to unmute publication', {error}),
-			);
-		});
-	} else {
-		logger.info('[PTT:applyMuteState] No room/participant, only updating local state');
-	}
-
-	LocalVoiceStateStore.updateSelfMute(targetMute);
-	syncVoiceState({self_mute: targetMute});
-	logger.info('[PTT:applyMuteState] DONE', {targetMute});
 }
