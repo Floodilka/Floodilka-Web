@@ -67,6 +67,7 @@ import * as ChannelUtils from '~/utils/ChannelUtils';
 import {MAX_GROUP_DM_RECIPIENTS} from '~/utils/groupDmUtils';
 import * as RouterUtils from '~/utils/RouterUtils';
 import type {SearchSegment} from '~/utils/SearchSegmentManager';
+import {UserBadgesInline} from '../channel/UserBadgesInline';
 import {UserTag} from '../channel/UserTag';
 import {ChannelContextMenu} from '../uikit/ContextMenu/ChannelContextMenu';
 import {Tooltip} from '../uikit/Tooltip/Tooltip';
@@ -348,6 +349,7 @@ export const ChannelHeader = observer(
 																	{directMessageName}
 																</span>
 															</Tooltip>
+															<UserBadgesInline user={recipient} />
 															{isBotDMRecipient && <UserTag className={styles.userTag} system={recipient.system} />}
 														</span>
 														<CaretRightIcon className={styles.caretRight} weight="bold" />
@@ -385,6 +387,7 @@ export const ChannelHeader = observer(
 															{directMessageName}
 														</span>
 													</Tooltip>
+													<UserBadgesInline user={recipient} />
 													{isBotDMRecipient && <UserTag className={styles.userTag} system={recipient.system} />}
 												</span>
 											</button>
