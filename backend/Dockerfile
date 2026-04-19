@@ -25,6 +25,7 @@ WORKDIR /usr/src/app
 RUN apt-get update && apt-get install -y --no-install-recommends \
 	ca-certificates \
 	curl \
+	ffmpeg \
 	openssl \
 	libimage-exiftool-perl \
 	libvips \

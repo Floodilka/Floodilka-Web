@@ -23,6 +23,7 @@ import {createUserID, type UserID} from '~/BrandedTypes';
 import {UnknownUserError} from '~/Errors';
 import type {IGuildRepository} from '~/guild/IGuildRepository';
 import type {EntityAssetService} from '~/infrastructure/EntityAssetService';
+import type {NameplateAssetProcessor} from '~/infrastructure/NameplateAssetProcessor';
 import type {ICacheService} from '~/infrastructure/ICacheService';
 import type {IEmailService} from '~/infrastructure/IEmailService';
 import type {IGatewayService} from '~/infrastructure/IGatewayService';
@@ -72,6 +73,7 @@ interface AdminUserServiceDeps {
 	authService: AuthService;
 	emailService: IEmailService;
 	entityAssetService: EntityAssetService;
+	nameplateAssetProcessor: NameplateAssetProcessor;
 	auditService: AdminAuditService;
 	gatewayService: IGatewayService;
 	userCacheService: UserCacheService;
@@ -115,6 +117,7 @@ export class AdminUserService {
 		this.profileService = new AdminUserProfileService({
 			userRepository: deps.userRepository,
 			entityAssetService: deps.entityAssetService,
+			nameplateAssetProcessor: deps.nameplateAssetProcessor,
 			auditService: deps.auditService,
 			updatePropagator: this.updatePropagator,
 			contactChangeLogService: deps.contactChangeLogService,

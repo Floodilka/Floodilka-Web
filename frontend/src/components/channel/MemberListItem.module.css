@@ -47,7 +47,20 @@
 	border-radius: inherit;
 }
 
-.nameplate::after {
+.nameplateVideo {
+	position: absolute;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+	object-position: center;
+	pointer-events: none;
+	z-index: 0;
+	border-radius: inherit;
+}
+
+.nameplate::after,
+.nameplateOverlay {
 	content: '';
 	position: absolute;
 	inset: 0;
@@ -58,9 +71,12 @@
 		rgba(0, 0, 0, 0.15) 100%
 	);
 	border-radius: inherit;
+	pointer-events: none;
+	z-index: 0;
 }
 
-.button:hover .nameplate::after {
+.button:hover .nameplate::after,
+.button:hover .nameplateOverlay {
 	background: linear-gradient(
 		to right,
 		var(--background-modifier-hover) 0%,

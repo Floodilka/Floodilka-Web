@@ -32,6 +32,7 @@ import {createExternalMediaHandler} from '~/controllers/ExternalMediaController'
 import {
 	createGuildMemberImageRouteHandler,
 	createImageRouteHandler,
+	createNameplateRouteHandler,
 	createSimpleImageRouteHandler,
 } from '~/controllers/ImageController';
 import {handleMetadataRequest} from '~/controllers/MetadataController';
@@ -104,6 +105,7 @@ if (Config.STATIC_MODE) {
 	Logger.info('Initialized NSFW detection service');
 
 	const handleImageRoute = createImageRouteHandler(coalescer);
+	const handleNameplateRoute = createNameplateRouteHandler(coalescer);
 	const handleSimpleImageRoute = createSimpleImageRouteHandler(coalescer);
 	const handleGuildMemberImageRoute = createGuildMemberImageRouteHandler(coalescer);
 	const handleStickerRoute = createStickerRouteHandler(coalescer);
@@ -116,7 +118,7 @@ if (Config.STATIC_MODE) {
 	app.get('/avatars/:id/:filename', async (ctx) => handleImageRoute(ctx, 'avatars'));
 	app.get('/icons/:id/:filename', async (ctx) => handleImageRoute(ctx, 'icons'));
 	app.get('/bnnrs/:id/:filename', async (ctx) => handleImageRoute(ctx, 'banners'));
-	app.get('/nmplts/:id/:filename', async (ctx) => handleImageRoute(ctx, 'nameplates'));
+	app.get('/nmplts/:id/:filename', async (ctx) => handleNameplateRoute(ctx));
 	app.get('/splashes/:id/:filename', async (ctx) => handleImageRoute(ctx, 'splashes'));
 	app.get('/embed-splashes/:id/:filename', async (ctx) => handleImageRoute(ctx, 'embed-splashes'));
 	app.get('/emojis/:id', async (ctx) => handleSimpleImageRoute(ctx, 'emojis'));

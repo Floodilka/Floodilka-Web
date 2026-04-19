@@ -22,6 +22,7 @@ import type {PartialRowUpdate, UserRow} from '~/database/CassandraTypes';
 import {InputValidationError, MissingAccessError} from '~/Errors';
 import type {IGuildRepository} from '~/guild/IGuildRepository';
 import type {EntityAssetService, PreparedAssetUpload} from '~/infrastructure/EntityAssetService';
+import type {NameplateAssetProcessor, PreparedNameplateUpload} from '~/infrastructure/NameplateAssetProcessor';
 import type {IRateLimitService} from '~/infrastructure/IRateLimitService';
 import type {User} from '~/Models';
 import type {UserUpdateRequest} from '~/user/UserModel';
@@ -38,13 +39,14 @@ export interface ProfileUpdateResult {
 	updates: UserFieldUpdates;
 	preparedAvatarUpload: PreparedAssetUpload | null;
 	preparedBannerUpload: PreparedAssetUpload | null;
-	preparedNameplateUpload: PreparedAssetUpload | null;
+	preparedNameplateUpload: PreparedNameplateUpload | null;
 }
 
 interface UserAccountProfileServiceDeps {
 	userAccountRepository: IUserAccountRepository;
 	guildRepository: IGuildRepository;
 	entityAssetService: EntityAssetService;
+	nameplateAssetProcessor: NameplateAssetProcessor;
 	rateLimitService: IRateLimitService;
 	updatePropagator: UserAccountUpdatePropagator;
 }
@@ -63,7 +65,7 @@ export class UserAccountProfileService {
 
 		let preparedAvatarUpload: PreparedAssetUpload | null = null;
 		let preparedBannerUpload: PreparedAssetUpload | null = null;
-		let preparedNameplateUpload: PreparedAssetUpload | null = null;
+		let preparedNameplateUpload: PreparedNameplateUpload | null = null;
 
 		if (data.bio !== undefined) {
 			await this.processBioUpdate({user, bio: data.bio, updates});
@@ -98,6 +100,8 @@ export class UserAccountProfileService {
 			}
 		}
 
+
+
 		if (!user.isBot) {
 			this.processPremiumBadgeFlags({user, data, updates});
 			this.processPremiumOnboardingDismissal({user, data, updates});
@@ -124,10 +128,7 @@ export class UserAccountProfileService {
 		}
 
 		if (result.preparedNameplateUpload) {
-			await this.deps.entityAssetService.commitAssetChange({
-				prepared: result.preparedNameplateUpload,
-				deferDeletion: true,
-			});
+			await this.deps.nameplateAssetProcessor.commit(result.preparedNameplateUpload);
 		}
 	}
 
@@ -141,7 +142,7 @@ export class UserAccountProfileService {
 		}
 
 		if (result.preparedNameplateUpload) {
-			await this.deps.entityAssetService.rollbackAssetUpload(result.preparedNameplateUpload);
+			await this.deps.nameplateAssetProcessor.rollback(result.preparedNameplateUpload);
 		}
 	}
 
@@ -306,7 +307,7 @@ export class UserAccountProfileService {
 		user: User;
 		nameplate: string | null;
 		updates: UserFieldUpdates;
-	}): Promise<PreparedAssetUpload | null> {
+	}): Promise<PreparedNameplateUpload | null> {
 		const {user, nameplate, updates} = params;
 
 		if (nameplate && !user.isPremium()) {
@@ -327,13 +328,10 @@ export class UserAccountProfileService {
 			);
 		}
 
-		const prepared = await this.deps.entityAssetService.prepareAssetUpload({
-			assetType: 'nameplate',
-			entityType: 'user',
-			entityId: user.id,
+		const prepared = await this.deps.nameplateAssetProcessor.processUpload({
+			userId: user.id,
 			previousHash: user.nameplateHash,
 			base64Image: nameplate,
-			errorPath: 'nameplate',
 		});
 
 		if (prepared.newHash !== user.nameplateHash) {

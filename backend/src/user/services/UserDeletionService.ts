@@ -379,9 +379,21 @@ export async function processUserDeletion(
 
 	if (user.nameplateHash) {
 		try {
-			await storageService.deleteAvatar({prefix: 'nameplates', key: `${userId}/${user.nameplateHash}`});
-			await cloudflarePurgeQueue.addUrls([`${Config.endpoints.media}/nameplates/${userId}/${user.nameplateHash}`]);
-			Logger.debug({userId, nameplateHash: user.nameplateHash}, 'Deleted nameplate');
+			const hash = user.nameplateHash;
+			const isAnimated = hash.startsWith('a_');
+			const shortHash = isAnimated ? hash.slice(2) : hash;
+			const keys = isAnimated
+				? [`nameplates/${userId}/${shortHash}.webm`, `nameplates/${userId}/${shortHash}.png`]
+				: [`nameplates/${userId}/${shortHash}.webp`];
+			const cdnUrls = isAnimated
+				? [
+						`${Config.endpoints.media}/nmplts/${userId}/${hash}.webm`,
+						`${Config.endpoints.media}/nmplts/${userId}/${hash}.png`,
+					]
+				: [`${Config.endpoints.media}/nmplts/${userId}/${hash}.webp`];
+			await Promise.all(keys.map((key) => storageService.deleteObject(Config.s3.buckets.cdn, key)));
+			await cloudflarePurgeQueue.addUrls(cdnUrls);
+			Logger.debug({userId, nameplateHash: hash}, 'Deleted nameplate');
 		} catch (error) {
 			Logger.error({error, userId}, 'Failed to delete nameplate');
 		}

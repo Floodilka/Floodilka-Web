@@ -53,6 +53,7 @@ import {EmailDnsValidationService} from '~/infrastructure/EmailDnsValidationServ
 import {EmailService as ProdEmailService} from '~/infrastructure/EmailService';
 import {EmbedService} from '~/infrastructure/EmbedService';
 import {EntityAssetService} from '~/infrastructure/EntityAssetService';
+import {NameplateAssetProcessor} from '~/infrastructure/NameplateAssetProcessor';
 import {GatewayService as ProdGatewayService} from '~/infrastructure/GatewayService';
 import type {IAssetDeletionQueue} from '~/infrastructure/IAssetDeletionQueue';
 import type {ICacheService} from '~/infrastructure/ICacheService';
@@ -253,6 +254,7 @@ export const ServiceMiddleware = createMiddleware<HonoEnv>(async (ctx, next) => 
 	const readStateService = new ReadStateService(readStateRepository, gatewayService);
 	const avatarService = new AvatarService(storageService, mediaService);
 	const entityAssetService = new EntityAssetService(storageService, mediaService, assetDeletionQueue);
+	const nameplateAssetProcessor = new NameplateAssetProcessor(storageService, mediaService, assetDeletionQueue);
 
 	const emailService: IEmailService = testEmailServiceInstance ?? new EmailService(userRepository);
 	const smsService = new SMSService();
@@ -440,6 +442,7 @@ export const ServiceMiddleware = createMiddleware<HonoEnv>(async (ctx, next) => 
 		gatewayService,
 		userCacheService,
 		entityAssetService,
+		nameplateAssetProcessor,
 		assetDeletionQueue,
 		emailService,
 		mediaService,
@@ -523,6 +526,7 @@ export const ServiceMiddleware = createMiddleware<HonoEnv>(async (ctx, next) => 
 		guildService,
 		gatewayService,
 		entityAssetService,
+		nameplateAssetProcessor,
 		mediaService,
 		packService,
 		emailService,

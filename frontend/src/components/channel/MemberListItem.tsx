@@ -113,10 +113,31 @@ export const MemberListItem: React.FC<MemberListItemProps> = observer((props) =>
 	const ownerTitle = guildId ? t`Community Owner` : t`Group Owner`;
 	const nickname = displayName || NicknameUtils.getNickname(user, guildId, channelId);
 
-	const nameplateUrl = AvatarUtils.getUserNameplateURL(
-		{id: user.id, nameplate: user.nameplate ?? null},
-		isHovering,
-	);
+	const nameplateAsset = AvatarUtils.getUserNameplateAsset({id: user.id, nameplate: user.nameplate ?? null});
+
+	const videoRef = React.useRef<HTMLVideoElement | null>(null);
+
+	React.useEffect(() => {
+		const videoNode = videoRef.current;
+		if (!videoNode || !nameplateAsset?.animated) return;
+
+		const observer = new IntersectionObserver(
+			(entries) => {
+				for (const entry of entries) {
+					if (entry.isIntersecting) {
+						videoNode.play().catch(() => {
+							/* autoplay blocked — poster remains */
+						});
+					} else {
+						videoNode.pause();
+					}
+				}
+			},
+			{threshold: 0.1},
+		);
+		observer.observe(videoNode);
+		return () => observer.disconnect();
+	}, [nameplateAsset?.animated, nameplateAsset?.videoUrl]);
 
 	const content = (
 		<FocusRingWrapper focusRingClassName={styles.memberFocusRing}>
@@ -130,9 +151,29 @@ export const MemberListItem: React.FC<MemberListItemProps> = observer((props) =>
 				)}
 				onContextMenu={handleContextMenu}
 			>
-				{nameplateUrl && (
-					<span className={styles.nameplate} style={{backgroundImage: `url(${nameplateUrl})`}} aria-hidden="true" />
-				)}
+				{nameplateAsset?.animated && nameplateAsset.videoUrl ? (
+					<>
+						<video
+							ref={videoRef}
+							className={styles.nameplateVideo}
+							src={nameplateAsset.videoUrl}
+							poster={nameplateAsset.imageUrl}
+							autoPlay
+							loop
+							muted
+							playsInline
+							preload="metadata"
+							aria-hidden="true"
+						/>
+						<span className={styles.nameplateOverlay} aria-hidden="true" />
+					</>
+				) : nameplateAsset ? (
+					<span
+						className={styles.nameplate}
+						style={{backgroundImage: `url(${nameplateAsset.imageUrl})`}}
+						aria-hidden="true"
+					/>
+				) : null}
 				<div className={styles.grid}>
 					<span className={styles.content}>
 						<div className={styles.avatarContainer}>

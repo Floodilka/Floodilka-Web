@@ -23,6 +23,7 @@ import type {IChannelRepository} from '~/channel/IChannelRepository';
 import type {IGuildRepository} from '~/guild/IGuildRepository';
 import type {GuildService} from '~/guild/services/GuildService';
 import type {EntityAssetService} from '~/infrastructure/EntityAssetService';
+import type {NameplateAssetProcessor} from '~/infrastructure/NameplateAssetProcessor';
 import type {IAssetDeletionQueue} from '~/infrastructure/IAssetDeletionQueue';
 import type {ICacheService} from '~/infrastructure/ICacheService';
 import type {IEmailService} from '~/infrastructure/IEmailService';
@@ -146,6 +147,7 @@ export class AdminService {
 		private readonly gatewayService: IGatewayService,
 		private readonly userCacheService: UserCacheService,
 		private readonly entityAssetService: EntityAssetService,
+		private readonly nameplateAssetProcessor: NameplateAssetProcessor,
 		private readonly assetDeletionQueue: IAssetDeletionQueue,
 		private readonly emailService: IEmailService,
 		private readonly mediaService: IMediaService,
@@ -165,6 +167,7 @@ export class AdminService {
 			authService: this.authService,
 			emailService: this.emailService,
 			entityAssetService: this.entityAssetService,
+			nameplateAssetProcessor: this.nameplateAssetProcessor,
 			auditService: this.auditService,
 			gatewayService: this.gatewayService,
 			userCacheService: this.userCacheService,

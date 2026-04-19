@@ -21,6 +21,7 @@ import {types} from 'cassandra-driver';
 import {createUserID, type UserID} from '~/BrandedTypes';
 import {InputValidationError, UnknownUserError} from '~/Errors';
 import type {EntityAssetService, PreparedAssetUpload} from '~/infrastructure/EntityAssetService';
+import type {NameplateAssetProcessor, PreparedNameplateUpload} from '~/infrastructure/NameplateAssetProcessor';
 import type {User} from '~/Models';
 import type {IUserRepository} from '~/user/IUserRepository';
 import type {UserContactChangeLogService} from '~/user/services/UserContactChangeLogService';
@@ -39,6 +40,7 @@ import type {AdminUserUpdatePropagator} from './AdminUserUpdatePropagator';
 interface AdminUserProfileServiceDeps {
 	userRepository: IUserRepository;
 	entityAssetService: EntityAssetService;
+	nameplateAssetProcessor: NameplateAssetProcessor;
 	auditService: AdminAuditService;
 	updatePropagator: AdminUserUpdatePropagator;
 	contactChangeLogService: UserContactChangeLogService;
@@ -48,7 +50,7 @@ export class AdminUserProfileService {
 	constructor(private readonly deps: AdminUserProfileServiceDeps) {}
 
 	async clearUserFields(data: ClearUserFieldsRequest, adminUserId: UserID, auditLogReason: string | null) {
-		const {userRepository, entityAssetService, auditService, updatePropagator} = this.deps;
+		const {userRepository, entityAssetService, nameplateAssetProcessor, auditService, updatePropagator} = this.deps;
 		const userId = createUserID(data.user_id);
 		const user = await userRepository.findUnique(userId);
 		if (!user) {
@@ -57,6 +59,7 @@ export class AdminUserProfileService {
 
 		const updates: Record<string, null | string> = {};
 		const preparedAssets: Array<PreparedAssetUpload> = [];
+		let preparedNameplate: PreparedNameplateUpload | null = null;
 
 		for (const field of data.fields) {
 			if (field === 'avatar') {
@@ -82,16 +85,12 @@ export class AdminUserProfileService {
 				preparedAssets.push(prepared);
 				updates.banner_hash = prepared.newHash;
 			} else if (field === 'nameplate') {
-				const prepared = await entityAssetService.prepareAssetUpload({
-					assetType: 'nameplate',
-					entityType: 'user',
-					entityId: userId,
+				preparedNameplate = await nameplateAssetProcessor.processUpload({
+					userId,
 					previousHash: user.nameplateHash,
 					base64Image: null,
-					errorPath: 'nameplate',
 				});
-				preparedAssets.push(prepared);
-				updates.nameplate_hash = prepared.newHash;
+				updates.nameplate_hash = preparedNameplate.newHash;
 			} else if (field === 'bio') {
 				updates.bio = null;
 			} else if (field === 'global_name') {
@@ -104,10 +103,16 @@ export class AdminUserProfileService {
 			updatedUser = await userRepository.patchUpsert(userId, updates);
 		} catch (error) {
 			await Promise.allSettled(preparedAssets.map((p) => entityAssetService.rollbackAssetUpload(p)));
+			if (preparedNameplate) {
+				await nameplateAssetProcessor.rollback(preparedNameplate);
+			}
 			throw error;
 		}
 
 		await Promise.allSettled(preparedAssets.map((p) => entityAssetService.commitAssetChange({prepared: p})));
+		if (preparedNameplate) {
+			await nameplateAssetProcessor.commit(preparedNameplate);
+		}
 
 		await updatePropagator.propagateUserUpdate({userId, oldUser: user, updatedUser: updatedUser!});
 

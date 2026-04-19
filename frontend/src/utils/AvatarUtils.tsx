@@ -163,21 +163,49 @@ export const getUserBannerURL = ({id, banner}: BannerOptions, animated = false, 
 	});
 };
 
-export const getUserNameplateURL = ({id, nameplate}: NameplateOptions, animated = false, size = 480) => {
+export interface NameplateAsset {
+	animated: boolean;
+	videoUrl: string | null;
+	imageUrl: string;
+}
+
+export const getUserNameplateAsset = ({id, nameplate}: NameplateOptions, size = 480): NameplateAsset | null => {
 	if (!nameplate) {
 		return null;
 	}
 
-	const parsedNameplate = parseAvatar(nameplate);
-	const shouldAnimate = parsedNameplate.animated ? animated : false;
+	const parsed = parseAvatar(nameplate);
 
-	return getMediaURL({
+	if (parsed.animated) {
+		const videoUrl = getMediaURL({
+			path: 'nmplts',
+			id,
+			hash: `a_${parsed.hash}`,
+			format: 'webm',
+		});
+		const imageUrl = getMediaURL({
+			path: 'nmplts',
+			id,
+			hash: `a_${parsed.hash}`,
+			size,
+			format: 'png',
+		});
+		return {animated: true, videoUrl, imageUrl};
+	}
+
+	const imageUrl = getMediaURL({
 		path: 'nmplts',
 		id,
-		hash: parsedNameplate.hash,
+		hash: parsed.hash,
 		size,
-		format: shouldAnimate ? 'gif' : 'webp',
+		format: 'webp',
 	});
+	return {animated: false, videoUrl: null, imageUrl};
+};
+
+export const getUserNameplateURL = (options: NameplateOptions, size = 480): string | null => {
+	const asset = getUserNameplateAsset(options, size);
+	return asset?.imageUrl ?? null;
 };
 
 export const getGuildIconURL = ({id, icon}: IconOptions, animated = false) => {

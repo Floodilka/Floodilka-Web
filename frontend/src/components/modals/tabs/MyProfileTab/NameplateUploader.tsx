@@ -45,18 +45,26 @@ export const NameplateUploader = observer(
 
 		const handleNameplateUpload = React.useCallback(async () => {
 			try {
-				const [file] = await openFilePicker({accept: 'image/*'});
+				const [file] = await openFilePicker({accept: 'image/*,video/webm,video/mp4'});
 				if (!file) return;
 
-				if (file.size > 10 * 1024 * 1024) {
+				if (file.size > 8 * 1024 * 1024) {
 					ToastActionCreators.createToast({
 						type: 'error',
-						children: t`Nameplate file is too large. Please choose a file smaller than 10MB.`,
+						children: t`Nameplate file is too large. Please choose a file smaller than 8MB.`,
 					});
 					return;
 				}
 
 				const base64 = await AvatarUtils.fileToBase64(file);
+
+				const isAnimatedInput =
+					file.type.startsWith('video/') || file.type === 'image/gif' || file.type === 'image/webp';
+
+				if (isAnimatedInput) {
+					onNameplateChange(base64);
+					return;
+				}
 
 				ModalActionCreators.push(
 					modal(() => (
@@ -110,7 +118,10 @@ export const NameplateUploader = observer(
 							)}
 						</div>
 						<div className={styles.description}>
-							<Trans>JPEG, PNG, GIF, WebP. Max 10MB. Minimum: 480×96px (5:1)</Trans>
+							<Trans>
+								JPEG, PNG, WebP, GIF, WebM, MP4. Max 8MB. Minimum: 480×96px (5:1). Animated content is transcoded
+								to WebM.
+							</Trans>
 						</div>
 					</>
 				) : (

@@ -23,6 +23,7 @@ import type {GuildID, UserID} from '~/BrandedTypes';
 import type {IGuildRepository} from '~/guild/IGuildRepository';
 import type {GuildService} from '~/guild/services/GuildService';
 import type {EntityAssetService} from '~/infrastructure/EntityAssetService';
+import type {NameplateAssetProcessor} from '~/infrastructure/NameplateAssetProcessor';
 import type {IEmailService} from '~/infrastructure/IEmailService';
 import type {IGatewayService} from '~/infrastructure/IGatewayService';
 import type {IMediaService} from '~/infrastructure/IMediaService';
@@ -76,6 +77,7 @@ export class UserAccountService {
 		guildService: GuildService,
 		gatewayService: IGatewayService,
 		entityAssetService: EntityAssetService,
+		nameplateAssetProcessor: NameplateAssetProcessor,
 		mediaService: IMediaService,
 		packService: PackService,
 		emailService: IEmailService,
@@ -102,6 +104,7 @@ export class UserAccountService {
 			userAccountRepository,
 			guildRepository,
 			entityAssetService,
+			nameplateAssetProcessor,
 			rateLimitService,
 			updatePropagator: this.updatePropagator,
 		});

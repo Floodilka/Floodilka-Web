@@ -81,6 +81,41 @@ const processImageRequest = async (params: {
 	return ctx.body(toBodyData(fileData));
 };
 
+export const createNameplateRouteHandler = (coalescer: InMemoryCoalescer) => {
+	return async (ctx: Context<HonoEnv>): Promise<Response> => {
+		const {id, filename} = v.parse(ImageParamSchema, ctx.req.param());
+		const {size, quality, animated} = v.parse(ImageQuerySchema, ctx.req.query());
+
+		const parts = filename.split('.');
+		if (parts.length !== 2) {
+			throw new HTTPException(400);
+		}
+
+		const [hash, ext] = parts;
+		const strippedHash = stripAnimationPrefix(hash);
+		const isVideo = ext === 'webm';
+		const isImage = MEDIA_TYPES.IMAGE.extensions.includes(ext);
+
+		if (!isVideo && !isImage) {
+			throw new HTTPException(400);
+		}
+
+		const s3Key = `nameplates/${id}/${strippedHash}.${ext}`;
+
+		if (isVideo) {
+			const {data} = await readS3Object(Config.AWS_S3_BUCKET_CDN, s3Key);
+			assert(data instanceof Buffer);
+			const range = parseRange(ctx.req.header('Range') ?? '', data.length);
+			setHeaders(ctx, data.length, 'video/webm', range);
+			const slice = range ? data.subarray(range.start, range.end + 1) : data;
+			return ctx.body(toBodyData(slice));
+		}
+
+		const cacheKey = `nameplates_${id}_${hash}_${ext}_${size}_${quality}_0_${animated}`;
+		return processImageRequest({coalescer, ctx, cacheKey, s3Key, ext, aspectRatio: 0, size, quality, animated});
+	};
+};
+
 export const createImageRouteHandler = (coalescer: InMemoryCoalescer) => {
 	return async (ctx: Context<HonoEnv>, pathPrefix: string, aspectRatio = 0): Promise<Response> => {
 		const {id, filename} = v.parse(ImageParamSchema, ctx.req.param());
