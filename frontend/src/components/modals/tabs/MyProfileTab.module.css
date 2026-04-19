@@ -57,12 +57,14 @@
 .previewColumn {
 	display: flex;
 	flex: 1;
-	justify-content: center;
+	flex-direction: column;
+	align-items: center;
+	gap: 1rem;
 }
 
 @media (min-width: 1024px) {
 	.previewColumn {
-		justify-content: flex-end;
+		align-items: flex-end;
 	}
 }
 

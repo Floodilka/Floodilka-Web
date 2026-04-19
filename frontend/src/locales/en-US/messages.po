@@ -4394,7 +4394,7 @@ msgstr "Community Muted"
 msgid "Community Name"
 msgstr "Community Name"
 
-#: src/components/modals/tabs/MyProfileTab.tsx:634
+#: src/components/modals/tabs/MyProfileTab.tsx:635
 msgid "Community Nickname"
 msgstr "Community Nickname"
 
@@ -4417,7 +4417,7 @@ msgstr "Community organizes raids or harassment campaigns"
 msgid "Community Owner"
 msgstr "Community Owner"
 
-#: src/components/modals/tabs/MyProfileTab.tsx:344
+#: src/components/modals/tabs/MyProfileTab.tsx:345
 msgid "Community profile updated"
 msgstr "Community profile updated"
 
@@ -6304,7 +6304,7 @@ msgid "Display a visible focus indicator around the message input when focused. 
 msgstr "Display a visible focus indicator around the message input when focused. Disable for a more subtle appearance."
 
 #: src/components/modals/tabs/ComponentGalleryTab/InputsTab.tsx:95
-#: src/components/modals/tabs/MyProfileTab.tsx:651
+#: src/components/modals/tabs/MyProfileTab.tsx:652
 msgid "Display Name"
 msgstr "Display Name"
 
@@ -6365,7 +6365,7 @@ msgstr "Do you want to send this pin back in time?"
 msgid "Do you want to send this pin back to the future?"
 msgstr "Do you want to send this pin back to the future?"
 
-#: src/components/modals/tabs/MyProfileTab.tsx:714
+#: src/components/modals/tabs/MyProfileTab.tsx:715
 msgid "Doc, I'm from the future. I came here in a time machine that you invented. Now, I need your help to get back to the year 1985."
 msgstr "Doc, I'm from the future. I came here in a time machine that you invented. Now, I need your help to get back to the year 1985."
 
@@ -6689,7 +6689,7 @@ msgstr "Edit Sticker"
 msgid "Edit Sticker Pack"
 msgstr "Edit Sticker Pack"
 
-#: src/components/modals/tabs/MyProfileTab.tsx:617
+#: src/components/modals/tabs/MyProfileTab.tsx:618
 msgid "Edit your profile appearance and see a live preview"
 msgstr "Edit your profile appearance and see a live preview"
 
@@ -11570,6 +11570,10 @@ msgstr "Nameplate"
 msgid "Nameplate file is too large. Please choose a file smaller than 8MB."
 msgstr "Nameplate file is too large. Please choose a file smaller than 8MB."
 
+#: src/components/profile/NameplatePreview.tsx:59
+msgid "Nameplate Preview"
+msgstr "Nameplate Preview"
+
 #: src/lib/UnicodeEmojis.tsx:240
 msgid "Nature"
 msgstr "Nature"
@@ -13381,16 +13385,16 @@ msgstr "Profile badge"
 msgid "Profile contains offensive or NSFW content"
 msgstr "Profile contains offensive or NSFW content"
 
-#: src/components/modals/tabs/MyProfileTab.tsx:615
+#: src/components/modals/tabs/MyProfileTab.tsx:616
 msgid "Profile Customization"
 msgstr "Profile Customization"
 
 #. placeholder {0}: selectedGuild.name || ''
-#: src/components/modals/tabs/MyProfileTab.tsx:614
+#: src/components/modals/tabs/MyProfileTab.tsx:615
 msgid "Profile Customization for {0}"
 msgstr "Profile Customization for {0}"
 
-#: src/components/modals/tabs/MyProfileTab.tsx:603
+#: src/components/modals/tabs/MyProfileTab.tsx:604
 msgid "Profile customization form"
 msgstr "Profile customization form"
 
@@ -13406,7 +13410,7 @@ msgstr "Profile preview (press Enter to open full preview)"
 msgid "Profile Type"
 msgstr "Profile Type"
 
-#: src/components/modals/tabs/MyProfileTab.tsx:378
+#: src/components/modals/tabs/MyProfileTab.tsx:379
 msgid "Profile updated"
 msgstr "Profile updated"
 
@@ -17221,7 +17225,7 @@ msgstr "This message doesn't show the action bar"
 msgid "This message shows the action bar"
 msgstr "This message shows the action bar"
 
-#: src/components/modals/tabs/MyProfileTab.tsx:640
+#: src/components/modals/tabs/MyProfileTab.tsx:641
 msgid "This nickname will only be visible in this community"
 msgstr "This nickname will only be visible in this community"
 
@@ -19307,7 +19311,7 @@ msgstr "Waiting for you to..."
 msgid "Warning"
 msgstr "Warning"
 
-#: src/components/modals/tabs/MyProfileTab.tsx:568
+#: src/components/modals/tabs/MyProfileTab.tsx:569
 msgid "Warning: You have unsaved changes. Please save your changes or reset the form before leaving."
 msgstr "Warning: You have unsaved changes. Please save your changes or reset the form before leaving."
 

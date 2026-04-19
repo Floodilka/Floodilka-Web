@@ -35,6 +35,7 @@ import {
 	SettingsTabHeader,
 	SettingsTabSection,
 } from '~/components/modals/shared/SettingsTabLayout';
+import {NameplatePreview} from '~/components/profile/NameplatePreview';
 import {ProfilePreview} from '~/components/profile/ProfilePreview';
 import {Spinner} from '~/components/uikit/Spinner';
 import {useFormSubmit} from '~/hooks/useFormSubmit';
@@ -756,6 +757,16 @@ const MyProfileTabComponent = observer(function MyProfileTabComponent({
 										ignoreGuildAvatarInPreview={isPerGuildProfile && avatarMode === 'inherit'}
 										ignoreGuildBannerInPreview={isPerGuildProfile && bannerMode === 'inherit'}
 									/>
+									{!isPerGuildProfile && (
+										<NameplatePreview
+											user={user}
+											previewAvatarUrl={previewAvatarUrl}
+											hasClearedAvatar={hasClearedAvatar}
+											previewNameplateUrl={previewNameplateUrl}
+											hasClearedNameplate={hasClearedNameplate}
+											previewNickname={form.watch('global_name')}
+										/>
+									)}
 								</div>
 							</div>
 						)}
