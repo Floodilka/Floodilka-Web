@@ -1102,7 +1102,7 @@ msgstr "100 uses"
 msgid "1080p"
 msgstr "1080p"
 
-#: src/components/modals/components/FeatureComparisonTable.tsx:84
+#: src/components/modals/components/FeatureComparisonTable.tsx:85
 msgid "1080p/60fps"
 msgstr "1080p/60fps"
 
@@ -1173,7 +1173,7 @@ msgstr "24 hours"
 msgid "24-hour"
 msgstr "24-hour"
 
-#: src/components/modals/components/FeatureComparisonTable.tsx:76
+#: src/components/modals/components/FeatureComparisonTable.tsx:77
 msgid "25 MB"
 msgstr "25 MB"
 
@@ -1258,7 +1258,7 @@ msgstr "5 uses"
 msgid "50 uses"
 msgstr "50 uses"
 
-#: src/components/modals/components/FeatureComparisonTable.tsx:76
+#: src/components/modals/components/FeatureComparisonTable.tsx:77
 msgid "500 MB"
 msgstr "500 MB"
 
@@ -1291,7 +1291,7 @@ msgstr "7 days"
 msgid "720p"
 msgstr "720p"
 
-#: src/components/modals/components/FeatureComparisonTable.tsx:84
+#: src/components/modals/components/FeatureComparisonTable.tsx:85
 msgid "720p/30fps"
 msgstr "720p/30fps"
 
@@ -2133,7 +2133,7 @@ msgstr "Animate on interaction"
 msgid "Animated avatars (GIFs) are a premium feature exclusively available to Premium subscribers."
 msgstr "Animated avatars (GIFs) are a premium feature exclusively available to Premium subscribers."
 
-#: src/components/modals/components/FeatureComparisonTable.tsx:85
+#: src/components/modals/components/FeatureComparisonTable.tsx:86
 msgid "Animated avatars & banners"
 msgstr "Animated avatars & banners"
 
@@ -2981,7 +2981,7 @@ msgstr "Between 1 and 32 characters"
 msgid "Bio"
 msgstr "Bio"
 
-#: src/components/modals/components/FeatureComparisonTable.tsx:72
+#: src/components/modals/components/FeatureComparisonTable.tsx:73
 msgid "Bio character limit"
 msgstr "Bio character limit"
 
@@ -3067,7 +3067,7 @@ msgstr "Bookmark Message"
 msgid "Bookmark messages to save them for later."
 msgstr "Bookmark messages to save them for later."
 
-#: src/components/modals/components/FeatureComparisonTable.tsx:67
+#: src/components/modals/components/FeatureComparisonTable.tsx:68
 msgid "Bookmarked messages"
 msgstr "Bookmarked messages"
 
@@ -4307,7 +4307,7 @@ msgstr "Comfy layout"
 msgid "Communication"
 msgstr "Communication"
 
-#: src/components/modals/components/FeatureComparisonTable.tsx:57
+#: src/components/modals/components/FeatureComparisonTable.tsx:58
 #: src/stores/QuickSwitcherStore.tsx:1286
 #: src/utils/quick-switcher/QuickSwitcherModalUtils.tsx:92
 msgid "Communities"
@@ -5355,7 +5355,7 @@ msgstr "Custom duration"
 msgid "Custom Emoji"
 msgstr "Custom Emoji"
 
-#: src/components/modals/components/FeatureComparisonTable.tsx:54
+#: src/components/modals/components/FeatureComparisonTable.tsx:55
 msgid "Custom entrance sounds"
 msgstr "Custom entrance sounds"
 
@@ -5376,7 +5376,7 @@ msgstr "Custom instance"
 msgid "Custom Invite URL"
 msgstr "Custom Invite URL"
 
-#: src/components/modals/components/FeatureComparisonTable.tsx:55
+#: src/components/modals/components/FeatureComparisonTable.tsx:56
 msgid "Custom notification sounds"
 msgstr "Custom notification sounds"
 
@@ -5401,7 +5401,7 @@ msgstr "Custom Status"
 msgid "Custom Stickers"
 msgstr "Custom Stickers"
 
-#: src/components/modals/components/FeatureComparisonTable.tsx:50
+#: src/components/modals/components/FeatureComparisonTable.tsx:51
 msgid "Custom video backgrounds"
 msgstr "Custom video backgrounds"
 
@@ -6558,7 +6558,7 @@ msgstr "Each message below demonstrates a single markdown feature with live prev
 msgid "Each unique invite can only be used once."
 msgstr "Each unique invite can only be used once."
 
-#: src/components/modals/components/FeatureComparisonTable.tsx:86
+#: src/components/modals/components/FeatureComparisonTable.tsx:87
 msgid "Early access to new features"
 msgstr "Early access to new features"
 
@@ -7897,7 +7897,7 @@ msgstr "File Size Limit Exceeded"
 msgid "File size too large"
 msgstr "File size too large"
 
-#: src/components/modals/components/FeatureComparisonTable.tsx:76
+#: src/components/modals/components/FeatureComparisonTable.tsx:77
 msgid "File upload size"
 msgstr "File upload size"
 
@@ -8663,7 +8663,7 @@ msgstr "Gift URL copied to clipboard!"
 msgid "Gifts & Codes"
 msgstr "Gifts & Codes"
 
-#: src/components/modals/components/FeatureComparisonTable.tsx:83
+#: src/components/modals/components/FeatureComparisonTable.tsx:84
 msgid "Global emoji & sticker access"
 msgstr "Global emoji & sticker access"
 
@@ -11018,7 +11018,7 @@ msgstr "Message #"
 msgid "Message AST"
 msgstr "Message AST"
 
-#: src/components/modals/components/FeatureComparisonTable.tsx:62
+#: src/components/modals/components/FeatureComparisonTable.tsx:63
 msgid "Message character limit"
 msgstr "Message character limit"
 
@@ -11562,6 +11562,7 @@ msgstr "Name passkey form"
 msgid "Name: {0}."
 msgstr "Name: {0}."
 
+#: src/components/modals/components/FeatureComparisonTable.tsx:49
 #: src/components/modals/tabs/MyProfileTab/NameplateUploader.tsx:103
 msgid "Nameplate"
 msgstr "Nameplate"
@@ -14724,7 +14725,7 @@ msgstr "Save some media from messages to get started!"
 msgid "Save Video"
 msgstr "Save Video"
 
-#: src/components/modals/components/FeatureComparisonTable.tsx:78
+#: src/components/modals/components/FeatureComparisonTable.tsx:79
 msgid "Saved media"
 msgstr "Saved media"
 
@@ -18555,7 +18556,7 @@ msgstr "Use Actual Premium Type"
 msgid "Use an authenticator app to generate codes for two-factor authentication"
 msgstr "Use an authenticator app to generate codes for two-factor authentication"
 
-#: src/components/modals/components/FeatureComparisonTable.tsx:82
+#: src/components/modals/components/FeatureComparisonTable.tsx:83
 msgid "Use animated emojis"
 msgstr "Use animated emojis"
 
@@ -18985,7 +18986,7 @@ msgstr "Video Preview"
 msgid "Video previews"
 msgstr "Video previews"
 
-#: src/components/modals/components/FeatureComparisonTable.tsx:84
+#: src/components/modals/components/FeatureComparisonTable.tsx:85
 msgid "Video quality"
 msgstr "Video quality"
 

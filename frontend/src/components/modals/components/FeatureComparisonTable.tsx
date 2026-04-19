@@ -46,6 +46,7 @@ export const FeatureComparisonTable = observer(({formatter}: {formatter: Intl.Nu
 			<div className={styles.rows}>
 				<ComparisonCheckRow feature={t`Per-community profiles`} freeHas={false} premiumHas={true} />
 				<ComparisonCheckRow feature={t`Profile badge`} freeHas={false} premiumHas={true} />
+				<ComparisonCheckRow feature={t`Nameplate`} freeHas={false} premiumHas={true} />
 				<ComparisonRow
 					feature={t`Custom video backgrounds`}
 					freeValue={formatter.format(1)}

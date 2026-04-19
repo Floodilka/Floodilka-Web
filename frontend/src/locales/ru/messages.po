@@ -1102,7 +1102,7 @@ msgstr "100 использований"
 msgid "1080p"
 msgstr "1080p"
 
-#: src/components/modals/components/FeatureComparisonTable.tsx:84
+#: src/components/modals/components/FeatureComparisonTable.tsx:85
 msgid "1080p/60fps"
 msgstr "1080p/60fps"
 
@@ -1173,7 +1173,7 @@ msgstr "24 часа"
 msgid "24-hour"
 msgstr "24-часовой"
 
-#: src/components/modals/components/FeatureComparisonTable.tsx:76
+#: src/components/modals/components/FeatureComparisonTable.tsx:77
 msgid "25 MB"
 msgstr "25 МБ"
 
@@ -1258,7 +1258,7 @@ msgstr "5 использований"
 msgid "50 uses"
 msgstr "50 использований"
 
-#: src/components/modals/components/FeatureComparisonTable.tsx:76
+#: src/components/modals/components/FeatureComparisonTable.tsx:77
 msgid "500 MB"
 msgstr "500 МБ"
 
@@ -1291,7 +1291,7 @@ msgstr "7 дней"
 msgid "720p"
 msgstr "720p"
 
-#: src/components/modals/components/FeatureComparisonTable.tsx:84
+#: src/components/modals/components/FeatureComparisonTable.tsx:85
 msgid "720p/30fps"
 msgstr "720p/30fps"
 
@@ -2133,7 +2133,7 @@ msgstr "Анимировать при взаимодействии"
 msgid "Animated avatars (GIFs) are a premium feature exclusively available to Premium subscribers."
 msgstr "Анимированные аватары (GIF) — эксклюзивная функция, доступная только подписчикам Премиума."
 
-#: src/components/modals/components/FeatureComparisonTable.tsx:85
+#: src/components/modals/components/FeatureComparisonTable.tsx:86
 msgid "Animated avatars & banners"
 msgstr "Анимированные аватары и баннеры"
 
@@ -2981,7 +2981,7 @@ msgstr "От 1 до 32 символов"
 msgid "Bio"
 msgstr "О себе"
 
-#: src/components/modals/components/FeatureComparisonTable.tsx:72
+#: src/components/modals/components/FeatureComparisonTable.tsx:73
 msgid "Bio character limit"
 msgstr "Лимит символов в био"
 
@@ -3067,7 +3067,7 @@ msgstr "Добавить сообщение в закладки"
 msgid "Bookmark messages to save them for later."
 msgstr "Сохраняйте сообщения в закладки, чтобы вернуться к ним позже."
 
-#: src/components/modals/components/FeatureComparisonTable.tsx:67
+#: src/components/modals/components/FeatureComparisonTable.tsx:68
 msgid "Bookmarked messages"
 msgstr "Сохранённые сообщения"
 
@@ -3553,7 +3553,7 @@ msgstr "Сменить свой ник в группе"
 
 #: src/components/modals/tabs/MyProfileTab/NameplateUploader.tsx:109
 msgid "Change Nameplate"
-msgstr "Сменить плашку"
+msgstr "Сменить бейджик"
 
 #: src/components/modals/BaseChangeNicknameModal.tsx:82
 #: src/components/modals/guildTabs/GuildMemberActionsSheet.tsx:240
@@ -4307,7 +4307,7 @@ msgstr "Комфортная верстка"
 msgid "Communication"
 msgstr "Общение"
 
-#: src/components/modals/components/FeatureComparisonTable.tsx:57
+#: src/components/modals/components/FeatureComparisonTable.tsx:58
 #: src/stores/QuickSwitcherStore.tsx:1286
 #: src/utils/quick-switcher/QuickSwitcherModalUtils.tsx:92
 msgid "Communities"
@@ -5290,7 +5290,7 @@ msgstr "Обрезать фон приглашения"
 
 #: src/components/modals/AssetCropModal.tsx:136
 msgid "Crop Nameplate"
-msgstr "Обрезать плашку"
+msgstr "Обрезать бейджик"
 
 #: src/components/modals/AssetCropModal.tsx:134
 msgid "Crop Profile Banner"
@@ -5355,7 +5355,7 @@ msgstr "Пользовательская длительность"
 msgid "Custom Emoji"
 msgstr "Пользовательские эмодзи"
 
-#: src/components/modals/components/FeatureComparisonTable.tsx:54
+#: src/components/modals/components/FeatureComparisonTable.tsx:55
 msgid "Custom entrance sounds"
 msgstr "Пользовательские звуки входа"
 
@@ -5376,7 +5376,7 @@ msgstr "Пользовательский экземпляр"
 msgid "Custom Invite URL"
 msgstr "Пользовательская ссылка приглашения"
 
-#: src/components/modals/components/FeatureComparisonTable.tsx:55
+#: src/components/modals/components/FeatureComparisonTable.tsx:56
 msgid "Custom notification sounds"
 msgstr "Пользовательские звуки уведомлений"
 
@@ -5401,7 +5401,7 @@ msgstr "Пользовательский статус"
 msgid "Custom Stickers"
 msgstr "Пользовательские стикеры"
 
-#: src/components/modals/components/FeatureComparisonTable.tsx:50
+#: src/components/modals/components/FeatureComparisonTable.tsx:51
 msgid "Custom video backgrounds"
 msgstr "Пользовательские видеофоны"
 
@@ -6519,7 +6519,7 @@ msgstr "Перетащи, чтобы изменить позицию фона п
 #. placeholder {1}: config.minHeight
 #: src/components/modals/AssetCropModal.tsx:185
 msgid "Drag to reposition your nameplate and use the scroll wheel or pinch to zoom. The recommended minimum size is {0}×{1} pixels (5:1)."
-msgstr "Перетащи, чтобы выбрать область плашки. Масштабируй колёсиком или жестом. Рекомендованный минимум — {0}×{1} пикселей (5:1)."
+msgstr "Перетащи, чтобы выбрать область бейджика. Масштабируй колёсиком или жестом. Рекомендованный минимум — {0}×{1} пикселей (5:1)."
 
 #: src/components/modals/BackgroundImageGalleryModal.tsx:539
 msgid "Drop to upload background"
@@ -6558,7 +6558,7 @@ msgstr "Каждое сообщение ниже демонстрирует од
 msgid "Each unique invite can only be used once."
 msgstr "Каждое уникальное приглашение можно использовать только один раз."
 
-#: src/components/modals/components/FeatureComparisonTable.tsx:86
+#: src/components/modals/components/FeatureComparisonTable.tsx:87
 msgid "Early access to new features"
 msgstr "Ранний доступ к новым функциям"
 
@@ -7488,7 +7488,7 @@ msgstr "Не удалось обрезать иконку. Попробуй сн
 
 #: src/components/modals/AssetCropModal.tsx:237
 msgid "Failed to crop nameplate. Please try again."
-msgstr "Не удалось обрезать плашку. Попробуй ещё раз."
+msgstr "Не удалось обрезать бейджик. Попробуй ещё раз."
 
 #: src/components/modals/tabs/ApplicationsTab/ApplicationDetail.tsx:384
 msgid "Failed to delete application. Please try again."
@@ -7897,7 +7897,7 @@ msgstr "Превышен лимит размера файла"
 msgid "File size too large"
 msgstr "Размер файла слишком большой"
 
-#: src/components/modals/components/FeatureComparisonTable.tsx:76
+#: src/components/modals/components/FeatureComparisonTable.tsx:77
 msgid "File upload size"
 msgstr "Размер загружаемого файла"
 
@@ -8663,7 +8663,7 @@ msgstr "Ссылка на подарок скопирована в буфер о
 msgid "Gifts & Codes"
 msgstr "Подарки и коды"
 
-#: src/components/modals/components/FeatureComparisonTable.tsx:83
+#: src/components/modals/components/FeatureComparisonTable.tsx:84
 msgid "Global emoji & sticker access"
 msgstr "Глобальный доступ к эмодзи и стикерам"
 
@@ -11018,7 +11018,7 @@ msgstr "Сообщение #"
 msgid "Message AST"
 msgstr "AST сообщения"
 
-#: src/components/modals/components/FeatureComparisonTable.tsx:62
+#: src/components/modals/components/FeatureComparisonTable.tsx:63
 msgid "Message character limit"
 msgstr "Ограничение символов в сообщении"
 
@@ -11562,9 +11562,10 @@ msgstr "Форма именного ключа"
 msgid "Name: {0}."
 msgstr "Имя: {0}."
 
+#: src/components/modals/components/FeatureComparisonTable.tsx:49
 #: src/components/modals/tabs/MyProfileTab/NameplateUploader.tsx:103
 msgid "Nameplate"
-msgstr "Плашка"
+msgstr "Бейджик"
 
 #: src/components/modals/tabs/MyProfileTab/NameplateUploader.tsx:54
 msgid "Nameplate file is too large. Please choose a file smaller than 8MB."
@@ -11572,7 +11573,7 @@ msgstr "Файл слишком большой. Выбери файл меньш
 
 #: src/components/profile/NameplatePreview.tsx:59
 msgid "Nameplate Preview"
-msgstr "Предпросмотр плашки"
+msgstr "Предпросмотр бейджика"
 
 #: src/lib/UnicodeEmojis.tsx:240
 msgid "Nature"
@@ -13927,7 +13928,7 @@ msgstr "Удалить упоминание"
 
 #: src/components/modals/tabs/MyProfileTab/NameplateUploader.tsx:113
 msgid "Remove Nameplate"
-msgstr "Удалить плашку"
+msgstr "Удалить бейджик"
 
 #: src/components/modals/GuildNotificationSettingsModal.tsx:265
 msgid "Remove override"
@@ -14713,7 +14714,7 @@ msgstr "Сохранить медиа"
 
 #: src/components/modals/AssetCropModal.tsx:218
 msgid "Save Nameplate"
-msgstr "Сохранить плашку"
+msgstr "Сохранить бейджик"
 
 #: src/components/channel/MobileMemesPicker.tsx:262
 #: src/components/channel/pickers/memes/MemesPickerView.tsx:145
@@ -14724,7 +14725,7 @@ msgstr "Сохрани немного медиа из сообщений, что
 msgid "Save Video"
 msgstr "Сохранить видео"
 
-#: src/components/modals/components/FeatureComparisonTable.tsx:78
+#: src/components/modals/components/FeatureComparisonTable.tsx:79
 msgid "Saved media"
 msgstr "Сохранённые медиа"
 
@@ -16269,7 +16270,7 @@ msgstr "Только для персонала"
 
 #: src/components/modals/tabs/MyProfileTab/NameplateUploader.tsx:126
 msgid "Stand out in the member list with a custom nameplate — a static or animated background image for your cell."
-msgstr "Выделись в списке участников своей плашкой — статичной или анимированной картинкой на фоне ячейки."
+msgstr "Выделись в списке участников своим бейджиком — статичной или анимированной картинкой на фоне ячейки."
 
 #: src/components/modals/tabs/ComponentGalleryTab/SelectionsTab.tsx:245
 msgid "Standard Slider with Markers"
@@ -18555,7 +18556,7 @@ msgstr "Использовать фактический тип премиума"
 msgid "Use an authenticator app to generate codes for two-factor authentication"
 msgstr "Используй приложение-аутентификатор для генерации кодов двухфакторной аутентификации"
 
-#: src/components/modals/components/FeatureComparisonTable.tsx:82
+#: src/components/modals/components/FeatureComparisonTable.tsx:83
 msgid "Use animated emojis"
 msgstr "Использовать анимированные эмодзи"
 
@@ -18985,7 +18986,7 @@ msgstr "Предпросмотр видео"
 msgid "Video previews"
 msgstr "Предпросмотры видео"
 
-#: src/components/modals/components/FeatureComparisonTable.tsx:84
+#: src/components/modals/components/FeatureComparisonTable.tsx:85
 msgid "Video quality"
 msgstr "Качество видео"
 
