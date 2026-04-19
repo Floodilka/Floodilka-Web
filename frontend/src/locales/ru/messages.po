@@ -74,8 +74,8 @@ msgstr "(показано максимум 15)"
 msgid "(No content)"
 msgstr "(Нет содержимого)"
 
-#: src/components/modals/UserProfileMobileSheet.tsx:552
-#: src/components/pages/YouPage.tsx:147
+#: src/components/modals/UserProfileMobileSheet.tsx:550
+#: src/components/pages/YouPage.tsx:146
 msgid "(only visible to you)"
 msgstr "(видно только тебе)"
 
@@ -97,7 +97,7 @@ msgstr "{0, plural, one {# элемент} other {# элементов}}"
 #. placeholder {0}: group.recipientIds.length + 1
 #: src/components/channel/dm/DMList.tsx:447
 #: src/components/channel/dm/DMList.tsx:527
-#: src/components/modals/UserProfileModal.tsx:839
+#: src/components/modals/UserProfileModal.tsx:838
 msgid "{0, plural, one {# Member} other {# Members}}"
 msgstr "{0, plural, one {# участник} other {# участников}}"
 
@@ -1329,8 +1329,8 @@ msgid "A symphony of clacking keys is underway..."
 msgstr "Симфония щелкающих клавиш уже началась..."
 
 #: src/components/modals/tabs/MyProfileTab/BioEditor.tsx:127
-#: src/components/modals/UserProfileMobileSheet.tsx:528
-#: src/components/pages/YouPage.tsx:132
+#: src/components/modals/UserProfileMobileSheet.tsx:526
+#: src/components/pages/YouPage.tsx:131
 msgid "About Me"
 msgstr "Обо мне"
 
@@ -1348,7 +1348,7 @@ msgstr "Принять"
 
 #: src/components/bottomsheets/DMBottomSheet.tsx:490
 #: src/components/modals/guildTabs/GuildMemberActionsSheet.tsx:262
-#: src/components/modals/UserProfileModal.tsx:1281
+#: src/components/modals/UserProfileModal.tsx:1276
 #: src/components/uikit/ContextMenu/items/RelationshipMenuItems.tsx:109
 msgid "Accept Friend Request"
 msgstr "Принять запрос в друзья"
@@ -1584,7 +1584,7 @@ msgstr "Добавить email"
 #: src/components/channel/dm/AddFriendView.tsx:32
 #: src/components/channel/dm/DMFriendsView.tsx:199
 #: src/components/modals/AddFriendSheet.tsx:50
-#: src/components/modals/UserProfileModal.tsx:1201
+#: src/components/modals/UserProfileModal.tsx:1200
 #: src/components/uikit/ContextMenu/items/RelationshipMenuItems.tsx:75
 #: src/components/uikit/ContextMenu/items/RelationshipMenuItems.tsx:89
 msgid "Add Friend"
@@ -2464,7 +2464,7 @@ msgstr "Ты уверен, что хочешь передать владение
 #. placeholder {0}: user.username
 #: src/components/modals/guildTabs/GuildMemberActionsSheet.tsx:147
 #: src/components/modals/UserProfileActionsSheet.tsx:116
-#: src/components/modals/UserProfileMobileSheet.tsx:303
+#: src/components/modals/UserProfileMobileSheet.tsx:302
 #: src/utils/RelationshipActionUtils.tsx:114
 msgid "Are you sure you want to remove {0} as a friend?"
 msgstr "Ты уверен, что хочешь удалить {0} из друзей?"
@@ -2507,7 +2507,7 @@ msgstr "Ты уверен, что хочешь передать владение
 #: src/components/modals/guildTabs/GuildMemberActionsSheet.tsx:181
 #: src/components/modals/tabs/BlockedUsersTab.tsx:57
 #: src/components/modals/UserProfileActionsSheet.tsx:150
-#: src/components/modals/UserProfileMobileSheet.tsx:319
+#: src/components/modals/UserProfileMobileSheet.tsx:318
 #: src/utils/RelationshipActionUtils.tsx:168
 msgid "Are you sure you want to unblock {0}?"
 msgstr "Ты уверен, что хочешь разблокировать {0}?"
@@ -2616,7 +2616,7 @@ msgstr "Аудиоплеер"
 msgid "Audio preview"
 msgstr "Предпрослушивание"
 
-#: src/components/voice/VoiceControlBar.tsx:288
+#: src/components/voice/VoiceControlBar.tsx:297
 msgid "Audio Settings"
 msgstr "Настройки аудио"
 
@@ -2990,7 +2990,7 @@ msgstr "Лимит символов в био"
 #: src/components/modals/guildTabs/GuildMemberActionsSheet.tsx:348
 #: src/components/modals/UserProfileActionsSheet.tsx:134
 #: src/components/modals/UserProfileActionsSheet.tsx:298
-#: src/components/modals/UserProfileModal.tsx:1084
+#: src/components/modals/UserProfileModal.tsx:1083
 #: src/components/uikit/ContextMenu/items/RelationshipMenuItems.tsx:211
 #: src/utils/RelationshipActionUtils.tsx:143
 msgid "Block"
@@ -3313,7 +3313,7 @@ msgstr "Качество камеры"
 msgid "Camera Quality"
 msgstr "Качество камеры"
 
-#: src/components/voice/VoiceControlBar.tsx:342
+#: src/components/voice/VoiceControlBar.tsx:351
 msgid "Camera Settings"
 msgstr "Настройки камеры"
 
@@ -3394,7 +3394,7 @@ msgstr "Отмена"
 #: src/components/channel/dm/DMWelcomeSection.tsx:144
 #: src/components/channel/friends/FriendListItem.tsx:164
 #: src/components/channel/friends/FriendListItem.tsx:166
-#: src/components/modals/UserProfileModal.tsx:1296
+#: src/components/modals/UserProfileModal.tsx:1291
 #: src/components/uikit/ContextMenu/items/RelationshipMenuItems.tsx:192
 msgid "Cancel Friend Request"
 msgstr "Отменить запрос в друзья"
@@ -3550,6 +3550,10 @@ msgstr "Изменить стиль отображения сообщений"
 #: src/components/uikit/ContextMenu/GroupDMContextMenu.tsx:266
 msgid "Change My Group Nickname"
 msgstr "Сменить свой ник в группе"
+
+#: src/components/modals/tabs/MyProfileTab/NameplateUploader.tsx:109
+msgid "Change Nameplate"
+msgstr "Сменить плашку"
 
 #: src/components/modals/BaseChangeNicknameModal.tsx:82
 #: src/components/modals/guildTabs/GuildMemberActionsSheet.tsx:240
@@ -3949,7 +3953,7 @@ msgstr "Заявите о своем аккаунте, чтобы создава
 
 #: src/components/layout/ChannelItem.tsx:206
 #: src/components/layout/ChannelItem.tsx:382
-#: src/stores/voice/MediaEngineFacade.ts:581
+#: src/stores/voice/MediaEngineFacade.ts:584
 msgid "Claim your account to join this voice channel."
 msgstr "Заберите свою учетную запись, чтобы присоединиться к этому голосовому каналу."
 
@@ -3979,7 +3983,7 @@ msgstr "Заявите о своем аккаунте, чтобы обменят
 
 #: src/components/channel/dm/AddFriendForm.tsx:54
 #: src/components/channel/dm/DMWelcomeSection.tsx:115
-#: src/components/modals/UserProfileModal.tsx:1311
+#: src/components/modals/UserProfileModal.tsx:1306
 #: src/components/uikit/ContextMenu/items/RelationshipMenuItems.tsx:65
 msgid "Claim your account to send friend requests."
 msgstr "Заявите о своем аккаунте, чтобы отправлять запросы в друзья."
@@ -4035,7 +4039,7 @@ msgid "Clear Permissions"
 msgstr "Сбросить разрешения"
 
 #: src/components/bottomsheets/ChannelSearchBottomSheet.tsx:420
-#: src/components/channel/MessageSearchBar/MessageSearchBar.tsx:1452
+#: src/components/channel/MessageSearchBar/MessageSearchBar.tsx:1443
 #: src/components/channel/shared/PickerSearchInput.tsx:194
 #: src/components/channel/shared/PickerSearchInput.tsx:211
 #: src/components/modals/components/SettingsSearch.tsx:108
@@ -4096,7 +4100,7 @@ msgstr "Нажми значок загрузки рядом с любым зву
 msgid "Click the verification link in the email."
 msgstr "Нажми ссылку подтверждения в письме."
 
-#: src/components/modals/UserProfileModal.tsx:257
+#: src/components/modals/UserProfileModal.tsx:256
 msgid "Click to add a note"
 msgstr "Нажми, чтобы добавить заметку"
 
@@ -4325,10 +4329,10 @@ msgstr "Сообщество заполнено"
 msgid "Community Deafen"
 msgstr "Отключить звук сообщества"
 
-#: src/components/layout/UserArea.tsx:241
 #: src/components/layout/UserArea.tsx:250
+#: src/components/layout/UserArea.tsx:259
 #: src/components/layout/VoiceStateIcons.tsx:61
-#: src/components/voice/VoiceControlBar.tsx:247
+#: src/components/voice/VoiceControlBar.tsx:250
 #: src/lib/KeybindManager.ts:403
 msgid "Community Deafened"
 msgstr "Звук сообщества отключен"
@@ -4378,10 +4382,10 @@ msgstr "Участники сообщества"
 msgid "Community Mute"
 msgstr "Отключить звук сообщества"
 
-#: src/components/layout/UserArea.tsx:204
-#: src/components/layout/UserArea.tsx:219
+#: src/components/layout/UserArea.tsx:210
+#: src/components/layout/UserArea.tsx:225
 #: src/components/layout/VoiceStateIcons.tsx:53
-#: src/components/voice/VoiceControlBar.tsx:237
+#: src/components/voice/VoiceControlBar.tsx:240
 #: src/lib/KeybindManager.ts:378
 msgid "Community Muted"
 msgstr "Звук сообщества отключен"
@@ -4390,7 +4394,7 @@ msgstr "Звук сообщества отключен"
 msgid "Community Name"
 msgstr "Название сообщества"
 
-#: src/components/modals/tabs/MyProfileTab.tsx:600
+#: src/components/modals/tabs/MyProfileTab.tsx:634
 msgid "Community Nickname"
 msgstr "Никнейм в сообществе"
 
@@ -4407,13 +4411,13 @@ msgid "Community organizes raids or harassment campaigns"
 msgstr "Сообщество организует рейды или кампании преследований"
 
 #: src/components/bottomsheets/ChannelDetailsBottomSheet.tsx:235
-#: src/components/channel/MemberListItem.tsx:112
+#: src/components/channel/MemberListItem.tsx:113
 #: src/components/modals/guildTabs/GuildMembersTab.tsx:144
 #: src/components/modals/guildTabs/GuildMembersTab.tsx:196
 msgid "Community Owner"
 msgstr "Владелец сообщества"
 
-#: src/components/modals/tabs/MyProfileTab.tsx:331
+#: src/components/modals/tabs/MyProfileTab.tsx:344
 msgid "Community profile updated"
 msgstr "Профиль сообщества обновлен"
 
@@ -4969,7 +4973,7 @@ msgstr "Скопировать текст"
 #: src/components/modals/guildTabs/GuildMemberActionsSheet.tsx:361
 #: src/components/modals/tabs/BlockedUsersTab.tsx:107
 #: src/components/modals/UserProfileActionsSheet.tsx:213
-#: src/components/modals/UserProfileModal.tsx:1152
+#: src/components/modals/UserProfileModal.tsx:1151
 #: src/components/popouts/UserAreaPopout.tsx:503
 #: src/components/profile/ProfileCard/ProfileCardActions.tsx:60
 #: src/components/uikit/ContextMenu/items/CopyMenuItems.tsx:42
@@ -4978,7 +4982,7 @@ msgstr "Скопировать ID пользователя"
 
 #: src/components/modals/tabs/BlockedUsersTab.tsx:98
 #: src/components/modals/UserProfileActionsSheet.tsx:208
-#: src/components/modals/UserProfileModal.tsx:1143
+#: src/components/modals/UserProfileModal.tsx:1142
 #: src/components/popouts/UserAreaPopout.tsx:407
 #: src/components/popouts/UserAreaPopout.tsx:413
 msgid "Copy Username"
@@ -5260,31 +5264,35 @@ msgstr "Клуб творческого письма"
 msgid "Croatia"
 msgstr "Хорватия"
 
-#: src/components/modals/AssetCropModal.tsx:116
+#: src/components/modals/AssetCropModal.tsx:126
 msgid "Crop Avatar"
 msgstr "Обрезать аватарку"
 
-#: src/components/modals/AssetCropModal.tsx:122
+#: src/components/modals/AssetCropModal.tsx:132
 msgid "Crop Banner"
 msgstr "Обрезать баннер"
 
-#: src/components/modals/AssetCropModal.tsx:128
+#: src/components/modals/AssetCropModal.tsx:140
 msgid "Crop Chat Embed Background"
 msgstr "Обрезать фон вставки чата"
 
-#: src/components/modals/AssetCropModal.tsx:118
+#: src/components/modals/AssetCropModal.tsx:128
 msgid "Crop Community Icon"
 msgstr "Обрезать иконку сообщества"
 
-#: src/components/modals/AssetCropModal.tsx:120
+#: src/components/modals/AssetCropModal.tsx:130
 msgid "Crop Group Icon"
 msgstr "Обрезать иконку группы"
 
-#: src/components/modals/AssetCropModal.tsx:126
+#: src/components/modals/AssetCropModal.tsx:138
 msgid "Crop Invite Background"
 msgstr "Обрезать фон приглашения"
 
-#: src/components/modals/AssetCropModal.tsx:124
+#: src/components/modals/AssetCropModal.tsx:136
+msgid "Crop Nameplate"
+msgstr "Обрезать плашку"
+
+#: src/components/modals/AssetCropModal.tsx:134
 msgid "Crop Profile Banner"
 msgstr "Обрезать баннер профиля"
 
@@ -5541,10 +5549,10 @@ msgstr "Дни"
 #: src/components/bottomsheets/VoiceLobbyBottomSheet.tsx:195
 #: src/components/bottomsheets/VoiceParticipantBottomSheet.tsx:262
 #: src/components/bottomsheets/VoiceSettingsBottomSheets.tsx:126
-#: src/components/layout/UserArea.tsx:241
 #: src/components/layout/UserArea.tsx:250
+#: src/components/layout/UserArea.tsx:259
 #: src/components/uikit/ContextMenu/items/VoiceParticipantMenuItems.tsx:117
-#: src/components/voice/VoiceControlBar.tsx:253
+#: src/components/voice/VoiceControlBar.tsx:256
 #: src/components/voice/VoiceSettingsMenus.tsx:158
 msgid "Deafen"
 msgstr "Отключить звук"
@@ -6232,7 +6240,7 @@ msgstr "Запретить неактивированные аккаунты"
 #: src/components/voice/VoiceConnectionStatus.tsx:322
 #: src/components/voice/VoiceConnectionStatus.tsx:665
 #: src/components/voice/VoiceConnectionStatus.tsx:673
-#: src/components/voice/VoiceControlBar.tsx:378
+#: src/components/voice/VoiceControlBar.tsx:387
 msgid "Disconnect"
 msgstr "Отключить"
 
@@ -6296,7 +6304,7 @@ msgid "Display a visible focus indicator around the message input when focused. 
 msgstr "Показывать видимый индикатор фокуса вокруг поля ввода сообщения. Отключи для более сдержанного вида."
 
 #: src/components/modals/tabs/ComponentGalleryTab/InputsTab.tsx:95
-#: src/components/modals/tabs/MyProfileTab.tsx:617
+#: src/components/modals/tabs/MyProfileTab.tsx:651
 msgid "Display Name"
 msgstr "Отображаемое имя"
 
@@ -6357,7 +6365,7 @@ msgstr "Хочешь отправить этот закреп назад во в
 msgid "Do you want to send this pin back to the future?"
 msgstr "Хочешь отправить этот закреп в будущее?"
 
-#: src/components/modals/tabs/MyProfileTab.tsx:668
+#: src/components/modals/tabs/MyProfileTab.tsx:714
 msgid "Doc, I'm from the future. I came here in a time machine that you invented. Now, I need your help to get back to the year 1985."
 msgstr "Док, я из будущего. Я приехал сюда на машине времени, которую ты изобрёл. Теперь мне нужна твоя помощь, чтобы вернуться в 1985 год."
 
@@ -6471,41 +6479,47 @@ msgstr "Перетащите роли, чтобы настроить поряд�
 msgid "Drag the slider handles to adjust values. Click markers to jump to specific values."
 msgstr "Перетяни ползунки, чтобы настроить значения. Нажимай на метки, чтобы перейти к конкретным значениям."
 
-#: src/components/modals/AssetCropModal.tsx:138
+#: src/components/modals/AssetCropModal.tsx:150
 msgid "Drag to reposition your avatar and use the scroll wheel or pinch to zoom. The recommended minimum size is 256×256 pixels."
 msgstr "Перетащи, чтобы изменить позицию аватара, и используй колесико или масштабирование. Рекомендуемый минимум — 256×256 пикселей."
 
 #. placeholder {0}: config.minWidth
 #. placeholder {1}: config.minHeight
-#: src/components/modals/AssetCropModal.tsx:159
+#: src/components/modals/AssetCropModal.tsx:171
 msgid "Drag to reposition your banner and use the scroll wheel or pinch to zoom. The recommended minimum size is {0}×{1} pixels (16:9)."
 msgstr "Перетащи, чтобы изменить позицию баннера, и используй колесико или масштабирование. Рекомендуемый минимум — {0}×{1} пикселей (16:9)."
 
 #. placeholder {0}: config.minWidth
 #. placeholder {1}: config.minHeight
-#: src/components/modals/AssetCropModal.tsx:166
+#: src/components/modals/AssetCropModal.tsx:178
 msgid "Drag to reposition your banner and use the scroll wheel or pinch to zoom. The recommended minimum size is {0}×{1} pixels (17:6)."
 msgstr "Перетащи, чтобы изменить позицию баннера, и используй колесико или масштабирование. Рекомендуемый минимум — {0}×{1} пикселей (17:6)."
 
 #. placeholder {0}: config.minWidth
 #. placeholder {1}: config.minHeight
-#: src/components/modals/AssetCropModal.tsx:180
+#: src/components/modals/AssetCropModal.tsx:199
 msgid "Drag to reposition your chat embed background and use the scroll wheel or pinch to zoom. The recommended minimum size is {0}×{1} pixels (16:9)."
 msgstr "Перетащи, чтобы изменить позицию фона встроенного чата, и используй колесико или масштабирование. Рекомендуемый минимум — {0}×{1} пикселей (16:9)."
 
-#: src/components/modals/AssetCropModal.tsx:145
+#: src/components/modals/AssetCropModal.tsx:157
 msgid "Drag to reposition your community icon and use the scroll wheel or pinch to zoom. The recommended minimum size is 256×256 pixels."
 msgstr "Перетащи, чтобы изменить позицию иконки сообщества, и используй колесико или масштабирование. Рекомендуемый минимум — 256×256 пикселей."
 
-#: src/components/modals/AssetCropModal.tsx:152
+#: src/components/modals/AssetCropModal.tsx:164
 msgid "Drag to reposition your group icon and use the scroll wheel or pinch to zoom. The recommended minimum size is 256×256 pixels."
 msgstr "Перетащи, чтобы изменить позицию иконки группы, и используй колесико или масштабирование. Рекомендуемый минимум — 256×256 пикселей."
 
 #. placeholder {0}: config.minWidth
 #. placeholder {1}: config.minHeight
-#: src/components/modals/AssetCropModal.tsx:173
+#: src/components/modals/AssetCropModal.tsx:192
 msgid "Drag to reposition your invite background and use the scroll wheel or pinch to zoom. The recommended minimum size is {0}×{1} pixels (16:9)."
 msgstr "Перетащи, чтобы изменить позицию фона приглашения, и используй колесико или масштабирование. Рекомендуемый минимум — {0}×{1} пикселей (16:9)."
+
+#. placeholder {0}: config.minWidth
+#. placeholder {1}: config.minHeight
+#: src/components/modals/AssetCropModal.tsx:185
+msgid "Drag to reposition your nameplate and use the scroll wheel or pinch to zoom. The recommended minimum size is {0}×{1} pixels (5:1)."
+msgstr "Перетащи, чтобы выбрать область плашки. Масштабируй колёсиком или жестом. Рекомендованный минимум — {0}×{1} пикселей (5:1)."
 
 #: src/components/modals/BackgroundImageGalleryModal.tsx:539
 msgid "Drop to upload background"
@@ -6642,11 +6656,11 @@ msgstr "Редактировать заметку"
 msgid "Edit overwrites for roles and members in this channel."
 msgstr "Измени переопределения для ролей и участников в этом канале."
 
-#: src/components/modals/UserProfileMobileSheet.tsx:486
-#: src/components/modals/UserProfileModal.tsx:1228
-#: src/components/pages/YouPage.tsx:123
+#: src/components/modals/UserProfileMobileSheet.tsx:484
+#: src/components/modals/UserProfileModal.tsx:1223
+#: src/components/pages/YouPage.tsx:122
 #: src/components/popouts/UserAreaPopout.tsx:515
-#: src/components/popouts/UserProfilePopout.tsx:297
+#: src/components/popouts/UserProfilePopout.tsx:293
 msgid "Edit Profile"
 msgstr "Редактировать профиль"
 
@@ -6675,7 +6689,7 @@ msgstr "Редактировать стикер"
 msgid "Edit Sticker Pack"
 msgstr "Редактировать пакет стикеров"
 
-#: src/components/modals/tabs/MyProfileTab.tsx:583
+#: src/components/modals/tabs/MyProfileTab.tsx:617
 msgid "Edit your profile appearance and see a live preview"
 msgstr "Настрой внешний вид профиля и смотри живой предпросмотр"
 
@@ -7456,21 +7470,25 @@ msgstr "Не удалось создать стикер"
 msgid "Failed to create webhook"
 msgstr "Не удалось создать вебхук"
 
-#: src/components/modals/AssetCropModal.tsx:208
+#: src/components/modals/AssetCropModal.tsx:229
 msgid "Failed to crop avatar. Please try again."
 msgstr "Не удалось обрезать аватар. Попробуй снова."
 
-#: src/components/modals/AssetCropModal.tsx:217
+#: src/components/modals/AssetCropModal.tsx:240
 msgid "Failed to crop background. Please try again."
 msgstr "Не удалось обрезать фон. Попробуй снова."
 
-#: src/components/modals/AssetCropModal.tsx:214
+#: src/components/modals/AssetCropModal.tsx:235
 msgid "Failed to crop banner. Please try again."
 msgstr "Не удалось обрезать баннер. Попробуй снова."
 
-#: src/components/modals/AssetCropModal.tsx:211
+#: src/components/modals/AssetCropModal.tsx:232
 msgid "Failed to crop icon. Please try again."
 msgstr "Не удалось обрезать иконку. Попробуй снова."
+
+#: src/components/modals/AssetCropModal.tsx:237
+msgid "Failed to crop nameplate. Please try again."
+msgstr "Не удалось обрезать плашку. Попробуй ещё раз."
 
 #: src/components/modals/tabs/ApplicationsTab/ApplicationDetail.tsx:384
 msgid "Failed to delete application. Please try again."
@@ -7624,6 +7642,7 @@ msgstr "Не удалось подготовить эмодзи"
 #: src/components/modals/guildTabs/GuildOverviewTab/hooks/useGuildImageAssetField.tsx:219
 #: src/components/modals/tabs/MyProfileTab/AvatarUploader.tsx:150
 #: src/components/modals/tabs/MyProfileTab/BannerUploader.tsx:115
+#: src/components/modals/tabs/MyProfileTab/NameplateUploader.tsx:81
 msgid "Failed to process the cropped image. Please try again."
 msgstr "Не удалось обработать обрезанное изображение. Попробуй снова."
 
@@ -8843,7 +8862,7 @@ msgid "Group Online Status"
 msgstr "Статус онлайн группы"
 
 #: src/components/bottomsheets/ChannelDetailsBottomSheet.tsx:967
-#: src/components/channel/MemberListItem.tsx:112
+#: src/components/channel/MemberListItem.tsx:113
 msgid "Group Owner"
 msgstr "Владелец группы"
 
@@ -9898,6 +9917,10 @@ msgstr "JPEG, PNG, GIF, WebP. Макс. 10 МБ. Минимум: 680×240 пик
 #: src/components/modals/tabs/MyProfileTab/AvatarUploader.tsx:252
 msgid "JPEG, PNG, GIF, WebP. Max 10MB. Recommended: 512×512px"
 msgstr "JPEG, PNG, GIF, WebP. Макс. 10 МБ. Рекомендуется: 512×512 пикселей"
+
+#: src/components/modals/tabs/MyProfileTab/NameplateUploader.tsx:118
+msgid "JPEG, PNG, WebP, GIF, WebM, MP4. Max 8MB. Minimum: 480×96px (5:1). Animated content is transcoded to WebM."
+msgstr "JPEG, PNG, WebP, GIF, WebM, MP4. До 8 МБ. Минимум: 480×96px (5:1). Анимация автоматически конвертируется в WebM."
 
 #. placeholder {0}: bannerConfig.minWidth
 #. placeholder {1}: bannerConfig.minHeight
@@ -10969,11 +10992,11 @@ msgstr "упоминания:"
 #: src/components/bottomsheets/VoiceParticipantBottomSheet.tsx:234
 #: src/components/modals/guildTabs/GuildMemberActionsSheet.tsx:220
 #: src/components/modals/tabs/ComponentGalleryTab/InputsTab.tsx:164
-#: src/components/modals/UserProfileMobileSheet.tsx:497
-#: src/components/modals/UserProfileModal.tsx:1212
-#: src/components/modals/UserProfileModal.tsx:1338
+#: src/components/modals/UserProfileMobileSheet.tsx:495
+#: src/components/modals/UserProfileModal.tsx:1211
+#: src/components/modals/UserProfileModal.tsx:1333
 #: src/components/popouts/UserProfilePopout.tsx:287
-#: src/components/popouts/UserProfilePopout.tsx:306
+#: src/components/popouts/UserProfilePopout.tsx:302
 #: src/components/profile/ProfilePreview.tsx:276
 #: src/components/uikit/ContextMenu/items/MessageUserMenuItem.tsx:47
 msgid "Message"
@@ -11261,7 +11284,7 @@ msgstr "Дополнительные слоты для эмодзи"
 msgid "More options"
 msgstr "Дополнительные опции"
 
-#: src/components/voice/VoiceControlBar.tsx:366
+#: src/components/voice/VoiceControlBar.tsx:375
 msgid "More Options"
 msgstr "Дополнительные опции"
 
@@ -11351,13 +11374,13 @@ msgstr "Нота"
 #: src/components/bottomsheets/ChannelDetailsBottomSheet.tsx:865
 #: src/components/bottomsheets/VoiceLobbyBottomSheet.tsx:179
 #: src/components/bottomsheets/VoiceParticipantBottomSheet.tsx:253
-#: src/components/layout/UserArea.tsx:209
-#: src/components/layout/UserArea.tsx:219
+#: src/components/layout/UserArea.tsx:215
+#: src/components/layout/UserArea.tsx:225
 #: src/components/media-player/components/MediaVolumeControl.tsx:206
 #: src/components/modals/GuildNotificationSettingsModal.tsx:227
 #: src/components/uikit/ContextMenu/items/VoiceParticipantMenuItems.tsx:84
 #: src/components/uikit/ContextMenu/items/VoiceParticipantMenuItems.tsx:227
-#: src/components/voice/VoiceControlBar.tsx:243
+#: src/components/voice/VoiceControlBar.tsx:246
 msgid "Mute"
 msgstr "Отключить звук"
 
@@ -11441,15 +11464,15 @@ msgstr "Звук отключён до {0}"
 msgid "Muting a community prevents unread indicators and notifications from appearing unless you are mentioned"
 msgstr "Отключение уведомлений сообщества скрывает индикаторы непрочитанного и уведомления, если только тебя не упомянули"
 
-#: src/components/modals/UserProfileModal.tsx:371
+#: src/components/modals/UserProfileModal.tsx:370
 msgid "Mutual Communities ({count})"
 msgstr "Общие сообщества ({count})"
 
-#: src/components/modals/UserProfileModal.tsx:363
+#: src/components/modals/UserProfileModal.tsx:362
 msgid "Mutual Friends ({count})"
 msgstr "Общие друзья ({count})"
 
-#: src/components/modals/UserProfileModal.tsx:367
+#: src/components/modals/UserProfileModal.tsx:366
 msgid "Mutual Groups ({count})"
 msgstr "Общие группы ({count})"
 
@@ -11538,6 +11561,14 @@ msgstr "Форма именного ключа"
 #: src/components/modals/guildTabs/GuildAuditLogTab.utils.tsx:196
 msgid "Name: {0}."
 msgstr "Имя: {0}."
+
+#: src/components/modals/tabs/MyProfileTab/NameplateUploader.tsx:103
+msgid "Nameplate"
+msgstr "Плашка"
+
+#: src/components/modals/tabs/MyProfileTab/NameplateUploader.tsx:54
+msgid "Nameplate file is too large. Please choose a file smaller than 8MB."
+msgstr "Файл слишком большой. Выбери файл меньше 8 МБ."
 
 #: src/lib/UnicodeEmojis.tsx:240
 msgid "Nature"
@@ -11873,7 +11904,7 @@ msgstr "Ссылок приглашений нет"
 msgid "No invites created"
 msgstr "Приглашения не созданы"
 
-#: src/components/keybinds/KeybindRecorder.tsx:334
+#: src/components/keybinds/KeybindRecorder.tsx:331
 msgid "No keybind set"
 msgstr "Горячая клавиша не задана"
 
@@ -11907,15 +11938,15 @@ msgstr "Микрофоны не обнаружены"
 msgid "No more scheduled messages."
 msgstr "Больше нет запланированных сообщений."
 
-#: src/components/modals/UserProfileModal.tsx:598
+#: src/components/modals/UserProfileModal.tsx:597
 msgid "No mutual communities found."
 msgstr "Общие сообщества не найдены."
 
-#: src/components/modals/UserProfileModal.tsx:553
+#: src/components/modals/UserProfileModal.tsx:552
 msgid "No mutual friends found."
 msgstr "Общие друзья не найдены."
 
-#: src/components/modals/UserProfileModal.tsx:575
+#: src/components/modals/UserProfileModal.tsx:574
 msgid "No mutual groups found."
 msgstr "Общие группы не найдены."
 
@@ -12121,10 +12152,10 @@ msgstr "Недостаточно времени членства"
 msgid "Not Now"
 msgstr "Не сейчас"
 
-#: src/components/modals/UserProfileMobileSheet.tsx:549
-#: src/components/modals/UserProfileModal.tsx:242
-#: src/components/modals/UserProfileModal.tsx:246
-#: src/components/pages/YouPage.tsx:144
+#: src/components/modals/UserProfileMobileSheet.tsx:547
+#: src/components/modals/UserProfileModal.tsx:241
+#: src/components/modals/UserProfileModal.tsx:245
+#: src/components/pages/YouPage.tsx:143
 #: src/lib/markdown/renderers/common/block-elements.tsx:214
 msgid "Note"
 msgstr "Заметка"
@@ -12212,7 +12243,7 @@ msgstr "Уведомить пользователей с этой ролью, к
 msgid "now"
 msgstr "сейчас"
 
-#: src/components/channel/MessageSearchBar/MessageSearchBar.tsx:732
+#: src/components/channel/MessageSearchBar/MessageSearchBar.tsx:723
 msgid "Now"
 msgstr "Сейчас"
 
@@ -12664,7 +12695,7 @@ msgstr "Переопределить статус непривязанной у�
 msgid "Override unread gift inventory status"
 msgstr "Переопределить статус непрочитанного подарочного инвентаря"
 
-#: src/components/modals/UserProfileModal.tsx:425
+#: src/components/modals/UserProfileModal.tsx:424
 msgid "Overview"
 msgstr "Обзор"
 
@@ -13350,16 +13381,16 @@ msgstr "Значок профиля"
 msgid "Profile contains offensive or NSFW content"
 msgstr "Профиль содержит оскорбительный или NSFW-контент"
 
-#: src/components/modals/tabs/MyProfileTab.tsx:581
+#: src/components/modals/tabs/MyProfileTab.tsx:615
 msgid "Profile Customization"
 msgstr "Настройка профиля"
 
 #. placeholder {0}: selectedGuild.name || ''
-#: src/components/modals/tabs/MyProfileTab.tsx:580
+#: src/components/modals/tabs/MyProfileTab.tsx:614
 msgid "Profile Customization for {0}"
 msgstr "Настройка профиля для {0}"
 
-#: src/components/modals/tabs/MyProfileTab.tsx:569
+#: src/components/modals/tabs/MyProfileTab.tsx:603
 msgid "Profile customization form"
 msgstr "Форма настройки профиля"
 
@@ -13375,7 +13406,7 @@ msgstr "Предпросмотр профиля (нажми Enter, чтобы о
 msgid "Profile Type"
 msgstr "Тип профиля"
 
-#: src/components/modals/tabs/MyProfileTab.tsx:364
+#: src/components/modals/tabs/MyProfileTab.tsx:378
 msgid "Profile updated"
 msgstr "Профиль обновлен"
 
@@ -13469,8 +13500,16 @@ msgstr "Нажми и говори (удерживай)"
 msgid "Push-to-Talk (Limited)"
 msgstr "Нажми и говори (ограниченно)"
 
-#: src/components/layout/UserArea.tsx:206
-#: src/components/voice/VoiceControlBar.tsx:240
+#: src/utils/SoundLabels.ts:41
+msgid "Push-to-Talk Activate"
+msgstr "Push-to-Talk: включение"
+
+#: src/utils/SoundLabels.ts:42
+msgid "Push-to-Talk Deactivate"
+msgstr "Push-to-Talk: выключение"
+
+#: src/components/layout/UserArea.tsx:212
+#: src/components/voice/VoiceControlBar.tsx:243
 msgid "Push-to-talk enabled — hold {pushToTalkHint} to speak"
 msgstr "Нажми и говори включен — удерживай {pushToTalkHint}, чтобы говорить"
 
@@ -13840,10 +13879,10 @@ msgstr "Удалить фильтр"
 #: src/components/modals/UserProfileActionsSheet.tsx:115
 #: src/components/modals/UserProfileActionsSheet.tsx:117
 #: src/components/modals/UserProfileActionsSheet.tsx:278
-#: src/components/modals/UserProfileMobileSheet.tsx:302
-#: src/components/modals/UserProfileMobileSheet.tsx:304
-#: src/components/modals/UserProfileModal.tsx:1165
-#: src/components/modals/UserProfileModal.tsx:1251
+#: src/components/modals/UserProfileMobileSheet.tsx:301
+#: src/components/modals/UserProfileMobileSheet.tsx:303
+#: src/components/modals/UserProfileModal.tsx:1164
+#: src/components/modals/UserProfileModal.tsx:1246
 #: src/components/uikit/ContextMenu/items/RelationshipMenuItems.tsx:129
 #: src/utils/RelationshipActionUtils.tsx:113
 #: src/utils/RelationshipActionUtils.tsx:115
@@ -13881,6 +13920,10 @@ msgstr "Удалить значок"
 #: src/components/popouts/RecentMentionsContent.tsx:230
 msgid "Remove mention"
 msgstr "Удалить упоминание"
+
+#: src/components/modals/tabs/MyProfileTab/NameplateUploader.tsx:113
+msgid "Remove Nameplate"
+msgstr "Удалить плашку"
 
 #: src/components/modals/GuildNotificationSettingsModal.tsx:265
 msgid "Remove override"
@@ -14159,7 +14202,7 @@ msgstr "Жалоба успешно отправлена. Команда без�
 
 #: src/components/modals/IARModal.tsx:84
 #: src/components/modals/UserProfileActionsSheet.tsx:289
-#: src/components/modals/UserProfileModal.tsx:1179
+#: src/components/modals/UserProfileModal.tsx:1178
 msgid "Report User"
 msgstr "Пожаловаться на пользователя"
 
@@ -14619,15 +14662,15 @@ msgstr "Экономия 17%"
 msgid "Save Audio"
 msgstr "Сохранить аудио"
 
-#: src/components/modals/AssetCropModal.tsx:191
+#: src/components/modals/AssetCropModal.tsx:210
 msgid "Save Avatar"
 msgstr "Сохранить аватар"
 
-#: src/components/modals/AssetCropModal.tsx:200
+#: src/components/modals/AssetCropModal.tsx:221
 msgid "Save Background"
 msgstr "Сохранить фон"
 
-#: src/components/modals/AssetCropModal.tsx:197
+#: src/components/modals/AssetCropModal.tsx:216
 msgid "Save Banner"
 msgstr "Сохранить баннер"
 
@@ -14647,7 +14690,7 @@ msgstr "Сохранить файл"
 msgid "Save GIF"
 msgstr "Сохранить GIF"
 
-#: src/components/modals/AssetCropModal.tsx:194
+#: src/components/modals/AssetCropModal.tsx:213
 msgid "Save Icon"
 msgstr "Сохранить значок"
 
@@ -14663,6 +14706,10 @@ msgstr "Сохранить медиа"
 #: src/components/uikit/ContextMenu/MediaContextMenu.tsx:334
 msgid "Save Media"
 msgstr "Сохранить медиа"
+
+#: src/components/modals/AssetCropModal.tsx:218
+msgid "Save Nameplate"
+msgstr "Сохранить плашку"
 
 #: src/components/channel/MobileMemesPicker.tsx:262
 #: src/components/channel/pickers/memes/MemesPickerView.tsx:145
@@ -14855,7 +14902,7 @@ msgid "Search members..."
 msgstr "Поиск участников..."
 
 #: src/components/bottomsheets/ChannelSearchBottomSheet.tsx:412
-#: src/components/channel/MessageSearchBar/MessageSearchBar.tsx:1438
+#: src/components/channel/MessageSearchBar/MessageSearchBar.tsx:1429
 msgid "Search messages"
 msgstr "Поиск сообщений"
 
@@ -14898,13 +14945,13 @@ msgstr "Поиск ролей или участников..."
 msgid "Search saved media"
 msgstr "Поиск сохранённых медиа"
 
-#: src/components/channel/MessageSearchBar/MessageSearchBar.tsx:381
+#: src/components/channel/MessageSearchBar/MessageSearchBar.tsx:382
 msgid "Search scope"
 msgstr "Область поиска"
 
 #. placeholder {0}: activeScopeOption.label
 #: src/components/channel/ChannelSearchResults.tsx:1031
-#: src/components/channel/MessageSearchBar/MessageSearchBar.tsx:379
+#: src/components/channel/MessageSearchBar/MessageSearchBar.tsx:380
 msgid "Search scope: {0}"
 msgstr "Область поиска: {0}"
 
@@ -14921,7 +14968,7 @@ msgstr "Поиск в настройках..."
 msgid "Search stickers..."
 msgstr "Поиск стикеров..."
 
-#: src/components/channel/MessageSearchBar/MessageSearchBar.tsx:1476
+#: src/components/channel/MessageSearchBar/MessageSearchBar.tsx:1467
 msgid "Search suggestions"
 msgstr "Подсказки поиска"
 
@@ -15091,7 +15138,7 @@ msgstr "Выбери размер медиа для вставок по ссыл
 msgid "Select media size for uploaded attachments"
 msgstr "Выбери размер медиа для загруженных вложений"
 
-#: src/components/modals/UserProfileModal.tsx:704
+#: src/components/modals/UserProfileModal.tsx:703
 msgid "Select mutual view"
 msgstr "Выбери взаимный просмотр"
 
@@ -15199,7 +15246,7 @@ msgstr "Отправить код"
 
 #: src/components/channel/dm/DMWelcomeSection.tsx:118
 #: src/components/modals/guildTabs/GuildMemberActionsSheet.tsx:272
-#: src/components/modals/UserProfileModal.tsx:1312
+#: src/components/modals/UserProfileModal.tsx:1307
 msgid "Send Friend Request"
 msgstr "Отправить запрос в друзья"
 
@@ -15527,7 +15574,7 @@ msgstr "Поделись этой ссылкой"
 #: src/components/voice/VoiceConnectionStatus.tsx:471
 #: src/components/voice/VoiceConnectionStatus.tsx:711
 #: src/components/voice/VoiceConnectionStatus.tsx:713
-#: src/components/voice/VoiceControlBar.tsx:351
+#: src/components/voice/VoiceControlBar.tsx:360
 msgid "Share Your Screen"
 msgstr "Поделись экраном"
 
@@ -16216,6 +16263,10 @@ msgstr "Квадратные кнопки с иконкой"
 msgid "Staff-Only"
 msgstr "Только для персонала"
 
+#: src/components/modals/tabs/MyProfileTab/NameplateUploader.tsx:126
+msgid "Stand out in the member list with a custom nameplate — a static or animated background image for your cell."
+msgstr "Выделись в списке участников своей плашкой — статичной или анимированной картинкой на фоне ячейки."
+
 #: src/components/modals/tabs/ComponentGalleryTab/SelectionsTab.tsx:245
 msgid "Standard Slider with Markers"
 msgstr "Стандартный ползунок с метками"
@@ -16263,13 +16314,13 @@ msgid "Start Sharing"
 msgstr "Начать обмен"
 
 #: src/components/channel/ChannelHeader/CallButtons.tsx:160
-#: src/components/modals/UserProfileModal.tsx:1131
+#: src/components/modals/UserProfileModal.tsx:1130
 #: src/components/uikit/ContextMenu/items/CallMenuItems.tsx:91
 msgid "Start Video Call"
 msgstr "Начать видеозвонок"
 
 #: src/components/channel/ChannelHeader/CallButtons.tsx:90
-#: src/components/modals/UserProfileModal.tsx:1122
+#: src/components/modals/UserProfileModal.tsx:1121
 #: src/components/uikit/ContextMenu/items/CallMenuItems.tsx:60
 msgid "Start Voice Call"
 msgstr "Начать голосовой звонок"
@@ -16412,7 +16463,7 @@ msgstr "Прекратить звонок"
 
 #: src/components/voice/VoiceConnectionStatus.tsx:456
 #: src/components/voice/VoiceConnectionStatus.tsx:470
-#: src/components/voice/VoiceControlBar.tsx:351
+#: src/components/voice/VoiceControlBar.tsx:360
 msgid "Stop Sharing"
 msgstr "Прекратить трансляцию"
 
@@ -16782,6 +16833,7 @@ msgstr "Это не похоже на действительный URL."
 #: src/components/modals/guildTabs/GuildOverviewTab/hooks/useGuildImageAssetField.tsx:175
 #: src/components/modals/tabs/MyProfileTab/AvatarUploader.tsx:164
 #: src/components/modals/tabs/MyProfileTab/BannerUploader.tsx:129
+#: src/components/modals/tabs/MyProfileTab/NameplateUploader.tsx:95
 #: src/components/webhooks/WebhookListItem.tsx:156
 msgid "That image is invalid. Please try another one."
 msgstr "Это изображение недопустимо. Попробуй другое."
@@ -17169,7 +17221,7 @@ msgstr "Это сообщение не показывает панель дей�
 msgid "This message shows the action bar"
 msgstr "Это сообщение показывает панель действий"
 
-#: src/components/modals/tabs/MyProfileTab.tsx:606
+#: src/components/modals/tabs/MyProfileTab.tsx:640
 msgid "This nickname will only be visible in this community"
 msgstr "Этот ник будет виден только в этом сообществе"
 
@@ -17359,7 +17411,7 @@ msgstr "Тосты появляются в верхней центральной
 msgid "today"
 msgstr "сегодня"
 
-#: src/components/channel/MessageSearchBar/MessageSearchBar.tsx:730
+#: src/components/channel/MessageSearchBar/MessageSearchBar.tsx:721
 msgid "Today"
 msgstr "Сегодня"
 
@@ -17646,7 +17698,7 @@ msgstr "Выключай всё, что тебя не устраивает. Не
 #: src/components/uikit/ContextMenu/items/VoiceParticipantMenuItems.tsx:155
 #: src/components/voice/VoiceConnectionStatus.tsx:430
 #: src/components/voice/VoiceConnectionStatus.tsx:440
-#: src/components/voice/VoiceControlBar.tsx:326
+#: src/components/voice/VoiceControlBar.tsx:335
 msgid "Turn Off Camera"
 msgstr "Выключить камеру"
 
@@ -17667,7 +17719,7 @@ msgstr "Остановить поток"
 #: src/components/voice/VoiceConnectionStatus.tsx:440
 #: src/components/voice/VoiceConnectionStatus.tsx:704
 #: src/components/voice/VoiceConnectionStatus.tsx:706
-#: src/components/voice/VoiceControlBar.tsx:326
+#: src/components/voice/VoiceControlBar.tsx:335
 msgid "Turn On Camera"
 msgstr "Включить камеру"
 
@@ -17838,8 +17890,8 @@ msgstr "Недоступно для всех, кроме персонала"
 #: src/components/modals/tabs/BlockedUsersTab.tsx:170
 #: src/components/modals/UserProfileActionsSheet.tsx:151
 #: src/components/modals/UserProfileActionsSheet.tsx:305
-#: src/components/modals/UserProfileMobileSheet.tsx:320
-#: src/components/modals/UserProfileModal.tsx:1071
+#: src/components/modals/UserProfileMobileSheet.tsx:319
+#: src/components/modals/UserProfileModal.tsx:1070
 #: src/components/uikit/ContextMenu/items/RelationshipMenuItems.tsx:230
 #: src/utils/RelationshipActionUtils.tsx:169
 msgid "Unblock"
@@ -17852,8 +17904,8 @@ msgstr "Разблокируй этого пользователя, прежде
 #: src/components/modals/guildTabs/GuildMemberActionsSheet.tsx:180
 #: src/components/modals/tabs/BlockedUsersTab.tsx:56
 #: src/components/modals/UserProfileActionsSheet.tsx:149
-#: src/components/modals/UserProfileMobileSheet.tsx:318
-#: src/components/modals/UserProfileModal.tsx:1266
+#: src/components/modals/UserProfileMobileSheet.tsx:317
+#: src/components/modals/UserProfileModal.tsx:1261
 #: src/utils/RelationshipActionUtils.tsx:167
 msgid "Unblock User"
 msgstr "Разблокировать пользователя"
@@ -17878,9 +17930,9 @@ msgstr "Переопределение неактивного аккаунта"
 #: src/components/bottomsheets/VoiceLobbyBottomSheet.tsx:195
 #: src/components/bottomsheets/VoiceParticipantBottomSheet.tsx:262
 #: src/components/bottomsheets/VoiceSettingsBottomSheets.tsx:126
-#: src/components/layout/UserArea.tsx:241
 #: src/components/layout/UserArea.tsx:250
-#: src/components/voice/VoiceControlBar.tsx:251
+#: src/components/layout/UserArea.tsx:259
+#: src/components/voice/VoiceControlBar.tsx:254
 msgid "Undeafen"
 msgstr "Включить звук"
 
@@ -18086,10 +18138,10 @@ msgstr "Откройте стикеры в ЛС с Премиумом"
 #: src/components/bottomsheets/VoiceLobbyBottomSheet.tsx:179
 #: src/components/bottomsheets/VoiceParticipantBottomSheet.tsx:253
 #: src/components/bottomsheets/VoiceParticipantBottomSheet.tsx:279
-#: src/components/layout/UserArea.tsx:208
-#: src/components/layout/UserArea.tsx:219
+#: src/components/layout/UserArea.tsx:214
+#: src/components/layout/UserArea.tsx:225
 #: src/components/media-player/components/MediaVolumeControl.tsx:206
-#: src/components/voice/VoiceControlBar.tsx:243
+#: src/components/voice/VoiceControlBar.tsx:246
 msgid "Unmute"
 msgstr "Включить звук"
 
@@ -18129,7 +18181,7 @@ msgstr "Включить звук беседы"
 msgid "Unmute User"
 msgstr "Включить звук пользователя"
 
-#: src/components/channel/MessageSearchBar/MessageSearchBar.tsx:962
+#: src/components/channel/MessageSearchBar/MessageSearchBar.tsx:953
 msgid "Unnamed"
 msgstr "Безымянный"
 
@@ -18644,11 +18696,11 @@ msgid "User Moved Channel"
 msgstr "Пользователь перемещён в канал"
 
 #: src/components/modals/tabs/ComponentGalleryTab/InputsTab.tsx:133
-#: src/components/modals/UserProfileModal.tsx:967
+#: src/components/modals/UserProfileModal.tsx:966
 msgid "User Profile"
 msgstr "Профиль пользователя"
 
-#: src/components/modals/UserProfileModal.tsx:969
+#: src/components/modals/UserProfileModal.tsx:968
 msgid "User Profile: {tag}"
 msgstr "Профиль пользователя: {tag}"
 
@@ -18656,8 +18708,8 @@ msgstr "Профиль пользователя: {tag}"
 msgid "User Record"
 msgstr "Запись пользователя"
 
-#: src/components/layout/UserArea.tsx:269
-#: src/components/layout/UserArea.tsx:273
+#: src/components/layout/UserArea.tsx:278
+#: src/components/layout/UserArea.tsx:282
 #: src/components/modals/components/DesktopSettingsView.tsx:360
 #: src/components/modals/UserSettingsModal.tsx:153
 msgid "User Settings"
@@ -18912,7 +18964,7 @@ msgid "Video"
 msgstr "Видео"
 
 #: src/components/channel/ChannelHeader.tsx:509
-#: src/components/modals/UserProfileMobileSheet.tsx:515
+#: src/components/modals/UserProfileMobileSheet.tsx:513
 msgid "Video Call"
 msgstr "Видеозвонок"
 
@@ -19011,7 +19063,7 @@ msgid "View Codes"
 msgstr "Посмотреть коды"
 
 #: src/components/modals/UserProfileActionsSheet.tsx:194
-#: src/components/modals/UserProfileModal.tsx:1109
+#: src/components/modals/UserProfileModal.tsx:1108
 msgid "View Community Profile"
 msgstr "Просмотреть профиль сообщества"
 
@@ -19030,7 +19082,7 @@ msgid "View Gift Inventory"
 msgstr "Посмотреть инвентарь подарков"
 
 #: src/components/modals/UserProfileActionsSheet.tsx:194
-#: src/components/modals/UserProfileModal.tsx:1109
+#: src/components/modals/UserProfileModal.tsx:1108
 msgid "View Global Profile"
 msgstr "Посмотреть глобальный профиль"
 
@@ -19147,7 +19199,7 @@ msgstr "Голосовой вызов"
 #: src/components/bottomsheets/DMBottomSheet.tsx:394
 #: src/components/channel/ChannelHeader.tsx:499
 #: src/components/modals/guildTabs/GuildMemberActionsSheet.tsx:227
-#: src/components/modals/UserProfileMobileSheet.tsx:507
+#: src/components/modals/UserProfileMobileSheet.tsx:505
 msgid "Voice Call"
 msgstr "Голосовой вызов"
 
@@ -19255,7 +19307,7 @@ msgstr "Ждём от тебя..."
 msgid "Warning"
 msgstr "Предупреждение"
 
-#: src/components/modals/tabs/MyProfileTab.tsx:534
+#: src/components/modals/tabs/MyProfileTab.tsx:568
 msgid "Warning: You have unsaved changes. Please save your changes or reset the form before leaving."
 msgstr "Внимание: у тебя есть несохранённые изменения. Сохрани их или сбрось форму перед выходом."
 
@@ -19652,7 +19704,7 @@ msgstr "Ежегодно {yearlyPrice}"
 msgid "yesterday"
 msgstr "вчера"
 
-#: src/components/channel/MessageSearchBar/MessageSearchBar.tsx:731
+#: src/components/channel/MessageSearchBar/MessageSearchBar.tsx:722
 msgid "Yesterday"
 msgstr "Вчера"
 
@@ -19787,7 +19839,7 @@ msgstr "Ты можешь использовать ссылки и Markdown дл
 msgid "You can't add new reactions while you're on timeout."
 msgstr "Ты не можешь добавлять реакции, пока на тайм-ауте."
 
-#: src/components/modals/UserProfileModal.tsx:1193
+#: src/components/modals/UserProfileModal.tsx:1192
 msgid "You can't befriend yourself"
 msgstr "Ты не можешь добавить в друзья себя"
 
@@ -19798,11 +19850,11 @@ msgstr "Ты не можешь взаимодействовать с реакц�
 #: src/components/layout/ChannelItem.tsx:204
 #: src/components/layout/ChannelItem.tsx:375
 #: src/stores/voice/MediaEngineFacade.ts:158
-#: src/stores/voice/MediaEngineFacade.ts:573
+#: src/stores/voice/MediaEngineFacade.ts:576
 msgid "You can't join while you're on timeout."
 msgstr "Ты не можешь присоединиться, пока на тайм-ауте."
 
-#: src/components/modals/UserProfileModal.tsx:1205
+#: src/components/modals/UserProfileModal.tsx:1204
 #: src/components/popouts/UserProfilePopout.tsx:280
 #: src/components/profile/ProfilePreview.tsx:268
 msgid "You can't message yourself"
