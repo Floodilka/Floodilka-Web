@@ -76,6 +76,7 @@ import {StatusAwareAvatar} from '~/components/uikit/StatusAwareAvatar';
 import {Tooltip} from '~/components/uikit/Tooltip/Tooltip';
 import {UserArea} from '~/components/layout/UserArea';
 
+import {useHover} from '~/hooks/useHover';
 import {useLeaveGroup} from '~/hooks/useLeaveGroup';
 
 import {getCustomStatusText, normalizeCustomStatus} from '~/lib/customStatus';
@@ -102,6 +103,7 @@ import TypingStore from '~/stores/TypingStore';
 import UserGuildSettingsStore from '~/stores/UserGuildSettingsStore';
 import UserStore from '~/stores/UserStore';
 
+import * as AvatarUtils from '~/utils/AvatarUtils';
 import * as ChannelUtils from '~/utils/ChannelUtils';
 import {getSortedDmChannels} from '~/utils/dmChannelUtils';
 import * as NicknameUtils from '~/utils/NicknameUtils';
@@ -112,6 +114,52 @@ import {SystemMessageUtils} from '~/utils/SystemMessageUtils';
 import * as TimeUtils from '~/utils/TimeUtils';
 
 import styles from './DMList.module.css';
+
+const DMNameplateLayer = observer(
+	({recipientId, recipientNameplate, isHovering}: {
+		recipientId: string;
+		recipientNameplate: string | null;
+		isHovering: boolean;
+	}) => {
+		const [prefersReducedMotion, setPrefersReducedMotion] = useState(() => {
+			if (typeof window === 'undefined' || !window.matchMedia) return false;
+			return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+		});
+
+		useEffect(() => {
+			if (typeof window === 'undefined' || !window.matchMedia) return;
+			const media = window.matchMedia('(prefers-reduced-motion: reduce)');
+			const onChange = (event: MediaQueryListEvent) => setPrefersReducedMotion(event.matches);
+			media.addEventListener('change', onChange);
+			return () => media.removeEventListener('change', onChange);
+		}, []);
+
+		const asset = AvatarUtils.getUserNameplateAsset({id: recipientId, nameplate: recipientNameplate});
+		if (!asset) return null;
+
+		const shouldAnimate = asset.animated && isHovering && !prefersReducedMotion;
+
+		return (
+			<div className={styles.nameplateLayer} aria-hidden="true">
+				{shouldAnimate && asset.videoUrl ? (
+					<video
+						className={styles.nameplateVideo}
+						src={asset.videoUrl}
+						poster={asset.imageUrl}
+						autoPlay
+						loop
+						muted
+						playsInline
+						preload="metadata"
+					/>
+				) : (
+					<span className={styles.nameplate} style={{backgroundImage: `url(${asset.imageUrl})`}} />
+				)}
+				<span className={styles.nameplateOverlay} />
+			</div>
+		);
+	},
+);
 
 const DMListItem = observer(({channel, isSelected}: {channel: ChannelRecord; isSelected: boolean}) => {
 	const {t, i18n} = useLingui();
@@ -135,12 +183,22 @@ const DMListItem = observer(({channel, isSelected}: {channel: ChannelRecord; isS
 	const [isFocused, setIsFocused] = useState(false);
 
 	const scrollTargetRef = useRef<HTMLElement | null>(null);
-	const setDesktopRef = useCallback((node: HTMLButtonElement | null) => {
-		scrollTargetRef.current = node;
-	}, []);
-	const setMobileRef = useCallback((node: HTMLDivElement | null) => {
-		scrollTargetRef.current = node;
-	}, []);
+	const [hoverRef, isHovering] = useHover();
+	const setDesktopRef = useCallback(
+		(node: HTMLButtonElement | null) => {
+			scrollTargetRef.current = node;
+			hoverRef(node);
+		},
+		[hoverRef],
+	);
+	const setMobileRef = useCallback(
+		(node: HTMLDivElement | null) => {
+			scrollTargetRef.current = node;
+			hoverRef(node);
+		},
+		[hoverRef],
+	);
+	const hasNameplate = !isGroupDM && Boolean(recipient?.nameplate);
 
 	useEffect(() => {
 		if (isSelected) {
@@ -407,6 +465,13 @@ const DMListItem = observer(({channel, isSelected}: {channel: ChannelRecord; isS
 						onClick={navigateTo}
 						onContextMenu={handleContextMenu}
 					>
+						{hasNameplate && recipient && (
+							<DMNameplateLayer
+								recipientId={recipient.id}
+								recipientNameplate={recipient.nameplate ?? null}
+								isHovering={isHovering}
+							/>
+						)}
 						<AnimatePresence>
 							{hasUnreadMessages() && (
 								<div className={styles.dmItemUnreadIndicatorContainerMobile}>
@@ -414,7 +479,7 @@ const DMListItem = observer(({channel, isSelected}: {channel: ChannelRecord; isS
 								</div>
 							)}
 						</AnimatePresence>
-						<div className={styles.dmItemContent}>
+						<div className={clsx(styles.dmItemContent, hasNameplate && styles.dmItemContentOnPlate)}>
 							<div className={styles.dmItemAvatarWrapper}>
 								{isGroupDM ? (
 									<GroupDMAvatar channel={channel} size={40} />
@@ -487,6 +552,13 @@ const DMListItem = observer(({channel, isSelected}: {channel: ChannelRecord; isS
 					onFocus={() => setIsFocused(true)}
 					onBlur={() => setIsFocused(false)}
 				>
+					{hasNameplate && recipient && (
+						<DMNameplateLayer
+							recipientId={recipient.id}
+							recipientNameplate={recipient.nameplate ?? null}
+							isHovering={isHovering}
+						/>
+					)}
 					<AnimatePresence>
 						{hasUnreadMessages() && (
 							<div className={styles.dmItemUnreadIndicatorContainerDesktop}>
@@ -494,7 +566,7 @@ const DMListItem = observer(({channel, isSelected}: {channel: ChannelRecord; isS
 							</div>
 						)}
 					</AnimatePresence>
-					<div className={styles.dmItemContent}>
+					<div className={clsx(styles.dmItemContent, hasNameplate && styles.dmItemContentOnPlate)}>
 						<div className={styles.dmItemAvatarWrapper}>
 							{isGroupDM ? (
 								<GroupDMAvatar channel={channel} size={32} />

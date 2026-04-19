@@ -16,6 +16,7 @@ declare const styles: {
   readonly "dmItemCallBadge": string;
   readonly "dmItemCloseButton": string;
   readonly "dmItemContent": string;
+  readonly "dmItemContentOnPlate": string;
   readonly "dmItemCustomStatus": string;
   readonly "dmItemInfo": string;
   readonly "dmItemMembersSubtext": string;
@@ -51,6 +52,10 @@ declare const styles: {
   readonly "dmSectionSeparator": string;
   readonly "iconSize4": string;
   readonly "iconSize5": string;
+  readonly "nameplate": string;
+  readonly "nameplateLayer": string;
+  readonly "nameplateOverlay": string;
+  readonly "nameplateVideo": string;
   readonly "mobileAddFriendBadge": string;
   readonly "mobileAddFriendButton": string;
   readonly "mobileContainer": string;
