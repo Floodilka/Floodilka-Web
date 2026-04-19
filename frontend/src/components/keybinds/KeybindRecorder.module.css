@@ -50,13 +50,15 @@
 	left: 0;
 	display: flex;
 	align-items: center;
+	justify-content: center;
+	gap: 0.5rem;
+	padding: 0 1rem;
 }
 
 .editIconLeft {
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	width: 32px;
 	flex-shrink: 0;
 	color: var(--text-primary-muted);
 	transition: color 0.15s ease;
@@ -68,7 +70,7 @@
 }
 
 .inputWrapper {
-	flex: 1 1 auto;
+	flex: 0 1 auto;
 	min-width: 0;
 	position: relative;
 	z-index: 1;
@@ -81,14 +83,14 @@
 
 .input {
 	display: block;
-	width: 100%;
 	box-sizing: border-box;
-	padding: 0.625rem 1rem 0.625rem 0;
+	padding: 0.625rem 0;
 	font-family: inherit;
 	font-weight: inherit;
 	font-size: inherit;
 	line-height: 1.25rem;
 	color: var(--text-primary);
+	text-align: center;
 	white-space: nowrap;
 	text-overflow: ellipsis;
 	overflow: hidden;
