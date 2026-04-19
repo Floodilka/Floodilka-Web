@@ -58,10 +58,7 @@ export const NameplateUploader = observer(
 
 				const base64 = await AvatarUtils.fileToBase64(file);
 
-				const isAnimatedInput =
-					file.type.startsWith('video/') || file.type === 'image/gif' || file.type === 'image/webp';
-
-				if (isAnimatedInput) {
+				if (file.type.startsWith('video/')) {
 					onNameplateChange(base64);
 					return;
 				}
