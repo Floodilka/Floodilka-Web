@@ -37,12 +37,55 @@
 	background-color: var(--background-global-color);
 }
 
-.placeholderRow {
+.skeletonItem {
+	display: grid;
 	height: 42px;
-	border-radius: 0.375rem;
-	background-color: var(--background-modifier-hover);
-	opacity: 0.25;
-	margin-bottom: 2px;
+	min-width: 0;
+	grid-template-columns: 1fr auto;
+	align-items: center;
+	gap: 0.25rem;
+	padding-left: 0.5rem;
+	padding-right: 0.5rem;
+	margin-top: 1px;
+	margin-bottom: 1px;
+}
+
+.skeletonContent {
+	display: flex;
+	min-width: 0;
+	align-items: center;
+	gap: 0.625rem;
+}
+
+.skeletonAvatar {
+	width: 32px;
+	height: 32px;
+	border-radius: 8px;
+	flex-shrink: 0;
+	background: var(--background-modifier-accent);
+	opacity: 0.45;
+}
+
+.skeletonUserInfoContainer {
+	display: flex;
+	flex-direction: column;
+	min-width: 0;
+	flex-grow: 1;
+	gap: 2px;
+}
+
+.skeletonName {
+	height: 10px;
+	border-radius: 2px;
+	background: var(--background-modifier-accent);
+	opacity: 0.45;
+}
+
+.skeletonStatus {
+	height: 8px;
+	border-radius: 2px;
+	background: var(--background-modifier-accent);
+	opacity: 0.35;
 }
 
 .row {

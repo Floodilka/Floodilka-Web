@@ -59,7 +59,7 @@ export const NameplatePreview: React.FC<NameplatePreviewProps> = observer(
 					<Trans>Nameplate Preview</Trans>
 				</div>
 				<div className={styles.card}>
-					<div className={styles.placeholderRow} aria-hidden="true" />
+					<SkeletonMemberItem index={0} />
 					<div className={clsx(styles.row, nameplateImageUrl && styles.nameplateActive)}>
 						{nameplateImageUrl && (
 							<>
@@ -80,10 +80,32 @@ export const NameplatePreview: React.FC<NameplatePreviewProps> = observer(
 							<span className={styles.name}>{displayName}</span>
 						</div>
 					</div>
-					<div className={styles.placeholderRow} aria-hidden="true" />
-					<div className={styles.placeholderRow} aria-hidden="true" />
+					<SkeletonMemberItem index={1} />
 				</div>
 			</div>
 		);
 	},
 );
+
+const SkeletonMemberItem: React.FC<{index: number}> = ({index}) => {
+	const seededRandom = (seed: number) => {
+		const x = Math.sin(seed) * 10000;
+		return x - Math.floor(x);
+	};
+
+	const baseSeed = (index + 1) * 17;
+	const nameWidth = 40 + seededRandom(baseSeed) * 40;
+	const statusWidth = 30 + seededRandom(baseSeed + 1) * 50;
+
+	return (
+		<div className={styles.skeletonItem} aria-hidden="true">
+			<div className={styles.skeletonContent}>
+				<div className={styles.skeletonAvatar} />
+				<div className={styles.skeletonUserInfoContainer}>
+					<div className={styles.skeletonName} style={{width: `${Math.min(nameWidth, 95)}%`}} />
+					<div className={styles.skeletonStatus} style={{width: `${Math.min(statusWidth, 95)}%`}} />
+				</div>
+			</div>
+		</div>
+	);
+};
