@@ -11,6 +11,7 @@ declare const styles: {
   readonly "name": string;
   readonly "nameContainer": string;
   readonly "nameplate": string;
+  readonly "nameplateActive": string;
   readonly "nameplateOverlay": string;
   readonly "nameplateVideo": string;
   readonly "ownerIcon": string;

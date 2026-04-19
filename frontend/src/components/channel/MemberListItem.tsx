@@ -168,13 +168,16 @@ export const MemberListItem: React.FC<MemberListItemProps> = observer((props) =>
 						<span className={styles.nameplateOverlay} aria-hidden="true" />
 					</>
 				) : nameplateAsset ? (
-					<span
-						className={styles.nameplate}
-						style={{backgroundImage: `url(${nameplateAsset.imageUrl})`}}
-						aria-hidden="true"
-					/>
+					<>
+						<span
+							className={styles.nameplate}
+							style={{backgroundImage: `url(${nameplateAsset.imageUrl})`}}
+							aria-hidden="true"
+						/>
+						<span className={styles.nameplateOverlay} aria-hidden="true" />
+					</>
 				) : null}
-				<div className={styles.grid}>
+				<div className={clsx(styles.grid, nameplateAsset && styles.nameplateActive)}>
 					<span className={styles.content}>
 						<div className={styles.avatarContainer}>
 							<StatusAwareAvatar
