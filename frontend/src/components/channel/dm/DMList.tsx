@@ -580,6 +580,7 @@ const DMListItem = observer(({channel, isSelected}: {channel: ChannelRecord; isS
 							<span className={styles.dmItemName}>
 								{channel.isPinned && <PushPinIcon weight="fill" className={styles.dmItemPinIcon} />}
 								<span className={styles.dmItemNameText}>{displayName}</span>
+								{!isGroupDM && recipient && <UserBadgesInline user={recipient} />}
 								{!isGroupDM && isBotDM && <UserTag className={styles.dmItemUserTag} system={recipient?.system} />}
 							</span>
 							{!isGroupDM && recipient && !messagePreview && (
