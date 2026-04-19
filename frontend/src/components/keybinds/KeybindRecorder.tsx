@@ -18,7 +18,7 @@
  */
 
 import {Trans, useLingui} from '@lingui/react/macro';
-import {ArrowCounterClockwiseIcon, KeyboardIcon, PencilSimpleIcon, TrashIcon, WarningIcon} from '@phosphor-icons/react';
+import {ArrowCounterClockwiseIcon, KeyboardIcon, TrashIcon, WarningIcon} from '@phosphor-icons/react';
 import clsx from 'clsx';
 import React from 'react';
 import {Button} from '~/components/uikit/Button/Button';
@@ -327,9 +327,6 @@ export const KeybindRecorder: React.FC<KeybindRecorderProps> = ({
 				aria-label={t`Edit keyboard shortcut for ${action}`}
 			>
 				<div className={styles.layout}>
-					<div className={styles.editIconLeft} aria-hidden>
-						<PencilSimpleIcon size={14} weight="bold" />
-					</div>
 					<div className={styles.inputWrapper}>
 						<span className={styles.input}>{hasValue ? displayValue : t`No keybind set`}</span>
 					</div>
