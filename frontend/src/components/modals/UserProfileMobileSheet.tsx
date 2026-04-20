@@ -249,6 +249,11 @@ const UserProfileMobileSheetContent: React.FC<UserProfileMobileSheetContentProps
 			[profileContext, shouldAutoplayProfileAnimations],
 		);
 
+		const bannerAsset = React.useMemo(
+			() => ProfileDisplayUtils.getProfileBannerAsset(profileContext),
+			[profileContext],
+		);
+
 		const effectiveProfile = React.useMemo(() => {
 			if (showGlobalProfile) {
 				return profile?.userProfile ?? null;
@@ -419,7 +424,18 @@ const UserProfileMobileSheetContent: React.FC<UserProfileMobileSheetContentProps
 							<Scroller key="user-profile-mobile-sheet-scroller">
 								<div style={{paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 1rem)'}}>
 									<div className={styles.bannerContainer}>
-										{bannerUrl ? (
+										{bannerAsset?.videoUrl ? (
+											<video
+												className={styles.bannerImage}
+												src={bannerAsset.videoUrl}
+												poster={bannerAsset.imageUrl}
+												autoPlay
+												loop
+												muted
+												playsInline
+												aria-hidden="true"
+											/>
+										) : bannerUrl ? (
 											<div className={styles.bannerImage} style={{backgroundImage: `url(${bannerUrl})`}} />
 										) : (
 											<div className={styles.bannerColor} style={{backgroundColor: bannerColor}} />

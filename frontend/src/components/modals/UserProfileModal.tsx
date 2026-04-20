@@ -312,6 +312,11 @@ const ProfileModalContent: React.FC<ProfileModalContentProps> = observer(
 			[profileContext, previewOverrides, shouldAutoplayProfileAnimations],
 		);
 
+		const bannerAsset = React.useMemo(
+			() => ProfileDisplayUtils.getProfileBannerAsset(profileContext, previewOverrides),
+			[profileContext, previewOverrides],
+		);
+
 		type MutualView = 'mutual_friends' | 'mutual_communities' | 'mutual_groups';
 
 		const [activeTab, setActiveTab] = React.useState<'overview' | 'mutual'>('overview');
@@ -651,7 +656,18 @@ const ProfileModalContent: React.FC<ProfileModalContentProps> = observer(
 							</mask>
 
 							<foreignObject x="0" y="0" width="600" height="210" overflow="visible" mask={`url(#${maskId})`}>
-								{bannerUrl ? (
+								{bannerAsset?.videoUrl ? (
+									<video
+										className={userProfileModalStyles.bannerImage}
+										src={bannerAsset.videoUrl}
+										poster={bannerAsset.imageUrl}
+										autoPlay
+										loop
+										muted
+										playsInline
+										aria-hidden="true"
+									/>
+								) : bannerUrl ? (
 									<div
 										className={userProfileModalStyles.bannerImage}
 										style={{

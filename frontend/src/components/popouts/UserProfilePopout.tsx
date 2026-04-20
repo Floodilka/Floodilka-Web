@@ -181,6 +181,10 @@ export const UserProfilePopout: React.FC<UserProfilePopoutProps> = observer(
 			() => ProfileDisplayUtils.getProfileBannerUrl(profileContext, undefined, shouldAutoplayProfileAnimations, 600),
 			[profileContext, shouldAutoplayProfileAnimations],
 		);
+		const bannerAsset = React.useMemo(
+			() => ProfileDisplayUtils.getProfileBannerAsset(profileContext, undefined, 600),
+			[profileContext],
+		);
 
 		const popoutContainerRef = React.useRef<HTMLDivElement | null>(null);
 		const displayName = NicknameUtils.getNickname(user, guildId);
@@ -201,6 +205,7 @@ export const UserProfilePopout: React.FC<UserProfilePopoutProps> = observer(
 					<ProfileCardLayout hoverRef={hoverRef}>
 						<ProfileCardBanner
 							bannerUrl={bannerUrl as string | null}
+							bannerVideoUrl={bannerAsset?.videoUrl ?? null}
 							bannerColor={bannerColor}
 							user={user}
 							avatarUrl={avatarUrl}

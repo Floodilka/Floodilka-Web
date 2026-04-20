@@ -135,6 +135,11 @@ export const ProfilePreview: React.FC<ProfilePreviewProps> = observer(
 			[profileContext, previewOverrides, shouldAutoplayProfileAnimations],
 		) as string | null;
 
+		const finalBannerAsset = React.useMemo(
+			() => ProfileDisplayUtils.getProfileBannerAsset(profileContext, previewOverrides),
+			[profileContext, previewOverrides],
+		);
+
 		const previewUser = React.useMemo(() => {
 			const bio = previewBio !== undefined ? previewBio : user.bio;
 			const globalName = previewGlobalName !== undefined ? previewGlobalName : user.globalName;
@@ -222,6 +227,7 @@ export const ProfilePreview: React.FC<ProfilePreviewProps> = observer(
 					<ProfileCardLayout showPreviewLabel={showPreviewLabel}>
 						<ProfileCardBanner
 							bannerUrl={finalBannerUrl}
+							bannerVideoUrl={finalBannerAsset?.videoUrl ?? null}
 							bannerColor={bannerColor}
 							user={user}
 							avatarUrl={finalAvatarUrl}

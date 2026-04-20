@@ -51,6 +51,8 @@
 	background-position: center;
 	background-size: cover;
 	background-repeat: no-repeat;
+	object-fit: cover;
+	object-position: center;
 }
 
 .bannerColor {

@@ -125,6 +125,56 @@ export function getProfileBannerUrl(
 	return null;
 }
 
+export function getProfileBannerAsset(
+	context: ProfileDisplayContext,
+	overrides?: ProfilePreviewOverrides,
+	size = 1024,
+): AvatarUtils.BannerAsset | null {
+	const {user, profile, guildId, guildMember, guildMemberProfile} = context;
+	const {previewBannerUrl, hasClearedBanner, ignoreGuildBanner} = overrides || {};
+
+	if (hasClearedBanner) {
+		return null;
+	}
+
+	if (previewBannerUrl) {
+		return {animated: false, videoUrl: null, imageUrl: previewBannerUrl};
+	}
+
+	if (!ignoreGuildBanner && guildId && guildMember) {
+		if (guildMember.isBannerUnset()) {
+			return null;
+		}
+		if (guildMemberProfile?.banner) {
+			if (guildMemberProfile.banner.startsWith('blob:') || guildMemberProfile.banner.startsWith('data:')) {
+				return {animated: false, videoUrl: null, imageUrl: guildMemberProfile.banner};
+			}
+			return AvatarUtils.getGuildMemberBannerAsset({
+				guildId,
+				userId: user.id,
+				banner: guildMemberProfile.banner,
+				size,
+			});
+		}
+	}
+
+	let effectiveBanner: string | null = null;
+	if (profile?.userProfile?.banner) {
+		effectiveBanner = profile.userProfile.banner;
+	} else if (user.banner) {
+		effectiveBanner = user.banner;
+	}
+
+	if (effectiveBanner) {
+		if (effectiveBanner.startsWith('blob:') || effectiveBanner.startsWith('data:')) {
+			return {animated: false, videoUrl: null, imageUrl: effectiveBanner};
+		}
+		return AvatarUtils.getUserBannerAsset({id: user.id, banner: effectiveBanner}, size);
+	}
+
+	return null;
+}
+
 export function getProfileAvatarUrls(
 	context: ProfileDisplayContext,
 	overrides?: ProfilePreviewOverrides,

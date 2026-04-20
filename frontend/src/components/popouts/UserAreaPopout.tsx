@@ -367,6 +367,13 @@ export const UserAreaPopout = observer(() => {
 			| null;
 	}, [profileContext, shouldAutoplayProfileAnimations]);
 
+	const bannerAsset = React.useMemo(() => {
+		if (!profileContext) {
+			return null;
+		}
+		return ProfileDisplayUtils.getProfileBannerAsset(profileContext);
+	}, [profileContext]);
+
 	const bannerColor = (profileData?.banner_color != null ? ColorUtils.int2hex(profileData.banner_color) : null) || DEFAULT_ACCENT_COLOR;
 
 	const displayName = currentUser ? NicknameUtils.getNickname(currentUser) : '';
@@ -385,6 +392,7 @@ export const UserAreaPopout = observer(() => {
 				<ProfileCardLayout>
 					<ProfileCardBanner
 						bannerUrl={bannerUrl}
+						bannerVideoUrl={bannerAsset?.videoUrl ?? null}
 						bannerColor={bannerColor}
 						user={currentUser}
 						avatarUrl={avatarUrl}
