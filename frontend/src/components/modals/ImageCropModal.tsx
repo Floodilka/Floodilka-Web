@@ -370,6 +370,8 @@ async function exportStaticImage(
 	return blob;
 }
 
+const GIF_CROP_SCALE_ATTEMPTS = [1.0, 0.75, 0.5, 0.35];
+
 async function exportAnimatedGif(
 	image: HTMLImageElement,
 	displayDimensions: Size,
@@ -385,49 +387,59 @@ async function exportAnimatedGif(
 	const cropNativeWidth = cropDimensions.width * scale;
 	const cropNativeHeight = cropDimensions.height * scale;
 
-	const {w: targetW, h: targetH} = containSize(cropNativeWidth, cropNativeHeight, maxW, maxH);
-
-	const geom = computeCropGeometry({
-		image,
-		displayDimensions,
-		cropDimensions,
-		cropOrigin,
-		maxDimensions: {width: targetW, height: targetH},
-		rotationDeg,
-	});
-
 	const response = await fetch(src);
 	if (!response.ok) {
 		throw new Error('Failed to fetch GIF data');
 	}
-	const buffer = await response.arrayBuffer();
-	const gifBytes = new Uint8Array(buffer);
+	const originalBuffer = await response.arrayBuffer();
 
-	const cropOptions = {
-		x: Math.max(0, Math.floor(geom.sourceX)),
-		y: Math.max(0, Math.floor(geom.sourceY)),
-		width: Math.max(1, Math.floor(geom.sourceWidth)),
-		height: Math.max(1, Math.floor(geom.sourceHeight)),
-		imageRotation: rotationDeg,
-		resizeWidth: Math.floor(targetW),
-		resizeHeight: Math.floor(targetH),
-	};
-	snapCropOptionsToImageBounds(cropOptions, image);
-
-	const resultBytes = await cropGifWithWorker(gifBytes, cropOptions);
-	const resultBlob = new Blob([new Uint8Array(resultBytes)], {type: 'image/gif'});
-
-	if (resultBlob.size === 0) {
-		throw new Error('Empty GIF blob returned');
-	}
-
-	if (resultBlob.size > maxBytes) {
-		throw new Error(
-			`GIF size ${(resultBlob.size / 1024).toFixed(1)} KB exceeds max ${(maxBytes / 1024).toFixed(0)} KB`,
+	let lastSize = 0;
+	for (const attemptScale of GIF_CROP_SCALE_ATTEMPTS) {
+		const {w: targetW, h: targetH} = containSize(
+			cropNativeWidth,
+			cropNativeHeight,
+			Math.max(1, Math.floor(maxW * attemptScale)),
+			Math.max(1, Math.floor(maxH * attemptScale)),
 		);
+
+		const geom = computeCropGeometry({
+			image,
+			displayDimensions,
+			cropDimensions,
+			cropOrigin,
+			maxDimensions: {width: targetW, height: targetH},
+			rotationDeg,
+		});
+
+		const cropOptions = {
+			x: Math.max(0, Math.floor(geom.sourceX)),
+			y: Math.max(0, Math.floor(geom.sourceY)),
+			width: Math.max(1, Math.floor(geom.sourceWidth)),
+			height: Math.max(1, Math.floor(geom.sourceHeight)),
+			imageRotation: rotationDeg,
+			resizeWidth: Math.floor(targetW),
+			resizeHeight: Math.floor(targetH),
+		};
+		snapCropOptionsToImageBounds(cropOptions, image);
+
+		const gifBytes = new Uint8Array(originalBuffer.slice(0));
+		const resultBytes = await cropGifWithWorker(gifBytes, cropOptions);
+		const resultBlob = new Blob([new Uint8Array(resultBytes)], {type: 'image/gif'});
+
+		if (resultBlob.size === 0) {
+			throw new Error('Empty GIF blob returned');
+		}
+
+		if (resultBlob.size <= maxBytes) {
+			return resultBlob;
+		}
+
+		lastSize = resultBlob.size;
 	}
 
-	return resultBlob;
+	throw new Error(
+		`GIF size ${(lastSize / 1024).toFixed(1)} KB exceeds max ${(maxBytes / 1024).toFixed(0)} KB`,
+	);
 }
 
 function snapCropOptionsToImageBounds(options: GifCropOptions, image: HTMLImageElement): void {
