@@ -37,6 +37,7 @@ interface BotProfileSectionProps {
 	hasAvatar: boolean;
 	hasClearedAvatar: boolean;
 	displayBannerUrl: string | null;
+	displayBannerVideoUrl?: string | null;
 	hasBanner: boolean;
 	hasClearedBanner: boolean;
 	onAvatarChange: (value: string) => void;
@@ -52,6 +53,7 @@ export const BotProfileSection: React.FC<BotProfileSectionProps> = ({
 	hasAvatar,
 	hasClearedAvatar,
 	displayBannerUrl,
+	displayBannerVideoUrl = null,
 	hasBanner,
 	hasClearedBanner,
 	onAvatarChange,
@@ -139,6 +141,7 @@ export const BotProfileSection: React.FC<BotProfileSectionProps> = ({
 
 				<ImagePreviewField
 					imageUrl={hasBanner && !hasClearedBanner ? displayBannerUrl : null}
+					videoUrl={hasBanner && !hasClearedBanner ? displayBannerVideoUrl : null}
 					showPlaceholder={!hasBanner || hasClearedBanner}
 					placeholderText={t`No bot banner`}
 					altText={t`Bot banner preview`}
