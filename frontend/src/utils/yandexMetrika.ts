@@ -23,44 +23,60 @@ const logger = new Logger('YandexMetrika');
 
 const TAG_SCRIPT_URL = 'https://mc.yandex.ru/metrika/tag.js';
 
-type YmMethod = 'init' | 'hit' | 'reachGoal' | 'setUserID' | 'userParams';
+type YmMethod =
+	| 'init'
+	| 'hit'
+	| 'reachGoal'
+	| 'setUserID'
+	| 'userParams'
+	| 'params'
+	| 'extLink'
+	| 'file'
+	| 'notBounce'
+	| 'getClientID';
+
+type YmFn = (counterId: number, method: YmMethod, ...args: unknown[]) => void;
+type YmStub = YmFn & {a?: unknown[][]; l?: number};
 
 declare global {
 	interface Window {
-		ym?: (counterId: number, method: YmMethod, ...args: unknown[]) => void;
+		ym?: YmStub;
 	}
 }
 
 let counterId: number | null = null;
-let scriptLoadPromise: Promise<void> | null = null;
+let bootstrapped = false;
 
-function loadTagScript(): Promise<void> {
-	if (scriptLoadPromise) return scriptLoadPromise;
+function bootstrap(): void {
+	if (bootstrapped) return;
+	bootstrapped = true;
 
-	scriptLoadPromise = new Promise<void>((resolve, reject) => {
-		if (window.ym) {
-			resolve();
-			return;
-		}
+	if (!window.ym) {
+		const stub: YmStub = function (...args: unknown[]) {
+			(stub.a = stub.a || []).push(args);
+		} as YmStub;
+		stub.l = Date.now();
+		window.ym = stub;
+	}
 
-		const script = document.createElement('script');
-		script.src = TAG_SCRIPT_URL;
-		script.async = true;
-		script.onload = () => {
-			logger.info('Yandex Metrika tag.js loaded');
-			resolve();
-		};
-		script.onerror = () => {
-			scriptLoadPromise = null;
-			reject(new Error('Failed to load Yandex Metrika tag.js'));
-		};
+	if (document.querySelector(`script[src="${TAG_SCRIPT_URL}"]`)) return;
+
+	const script = document.createElement('script');
+	script.src = TAG_SCRIPT_URL;
+	script.async = true;
+	script.onerror = () => {
+		logger.warn('Failed to load Yandex Metrika tag.js');
+	};
+
+	const firstScript = document.getElementsByTagName('script')[0];
+	if (firstScript?.parentNode) {
+		firstScript.parentNode.insertBefore(script, firstScript);
+	} else {
 		document.head.appendChild(script);
-	});
-
-	return scriptLoadPromise;
+	}
 }
 
-export async function initYandexMetrika(id: string): Promise<void> {
+export function initYandexMetrika(id: string): void {
 	const parsed = Number(id);
 	if (!parsed || !Number.isFinite(parsed)) {
 		logger.warn('Invalid Yandex Metrika counter ID:', id);
@@ -68,20 +84,9 @@ export async function initYandexMetrika(id: string): Promise<void> {
 	}
 
 	counterId = parsed;
+	bootstrap();
 
-	try {
-		await loadTagScript();
-	} catch (error) {
-		logger.warn('Failed to initialize Yandex Metrika', error);
-		return;
-	}
-
-	if (!window.ym) {
-		logger.warn('window.ym not available after script load');
-		return;
-	}
-
-	window.ym(counterId, 'init', {
+	window.ym!(parsed, 'init', {
 		defer: true,
 		clickmap: true,
 		trackLinks: true,
@@ -89,15 +94,15 @@ export async function initYandexMetrika(id: string): Promise<void> {
 		webvisor: true,
 	});
 
-	logger.info('Yandex Metrika initialized, counter:', counterId);
+	logger.info('Yandex Metrika queued, counter:', parsed);
 }
 
 export function trackPageView(url: string, title?: string): void {
-	if (!counterId || !window.ym) return;
+	if (counterId == null || !window.ym) return;
 	window.ym(counterId, 'hit', url, {title});
 }
 
 export function reachGoal(target: string, params?: Record<string, unknown>): void {
-	if (!counterId || !window.ym) return;
+	if (counterId == null || !window.ym) return;
 	window.ym(counterId, 'reachGoal', target, params);
 }

@@ -53,7 +53,7 @@ import {initYandexMetrika} from './utils/yandexMetrika';
 preloadClientInfo();
 
 if (Config.PUBLIC_YANDEX_METRIKA_ID) {
-	initYandexMetrika(Config.PUBLIC_YANDEX_METRIKA_ID).catch(() => {});
+	initYandexMetrika(Config.PUBLIC_YANDEX_METRIKA_ID);
 }
 
 const normalizePathSegment = (value: string): string => value.replace(/^\/+|\/+$/g, '');
