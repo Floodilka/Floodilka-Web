@@ -41,9 +41,14 @@
 ) -> {reply, map(), guild_state()}.
 handle_voice_disconnect(undefined, _SessionId, _UserId, _VoiceStates, State) ->
     {reply, gateway_errors:error(voice_missing_connection_id), State};
-handle_voice_disconnect(ConnectionId, _SessionId, UserId, VoiceStates0, State) ->
+handle_voice_disconnect(ConnectionId, SessionId, UserId, VoiceStates0, State) ->
     VoiceStates = voice_state_utils:ensure_voice_states(VoiceStates0),
-    case maps:get(ConnectionId, VoiceStates, undefined) of
+    Existing = maps:get(ConnectionId, VoiceStates, undefined),
+    logger:info(
+        "[guild_voice_disconnect] handle_voice_disconnect: session_id=~p user_id=~p connection_id=~p exists_in_voice_states=~p",
+        [SessionId, UserId, ConnectionId, Existing =/= undefined]
+    ),
+    case Existing of
         undefined ->
             State1 = cleanup_pending_voice_connection(ConnectionId, State),
             {reply, #{success => true}, State1};
@@ -70,6 +75,10 @@ handle_voice_disconnect(ConnectionId, _SessionId, UserId, VoiceStates0, State) -
                                 #{ConnectionId => OldVoiceState}, NewState
                             ),
                             FinalState = cleanup_virtual_channel_access_for_user(UserId, NewState),
+                            logger:info(
+                                "[guild_voice_disconnect] scheduling force_disconnect (source=client_self_leave): guild_id=~p channel_id=~p user_id=~p connection_id=~p",
+                                [GuildId, ChannelId, UserId, ConnectionId]
+                            ),
                             maybe_force_disconnect_async(GuildId, ChannelId, UserId, ConnectionId, FinalState),
                             {reply, #{success => true}, FinalState}
                     end

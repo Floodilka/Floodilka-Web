@@ -40,6 +40,11 @@ handle_voice_state_update(Data, State) ->
     UserId = maps:get(user_id, State),
     Guilds = maps:get(guilds, State),
 
+    logger:info(
+        "[session_voice] voice_state_update: session_id=~p user_id=~p guild_id=~p channel_id=~p connection_id=~p self_mute=~p self_deaf=~p is_mobile=~p",
+        [SessionId, UserId, GuildIdRaw, ChannelIdRaw, ConnectionId, SelfMute, SelfDeaf, IsMobile]
+    ),
+
     GuildIdResult = validation:validate_optional_snowflake(GuildIdRaw),
     ChannelIdResult = validation:validate_optional_snowflake(ChannelIdRaw),
 

@@ -30,6 +30,22 @@ import {isDMRoom, parseParticipantIdentity, parseParticipantMetadataWithRaw, par
 const FREE_MAX_WIDTH = 1280;
 const FREE_MAX_HEIGHT = 720;
 
+const DISCONNECT_REASON_NAMES: Record<number, string> = {
+	0: 'UNKNOWN_REASON',
+	1: 'CLIENT_INITIATED',
+	2: 'DUPLICATE_IDENTITY',
+	3: 'SERVER_SHUTDOWN',
+	4: 'PARTICIPANT_REMOVED',
+	5: 'ROOM_DELETED',
+	6: 'STATE_MISMATCH',
+	7: 'JOIN_FAILURE',
+	8: 'MIGRATION',
+	9: 'SIGNAL_CLOSE',
+	10: 'ROOM_CLOSED',
+	11: 'USER_UNAVAILABLE',
+	12: 'USER_REJECTED',
+};
+
 export class LiveKitWebhookService {
 	private receivers: Map<string, WebhookReceiver>;
 	private serverMap: Map<string, {regionId: string; serverId: string}>;
@@ -203,13 +219,17 @@ export class LiveKitWebhookService {
 		const {context} = parsed;
 
 		try {
+			const disconnectReasonCode = participant.disconnectReason ?? 0;
+			const disconnectReasonName = DISCONNECT_REASON_NAMES[disconnectReasonCode] ?? `UNKNOWN(${disconnectReasonCode})`;
+
 			if (context.type === 'dm') {
 				Logger.info(
 					{
 						channelId: context.channelId.toString(),
 						userId: context.userId.toString(),
 						connectionId: context.connectionId,
-						disconnectReason: participant.disconnectReason,
+						disconnectReason: disconnectReasonCode,
+						disconnectReasonName,
 					},
 					'LiveKit participant_left - disconnecting DM call user',
 				);
@@ -226,7 +246,8 @@ export class LiveKitWebhookService {
 						userId: context.userId.toString(),
 						channelId: context.channelId.toString(),
 						connectionId: context.connectionId,
-						disconnectReason: participant.disconnectReason,
+						disconnectReason: disconnectReasonCode,
+						disconnectReasonName,
 					},
 					'LiveKit participant_left - disconnecting guild voice user',
 				);

@@ -304,7 +304,12 @@ handle_info(bot_initial_ready, State) ->
 handle_info(resume_timeout, State) ->
     SocketPid = maps:get(socket_pid, State, undefined),
     case SocketPid of
-        undefined -> {stop, normal, State};
+        undefined ->
+            logger:info(
+                "[session] resume_timeout expired, terminating: session_id=~p user_id=~p",
+                [maps:get(id, State, undefined), maps:get(user_id, State, undefined)]
+            ),
+            {stop, normal, State};
         _ -> {noreply, State}
     end;
 handle_info({'DOWN', Ref, process, _Pid, Reason}, State) ->
@@ -312,7 +317,11 @@ handle_info({'DOWN', Ref, process, _Pid, Reason}, State) ->
 handle_info(_Info, State) ->
     {noreply, State}.
 
-terminate(_Reason, _State) ->
+terminate(Reason, State) ->
+    logger:info(
+        "[session] terminate: session_id=~p user_id=~p reason=~p",
+        [maps:get(id, State, undefined), maps:get(user_id, State, undefined), Reason]
+    ),
     ok.
 
 code_change(_OldVsn, State, _Extra) ->

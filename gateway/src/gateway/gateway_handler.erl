@@ -352,6 +352,7 @@ handle_gateway_payload(
             case validate_identify_data(Data) of
                 {ok, Token, Properties, Presence, IgnoredEvents, Flags, InitialGuildId} ->
                     SessionId = utils:generate_session_id(),
+                    logger:info("[gateway_handler] IDENTIFY: new_session_id=~p peer_ip=~p", [SessionId, PeerIP]),
                     SocketPid = self(),
                     IdentifyData0 = #{
                         token => Token,
@@ -425,7 +426,12 @@ handle_gateway_payload(resume, #{<<"d">> := Data}, State) ->
     SessionId = maps:get(<<"session_id">>, Data),
     Seq = maps:get(<<"seq">>, Data),
 
-    case gen_server:call(session_manager, {lookup, SessionId}, 5000) of
+    LookupResult = gen_server:call(session_manager, {lookup, SessionId}, 5000),
+    logger:info(
+        "[gateway_handler] RESUME: session_id=~p seq=~p result=~p",
+        [SessionId, Seq, element(1, LookupResult)]
+    ),
+    case LookupResult of
         {ok, Pid} when is_pid(Pid) ->
             handle_resume_with_session(Pid, Token, SessionId, Seq, State);
         {error, not_found} ->
