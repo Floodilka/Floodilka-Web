@@ -127,7 +127,8 @@ partial_user_fields() ->
         <<"system">>,
         <<"flags">>,
         <<"banner">>,
-        <<"banner_color">>
+        <<"banner_color">>,
+        <<"nameplate">>
     ].
 
 check_user_data_differs(CurrentUserData, NewUserData) ->
