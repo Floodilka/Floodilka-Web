@@ -96,7 +96,7 @@ export const createNameplateRouteHandler = (coalescer: InMemoryCoalescer) => {
 
 		const [hash, ext] = parts;
 		const strippedHash = stripAnimationPrefix(hash);
-		const isVideo = ext === 'webm';
+		const isVideo = ext === 'mp4';
 		const isImage = MEDIA_TYPES.IMAGE.extensions.includes(ext);
 
 		if (!isVideo && !isImage) {
@@ -109,7 +109,7 @@ export const createNameplateRouteHandler = (coalescer: InMemoryCoalescer) => {
 			const {data} = await readS3Object(Config.AWS_S3_BUCKET_CDN, s3Key);
 			assert(data instanceof Buffer);
 			const range = parseRange(ctx.req.header('Range') ?? '', data.length);
-			setHeaders(ctx, data.length, 'video/webm', range);
+			setHeaders(ctx, data.length, 'video/mp4', range);
 			const slice = range ? data.subarray(range.start, range.end + 1) : data;
 			return ctx.body(toBodyData(slice));
 		}
@@ -130,7 +130,7 @@ export const createBannerRouteHandler = (coalescer: InMemoryCoalescer) => {
 		}
 
 		const [hash, ext] = parts;
-		const isVideo = ext === 'webm';
+		const isVideo = ext === 'mp4';
 		const isImage = MEDIA_TYPES.IMAGE.extensions.includes(ext);
 
 		if (!isVideo && !isImage) {
@@ -145,7 +145,7 @@ export const createBannerRouteHandler = (coalescer: InMemoryCoalescer) => {
 				const {data} = await readS3Object(Config.AWS_S3_BUCKET_CDN, s3Key);
 				assert(data instanceof Buffer);
 				const range = parseRange(ctx.req.header('Range') ?? '', data.length);
-				setHeaders(ctx, data.length, 'video/webm', range);
+				setHeaders(ctx, data.length, 'video/mp4', range);
 				const slice = range ? data.subarray(range.start, range.end + 1) : data;
 				return ctx.body(toBodyData(slice));
 			}
@@ -203,7 +203,7 @@ export const createGuildMemberBannerRouteHandler = (coalescer: InMemoryCoalescer
 		}
 
 		const [hash, ext] = parts;
-		const isVideo = ext === 'webm';
+		const isVideo = ext === 'mp4';
 		const isImage = MEDIA_TYPES.IMAGE.extensions.includes(ext);
 
 		if (!isVideo && !isImage) {
@@ -220,7 +220,7 @@ export const createGuildMemberBannerRouteHandler = (coalescer: InMemoryCoalescer
 				const {data} = await readS3Object(Config.AWS_S3_BUCKET_CDN, s3Key);
 				assert(data instanceof Buffer);
 				const range = parseRange(ctx.req.header('Range') ?? '', data.length);
-				setHeaders(ctx, data.length, 'video/webm', range);
+				setHeaders(ctx, data.length, 'video/mp4', range);
 				const slice = range ? data.subarray(range.start, range.end + 1) : data;
 				return ctx.body(toBodyData(slice));
 			}

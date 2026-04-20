@@ -23,7 +23,7 @@ import {Config} from '~/Config';
 import {AVATAR_EXTENSIONS, AVATAR_MAX_SIZE} from '~/Constants';
 import {InputValidationError} from '~/Errors';
 import {Logger} from '~/Logger';
-import {transcodeToNameplateWebM} from '~/utils/FfmpegUtils';
+import {transcodeToLoopedMp4} from '~/utils/FfmpegUtils';
 import type {IAssetDeletionQueue} from './IAssetDeletionQueue';
 import type {IMediaService} from './IMediaService';
 import type {IStorageService} from './IStorageService';
@@ -61,7 +61,7 @@ const BANNER_STATIC_EFFORT = 4;
 const BANNER_ANIMATED_MAX_DURATION_SECONDS = 6;
 
 const BANNER_MAX_STATIC_BYTES = 1 * 1024 * 1024;
-const BANNER_MAX_WEBM_BYTES = 2 * 1024 * 1024;
+const BANNER_MAX_VIDEO_BYTES = 2 * 1024 * 1024;
 
 interface BannerTargetConfig {
 	width: number;
@@ -290,7 +290,7 @@ export class BannerAssetProcessor {
 
 		let result;
 		try {
-			result = await transcodeToNameplateWebM({
+			result = await transcodeToLoopedMp4({
 				input: inputBuffer,
 				targetWidth: target.width,
 				targetHeight: target.height,
@@ -302,14 +302,14 @@ export class BannerAssetProcessor {
 			throw InputValidationError.create(errorPath, 'Не удалось обработать анимацию');
 		}
 
-		if (result.webm.length > BANNER_MAX_WEBM_BYTES) {
+		if (result.mp4.length > BANNER_MAX_VIDEO_BYTES) {
 			throw InputValidationError.create(
 				errorPath,
-				`Анимация слишком большая после сжатия (${Math.ceil(result.webm.length / 1024)}KB)`,
+				`Анимация слишком большая после сжатия (${Math.ceil(result.mp4.length / 1024)}KB)`,
 			);
 		}
 
-		const shortHash = crypto.createHash('md5').update(Buffer.from(result.webm)).digest('hex').slice(0, 8);
+		const shortHash = crypto.createHash('md5').update(Buffer.from(result.mp4)).digest('hex').slice(0, 8);
 		const newHash = `${NEW_ANIMATED_HASH_PREFIX}${shortHash}`;
 
 		if (newHash === previousHash) {
@@ -328,17 +328,17 @@ export class BannerAssetProcessor {
 			};
 		}
 
-		const webmKey = this.webmKey(entityType, entityId, shortHash, guildId);
+		const mp4Key = this.mp4Key(entityType, entityId, shortHash, guildId);
 		const posterKey = this.posterKey(entityType, entityId, shortHash, guildId);
-		const webmCdn = this.webmCdnUrl(entityType, entityId, newHash, guildId);
+		const mp4Cdn = this.mp4CdnUrl(entityType, entityId, newHash, guildId);
 		const posterCdn = this.posterCdnUrl(entityType, entityId, newHash, guildId);
 
 		await Promise.all([
 			this.storageService.uploadObject({
 				bucket: Config.s3.buckets.cdn,
-				key: webmKey,
-				body: result.webm,
-				contentType: 'video/webm',
+				key: mp4Key,
+				body: result.mp4,
+				contentType: 'video/mp4',
 			}),
 			this.storageService.uploadObject({
 				bucket: Config.s3.buckets.cdn,
@@ -352,9 +352,9 @@ export class BannerAssetProcessor {
 			newHash,
 			previousHash,
 			isAnimated: true,
-			newKeys: [webmKey, posterKey],
+			newKeys: [mp4Key, posterKey],
 			previousKeys,
-			newCdnUrls: [webmCdn, posterCdn],
+			newCdnUrls: [mp4Cdn, posterCdn],
 			previousCdnUrls,
 			height: target.height,
 			width: target.width,
@@ -374,7 +374,7 @@ export class BannerAssetProcessor {
 		if (hash.startsWith(NEW_ANIMATED_HASH_PREFIX)) {
 			const shortHash = hash.slice(NEW_ANIMATED_HASH_PREFIX.length);
 			return [
-				this.webmKey(entityType, entityId, shortHash, guildId),
+				this.mp4Key(entityType, entityId, shortHash, guildId),
 				this.posterKey(entityType, entityId, shortHash, guildId),
 			];
 		}
@@ -397,7 +397,7 @@ export class BannerAssetProcessor {
 
 		if (hash.startsWith(NEW_ANIMATED_HASH_PREFIX)) {
 			return [
-				this.webmCdnUrl(entityType, entityId, hash, guildId),
+				this.mp4CdnUrl(entityType, entityId, hash, guildId),
 				this.posterCdnUrl(entityType, entityId, hash, guildId),
 			];
 		}
@@ -437,8 +437,8 @@ export class BannerAssetProcessor {
 		return `${this.s3KeyBase(entityType, entityId, guildId)}/${shortHash}.webp`;
 	}
 
-	private webmKey(entityType: BannerEntityType, entityId: bigint, shortHash: string, guildId?: bigint): string {
-		return `${this.s3KeyBase(entityType, entityId, guildId)}/${shortHash}.webm`;
+	private mp4Key(entityType: BannerEntityType, entityId: bigint, shortHash: string, guildId?: bigint): string {
+		return `${this.s3KeyBase(entityType, entityId, guildId)}/${shortHash}.mp4`;
 	}
 
 	private posterKey(entityType: BannerEntityType, entityId: bigint, shortHash: string, guildId?: bigint): string {
@@ -453,8 +453,8 @@ export class BannerAssetProcessor {
 		return `${this.cdnUrlBase(entityType, entityId, guildId)}/${hash}.webp`;
 	}
 
-	private webmCdnUrl(entityType: BannerEntityType, entityId: bigint, hash: string, guildId?: bigint): string {
-		return `${this.cdnUrlBase(entityType, entityId, guildId)}/${hash}.webm`;
+	private mp4CdnUrl(entityType: BannerEntityType, entityId: bigint, hash: string, guildId?: bigint): string {
+		return `${this.cdnUrlBase(entityType, entityId, guildId)}/${hash}.mp4`;
 	}
 
 	private posterCdnUrl(entityType: BannerEntityType, entityId: bigint, hash: string, guildId?: bigint): string {

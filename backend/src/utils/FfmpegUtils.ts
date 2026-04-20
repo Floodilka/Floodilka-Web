@@ -27,7 +27,7 @@ import {Logger} from '~/Logger';
 const FFMPEG_TIMEOUT_MS = 30_000;
 const FFPROBE_TIMEOUT_MS = 5_000;
 
-export interface TranscodeNameplateOptions {
+export interface TranscodeLoopedMp4Options {
 	input: Uint8Array;
 	targetWidth: number;
 	targetHeight: number;
@@ -35,8 +35,8 @@ export interface TranscodeNameplateOptions {
 	targetBitrateKbps: number;
 }
 
-export interface TranscodeNameplateResult {
-	webm: Uint8Array;
+export interface TranscodeLoopedMp4Result {
+	mp4: Uint8Array;
 	poster: Uint8Array;
 	durationSeconds: number;
 }
@@ -158,14 +158,14 @@ const probeMediaFile = async (filePath: string): Promise<ProbeResult> => {
 	return {width, height, durationSeconds, hasVideoStream: true, hasAnimation};
 };
 
-export const transcodeToNameplateWebM = async (
-	options: TranscodeNameplateOptions,
-): Promise<TranscodeNameplateResult> => {
+export const transcodeToLoopedMp4 = async (
+	options: TranscodeLoopedMp4Options,
+): Promise<TranscodeLoopedMp4Result> => {
 	const {input, targetWidth, targetHeight, maxDurationSeconds, targetBitrateKbps} = options;
 
-	const workDir = await mkdtemp(path.join(os.tmpdir(), `nameplate-${crypto.randomUUID()}-`));
+	const workDir = await mkdtemp(path.join(os.tmpdir(), `looped-mp4-${crypto.randomUUID()}-`));
 	const inputPath = path.join(workDir, 'input.bin');
-	const webmPath = path.join(workDir, 'out.webm');
+	const mp4Path = path.join(workDir, 'out.mp4');
 	const posterPath = path.join(workDir, 'poster.png');
 
 	try {
@@ -176,7 +176,7 @@ export const transcodeToNameplateWebM = async (
 			`crop=${targetWidth}:${targetHeight}`,
 		].join(',');
 
-		const webmArgs = [
+		const mp4Args = [
 			'-hide_banner',
 			'-loglevel',
 			'error',
@@ -189,28 +189,30 @@ export const transcodeToNameplateWebM = async (
 			'-vf',
 			videoFilter,
 			'-c:v',
-			'libvpx-vp9',
+			'libx264',
+			'-profile:v',
+			'high',
+			'-level',
+			'4.0',
+			'-preset',
+			'medium',
 			'-b:v',
 			`${targetBitrateKbps}k`,
 			'-maxrate',
 			`${Math.round(targetBitrateKbps * 1.5)}k`,
 			'-bufsize',
 			`${targetBitrateKbps * 2}k`,
-			'-deadline',
-			'good',
-			'-cpu-used',
-			'4',
-			'-row-mt',
-			'1',
 			'-pix_fmt',
 			'yuv420p',
-			webmPath,
+			'-movflags',
+			'+faststart',
+			mp4Path,
 		];
 
-		const webmRun = await runCommand('ffmpeg', webmArgs, FFMPEG_TIMEOUT_MS);
-		if (webmRun.code !== 0) {
-			Logger.error({stderr: webmRun.stderr}, 'ffmpeg webm transcode failed');
-			throw new Error(`ffmpeg webm transcode failed: ${webmRun.stderr}`);
+		const mp4Run = await runCommand('ffmpeg', mp4Args, FFMPEG_TIMEOUT_MS);
+		if (mp4Run.code !== 0) {
+			Logger.error({stderr: mp4Run.stderr}, 'ffmpeg mp4 transcode failed');
+			throw new Error(`ffmpeg mp4 transcode failed: ${mp4Run.stderr}`);
 		}
 
 		const posterArgs = [
@@ -235,18 +237,18 @@ export const transcodeToNameplateWebM = async (
 			throw new Error(`ffmpeg poster extraction failed: ${posterRun.stderr}`);
 		}
 
-		const [webm, poster] = await Promise.all([readFile(webmPath), readFile(posterPath)]);
+		const [mp4, poster] = await Promise.all([readFile(mp4Path), readFile(posterPath)]);
 
 		let durationSeconds = 0;
 		try {
-			const probed = await probeMediaFile(webmPath);
+			const probed = await probeMediaFile(mp4Path);
 			durationSeconds = probed.durationSeconds;
 		} catch (error) {
-			Logger.warn({error, webmPath}, 'Failed to probe transcoded nameplate; defaulting duration to 0');
+			Logger.warn({error, mp4Path}, 'Failed to probe transcoded mp4; defaulting duration to 0');
 		}
 
 		return {
-			webm: new Uint8Array(webm),
+			mp4: new Uint8Array(mp4),
 			poster: new Uint8Array(poster),
 			durationSeconds,
 		};

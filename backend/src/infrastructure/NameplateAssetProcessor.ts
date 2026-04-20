@@ -22,7 +22,7 @@ import sharp from 'sharp';
 import {Config} from '~/Config';
 import {InputValidationError} from '~/Errors';
 import {Logger} from '~/Logger';
-import {transcodeToNameplateWebM} from '~/utils/FfmpegUtils';
+import {transcodeToLoopedMp4} from '~/utils/FfmpegUtils';
 import type {IAssetDeletionQueue} from './IAssetDeletionQueue';
 import type {IMediaService} from './IMediaService';
 import type {IStorageService} from './IStorageService';
@@ -30,9 +30,9 @@ import type {IStorageService} from './IStorageService';
 const NAMEPLATE_TARGET_WIDTH = 1000;
 const NAMEPLATE_TARGET_HEIGHT = 200;
 const NAMEPLATE_MAX_DURATION_SECONDS = 6;
-const NAMEPLATE_WEBM_BITRATE_KBPS = 400;
+const NAMEPLATE_VIDEO_BITRATE_KBPS = 400;
 const NAMEPLATE_MAX_INPUT_BYTES = 8 * 1024 * 1024;
-const NAMEPLATE_MAX_WEBM_BYTES = 1.5 * 1024 * 1024;
+const NAMEPLATE_MAX_VIDEO_BYTES = 1.5 * 1024 * 1024;
 const NAMEPLATE_MAX_STATIC_BYTES = 512 * 1024;
 
 const STATIC_FORMATS = new Set(['jpeg', 'jpg', 'png', 'webp']);
@@ -235,26 +235,26 @@ export class NameplateAssetProcessor {
 
 		let result;
 		try {
-			result = await transcodeToNameplateWebM({
+			result = await transcodeToLoopedMp4({
 				input: inputBuffer,
 				targetWidth: NAMEPLATE_TARGET_WIDTH,
 				targetHeight: NAMEPLATE_TARGET_HEIGHT,
 				maxDurationSeconds: NAMEPLATE_MAX_DURATION_SECONDS,
-				targetBitrateKbps: NAMEPLATE_WEBM_BITRATE_KBPS,
+				targetBitrateKbps: NAMEPLATE_VIDEO_BITRATE_KBPS,
 			});
 		} catch (error) {
 			Logger.error({error}, 'Nameplate animated transcode failed');
 			throw InputValidationError.create('nameplate', 'Не удалось обработать анимацию');
 		}
 
-		if (result.webm.length > NAMEPLATE_MAX_WEBM_BYTES) {
+		if (result.mp4.length > NAMEPLATE_MAX_VIDEO_BYTES) {
 			throw InputValidationError.create(
 				'nameplate',
-				`Анимация слишком большая после сжатия (${Math.ceil(result.webm.length / 1024)}KB)`,
+				`Анимация слишком большая после сжатия (${Math.ceil(result.mp4.length / 1024)}KB)`,
 			);
 		}
 
-		const shortHash = crypto.createHash('md5').update(Buffer.from(result.webm)).digest('hex').slice(0, 8);
+		const shortHash = crypto.createHash('md5').update(Buffer.from(result.mp4)).digest('hex').slice(0, 8);
 		const fullHash = `a_${shortHash}`;
 
 		if (fullHash === previousHash) {
@@ -269,17 +269,17 @@ export class NameplateAssetProcessor {
 			};
 		}
 
-		const webmKey = this.webmKey(userId, shortHash);
+		const mp4Key = this.mp4Key(userId, shortHash);
 		const posterKey = this.posterKey(userId, shortHash);
-		const webmCdn = this.webmCdnUrl(userId, fullHash);
+		const mp4Cdn = this.mp4CdnUrl(userId, fullHash);
 		const posterCdn = this.posterCdnUrl(userId, fullHash);
 
 		await Promise.all([
 			this.storageService.uploadObject({
 				bucket: Config.s3.buckets.cdn,
-				key: webmKey,
-				body: result.webm,
-				contentType: 'video/webm',
+				key: mp4Key,
+				body: result.mp4,
+				contentType: 'video/mp4',
 			}),
 			this.storageService.uploadObject({
 				bucket: Config.s3.buckets.cdn,
@@ -292,9 +292,9 @@ export class NameplateAssetProcessor {
 		return {
 			newHash: fullHash,
 			previousHash,
-			newKeys: [webmKey, posterKey],
+			newKeys: [mp4Key, posterKey],
 			previousKeys,
-			newCdnUrls: [webmCdn, posterCdn],
+			newCdnUrls: [mp4Cdn, posterCdn],
 			previousCdnUrls,
 			_uploaded: true,
 		};
@@ -304,7 +304,7 @@ export class NameplateAssetProcessor {
 		if (!hash) return [];
 		if (hash.startsWith('a_')) {
 			const shortHash = hash.slice(2);
-			return [this.webmKey(userId, shortHash), this.posterKey(userId, shortHash)];
+			return [this.mp4Key(userId, shortHash), this.posterKey(userId, shortHash)];
 		}
 		return [this.staticKey(userId, hash)];
 	}
@@ -312,7 +312,7 @@ export class NameplateAssetProcessor {
 	private cdnUrlsForHash(userId: bigint, hash: string | null): Array<string> {
 		if (!hash) return [];
 		if (hash.startsWith('a_')) {
-			return [this.webmCdnUrl(userId, hash), this.posterCdnUrl(userId, hash)];
+			return [this.mp4CdnUrl(userId, hash), this.posterCdnUrl(userId, hash)];
 		}
 		return [this.staticCdnUrl(userId, hash)];
 	}
@@ -321,8 +321,8 @@ export class NameplateAssetProcessor {
 		return `nameplates/${userId}/${shortHash}.webp`;
 	}
 
-	private webmKey(userId: bigint, shortHash: string): string {
-		return `nameplates/${userId}/${shortHash}.webm`;
+	private mp4Key(userId: bigint, shortHash: string): string {
+		return `nameplates/${userId}/${shortHash}.mp4`;
 	}
 
 	private posterKey(userId: bigint, shortHash: string): string {
@@ -333,8 +333,8 @@ export class NameplateAssetProcessor {
 		return `${Config.endpoints.media}/nmplts/${userId}/${hash}.webp`;
 	}
 
-	private webmCdnUrl(userId: bigint, hash: string): string {
-		return `${Config.endpoints.media}/nmplts/${userId}/${hash}.webm`;
+	private mp4CdnUrl(userId: bigint, hash: string): string {
+		return `${Config.endpoints.media}/nmplts/${userId}/${hash}.mp4`;
 	}
 
 	private posterCdnUrl(userId: bigint, hash: string): string {

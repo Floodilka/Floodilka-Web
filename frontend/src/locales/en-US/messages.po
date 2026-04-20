@@ -9923,8 +9923,8 @@ msgid "JPEG, PNG, GIF, WebP. Max 10MB. Recommended: 512×512px"
 msgstr "JPEG, PNG, GIF, WebP. Max 10MB. Recommended: 512×512px"
 
 #: src/components/modals/tabs/MyProfileTab/NameplateUploader.tsx:118
-msgid "JPEG, PNG, WebP, GIF, WebM, MP4. Max 8MB. Minimum: 480×96px (5:1). Animated content is transcoded to WebM."
-msgstr "JPEG, PNG, WebP, GIF, WebM, MP4. Max 8MB. Minimum: 480×96px (5:1). Animated content is transcoded to WebM."
+msgid "JPEG, PNG, WebP, GIF, WebM, MP4. Max 8MB. Minimum: 480×96px (5:1). Animated content is transcoded to MP4."
+msgstr "JPEG, PNG, WebP, GIF, WebM, MP4. Max 8MB. Minimum: 480×96px (5:1). Animated content is transcoded to MP4."
 
 #. placeholder {0}: bannerConfig.minWidth
 #. placeholder {1}: bannerConfig.minHeight

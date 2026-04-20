@@ -117,7 +117,7 @@ export const NameplateUploader = observer(
 						<div className={styles.description}>
 							<Trans>
 								JPEG, PNG, WebP, GIF, WebM, MP4. Max 8MB. Minimum: 480×96px (5:1). Animated content is transcoded
-								to WebM.
+								to MP4.
 							</Trans>
 						</div>
 					</>

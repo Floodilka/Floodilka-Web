@@ -202,7 +202,7 @@ export const getUserBannerAsset = ({id, banner}: BannerOptions, size = 1024): Ba
 	const parsed = parseBannerHash(banner);
 
 	if (parsed.newFormat && parsed.animated) {
-		const videoUrl = getMediaURL({path: 'bnnrs', id, hash: parsed.fullHash, format: 'webm'});
+		const videoUrl = getMediaURL({path: 'bnnrs', id, hash: parsed.fullHash, format: 'mp4'});
 		const imageUrl = getMediaURL({path: 'bnnrs', id, hash: parsed.fullHash, size, format: 'png'});
 		return {animated: true, videoUrl, imageUrl};
 	}
@@ -240,7 +240,7 @@ export const getUserNameplateAsset = ({id, nameplate}: NameplateOptions, size = 
 			path: 'nmplts',
 			id,
 			hash: `a_${parsed.hash}`,
-			format: 'webm',
+			format: 'mp4',
 		});
 		const imageUrl = getMediaURL({
 			path: 'nmplts',
@@ -321,7 +321,7 @@ export const getGuildBannerAsset = (
 	const parsed = parseBannerHash(banner);
 
 	if (parsed.newFormat && parsed.animated) {
-		const videoUrl = getMediaURL({path: 'bnnrs', id, hash: parsed.fullHash, format: 'webm'});
+		const videoUrl = getMediaURL({path: 'bnnrs', id, hash: parsed.fullHash, format: 'mp4'});
 		const imageUrl = getMediaURL({path: 'bnnrs', id, hash: parsed.fullHash, size, format: 'png'});
 		return {animated: true, videoUrl, imageUrl};
 	}
@@ -476,7 +476,7 @@ export const getGuildMemberBannerAsset = ({
 	const parsed = parseBannerHash(banner);
 
 	if (parsed.newFormat && parsed.animated) {
-		const videoUrl = getGuildMemberMediaURL({path: 'bnnrs', guildId, userId, hash: parsed.fullHash, format: 'webm'});
+		const videoUrl = getGuildMemberMediaURL({path: 'bnnrs', guildId, userId, hash: parsed.fullHash, format: 'mp4'});
 		const imageUrl = getGuildMemberMediaURL({path: 'bnnrs', guildId, userId, hash: parsed.fullHash, size, format: 'png'});
 		return {animated: true, videoUrl, imageUrl};
 	}
