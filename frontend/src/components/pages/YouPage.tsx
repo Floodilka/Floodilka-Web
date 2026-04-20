@@ -65,7 +65,7 @@ export const YouPage = observer(({onAvatarClick}: YouPageProps) => {
 
 	if (!user || !profile) return null;
 
-	const bannerUrl = user.banner ? AvatarUtils.getUserBannerURL({id: user.id, banner: user.banner}, true) : null;
+	const bannerAsset = user.banner ? AvatarUtils.getUserBannerAsset({id: user.id, banner: user.banner}) : null;
 
 	return (
 		<>
@@ -73,8 +73,19 @@ export const YouPage = observer(({onAvatarClick}: YouPageProps) => {
 				<Scroller key="you-page-scroller">
 					<div style={{paddingBottom: 'calc(60px + env(safe-area-inset-bottom, 0px) + 1rem)'}}>
 						<div className={styles.banner}>
-							{bannerUrl ? (
-								<div className={styles.bannerImage} style={{backgroundImage: `url(${bannerUrl})`}} />
+							{bannerAsset?.videoUrl ? (
+								<video
+									className={styles.bannerImage}
+									src={bannerAsset.videoUrl}
+									poster={bannerAsset.imageUrl}
+									autoPlay
+									loop
+									muted
+									playsInline
+									aria-hidden="true"
+								/>
+							) : bannerAsset ? (
+								<div className={styles.bannerImage} style={{backgroundImage: `url(${bannerAsset.imageUrl})`}} />
 							) : (
 								<div className={styles.bannerDefault} />
 							)}

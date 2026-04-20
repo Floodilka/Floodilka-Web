@@ -44,6 +44,7 @@ import type {GuildAuditLogService} from '~/guild/GuildAuditLogService';
 import type {GuildAuditLogChange} from '~/guild/GuildAuditLogTypes';
 import type {GuildMemberResponse, GuildMemberUpdateRequest} from '~/guild/GuildModel';
 import {mapGuildMembersToResponse, mapGuildMemberToResponse} from '~/guild/GuildModel';
+import type {BannerAssetProcessor, PreparedBannerUpload} from '~/infrastructure/BannerAssetProcessor';
 import type {EntityAssetService, PreparedAssetUpload} from '~/infrastructure/EntityAssetService';
 import type {IGatewayService} from '~/infrastructure/IGatewayService';
 import type {IRateLimitService} from '~/infrastructure/IRateLimitService';
@@ -75,7 +76,7 @@ interface MemberUpdateData {
 
 interface PreparedMemberAssets {
 	avatar: PreparedAssetUpload | null;
-	banner: PreparedAssetUpload | null;
+	banner: PreparedBannerUpload | null;
 }
 
 interface VoiceAuditLogMetadataParams {
@@ -101,6 +102,7 @@ export class GuildMemberOperationsService {
 		private readonly userCacheService: UserCacheService,
 		private readonly gatewayService: IGatewayService,
 		private readonly entityAssetService: EntityAssetService,
+		private readonly bannerAssetProcessor: BannerAssetProcessor,
 		private readonly userRepository: IUserRepository,
 		private readonly rateLimitService: IRateLimitService,
 		private readonly authService: GuildMemberAuthService,
@@ -669,8 +671,7 @@ export class GuildMemberOperationsService {
 				);
 			}
 
-			const prepared = await this.entityAssetService.prepareAssetUpload({
-				assetType: 'banner',
+			const prepared = await this.bannerAssetProcessor.processUpload({
 				entityType: 'guild_member',
 				entityId: targetId,
 				guildId,
@@ -812,7 +813,7 @@ export class GuildMemberOperationsService {
 			rollbackPromises.push(this.entityAssetService.rollbackAssetUpload(preparedAssets.avatar));
 		}
 		if (preparedAssets.banner) {
-			rollbackPromises.push(this.entityAssetService.rollbackAssetUpload(preparedAssets.banner));
+			rollbackPromises.push(this.bannerAssetProcessor.rollback(preparedAssets.banner));
 		}
 
 		await Promise.allSettled(rollbackPromises);
@@ -825,7 +826,7 @@ export class GuildMemberOperationsService {
 			commitPromises.push(this.entityAssetService.commitAssetChange({prepared: preparedAssets.avatar}));
 		}
 		if (preparedAssets.banner) {
-			commitPromises.push(this.entityAssetService.commitAssetChange({prepared: preparedAssets.banner}));
+			commitPromises.push(this.bannerAssetProcessor.commit(preparedAssets.banner));
 		}
 
 		await Promise.allSettled(commitPromises);

@@ -22,6 +22,7 @@ import type {SudoVerificationResult} from '~/auth/services/SudoVerificationServi
 import type {GuildID, UserID} from '~/BrandedTypes';
 import type {IGuildRepository} from '~/guild/IGuildRepository';
 import type {GuildService} from '~/guild/services/GuildService';
+import type {BannerAssetProcessor} from '~/infrastructure/BannerAssetProcessor';
 import type {EntityAssetService} from '~/infrastructure/EntityAssetService';
 import type {NameplateAssetProcessor} from '~/infrastructure/NameplateAssetProcessor';
 import type {IEmailService} from '~/infrastructure/IEmailService';
@@ -78,6 +79,7 @@ export class UserAccountService {
 		gatewayService: IGatewayService,
 		entityAssetService: EntityAssetService,
 		nameplateAssetProcessor: NameplateAssetProcessor,
+		bannerAssetProcessor: BannerAssetProcessor,
 		mediaService: IMediaService,
 		packService: PackService,
 		emailService: IEmailService,
@@ -105,6 +107,7 @@ export class UserAccountService {
 			guildRepository,
 			entityAssetService,
 			nameplateAssetProcessor,
+			bannerAssetProcessor,
 			rateLimitService,
 			updatePropagator: this.updatePropagator,
 		});

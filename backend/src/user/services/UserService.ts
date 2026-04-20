@@ -26,6 +26,7 @@ import type {GuildMemberResponse} from '~/guild/GuildModel';
 import type {IGuildRepository} from '~/guild/IGuildRepository';
 import type {GuildService} from '~/guild/services/GuildService';
 import type {EntityAssetService} from '~/infrastructure/EntityAssetService';
+import type {BannerAssetProcessor} from '~/infrastructure/BannerAssetProcessor';
 import type {NameplateAssetProcessor} from '~/infrastructure/NameplateAssetProcessor';
 import type {IEmailService} from '~/infrastructure/IEmailService';
 import type {IGatewayService} from '~/infrastructure/IGatewayService';
@@ -106,6 +107,7 @@ export class UserService {
 		gatewayService: IGatewayService,
 		entityAssetService: EntityAssetService,
 		nameplateAssetProcessor: NameplateAssetProcessor,
+		bannerAssetProcessor: BannerAssetProcessor,
 		mediaService: IMediaService,
 		packService: PackService,
 		emailService: IEmailService,
@@ -130,6 +132,7 @@ export class UserService {
 			gatewayService,
 			entityAssetService,
 			nameplateAssetProcessor,
+			bannerAssetProcessor,
 			mediaService,
 			packService,
 			emailService,

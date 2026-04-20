@@ -21,6 +21,7 @@ import {UserFlags} from '~/Constants';
 import type {PartialRowUpdate, UserRow} from '~/database/CassandraTypes';
 import {InputValidationError, MissingAccessError} from '~/Errors';
 import type {IGuildRepository} from '~/guild/IGuildRepository';
+import type {BannerAssetProcessor, PreparedBannerUpload} from '~/infrastructure/BannerAssetProcessor';
 import type {EntityAssetService, PreparedAssetUpload} from '~/infrastructure/EntityAssetService';
 import type {NameplateAssetProcessor, PreparedNameplateUpload} from '~/infrastructure/NameplateAssetProcessor';
 import type {IRateLimitService} from '~/infrastructure/IRateLimitService';
@@ -38,7 +39,7 @@ interface UserFieldUpdates extends PartialRowUpdate<UserRow> {
 export interface ProfileUpdateResult {
 	updates: UserFieldUpdates;
 	preparedAvatarUpload: PreparedAssetUpload | null;
-	preparedBannerUpload: PreparedAssetUpload | null;
+	preparedBannerUpload: PreparedBannerUpload | null;
 	preparedNameplateUpload: PreparedNameplateUpload | null;
 }
 
@@ -47,6 +48,7 @@ interface UserAccountProfileServiceDeps {
 	guildRepository: IGuildRepository;
 	entityAssetService: EntityAssetService;
 	nameplateAssetProcessor: NameplateAssetProcessor;
+	bannerAssetProcessor: BannerAssetProcessor;
 	rateLimitService: IRateLimitService;
 	updatePropagator: UserAccountUpdatePropagator;
 }
@@ -64,7 +66,7 @@ export class UserAccountProfileService {
 		};
 
 		let preparedAvatarUpload: PreparedAssetUpload | null = null;
-		let preparedBannerUpload: PreparedAssetUpload | null = null;
+		let preparedBannerUpload: PreparedBannerUpload | null = null;
 		let preparedNameplateUpload: PreparedNameplateUpload | null = null;
 
 		if (data.bio !== undefined) {
@@ -94,7 +96,7 @@ export class UserAccountProfileService {
 					await this.deps.entityAssetService.rollbackAssetUpload(preparedAvatarUpload);
 				}
 				if (preparedBannerUpload) {
-					await this.deps.entityAssetService.rollbackAssetUpload(preparedBannerUpload);
+					await this.deps.bannerAssetProcessor.rollback(preparedBannerUpload);
 				}
 				throw error;
 			}
@@ -121,10 +123,7 @@ export class UserAccountProfileService {
 		}
 
 		if (result.preparedBannerUpload) {
-			await this.deps.entityAssetService.commitAssetChange({
-				prepared: result.preparedBannerUpload,
-				deferDeletion: true,
-			});
+			await this.deps.bannerAssetProcessor.commit(result.preparedBannerUpload);
 		}
 
 		if (result.preparedNameplateUpload) {
@@ -138,7 +137,7 @@ export class UserAccountProfileService {
 		}
 
 		if (result.preparedBannerUpload) {
-			await this.deps.entityAssetService.rollbackAssetUpload(result.preparedBannerUpload);
+			await this.deps.bannerAssetProcessor.rollback(result.preparedBannerUpload);
 		}
 
 		if (result.preparedNameplateUpload) {
@@ -254,7 +253,7 @@ export class UserAccountProfileService {
 		user: User;
 		banner: string | null;
 		updates: UserFieldUpdates;
-	}): Promise<PreparedAssetUpload | null> {
+	}): Promise<PreparedBannerUpload | null> {
 		const {user, banner, updates} = params;
 
 		if (banner === null) {
@@ -279,8 +278,7 @@ export class UserAccountProfileService {
 			);
 		}
 
-		const prepared = await this.deps.entityAssetService.prepareAssetUpload({
-			assetType: 'banner',
+		const prepared = await this.deps.bannerAssetProcessor.processUpload({
 			entityType: 'user',
 			entityId: user.id,
 			previousHash: user.bannerHash,

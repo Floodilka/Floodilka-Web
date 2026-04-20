@@ -2,6 +2,8 @@ declare const styles: {
   readonly "bannerBackground": string;
   readonly "bannerBackgroundCentered": string;
   readonly "bannerGradient": string;
+  readonly "bannerVideo": string;
+  readonly "bannerVideoCentered": string;
   readonly "caretIcon": string;
   readonly "caretIconDefault": string;
   readonly "caretIconOpen": string;

@@ -27,6 +27,7 @@ import type {
 	GuildUpdateRequest,
 	GuildVanityURLResponse,
 } from '~/guild/GuildModel';
+import type {BannerAssetProcessor} from '~/infrastructure/BannerAssetProcessor';
 import type {EntityAssetService} from '~/infrastructure/EntityAssetService';
 import type {IGatewayService} from '~/infrastructure/IGatewayService';
 import type {SnowflakeService} from '~/infrastructure/SnowflakeService';
@@ -55,6 +56,7 @@ export class GuildDataService {
 		private readonly channelService: ChannelService,
 		private readonly gatewayService: IGatewayService,
 		private readonly entityAssetService: EntityAssetService,
+		private readonly bannerAssetProcessor: BannerAssetProcessor,
 		private readonly userRepository: IUserRepository,
 		private readonly snowflakeService: SnowflakeService,
 		private readonly webhookRepository: IWebhookRepository,
@@ -69,6 +71,7 @@ export class GuildDataService {
 			this.channelService,
 			this.gatewayService,
 			this.entityAssetService,
+			this.bannerAssetProcessor,
 			this.userRepository,
 			this.snowflakeService,
 			this.webhookRepository,

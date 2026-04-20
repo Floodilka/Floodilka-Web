@@ -22,6 +22,7 @@ import type {ChannelService} from '~/channel/services/ChannelService';
 import {AuditLogActionType} from '~/constants/AuditLogActionType';
 import {UnknownGuildMemberError} from '~/Errors';
 import type {GuildMemberResponse, GuildMemberUpdateRequest} from '~/guild/GuildModel';
+import type {BannerAssetProcessor} from '~/infrastructure/BannerAssetProcessor';
 import type {EntityAssetService} from '~/infrastructure/EntityAssetService';
 import type {IGatewayService} from '~/infrastructure/IGatewayService';
 import type {IRateLimitService} from '~/infrastructure/IRateLimitService';
@@ -52,6 +53,7 @@ export class GuildMemberService {
 		userCacheService: UserCacheService,
 		gatewayService: IGatewayService,
 		entityAssetService: EntityAssetService,
+		bannerAssetProcessor: BannerAssetProcessor,
 		userRepository: IUserRepository,
 		rateLimitService: IRateLimitService,
 		private readonly guildAuditLogService: GuildAuditLogService,
@@ -66,6 +68,7 @@ export class GuildMemberService {
 			userCacheService,
 			gatewayService,
 			entityAssetService,
+			bannerAssetProcessor,
 			userRepository,
 			rateLimitService,
 			this.authService,

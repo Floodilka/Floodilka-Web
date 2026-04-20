@@ -35,6 +35,9 @@ import {ImageParamSchema, ImageQuerySchema} from '~/schemas/ValidationSchemas';
 
 const stripAnimationPrefix = (hash: string) => (hash.startsWith('a_') ? hash.substring(2) : hash);
 
+const BANNER_NEW_STATIC_PREFIX = 's_';
+const BANNER_NEW_ANIMATED_PREFIX = 'v_';
+
 const processImageRequest = async (params: {
 	coalescer: InMemoryCoalescer;
 	ctx: Context<HonoEnv>;
@@ -112,6 +115,154 @@ export const createNameplateRouteHandler = (coalescer: InMemoryCoalescer) => {
 		}
 
 		const cacheKey = `nameplates_${id}_${hash}_${ext}_${size}_${quality}_0_${animated}`;
+		return processImageRequest({coalescer, ctx, cacheKey, s3Key, ext, aspectRatio: 0, size, quality, animated});
+	};
+};
+
+export const createBannerRouteHandler = (coalescer: InMemoryCoalescer) => {
+	return async (ctx: Context<HonoEnv>): Promise<Response> => {
+		const {id, filename} = v.parse(ImageParamSchema, ctx.req.param());
+		const {size, quality, animated} = v.parse(ImageQuerySchema, ctx.req.query());
+
+		const parts = filename.split('.');
+		if (parts.length !== 2) {
+			throw new HTTPException(400);
+		}
+
+		const [hash, ext] = parts;
+		const isVideo = ext === 'webm';
+		const isImage = MEDIA_TYPES.IMAGE.extensions.includes(ext);
+
+		if (!isVideo && !isImage) {
+			throw new HTTPException(400);
+		}
+
+		if (hash.startsWith(BANNER_NEW_ANIMATED_PREFIX)) {
+			const shortHash = hash.slice(BANNER_NEW_ANIMATED_PREFIX.length);
+			const s3Key = `banners/${id}/${shortHash}.${ext}`;
+
+			if (isVideo) {
+				const {data} = await readS3Object(Config.AWS_S3_BUCKET_CDN, s3Key);
+				assert(data instanceof Buffer);
+				const range = parseRange(ctx.req.header('Range') ?? '', data.length);
+				setHeaders(ctx, data.length, 'video/webm', range);
+				const slice = range ? data.subarray(range.start, range.end + 1) : data;
+				return ctx.body(toBodyData(slice));
+			}
+
+			const cacheKey = `banners_${id}_${hash}_${ext}_${size}_${quality}_0_${animated}`;
+			return processImageRequest({
+				coalescer,
+				ctx,
+				cacheKey,
+				s3Key,
+				ext,
+				aspectRatio: 0,
+				size,
+				quality,
+				animated,
+			});
+		}
+
+		if (isVideo) {
+			throw new HTTPException(400);
+		}
+
+		if (hash.startsWith(BANNER_NEW_STATIC_PREFIX)) {
+			const shortHash = hash.slice(BANNER_NEW_STATIC_PREFIX.length);
+			const s3Key = `banners/${id}/${shortHash}.webp`;
+			const cacheKey = `banners_${id}_${hash}_${ext}_${size}_${quality}_0_${animated}`;
+			return processImageRequest({
+				coalescer,
+				ctx,
+				cacheKey,
+				s3Key,
+				ext,
+				aspectRatio: 0,
+				size,
+				quality,
+				animated,
+			});
+		}
+
+		const strippedHash = stripAnimationPrefix(hash);
+		const cacheKey = `banners_${id}_${hash}_${ext}_${size}_${quality}_0_${animated}`;
+		const s3Key = `banners/${id}/${strippedHash}`;
+		return processImageRequest({coalescer, ctx, cacheKey, s3Key, ext, aspectRatio: 0, size, quality, animated});
+	};
+};
+
+export const createGuildMemberBannerRouteHandler = (coalescer: InMemoryCoalescer) => {
+	return async (ctx: Context<HonoEnv>): Promise<Response> => {
+		const {guild_id, user_id, filename} = ctx.req.param();
+		const {size, quality, animated} = v.parse(ImageQuerySchema, ctx.req.query());
+
+		const parts = filename.split('.');
+		if (parts.length !== 2) {
+			throw new HTTPException(400);
+		}
+
+		const [hash, ext] = parts;
+		const isVideo = ext === 'webm';
+		const isImage = MEDIA_TYPES.IMAGE.extensions.includes(ext);
+
+		if (!isVideo && !isImage) {
+			throw new HTTPException(400);
+		}
+
+		const basePrefix = `guilds/${guild_id}/users/${user_id}/banners`;
+
+		if (hash.startsWith(BANNER_NEW_ANIMATED_PREFIX)) {
+			const shortHash = hash.slice(BANNER_NEW_ANIMATED_PREFIX.length);
+			const s3Key = `${basePrefix}/${shortHash}.${ext}`;
+
+			if (isVideo) {
+				const {data} = await readS3Object(Config.AWS_S3_BUCKET_CDN, s3Key);
+				assert(data instanceof Buffer);
+				const range = parseRange(ctx.req.header('Range') ?? '', data.length);
+				setHeaders(ctx, data.length, 'video/webm', range);
+				const slice = range ? data.subarray(range.start, range.end + 1) : data;
+				return ctx.body(toBodyData(slice));
+			}
+
+			const cacheKey = `banners_${guild_id}_${user_id}_${hash}_${ext}_${size}_${quality}_0_${animated}`;
+			return processImageRequest({
+				coalescer,
+				ctx,
+				cacheKey,
+				s3Key,
+				ext,
+				aspectRatio: 0,
+				size,
+				quality,
+				animated,
+			});
+		}
+
+		if (isVideo) {
+			throw new HTTPException(400);
+		}
+
+		if (hash.startsWith(BANNER_NEW_STATIC_PREFIX)) {
+			const shortHash = hash.slice(BANNER_NEW_STATIC_PREFIX.length);
+			const s3Key = `${basePrefix}/${shortHash}.webp`;
+			const cacheKey = `banners_${guild_id}_${user_id}_${hash}_${ext}_${size}_${quality}_0_${animated}`;
+			return processImageRequest({
+				coalescer,
+				ctx,
+				cacheKey,
+				s3Key,
+				ext,
+				aspectRatio: 0,
+				size,
+				quality,
+				animated,
+			});
+		}
+
+		const strippedHash = stripAnimationPrefix(hash);
+		const cacheKey = `banners_${guild_id}_${user_id}_${hash}_${ext}_${size}_${quality}_0_${animated}`;
+		const s3Key = `${basePrefix}/${strippedHash}`;
 		return processImageRequest({coalescer, ctx, cacheKey, s3Key, ext, aspectRatio: 0, size, quality, animated});
 	};
 };

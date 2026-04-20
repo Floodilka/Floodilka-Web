@@ -44,6 +44,7 @@ import {InputValidationError, MaxGuildsError, MissingPermissionsError, UnknownGu
 import type {GuildCreateRequest, GuildPartialResponse, GuildResponse, GuildUpdateRequest} from '~/guild/GuildModel';
 import {mapGuildToGuildResponse, mapGuildToPartialResponse} from '~/guild/GuildModel';
 import type {IGuildRepository} from '~/guild/IGuildRepository';
+import type {BannerAssetProcessor, PreparedBannerUpload} from '~/infrastructure/BannerAssetProcessor';
 import type {EntityAssetService, PreparedAssetUpload} from '~/infrastructure/EntityAssetService';
 import type {IGatewayService} from '~/infrastructure/IGatewayService';
 import {getMetricsService} from '~/infrastructure/MetricsService';
@@ -59,7 +60,7 @@ import type {GuildDataHelpers} from './GuildDataHelpers';
 
 interface PreparedGuildAssets {
 	icon: PreparedAssetUpload | null;
-	banner: PreparedAssetUpload | null;
+	banner: PreparedBannerUpload | null;
 	splash: PreparedAssetUpload | null;
 	embed_splash: PreparedAssetUpload | null;
 }
@@ -79,6 +80,7 @@ export class GuildOperationsService {
 		private readonly channelService: ChannelService,
 		private readonly gatewayService: IGatewayService,
 		private readonly entityAssetService: EntityAssetService,
+		private readonly bannerAssetProcessor: BannerAssetProcessor,
 		private readonly userRepository: IUserRepository,
 		private readonly snowflakeService: SnowflakeService,
 		private readonly webhookRepository: IWebhookRepository,
@@ -391,8 +393,7 @@ export class GuildOperationsService {
 			}
 
 			try {
-				preparedAssets.banner = await this.entityAssetService.prepareAssetUpload({
-					assetType: 'banner',
+				preparedAssets.banner = await this.bannerAssetProcessor.processUpload({
 					entityType: 'guild',
 					entityId: guildId,
 					previousHash: currentGuild.bannerHash,
@@ -637,7 +638,7 @@ export class GuildOperationsService {
 			rollbackPromises.push(this.entityAssetService.rollbackAssetUpload(assets.icon));
 		}
 		if (assets.banner) {
-			rollbackPromises.push(this.entityAssetService.rollbackAssetUpload(assets.banner));
+			rollbackPromises.push(this.bannerAssetProcessor.rollback(assets.banner));
 		}
 		if (assets.splash) {
 			rollbackPromises.push(this.entityAssetService.rollbackAssetUpload(assets.splash));
@@ -656,7 +657,7 @@ export class GuildOperationsService {
 			commitPromises.push(this.entityAssetService.commitAssetChange({prepared: assets.icon, deferDeletion: true}));
 		}
 		if (assets.banner) {
-			commitPromises.push(this.entityAssetService.commitAssetChange({prepared: assets.banner, deferDeletion: true}));
+			commitPromises.push(this.bannerAssetProcessor.commit(assets.banner));
 		}
 		if (assets.splash) {
 			commitPromises.push(this.entityAssetService.commitAssetChange({prepared: assets.splash, deferDeletion: true}));

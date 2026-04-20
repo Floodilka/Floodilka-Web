@@ -31,6 +31,7 @@ import type {ChannelService} from '~/channel/services/ChannelService';
 import {MissingAccessError, MissingPermissionsError, UnknownGuildError} from '~/Errors';
 import type {GuildAuditLogChange} from '~/guild/GuildAuditLogTypes';
 import type {AvatarService} from '~/infrastructure/AvatarService';
+import type {BannerAssetProcessor} from '~/infrastructure/BannerAssetProcessor';
 import type {EntityAssetService} from '~/infrastructure/EntityAssetService';
 import type {IAssetDeletionQueue} from '~/infrastructure/IAssetDeletionQueue';
 import type {ICacheService} from '~/infrastructure/ICacheService';
@@ -144,6 +145,7 @@ export class GuildService {
 		userCacheService: UserCacheService,
 		gatewayService: IGatewayService,
 		entityAssetService: EntityAssetService,
+		bannerAssetProcessor: BannerAssetProcessor,
 		avatarService: AvatarService,
 		assetDeletionQueue: IAssetDeletionQueue,
 		userRepository: IUserRepository,
@@ -168,6 +170,7 @@ export class GuildService {
 			channelService,
 			gatewayService,
 			entityAssetService,
+			bannerAssetProcessor,
 			userRepository,
 			snowflakeService,
 			webhookRepository,
@@ -179,6 +182,7 @@ export class GuildService {
 			userCacheService,
 			gatewayService,
 			entityAssetService,
+			bannerAssetProcessor,
 			userRepository,
 			rateLimitService,
 			guildAuditLogService,

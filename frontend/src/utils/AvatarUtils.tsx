@@ -92,6 +92,28 @@ const parseAvatar = (avatar: string) => {
 	};
 };
 
+const BANNER_NEW_STATIC_PREFIX = 's_';
+const BANNER_NEW_ANIMATED_PREFIX = 'v_';
+
+const parseBannerHash = (banner: string) => {
+	if (banner.startsWith(BANNER_NEW_ANIMATED_PREFIX)) {
+		return {animated: true, newFormat: true, fullHash: banner};
+	}
+	if (banner.startsWith(BANNER_NEW_STATIC_PREFIX)) {
+		return {animated: false, newFormat: true, fullHash: banner};
+	}
+	if (banner.startsWith('a_')) {
+		return {animated: true, newFormat: false, fullHash: banner};
+	}
+	return {animated: false, newFormat: false, fullHash: banner};
+};
+
+export interface BannerAsset {
+	animated: boolean;
+	videoUrl: string | null;
+	imageUrl: string;
+}
+
 export const getUserAvatarURL = ({id, avatar}: AvatarOptions, animated = false, size = 160) => {
 	if (!avatar) {
 		return getDefaultAvatar(getDefaultAvatarIndex(id));
@@ -151,16 +173,53 @@ export const getUserBannerURL = ({id, banner}: BannerOptions, animated = false, 
 		return null;
 	}
 
-	const parsedBanner = parseAvatar(banner);
-	const shouldAnimate = parsedBanner.animated ? animated : false;
+	const parsed = parseBannerHash(banner);
 
+	if (parsed.newFormat && parsed.animated) {
+		return getMediaURL({path: 'bnnrs', id, hash: parsed.fullHash, size, format: 'png'});
+	}
+
+	if (parsed.newFormat) {
+		return getMediaURL({path: 'bnnrs', id, hash: parsed.fullHash, size, format: 'webp'});
+	}
+
+	const shouldAnimate = parsed.animated ? animated : false;
+	const legacyHash = parsed.animated ? parsed.fullHash.slice(2) : parsed.fullHash;
 	return getMediaURL({
 		path: 'bnnrs',
 		id,
-		hash: parsedBanner.hash,
+		hash: legacyHash,
 		size,
 		format: shouldAnimate ? 'gif' : 'webp',
 	});
+};
+
+export const getUserBannerAsset = ({id, banner}: BannerOptions, size = 1024): BannerAsset | null => {
+	if (!banner) {
+		return null;
+	}
+
+	const parsed = parseBannerHash(banner);
+
+	if (parsed.newFormat && parsed.animated) {
+		const videoUrl = getMediaURL({path: 'bnnrs', id, hash: parsed.fullHash, format: 'webm'});
+		const imageUrl = getMediaURL({path: 'bnnrs', id, hash: parsed.fullHash, size, format: 'png'});
+		return {animated: true, videoUrl, imageUrl};
+	}
+
+	if (parsed.newFormat) {
+		const imageUrl = getMediaURL({path: 'bnnrs', id, hash: parsed.fullHash, size, format: 'webp'});
+		return {animated: false, videoUrl: null, imageUrl};
+	}
+
+	const legacyHash = parsed.animated ? parsed.fullHash.slice(2) : parsed.fullHash;
+	if (parsed.animated) {
+		const imageUrl = getMediaURL({path: 'bnnrs', id, hash: legacyHash, size, format: 'gif'});
+		return {animated: true, videoUrl: null, imageUrl};
+	}
+
+	const imageUrl = getMediaURL({path: 'bnnrs', id, hash: legacyHash, size, format: 'webp'});
+	return {animated: false, videoUrl: null, imageUrl};
 };
 
 export interface NameplateAsset {
@@ -230,16 +289,56 @@ export const getGuildBannerURL = ({id, banner}: {id: string; banner: string | nu
 		return null;
 	}
 
-	const parsedBanner = parseAvatar(banner);
-	const shouldAnimate = parsedBanner.animated ? animated : false;
+	const parsed = parseBannerHash(banner);
 
+	if (parsed.newFormat && parsed.animated) {
+		return getMediaURL({path: 'bnnrs', id, hash: parsed.fullHash, size: 1024, format: 'png'});
+	}
+
+	if (parsed.newFormat) {
+		return getMediaURL({path: 'bnnrs', id, hash: parsed.fullHash, size: 1024, format: 'webp'});
+	}
+
+	const shouldAnimate = parsed.animated ? animated : false;
+	const legacyHash = parsed.animated ? parsed.fullHash.slice(2) : parsed.fullHash;
 	return getMediaURL({
 		path: 'bnnrs',
 		id,
-		hash: parsedBanner.hash,
+		hash: legacyHash,
 		size: 1024,
 		format: shouldAnimate ? 'gif' : 'webp',
 	});
+};
+
+export const getGuildBannerAsset = (
+	{id, banner}: {id: string; banner: string | null},
+	size = 1024,
+): BannerAsset | null => {
+	if (!banner) {
+		return null;
+	}
+
+	const parsed = parseBannerHash(banner);
+
+	if (parsed.newFormat && parsed.animated) {
+		const videoUrl = getMediaURL({path: 'bnnrs', id, hash: parsed.fullHash, format: 'webm'});
+		const imageUrl = getMediaURL({path: 'bnnrs', id, hash: parsed.fullHash, size, format: 'png'});
+		return {animated: true, videoUrl, imageUrl};
+	}
+
+	if (parsed.newFormat) {
+		const imageUrl = getMediaURL({path: 'bnnrs', id, hash: parsed.fullHash, size, format: 'webp'});
+		return {animated: false, videoUrl: null, imageUrl};
+	}
+
+	const legacyHash = parsed.animated ? parsed.fullHash.slice(2) : parsed.fullHash;
+	if (parsed.animated) {
+		const imageUrl = getMediaURL({path: 'bnnrs', id, hash: legacyHash, size, format: 'gif'});
+		return {animated: true, videoUrl: null, imageUrl};
+	}
+
+	const imageUrl = getMediaURL({path: 'bnnrs', id, hash: legacyHash, size, format: 'webp'});
+	return {animated: false, videoUrl: null, imageUrl};
 };
 
 export const getGuildSplashURL = ({id, splash}: {id: string; splash: string | null}, size = 1024) => {
@@ -337,17 +436,71 @@ export const getGuildMemberBannerURL = ({
 		return null;
 	}
 
-	const parsedBanner = parseAvatar(banner);
-	const shouldAnimate = parsedBanner.animated ? animated : false;
+	const parsed = parseBannerHash(banner);
 
+	if (parsed.newFormat && parsed.animated) {
+		return getGuildMemberMediaURL({path: 'bnnrs', guildId, userId, hash: parsed.fullHash, size, format: 'png'});
+	}
+
+	if (parsed.newFormat) {
+		return getGuildMemberMediaURL({path: 'bnnrs', guildId, userId, hash: parsed.fullHash, size, format: 'webp'});
+	}
+
+	const shouldAnimate = parsed.animated ? animated : false;
+	const legacyHash = parsed.animated ? parsed.fullHash.slice(2) : parsed.fullHash;
 	return getGuildMemberMediaURL({
 		path: 'bnnrs',
 		guildId,
 		userId,
-		hash: parsedBanner.hash,
+		hash: legacyHash,
 		size,
 		format: shouldAnimate ? 'gif' : 'webp',
 	});
+};
+
+export const getGuildMemberBannerAsset = ({
+	guildId,
+	userId,
+	banner,
+	size = 1024,
+}: {
+	guildId: string;
+	userId: string;
+	banner: string | null;
+	size?: number;
+}): BannerAsset | null => {
+	if (!banner) {
+		return null;
+	}
+
+	const parsed = parseBannerHash(banner);
+
+	if (parsed.newFormat && parsed.animated) {
+		const videoUrl = getGuildMemberMediaURL({path: 'bnnrs', guildId, userId, hash: parsed.fullHash, format: 'webm'});
+		const imageUrl = getGuildMemberMediaURL({path: 'bnnrs', guildId, userId, hash: parsed.fullHash, size, format: 'png'});
+		return {animated: true, videoUrl, imageUrl};
+	}
+
+	if (parsed.newFormat) {
+		const imageUrl = getGuildMemberMediaURL({
+			path: 'bnnrs',
+			guildId,
+			userId,
+			hash: parsed.fullHash,
+			size,
+			format: 'webp',
+		});
+		return {animated: false, videoUrl: null, imageUrl};
+	}
+
+	const legacyHash = parsed.animated ? parsed.fullHash.slice(2) : parsed.fullHash;
+	if (parsed.animated) {
+		const imageUrl = getGuildMemberMediaURL({path: 'bnnrs', guildId, userId, hash: legacyHash, size, format: 'gif'});
+		return {animated: true, videoUrl: null, imageUrl};
+	}
+
+	const imageUrl = getGuildMemberMediaURL({path: 'bnnrs', guildId, userId, hash: legacyHash, size, format: 'webp'});
+	return {animated: false, videoUrl: null, imageUrl};
 };
 
 export const getEmojiURL = ({id, animated}: {id: string; animated?: boolean}) => {

@@ -30,6 +30,8 @@ import {Config} from '~/Config';
 import {createAttachmentsHandler} from '~/controllers/AttachmentsController';
 import {createExternalMediaHandler} from '~/controllers/ExternalMediaController';
 import {
+	createBannerRouteHandler,
+	createGuildMemberBannerRouteHandler,
 	createGuildMemberImageRouteHandler,
 	createImageRouteHandler,
 	createNameplateRouteHandler,
@@ -106,6 +108,8 @@ if (Config.STATIC_MODE) {
 
 	const handleImageRoute = createImageRouteHandler(coalescer);
 	const handleNameplateRoute = createNameplateRouteHandler(coalescer);
+	const handleBannerRoute = createBannerRouteHandler(coalescer);
+	const handleGuildMemberBannerRoute = createGuildMemberBannerRouteHandler(coalescer);
 	const handleSimpleImageRoute = createSimpleImageRouteHandler(coalescer);
 	const handleGuildMemberImageRoute = createGuildMemberImageRouteHandler(coalescer);
 	const handleStickerRoute = createStickerRouteHandler(coalescer);
@@ -117,7 +121,7 @@ if (Config.STATIC_MODE) {
 
 	app.get('/avatars/:id/:filename', async (ctx) => handleImageRoute(ctx, 'avatars'));
 	app.get('/icons/:id/:filename', async (ctx) => handleImageRoute(ctx, 'icons'));
-	app.get('/bnnrs/:id/:filename', async (ctx) => handleImageRoute(ctx, 'banners'));
+	app.get('/bnnrs/:id/:filename', async (ctx) => handleBannerRoute(ctx));
 	app.get('/nmplts/:id/:filename', async (ctx) => handleNameplateRoute(ctx));
 	app.get('/splashes/:id/:filename', async (ctx) => handleImageRoute(ctx, 'splashes'));
 	app.get('/embed-splashes/:id/:filename', async (ctx) => handleImageRoute(ctx, 'embed-splashes'));
@@ -126,9 +130,7 @@ if (Config.STATIC_MODE) {
 	app.get('/guilds/:guild_id/users/:user_id/avatars/:filename', async (ctx) =>
 		handleGuildMemberImageRoute(ctx, 'avatars'),
 	);
-	app.get('/guilds/:guild_id/users/:user_id/bnnrs/:filename', async (ctx) =>
-		handleGuildMemberImageRoute(ctx, 'banners'),
-	);
+	app.get('/guilds/:guild_id/users/:user_id/bnnrs/:filename', async (ctx) => handleGuildMemberBannerRoute(ctx));
 	app.get('/attachments/:channel_id/:attachment_id/:filename', handleAttachmentsRoute);
 	app.get('/themes/:id.css', handleThemeRequest);
 

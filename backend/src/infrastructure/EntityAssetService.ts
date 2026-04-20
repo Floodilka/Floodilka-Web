@@ -18,7 +18,6 @@
  */
 
 import crypto from 'node:crypto';
-import sharp from 'sharp';
 import {Config} from '~/Config';
 import {AVATAR_EXTENSIONS, AVATAR_MAX_SIZE} from '~/Constants';
 import {InputValidationError} from '~/Errors';
@@ -48,18 +47,6 @@ const ASSET_TYPE_TO_URL_PREFIX: Record<AssetType, string> = {
 	splash: 'splashes',
 	embed_splash: 'embed-splashes',
 };
-
-const BANNER_TARGET_DIMENSIONS: Record<EntityType, {width: number; height: number}> = {
-	user: {width: 1530, height: 540},
-	guild_member: {width: 1530, height: 540},
-	guild: {width: 1920, height: 1080},
-};
-
-const BANNER_STATIC_QUALITY = 82;
-const BANNER_ANIMATED_QUALITY = 70;
-const BANNER_MAX_STATIC_BYTES = 1 * 1024 * 1024;
-const BANNER_MAX_ANIMATED_BYTES = 3 * 1024 * 1024;
-const BANNER_CONTENT_TYPE = 'image/webp';
 
 export interface PreparedAssetUpload {
 	newHash: string | null;
@@ -119,29 +106,11 @@ export class EntityAssetService {
 			};
 		}
 
-		const validated = await this.validateAndProcessImage(base64Image, errorPath);
-		const isAnimated = validated.animated;
-
-		let imageBuffer = validated.imageBuffer;
-		let height = validated.height;
-		let width = validated.width;
-		let uploadContentType: string | undefined;
-
-		if (assetType === 'banner') {
-			const compressed = await this.compressBannerImage({
-				inputBuffer: imageBuffer,
-				animated: isAnimated,
-				entityType,
-				errorPath,
-			});
-			imageBuffer = compressed.buffer;
-			width = compressed.width;
-			height = compressed.height;
-			uploadContentType = BANNER_CONTENT_TYPE;
-		}
+		const {imageBuffer, animated, height, width} = await this.validateAndProcessImage(base64Image, errorPath);
 
 		const imageHash = crypto.createHash('md5').update(Buffer.from(imageBuffer)).digest('hex');
 		const imageHashShort = imageHash.slice(0, 8);
+		const isAnimated = animated;
 		const newHash = isAnimated ? `a_${imageHashShort}` : imageHashShort;
 
 		const newS3Key = `${s3KeyBase}/${imageHashShort}`;
@@ -163,7 +132,7 @@ export class EntityAssetService {
 			};
 		}
 
-		await this.uploadToS3(assetType, entityType, newS3Key, imageBuffer, uploadContentType);
+		await this.uploadToS3(assetType, entityType, newS3Key, imageBuffer);
 
 		const exists = await this.verifyAssetExistsWithRetry(assetType, entityType, newS3Key);
 		if (!exists) {
@@ -382,7 +351,6 @@ export class EntityAssetService {
 		entityType: EntityType,
 		s3Key: string,
 		imageBuffer: Uint8Array,
-		contentType?: string,
 	): Promise<void> {
 		try {
 			Logger.info({s3Key, assetType, entityType, size: imageBuffer.length}, 'Starting asset upload to S3');
@@ -390,55 +358,12 @@ export class EntityAssetService {
 				bucket: Config.s3.buckets.cdn,
 				key: s3Key,
 				body: imageBuffer,
-				contentType,
 			});
 			Logger.info({s3Key, assetType, entityType}, 'Asset upload to S3 completed successfully');
 		} catch (error) {
 			Logger.error({error, s3Key, assetType, entityType}, 'Asset upload to S3 failed');
 			throw new Error(`Failed to upload asset to S3: ${error instanceof Error ? error.message : 'Unknown error'}`);
 		}
-	}
-
-	private async compressBannerImage(params: {
-		inputBuffer: Uint8Array;
-		animated: boolean;
-		entityType: EntityType;
-		errorPath: string;
-	}): Promise<{buffer: Uint8Array; width: number; height: number}> {
-		const {inputBuffer, animated, entityType, errorPath} = params;
-		const target = BANNER_TARGET_DIMENSIONS[entityType];
-
-		let compressed: Buffer;
-		try {
-			const sharpInstance = animated
-				? sharp(Buffer.from(inputBuffer), {animated: true, pages: -1})
-				: sharp(Buffer.from(inputBuffer));
-
-			compressed = await sharpInstance
-				.resize(target.width, target.height, {fit: 'cover', position: 'center'})
-				.webp({
-					quality: animated ? BANNER_ANIMATED_QUALITY : BANNER_STATIC_QUALITY,
-					effort: 4,
-				})
-				.toBuffer();
-		} catch (error) {
-			Logger.error({error, entityType, animated}, 'Banner compression failed');
-			throw InputValidationError.create(errorPath, 'Не удалось обработать баннер');
-		}
-
-		const maxBytes = animated ? BANNER_MAX_ANIMATED_BYTES : BANNER_MAX_STATIC_BYTES;
-		if (compressed.length > maxBytes) {
-			throw InputValidationError.create(
-				errorPath,
-				`Баннер слишком большой после обработки (${Math.ceil(compressed.length / 1024)}KB)`,
-			);
-		}
-
-		return {
-			buffer: new Uint8Array(compressed),
-			width: target.width,
-			height: target.height,
-		};
 	}
 
 	private async deleteAssetImmediately(s3Key: string, cdnUrl: string | null): Promise<void> {
