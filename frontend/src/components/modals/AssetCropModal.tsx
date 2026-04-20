@@ -74,8 +74,8 @@ const ASSET_CONFIGS: Record<AssetType, AssetConfig> = {
 	[AssetType.GUILD_BANNER]: {
 		aspectRatio: 16 / 9,
 		cropShape: 'rect',
-		maxWidth: 2048,
-		maxHeight: 1152,
+		maxWidth: 1920,
+		maxHeight: 1080,
 		minWidth: 960,
 		minHeight: 540,
 		sizeLimitBytes: 10 * 1024 * 1024,
@@ -83,8 +83,8 @@ const ASSET_CONFIGS: Record<AssetType, AssetConfig> = {
 	[AssetType.PROFILE_BANNER]: {
 		aspectRatio: 17 / 6,
 		cropShape: 'rect',
-		maxWidth: 2048,
-		maxHeight: 723,
+		maxWidth: 1530,
+		maxHeight: 540,
 		minWidth: 680,
 		minHeight: 240,
 		sizeLimitBytes: 10 * 1024 * 1024,
