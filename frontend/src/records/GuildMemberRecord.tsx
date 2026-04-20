@@ -44,7 +44,8 @@ export type GuildMember = Readonly<{
 
 export class GuildMemberRecord {
 	readonly guildId: string;
-	readonly user: UserRecord;
+	readonly userId: string;
+	private readonly userFallback: UserRecord;
 	readonly nick: string | null;
 	readonly avatar: string | null;
 	readonly banner: string | null;
@@ -60,13 +61,14 @@ export class GuildMemberRecord {
 
 	constructor(guildId: string, guildMember: GuildMember) {
 		this.guildId = guildId;
+		this.userId = guildMember.user.id;
 
 		const cachedUser = UserStore.getUser(guildMember.user.id);
 		if (cachedUser) {
-			this.user = cachedUser;
+			this.userFallback = cachedUser;
 		} else {
-			this.user = new UserRecord(guildMember.user);
-			UserStore.cacheUsers([this.user.toJSON()]);
+			this.userFallback = new UserRecord(guildMember.user);
+			UserStore.cacheUsers([this.userFallback.toJSON()]);
 		}
 
 		this.nick = guildMember.nick ?? null;
@@ -83,6 +85,10 @@ export class GuildMemberRecord {
 			? new Date(guildMember.communication_disabled_until)
 			: null;
 		this.profileFlags = guildMember.profile_flags ?? 0;
+	}
+
+	get user(): UserRecord {
+		return UserStore.getUser(this.userId) ?? this.userFallback;
 	}
 
 	isAvatarUnset(): boolean {
