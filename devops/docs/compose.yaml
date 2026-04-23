@@ -1,0 +1,28 @@
+services:
+  docs:
+    image: caddy:2-alpine
+    volumes:
+      - /srv/docs:/srv/docs:ro
+      - /var/www/floodilka/devops/docs/Caddyfile:/etc/caddy/Caddyfile:ro
+    networks:
+      - floodilka-shared
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: any
+        delay: 5s
+        max_attempts: 10
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+        reservations:
+          cpus: '0.05'
+          memory: 32M
+      labels:
+        caddy: docs.floodilka.com
+        caddy.reverse_proxy: '{{upstreams 8080}}'
+
+networks:
+  floodilka-shared:
+    external: true
