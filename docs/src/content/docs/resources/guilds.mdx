@@ -1,15 +1,15 @@
 ---
 title: Гильдии
-description: Гильдия — главный контейнер Флудилки. Объект Guild, участники, роли, баны, эндпоинты.
+description: Гильдия — контекст, в котором живёт бот. Объект Guild, роли, участники и эндпоинты модерации.
 ---
 
 import {Aside} from '@astrojs/starlight/components';
 
-**Гильдия** (в UI — «сервер») — коллекция пользователей, каналов и ролей. Большинство действий бота происходят в контексте конкретной гильдии.
+**Гильдия** (в UI — «сервер») — коллекция пользователей, каналов и ролей. Бот всегда живёт в контексте конкретной гильдии: команды, XP, модерация — всё привязано к `guild_id`.
 
 ## Объект Guild
 
-Полный ответ большой — ниже ключевые поля:
+Поля, которые бот реально использует:
 
 ```json
 {
@@ -17,25 +17,12 @@ import {Aside} from '@astrojs/starlight/components';
 	"name": "Test server",
 	"icon": null,
 	"banner": null,
-	"splash": null,
 	"owner_id": "974...",
-	"region": "ru-moscow",
-	"afk_channel_id": null,
-	"afk_timeout": 300,
-	"verification_level": 0,
-	"default_message_notifications": 0,
-	"explicit_content_filter": 0,
 	"roles": [ ... ],
 	"emojis": [ ... ],
 	"stickers": [ ... ],
 	"features": [],
-	"mfa_level": 0,
 	"system_channel_id": "...",
-	"vanity_url_code": null,
-	"description": null,
-	"premium_tier": 0,
-	"premium_subscription_count": 0,
-	"preferred_locale": "ru",
 	"member_count": 3,
 	"channels": [ ... ]
 }
@@ -45,16 +32,20 @@ import {Aside} from '@astrojs/starlight/components';
 |------|-----|----------|
 | `id` | snowflake | ID гильдии |
 | `name` | string | Название (2-100 символов) |
-| `icon` | string \| null | Hash иконки |
+| `icon` | string \| null | Hash иконки. URL: `https://floodilka.com/icons/<guild_id>/<icon>.png` |
 | `banner` | string \| null | Hash баннера |
 | `owner_id` | snowflake | Владелец (не может быть ботом) |
-| `afk_channel_id` | snowflake \| null | Куда перемещаются AFK-пользователи |
-| `afk_timeout` | integer | Таймаут AFK в секундах |
-| `verification_level` | integer | `0` (нет) – `4` (VERY_HIGH) |
-| `roles` | array | Все роли гильдии |
-| `features` | array of string | Включённые фичи, например `COMMUNITY`, `VERIFIED` |
-| `premium_tier` | integer | `0` – `3` |
+| `roles` | array of Role | Все роли гильдии |
+| `emojis` | array | Кастомные эмоджи гильдии |
+| `stickers` | array | Стикеры гильдии |
+| `features` | array of string | Включённые фичи: `COMMUNITY`, `VERIFIED`, `PARTNERED` и т.п. |
+| `system_channel_id` | snowflake \| null | Канал для системных сообщений (присоединения, левел-апы) |
 | `member_count` | integer | Сколько участников |
+| `channels` | array of Channel | Все каналы (в `GUILD_CREATE`, но не в REST-ответах) |
+
+<Aside type="note">
+	REST-ответ `GET /guilds/:id` также содержит служебные поля (`verification_level`, `default_message_notifications`, `explicit_content_filter`, `preferred_locale`, `vanity_url_code`, `afk_channel_id`, `premium_tier` и др.) — это пользовательские настройки сервера, которые большинство ботов могут игнорировать. Подробные описания появятся в будущих версиях доки.
+</Aside>
 
 ## Объект Role
 
@@ -78,9 +69,13 @@ import {Aside} from '@astrojs/starlight/components';
 | `color` | integer | RGB-цвет, `0` — без цвета |
 | `hoist` | boolean | Отделять от остальных в списке участников |
 | `position` | integer | Позиция в иерархии. Больше = выше |
-| `permissions` | string | Битовая маска как строка (64-бит не помещается в Number) |
-| `managed` | boolean | Управляется интеграцией (нельзя редактировать) |
+| `permissions` | string | Битовая маска прав как строка (см. [Права доступа](/topics/permissions/)) |
+| `managed` | boolean | Управляется интеграцией — нельзя редактировать |
 | `mentionable` | boolean | Можно упоминать через `@` |
+
+<Aside type="tip" title="Правило иерархии">
+	Бот не может менять роли, выше своей (даже с `MANAGE_ROLES`). Если бот должен выдавать роль X — его собственная роль должна быть строго выше X в списке ролей гильдии.
+</Aside>
 
 ## Объект Member
 
@@ -98,8 +93,11 @@ import {Aside} from '@astrojs/starlight/components';
 }
 ```
 
-- **`communication_disabled_until`** — таймаут (NULL или ISO-время, до которого участник не может писать)
-- **`pending`** — участник ещё не прошёл required-gate (screening)
+- **`user`** — вложенный объект [User](/resources/users/)
+- **`nick`** — ник в конкретной гильдии (`null` — используется `user.global_name` или `user.username`)
+- **`roles`** — массив ID ролей (не содержит `@everyone`)
+- **`communication_disabled_until`** — таймаут (ISO-время до которого участник не может писать; `null` — не в таймауте)
+- **`pending`** — участник ещё не прошёл member-screening
 
 ## Эндпоинты
 
@@ -113,7 +111,7 @@ import {Aside} from '@astrojs/starlight/components';
 - `limit` — 1-1000 (по умолчанию 1)
 - `after` — snowflake последнего полученного участника
 
-**Требует:** нужны права как минимум `VIEW_CHANNEL`.
+Для большинства ботов проще полагаться на `GUILD_CREATE` + `GUILD_MEMBER_ADD/UPDATE/REMOVE` события из Gateway, чем дёргать этот эндпоинт.
 
 ### GET /guilds/:guild_id/members/:user_id
 
@@ -121,7 +119,12 @@ import {Aside} from '@astrojs/starlight/components';
 
 ### PATCH /guilds/:guild_id/members/:user_id
 
-Изменить участника: ник (`MANAGE_NICKNAMES`), роли (`MANAGE_ROLES`), muted/deafened (`MUTE/DEAFEN_MEMBERS`), timeout (`MODERATE_MEMBERS`), перемещение голоса (`MOVE_MEMBERS`).
+Изменить участника:
+- ник (`MANAGE_NICKNAMES`)
+- роли через поле `roles` (`MANAGE_ROLES`)
+- `mute` / `deaf` (`MUTE_MEMBERS` / `DEAFEN_MEMBERS`)
+- `communication_disabled_until` — timeout (`MODERATE_MEMBERS`)
+- `channel_id` — переместить в голосовой канал (`MOVE_MEMBERS`)
 
 Пример timeout на 10 минут:
 
@@ -135,7 +138,7 @@ curl -X PATCH https://floodilka.com/api/v1/guilds/$GID/members/$UID \
 ### PUT /guilds/:guild_id/members/:user_id/roles/:role_id
 ### DELETE /guilds/:guild_id/members/:user_id/roles/:role_id
 
-Добавить / убрать роль. Требует `MANAGE_ROLES` и чтобы ваша высшая роль была выше изменяемой.
+Добавить / убрать одну роль без пересылки всего массива ролей. Требует `MANAGE_ROLES` + иерархию.
 
 ### DELETE /guilds/:guild_id/members/:user_id
 
@@ -143,21 +146,20 @@ curl -X PATCH https://floodilka.com/api/v1/guilds/$GID/members/$UID \
 
 ### PUT /guilds/:guild_id/bans/:user_id
 
-Бан. Требует `BAN_MEMBERS`. Тело:
+Бан. Требует `BAN_MEMBERS`.
 
 ```json
 { "delete_message_days": 7 }
 ```
 
+`delete_message_days` (0-7) — удалить все сообщения забаненного за последние N дней.
+
 ### GET /guilds/:guild_id/bans
 ### DELETE /guilds/:guild_id/bans/:user_id
 
-Список банов / снятие бана.
+Список банов / снятие бана. Требуют `BAN_MEMBERS`.
 
-### GET /guilds/:guild_id/roles
-### POST /guilds/:guild_id/roles
-### PATCH /guilds/:guild_id/roles/:role_id
-### DELETE /guilds/:guild_id/roles/:role_id
+### POST /guilds/:guild_id/roles / PATCH / DELETE
 
 CRUD для ролей. Требует `MANAGE_ROLES`.
 
@@ -165,12 +167,9 @@ CRUD для ролей. Требует `MANAGE_ROLES`.
 
 Журнал аудита — [подробнее](/topics/audit-log/).
 
-<Aside type="tip">
-	Для бота не обязательно кешировать всю гильдию. Gateway уже отправит `GUILD_CREATE` с полным снимком при подключении, и потом точечно `GUILD_*_UPDATE` при изменениях. Делайте REST-запросы только когда вам нужен ответ, которого нет в событиях.
-</Aside>
-
 ## Что дальше
 
 - [Каналы](/resources/channels/) — каналы внутри гильдий
+- [Сообщения](/resources/messages/) — как писать в канал гильдии
 - [События](/gateway/events/) — `GUILD_MEMBER_ADD`, `GUILD_ROLE_UPDATE` и прочее
 - [Журнал аудита](/topics/audit-log/) — как читать лог модераторских действий

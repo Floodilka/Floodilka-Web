@@ -1,12 +1,96 @@
 ---
-title: "OAuth2"
-description: "Схемы OAuth2-объектов API Floodilka."
+title: Приложения и OAuth2
+description: REST-эндпоинты для управления приложением-ботом — получение профиля, сброс токена, редактирование бота.
 ---
 
 import {Aside} from '@astrojs/starlight/components';
 
-<Aside type="note">Эта страница в процессе написания. Общая структура зафиксирована, детали дополняются.</Aside>
+Каждый бот привязан к **приложению**. Эта страница — про эндпоинты, которыми бот может управлять своим приложением и самим собой программно. Большинству ботов они не нужны (всё можно делать через UI), но они полезны для автоматизации и CI-пайплайнов.
 
-## Обзор
+## GET /applications/@me
 
-Раздел «OAuth2» документации Floodilka активно пишется.
+Возвращает приложение, к которому привязан текущий бот-токен.
+
+```bash
+curl https://floodilka.com/api/v1/applications/@me \
+  -H "Authorization: Bot ВАШ_БОТ_ТОКЕН"
+```
+
+```json
+{
+	"id": "1496956937664585746",
+	"name": "XP Bot",
+	"icon": null,
+	"description": "Уровневый бот",
+	"bot_public": true,
+	"bot_require_code_grant": false,
+	"owner": {
+		"id": "974...",
+		"username": "puncher"
+	},
+	"redirect_uris": [],
+	"bot_user_id": "1496956937664585746"
+}
+```
+
+| Поле | Тип | Описание |
+|------|-----|----------|
+| `id` | snowflake | ID приложения (он же `client_id` в OAuth2-ссылке) |
+| `name` | string | Имя приложения |
+| `icon` | string \| null | Hash иконки приложения |
+| `description` | string \| null | Описание (показывается в диалоге авторизации) |
+| `bot_public` | boolean | Может ли кто угодно добавить бота по OAuth2-ссылке |
+| `bot_require_code_grant` | boolean | Требовать полный authorization code flow перед добавлением |
+| `owner` | User | Владелец приложения |
+| `redirect_uris` | array of string | Зарегистрированные redirect URIs (для OAuth2-интеграций) |
+| `bot_user_id` | snowflake | ID бот-пользователя, привязанного к приложению |
+
+## PATCH /applications/@me
+
+Меняет настройки приложения. Только владелец может вызывать с бот-токеном.
+
+```bash
+curl -X PATCH https://floodilka.com/api/v1/applications/@me \
+  -H "Authorization: Bot ВАШ_БОТ_ТОКЕН" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "description": "Новое описание",
+    "bot_public": false
+  }'
+```
+
+Разрешённые поля: `name`, `description`, `icon` (data-URL), `bot_public`, `bot_require_code_grant`, `redirect_uris`.
+
+## POST /applications/@me/bot/reset-token
+
+Сбрасывает бот-токен. Старый немедленно инвалидируется — все запущенные процессы со старым токеном получат `401 Unauthorized`.
+
+**Может вызвать только владелец приложения или через UI.** Бот сам себе этот эндпоинт вызвать не может (`ACCESS_DENIED`) — чтобы скомпрометированный токен не мог «запереть» владельца.
+
+Ответ содержит новый токен:
+
+```json
+{ "token": "1496956937664585746.НОВЫЙ_СЕКРЕТ" }
+```
+
+Токен показывается **один раз**. Сохраните немедленно.
+
+## PATCH /applications/@me/bot
+
+Меняет публичный профиль бот-пользователя (имя, аватар, bio). Эквивалент `PATCH /users/@me`, но работает как с владельца, так и с бота.
+
+```bash
+curl -X PATCH https://floodilka.com/api/v1/applications/@me/bot \
+  -H "Authorization: Bot ВАШ_БОТ_ТОКЕН" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "username": "cool_bot",
+    "avatar": "data:image/png;base64,iVBORw0KGgo..."
+  }'
+```
+
+## Что дальше
+
+- [Приглашение бота](/topics/oauth2/) — как построить OAuth2-ссылку для добавления бота
+- [Быстрый старт](/quickstart/) — первый запрос с токеном
+- [Аутентификация](/introduction/authentication/) — формат и хранение токена

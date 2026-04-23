@@ -18,7 +18,6 @@ Every Gateway message is a JSON object with `op`, `d`, `s`, `t`. The opcode (`op
 | 2 | `IDENTIFY` | C→S | Starts a new session. Sent after HELLO. |
 | 3 | `PRESENCE_UPDATE` | C→S | Update client status and activities. |
 | 4 | `VOICE_STATE_UPDATE` | C→S | Join/leave a voice channel, mute, deafen. |
-| 5 | `VOICE_SERVER_PING` | C→S | Voice-server latency ping. |
 | 6 | `RESUME` | C→S | Resume an interrupted session with the last `s`. |
 | 7 | `RECONNECT` | S→C | Server asks the client to reconnect and resume. |
 | 8 | `REQUEST_GUILD_MEMBERS` | C→S | Request guild member list (for large guilds). |
@@ -26,8 +25,6 @@ Every Gateway message is a JSON object with `op`, `d`, `s`, `t`. The opcode (`op
 | 10 | `HELLO` | S→C | First message after connect. `d.heartbeat_interval` is the ms between heartbeats. |
 | 11 | `HEARTBEAT_ACK` | S→C | Heartbeat acknowledgement. If missing, reconnect. |
 | 12 | `GATEWAY_ERROR` | S→C | Gateway-level error with details in `d`. |
-| 13 | `CALL_CONNECT` | C↔S | Call-related control event (DMs, voice sessions). |
-| 14 | `LAZY_REQUEST` | C→S | Lazy guild-member request by ranges. |
 
 ## What's next
 

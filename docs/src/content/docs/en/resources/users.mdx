@@ -1,12 +1,98 @@
 ---
-title: "Users"
-description: "User object, profile fields, and user-related endpoints."
+title: Users
+description: The User object as seen by a bot — read your own or someone else's profile, change bot username and avatar.
 ---
 
 import {Aside} from '@astrojs/starlight/components';
 
-<Aside type="note">This page is being written. The high-level shape is settled; the details are being filled in.</Aside>
+The **User** object is everywhere: message authors, guild members, DM recipients. Your bot is also a `User` with `bot: true`.
 
-## Overview
+## User object (what a bot sees)
 
-Users documentation for the Floodilka platform is in active development.
+```json
+{
+	"id": "1496956937664585746",
+	"username": "my_bot",
+	"global_name": null,
+	"avatar": null,
+	"avatar_color": null,
+	"banner": null,
+	"banner_color": null,
+	"bio": null,
+	"nameplate": null,
+	"bot": true,
+	"flags": 0,
+	"premium_type": 0
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | snowflake | Unique ID |
+| `username` | string | Handle (`[A-Za-z0-9_]{2,32}` for bots) |
+| `global_name` | string \| null | Display name (may contain spaces and Unicode) |
+| `avatar` | string \| null | Avatar hash. URL: `https://floodilka.com/avatars/<user_id>/<avatar>.png` |
+| `avatar_color` | string \| null | Hex fallback colour if there's no avatar |
+| `banner` | string \| null | Profile banner hash |
+| `banner_color` | string \| null | Hex fallback colour for the banner |
+| `bio` | string \| null | Profile bio, up to 190 chars |
+| `nameplate` | object \| null | Premium name decoration |
+| `bot` | boolean | `true` for bot accounts |
+| `flags` | integer | Public flags bitfield (`STAFF`, `EARLY_SUPPORTER`, `VERIFIED_BOT`, etc.) |
+| `premium_type` | integer | Premium tier: `0` none, `1` Classic, `2` Full, `3` Guild-Premium |
+
+<Aside type="note" title="What a bot doesn't see">
+	`GET /users/@me` for the bot itself also returns `email`, `phone`, `mfa_enabled`, `verified`, `authenticator_types` — but these are always `null`/`false` for a bot account. For `GET /users/:user_id` on another user they're not returned at all. Don't rely on them in your bot code.
+</Aside>
+
+## Endpoints
+
+### GET /users/@me
+
+Returns the bot itself.
+
+```bash
+curl https://floodilka.com/api/v1/users/@me \
+  -H "Authorization: Bot YOUR_BOT_TOKEN"
+```
+
+Useful for verifying token validity at bot startup.
+
+### GET /users/:user_id
+
+Returns any user's public profile by ID. Only public fields (the ones in the table above).
+
+```bash
+curl https://floodilka.com/api/v1/users/974839103102976000 \
+  -H "Authorization: Bot YOUR_BOT_TOKEN"
+```
+
+### GET /users/@me/guilds
+
+Returns the guilds the bot is in. Pagination: `before`, `after`, `limit` (up to 200).
+
+```bash
+curl "https://floodilka.com/api/v1/users/@me/guilds?limit=100" \
+  -H "Authorization: Bot YOUR_BOT_TOKEN"
+```
+
+### PATCH /users/@me
+
+Updates the bot's public profile — name, avatar, banner, bio. Images are passed as data URLs:
+
+```bash
+curl -X PATCH https://floodilka.com/api/v1/users/@me \
+  -H "Authorization: Bot YOUR_BOT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "username": "my_cool_bot",
+    "avatar": "data:image/png;base64,iVBORw0KGgo..."
+  }'
+```
+
+Clients in your guilds see the update within seconds.
+
+## What's next
+
+- [Guilds](/en/resources/guilds/) — the Member object that wraps a User
+- [Applications & OAuth2](/en/resources/oauth2/) — how to reset tokens and manage your bot's application

@@ -253,92 +253,54 @@ import {Aside} from '@astrojs/starlight/components';
 
 Когда `channel_id: null` — пользователь покинул голос.
 
-## Полный список событий
+## Все события, которые получает бот
 
 <Aside type="note">
-	Перечисленные ниже события могут приходить клиенту. Детальные payload-схемы для большинства из них будут добавлены в ближайших обновлениях документации. До этого момента — используйте реальный gateway как референс: подключите бота, включите логирование всех dispatch-событий и посмотрите, как выглядит `d`.
+	Детальные payload-схемы для большинства событий будут добавлены в ближайших обновлениях. До этого — используйте реальный gateway как референс: подключите бота, включите логирование всех dispatch-событий и посмотрите `d` своими глазами.
 </Aside>
 
 ### Сессия
-- `READY`
-- `RESUMED`
-- `SESSIONS_REPLACE`
-- `AUTH_SESSION_CHANGE`
-
-### Пользователь
-- `USER_UPDATE`
-- `USER_SETTINGS_UPDATE`
-- `USER_GUILD_SETTINGS_UPDATE`
-- `USER_PINNED_DMS_UPDATE`
-- `USER_NOTE_UPDATE`
+- `READY` — после IDENTIFY
+- `RESUMED` — после успешного RESUME
 
 ### Гильдия
-- `GUILD_CREATE`
-- `GUILD_UPDATE`
-- `GUILD_DELETE`
-- `GUILD_SYNC`
-- `GUILD_BAN_ADD`
-- `GUILD_BAN_REMOVE`
-- `GUILD_EMOJIS_UPDATE`
-- `GUILD_STICKERS_UPDATE`
-- `GUILD_MEMBER_ADD`
-- `GUILD_MEMBER_UPDATE`
-- `GUILD_MEMBER_REMOVE`
-- `GUILD_MEMBER_LIST_UPDATE`
-- `GUILD_MEMBERS_CHUNK`
-- `GUILD_ROLE_CREATE`
-- `GUILD_ROLE_UPDATE`
-- `GUILD_ROLE_UPDATE_BULK`
-- `GUILD_ROLE_DELETE`
+- `GUILD_CREATE` — полная гильдия после READY и при добавлении бота
+- `GUILD_UPDATE` — изменены настройки гильдии
+- `GUILD_DELETE` — бот удалён или гильдия недоступна
+- `GUILD_BAN_ADD` / `GUILD_BAN_REMOVE` — бан или снятие бана
+- `GUILD_EMOJIS_UPDATE` / `GUILD_STICKERS_UPDATE` — обновление эмоджи/стикеров
+- `GUILD_MEMBER_ADD` / `GUILD_MEMBER_UPDATE` / `GUILD_MEMBER_REMOVE`
+- `GUILD_MEMBER_LIST_UPDATE` — частичное обновление списка участников
+- `GUILD_MEMBERS_CHUNK` — ответ на `REQUEST_GUILD_MEMBERS`
+- `GUILD_ROLE_CREATE` / `GUILD_ROLE_UPDATE` / `GUILD_ROLE_UPDATE_BULK` / `GUILD_ROLE_DELETE`
 
-### Канал
-- `CHANNEL_CREATE`
-- `CHANNEL_UPDATE`
-- `CHANNEL_UPDATE_BULK`
-- `CHANNEL_DELETE`
-- `CHANNEL_PINS_UPDATE`
-- `CHANNEL_PINS_ACK`
-- `CHANNEL_RECIPIENT_ADD`
-- `CHANNEL_RECIPIENT_REMOVE`
+### Каналы
+- `CHANNEL_CREATE` / `CHANNEL_UPDATE` / `CHANNEL_UPDATE_BULK` / `CHANNEL_DELETE`
+- `CHANNEL_PINS_UPDATE` — изменён список закреплённых сообщений канала
 
 ### Сообщения
-- `MESSAGE_CREATE`
-- `MESSAGE_UPDATE`
-- `MESSAGE_DELETE`
-- `MESSAGE_DELETE_BULK`
-- `MESSAGE_ACK`
-- `MESSAGE_REACTION_ADD`
-- `MESSAGE_REACTION_REMOVE`
-- `MESSAGE_REACTION_REMOVE_ALL`
-- `MESSAGE_REACTION_REMOVE_EMOJI`
-- `RECENT_MENTION_DELETE`
-- `SAVED_MESSAGE_CREATE`
-- `SAVED_MESSAGE_DELETE`
-- `FAVORITE_MEME_CREATE`
-- `FAVORITE_MEME_UPDATE`
-- `FAVORITE_MEME_DELETE`
+- `MESSAGE_CREATE` / `MESSAGE_UPDATE` / `MESSAGE_DELETE` / `MESSAGE_DELETE_BULK`
+- `MESSAGE_REACTION_ADD` / `MESSAGE_REACTION_REMOVE`
+- `MESSAGE_REACTION_REMOVE_ALL` / `MESSAGE_REACTION_REMOVE_EMOJI`
 
 ### Активность
-- `PRESENCE_UPDATE`
-- `TYPING_START`
-- `PASSIVE_UPDATES`
+- `PRESENCE_UPDATE` — изменение статуса / активностей участника
+- `TYPING_START` — начало печатания
 
-### Голос и звонки
-- `VOICE_STATE_UPDATE`
-- `VOICE_SERVER_UPDATE`
-- `CALL_CREATE`
-- `CALL_UPDATE`
-- `CALL_DELETE`
+### Голос
+- `VOICE_STATE_UPDATE` — join/leave/mute в голосовом канале
+- `VOICE_SERVER_UPDATE` — выдача LiveKit-endpoint'а и токена (для голосовых ботов)
 
 ### Интеграции
-- `INVITE_CREATE`
-- `INVITE_DELETE`
-- `WEBHOOKS_UPDATE`
+- `INVITE_CREATE` / `INVITE_DELETE` — создание/удаление инвайт-кода
+- `WEBHOOKS_UPDATE` — изменены вебхуки канала
 
-### Социальные
-- `RELATIONSHIP_ADD`
-- `RELATIONSHIP_UPDATE`
-- `RELATIONSHIP_REMOVE`
+### Собственный профиль
+- `USER_UPDATE` — изменились публичные поля бот-пользователя (аватар, имя, bio)
+
+<Aside type="tip">
+	В гейтвее Флудилки есть и другие события (`SESSIONS_REPLACE`, `USER_SETTINGS_UPDATE`, `FAVORITE_MEME_*`, `RELATIONSHIP_*`, `CALL_*` и т.д.), но они приходят только первой стороне — официальному клиенту Флудилки — и бот их никогда не получит. Если в логах вашего бота что-то такое увидели — значит вы используете первородный токен, а не бот-токен.
+</Aside>
 
 ## Что дальше
 

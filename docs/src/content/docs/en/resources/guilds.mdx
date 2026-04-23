@@ -1,12 +1,175 @@
 ---
-title: "Guilds"
-description: "Guild object, members, roles, and guild-level endpoints."
+title: Guilds
+description: The Guild — your bot's operating context. Guild object, roles, members, and moderation endpoints.
 ---
 
 import {Aside} from '@astrojs/starlight/components';
 
-<Aside type="note">This page is being written. The high-level shape is settled; the details are being filled in.</Aside>
+A **guild** (called a "server" in the UI) is a collection of users, channels, and roles. Your bot always operates inside a specific guild — commands, XP, moderation are all scoped to `guild_id`.
 
-## Overview
+## Guild object
 
-Guilds documentation for the Floodilka platform is in active development.
+Fields your bot actually uses:
+
+```json
+{
+	"id": "1424883034267582464",
+	"name": "Test server",
+	"icon": null,
+	"banner": null,
+	"owner_id": "974...",
+	"roles": [ ... ],
+	"emojis": [ ... ],
+	"stickers": [ ... ],
+	"features": [],
+	"system_channel_id": "...",
+	"member_count": 3,
+	"channels": [ ... ]
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | snowflake | Guild ID |
+| `name` | string | Display name (2–100 chars) |
+| `icon` | string \| null | Icon hash. URL: `https://floodilka.com/icons/<guild_id>/<icon>.png` |
+| `banner` | string \| null | Banner hash |
+| `owner_id` | snowflake | Owner (can never be a bot) |
+| `roles` | array of Role | All guild roles |
+| `emojis` | array | Custom emojis |
+| `stickers` | array | Guild stickers |
+| `features` | array of string | Enabled features: `COMMUNITY`, `VERIFIED`, `PARTNERED`, etc. |
+| `system_channel_id` | snowflake \| null | Channel for system announcements (joins, level-ups) |
+| `member_count` | integer | Member count |
+| `channels` | array of Channel | All channels (in `GUILD_CREATE`, not in REST responses) |
+
+<Aside type="note">
+	`GET /guilds/:id` also returns config fields (`verification_level`, `default_message_notifications`, `explicit_content_filter`, `preferred_locale`, `vanity_url_code`, `afk_channel_id`, `premium_tier`, etc.) — these are server settings that most bots can ignore. Detailed docs for each will arrive in later doc updates.
+</Aside>
+
+## Role object
+
+```json
+{
+	"id": "1424...",
+	"name": "Moderator",
+	"color": 3447003,
+	"hoist": true,
+	"position": 5,
+	"permissions": "268435456",
+	"managed": false,
+	"mentionable": true
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | snowflake | Role ID |
+| `name` | string | Name |
+| `color` | integer | RGB colour, `0` for default |
+| `hoist` | boolean | Show separately in the member list |
+| `position` | integer | Hierarchy position. Higher = stronger |
+| `permissions` | string | Permission bitfield as a string (see [Permissions](/en/topics/permissions/)) |
+| `managed` | boolean | Managed by an integration — not editable |
+| `mentionable` | boolean | Can be mentioned with `@` |
+
+<Aside type="tip" title="Hierarchy rule">
+	A bot cannot modify a role higher than its own highest role (even with `MANAGE_ROLES`). If your bot hands out role X — the bot's own role must sit strictly above X in the guild role list.
+</Aside>
+
+## Member object
+
+```json
+{
+	"user": { ... },
+	"nick": "Head Mod",
+	"roles": ["1424...", "1424..."],
+	"joined_at": "2026-04-01T12:00:00.000Z",
+	"premium_since": null,
+	"deaf": false,
+	"mute": false,
+	"pending": false,
+	"communication_disabled_until": null
+}
+```
+
+- **`user`** — embedded [User](/en/resources/users/) object
+- **`nick`** — guild-specific nickname (`null` — falls back to `user.global_name` or `user.username`)
+- **`roles`** — array of role IDs (does not include `@everyone`)
+- **`communication_disabled_until`** — timeout (ISO timestamp until which the member can't send messages; `null` if not timed out)
+- **`pending`** — member hasn't passed member-screening yet
+
+## Endpoints
+
+### GET /guilds/:guild_id
+
+Full Guild object. Heavy — don't call it in a hot path.
+
+### GET /guilds/:guild_id/members
+
+Member list with pagination:
+- `limit` — 1–1000 (default 1)
+- `after` — snowflake of the last member you got
+
+For most bots it's simpler to rely on `GUILD_CREATE` + `GUILD_MEMBER_ADD/UPDATE/REMOVE` gateway events than to hit this endpoint.
+
+### GET /guilds/:guild_id/members/:user_id
+
+A specific member.
+
+### PATCH /guilds/:guild_id/members/:user_id
+
+Update a member:
+- `nick` (`MANAGE_NICKNAMES`)
+- `roles` array (`MANAGE_ROLES`)
+- `mute` / `deaf` (`MUTE_MEMBERS` / `DEAFEN_MEMBERS`)
+- `communication_disabled_until` — timeout (`MODERATE_MEMBERS`)
+- `channel_id` — move in voice (`MOVE_MEMBERS`)
+
+Example: timeout for 10 minutes:
+
+```bash
+curl -X PATCH https://floodilka.com/api/v1/guilds/$GID/members/$UID \
+  -H "Authorization: Bot $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"communication_disabled_until": "2026-04-23T23:00:00.000Z"}'
+```
+
+### PUT /guilds/:guild_id/members/:user_id/roles/:role_id
+### DELETE /guilds/:guild_id/members/:user_id/roles/:role_id
+
+Add / remove a single role without sending the entire `roles` array. Requires `MANAGE_ROLES` + hierarchy.
+
+### DELETE /guilds/:guild_id/members/:user_id
+
+Kick. Requires `KICK_MEMBERS`.
+
+### PUT /guilds/:guild_id/bans/:user_id
+
+Ban. Requires `BAN_MEMBERS`.
+
+```json
+{ "delete_message_days": 7 }
+```
+
+`delete_message_days` (0–7) — purge the banned user's messages from the last N days.
+
+### GET /guilds/:guild_id/bans
+### DELETE /guilds/:guild_id/bans/:user_id
+
+List bans / lift a ban. Both require `BAN_MEMBERS`.
+
+### POST /guilds/:guild_id/roles / PATCH / DELETE
+
+Role CRUD. Requires `MANAGE_ROLES`.
+
+### GET /guilds/:guild_id/audit-logs
+
+Audit log — [details](/en/topics/audit-log/).
+
+## What's next
+
+- [Channels](/en/resources/channels/) — channels inside guilds
+- [Messages](/en/resources/messages/) — send messages into a guild channel
+- [Events](/en/gateway/events/) — `GUILD_MEMBER_ADD`, `GUILD_ROLE_UPDATE`, and the rest
+- [Audit log](/en/topics/audit-log/) — read the moderator action log

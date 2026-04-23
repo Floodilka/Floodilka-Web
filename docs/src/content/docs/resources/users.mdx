@@ -1,15 +1,13 @@
 ---
 title: Пользователи
-description: Объект User, информация о текущем пользователе и чтение профилей по ID.
+description: Объект User — что видит бот, как прочитать свой или чужой профиль, как поменять имя и аватар бота.
 ---
 
 import {Aside} from '@astrojs/starlight/components';
 
-Объект **User** — базовая сущность Floodilka. К нему сводятся авторы сообщений, участники гильдий, получатели DM и бот-пользователи приложений.
+Объект **User** — базовая сущность, которую бот встречает везде: авторы сообщений, участники гильдий, адресаты DM. Плюс бот сам является User'ом с `bot: true`.
 
-## Объект User
-
-Типичный ответ при запросе пользователя:
+## Объект User (то что видит бот)
 
 ```json
 {
@@ -24,76 +22,77 @@ import {Aside} from '@astrojs/starlight/components';
 	"nameplate": null,
 	"bot": true,
 	"flags": 0,
-	"premium_type": 0,
-	"mfa_enabled": false,
-	"verified": false,
-	"email": null,
-	"phone": null
+	"premium_type": 0
 }
 ```
 
 | Поле | Тип | Описание |
 |------|-----|----------|
 | `id` | snowflake | Уникальный ID |
-| `username` | string | Никнейм. `[A-Za-z0-9_]{2,32}` |
-| `global_name` | string \| null | Отображаемое имя (не системный username). Может содержать пробелы и юникод |
+| `username` | string | Никнейм (`[A-Za-z0-9_]{2,32}` для ботов) |
+| `global_name` | string \| null | Отображаемое имя (с пробелами и юникодом) |
 | `avatar` | string \| null | Hash аватара. URL: `https://floodilka.com/avatars/<user_id>/<avatar>.png` |
-| `avatar_color` | string \| null | Hex-цвет заглушки, если `avatar` не задан |
+| `avatar_color` | string \| null | Hex-цвет заглушки, если аватара нет |
 | `banner` | string \| null | Hash баннера профиля |
 | `banner_color` | string \| null | Hex-цвет заглушки баннера |
 | `bio` | string \| null | О себе, до 190 символов |
 | `nameplate` | object \| null | Премиум-украшение плашки имени |
 | `bot` | boolean | `true` для бот-пользователей |
-| `flags` | integer | Битовое поле флагов (`STAFF`, `EARLY_SUPPORTER` и т.п.) |
-| `premium_type` | integer | `0` — нет премиума, `1` — Classic, `2` — Full, `3` — Guild-Premium |
-| `mfa_enabled` | boolean | Включён ли 2FA |
-| `verified` | boolean | Подтверждён ли email |
-| `email` | string \| null | Email (только `/users/@me` и только при скоупе `email`) |
-| `phone` | string \| null | Телефон (только первая сторона) |
+| `flags` | integer | Битовое поле публичных флагов (`STAFF`, `EARLY_SUPPORTER`, `VERIFIED_BOT` и т.п.) |
+| `premium_type` | integer | Премиум-статус: `0` — нет, `1` — Classic, `2` — Full, `3` — Guild-Premium |
+
+<Aside type="note" title="Что бот НЕ видит">
+	В ответе `GET /users/@me` **у самого бота** также возвращаются поля `email`, `phone`, `mfa_enabled`, `verified`, `authenticator_types` — но они всегда `null` / `false` для бот-аккаунта. В ответе на `GET /users/:user_id` (другого пользователя) этих полей нет вообще. Не закладывайтесь на них в коде бота.
+</Aside>
 
 ## Эндпоинты
 
 ### GET /users/@me
 
-Возвращает текущего пользователя (того, чей токен). Для ботов — сам бот.
-
-**Требует:** `Bot` или `Bearer identify`
+Возвращает бота самого.
 
 ```bash
 curl https://floodilka.com/api/v1/users/@me \
   -H "Authorization: Bot ВАШ_БОТ_ТОКЕН"
 ```
 
+Используйте для проверки валидности токена при старте бота.
+
 ### GET /users/:user_id
 
-Возвращает пользователя по ID. Видны только публичные поля (без `email`, `phone`, `mfa_enabled`, `verified`).
+Возвращает публичный профиль любого пользователя по ID. Видны только публичные поля (те что в таблице выше).
 
-**Требует:** любой авторизованный токен
+```bash
+curl https://floodilka.com/api/v1/users/974839103102976000 \
+  -H "Authorization: Bot ВАШ_БОТ_ТОКЕН"
+```
 
 ### GET /users/@me/guilds
 
-Возвращает список гильдий, в которых состоит пользователь/бот.
+Список гильдий, в которых состоит бот. Поддерживает пагинацию через `before`, `after`, `limit` (до 200).
 
-**Требует:** `Bot` или `Bearer guilds`
-
-Поддерживает пагинацию через `before`, `after`, `limit` (до 200).
+```bash
+curl "https://floodilka.com/api/v1/users/@me/guilds?limit=100" \
+  -H "Authorization: Bot ВАШ_БОТ_ТОКЕН"
+```
 
 ### PATCH /users/@me
 
-Меняет профиль. Для обычных пользователей нельзя менять `email` или `phone` здесь — отдельные защищённые эндпоинты.
+Меняет публичный профиль бота — имя, аватар, баннер, bio. Изображения передаются как data-URL:
 
-**Требует:** `Bot` (для бот-пользователей) или `Bearer` (с правильным скоупом)
-
-Тело запроса — частичный объект User. Загружаемые изображения передаются как data-URL:
-
-```json
-{
-	"avatar": "data:image/png;base64,iVBORw0KGgo..."
-}
+```bash
+curl -X PATCH https://floodilka.com/api/v1/users/@me \
+  -H "Authorization: Bot ВАШ_БОТ_ТОКЕН" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "username": "my_cool_bot",
+    "avatar": "data:image/png;base64,iVBORw0KGgo..."
+  }'
 ```
+
+После смены профиля все клиенты в гильдиях увидят обновлённое имя и аватар в течение секунд.
 
 ## Что дальше
 
-- [Гильдии](/resources/guilds/) — участники и роли в гильдии
-- [OAuth2](/resources/oauth2/) — как получить токен для доступа к данным пользователя
-- [Аутентификация](/introduction/authentication/) — bot vs bearer
+- [Гильдии](/resources/guilds/) — объект участника гильдии (`Member`), который оборачивает User
+- [Приложения и OAuth2](/resources/oauth2/) — как сбрасывать токен и управлять приложением

@@ -1,49 +1,100 @@
 ---
 title: Authentication
-description: How to authenticate REST and Gateway requests against the Floodilka API.
+description: How your bot authenticates against the REST API and Gateway — token format, Authorization header, error handling.
 ---
 
 import {Aside} from '@astrojs/starlight/components';
 
-Every request to the Floodilka API (REST and Gateway) must include an `Authorization` header. There are three token types, each with a different prefix.
+Every request from your bot to Floodilka (REST and Gateway) must carry an `Authorization` header with the bot token.
 
-## Token types
+## Token format
 
-| Prefix | Who it identifies | How you get one |
-|--------|-------------------|-----------------|
-| `Bot` | An application's bot user | Application settings → Bot tab → Reset Token |
-| `Bearer` | A user who authorized your app via OAuth2 | OAuth2 authorization code exchange |
-| *(none)* | A user logged in through the official client | Login endpoint — **for first-party use only** |
+The token has the shape:
 
-## Bot tokens
+```
+<application_id>.<secret>
+```
 
-Use the `Bot` prefix when your integration is a bot:
+- **`application_id`** — the non-sensitive application ID (the same one you use in invite URLs)
+- **`secret`** — the secret half, shown exactly once when the token is reset
+
+Together they grant full access to the bot account. Neither half works alone.
+
+## REST requests
+
+The prefix is **required** — it's `Bot`:
 
 ```http
 GET /api/v1/users/@me HTTP/1.1
 Host: floodilka.com
-Authorization: Bot MTIzNDU2Nzg5MDEyMzQ1Njc4OQ.ZjBkYjE5ODI3NjQ4MGY4MTc1NzFjMjY1
+Authorization: Bot 1496956937664585746.ZjBkYjE5ODI3NjQ4MGY4MTc1NzFjMjY1
 ```
 
-The token has the shape `<application_id>.<secret>`. The application ID is not sensitive; the secret half is. Both halves together are what grants access.
+In code:
 
-<Aside type="tip">
-	Rotate the token any time from the **Bot** tab. Old tokens are invalidated immediately — any running process using the old token will start receiving `401 Unauthorized`.
+```js
+await fetch('https://floodilka.com/api/v1/users/@me', {
+	headers: {Authorization: `Bot ${process.env.FLOODILKA_BOT_TOKEN}`},
+});
+```
+
+<Aside type="caution" title="Without the prefix it won't work">
+	`Authorization: <token>` (no `Bot `) is the format for user tokens used by the first-party Floodilka client. For bots you always use `Bot <token>`.
 </Aside>
 
-## Bearer tokens
+## Gateway IDENTIFY
 
-Use the `Bearer` prefix when acting on behalf of a user who authorized your application through OAuth2:
+IDENTIFY carries the same token, but **without** the `Bot ` prefix:
 
-```http
-Authorization: Bearer <access_token>
+```json
+{
+	"op": 2,
+	"d": {
+		"token": "1496956937664585746.ZjBkYjE5ODI3NjQ4MGY4MTc1NzFjMjY1",
+		"properties": {"os": "linux", "browser": "mybot", "device": "mybot"}
+	}
+}
 ```
 
-Bearer tokens are scoped — the operations you can perform depend on the scopes the user granted during authorization. See [OAuth2](/topics/oauth2/) for the full flow.
+Unlike REST, the Gateway wants the bare token. If IDENTIFY includes a `Bot ` prefix the server closes with `4004 AUTHENTICATION_FAILED`.
 
-## Missing or invalid tokens
+## Storing the token
 
-- `401 Unauthorized` — no token, malformed token, or wrong prefix
-- `403 Forbidden` — token is valid but the action is not permitted (missing scope, missing permission, or the bot is not in the guild)
+**Never:**
+- Commit the token to git
+- Embed it in client apps (browser extension, mobile app)
+- Paste it into screenshots
+- Send it in support chats
 
-See [Error Codes](/topics/error-codes/) for the full list of API error codes.
+**Correct:**
+- A `.env` file added to `.gitignore`
+- Your hosting provider's secret manager (Railway Variables, Fly.io secrets, Docker secrets)
+- Environment variable on a VPS via `systemd EnvironmentFile`
+
+## Rotation
+
+If the token leaks, **reset it immediately** in Settings → Applications & Bots → **Bot tab → Reset Token**. The old token stops working the moment the new one is issued; any running process with the old token starts getting `401 Unauthorized` (REST) or `4004 AUTHENTICATION_FAILED` (Gateway).
+
+## Authentication errors
+
+### REST
+
+| Status | When | What to do |
+|--------|------|------------|
+| `401 Unauthorized` | Token missing, truncated, or rotated | Check `.env`, re-reset if needed |
+| `403 Forbidden` | Token is valid but the action isn't allowed (missing permission, bot not in guild) | Check the invite URL; see [Permissions](/en/topics/permissions/) |
+
+### Gateway
+
+| Close code | When | What to do |
+|------------|------|------------|
+| `4004 AUTHENTICATION_FAILED` | Token is invalid | **Do not reconnect.** Reset and update the token |
+| `4003 NOT_AUTHENTICATED` | Client sent a payload before IDENTIFY | Reconnect and follow the correct order HELLO → IDENTIFY |
+
+More: [Close codes](/en/gateway/close-codes/).
+
+## What's next
+
+- [Quickstart](/en/quickstart/) — a curl example with the token
+- [Bots overview](/en/topics/bots/) — bot account lifecycle
+- [Gateway connection lifecycle](/en/gateway/connection-lifecycle/) — IDENTIFY in detail

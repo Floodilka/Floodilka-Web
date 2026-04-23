@@ -47,11 +47,16 @@ function parseErrorCodes() {
 	return codes;
 }
 
+// Opcodes that bots never send or receive (first-party client only)
+const NON_BOT_OPCODES = new Set(['call_connect', 'lazy_request', 'voice_server_ping']);
+
 function parseGatewayConstants() {
 	const src = readFileSync(resolve(REPO, 'gateway/src/utils/constants.erl'), 'utf8');
 	const opcodes = [];
 	for (const m of src.matchAll(/gateway_opcode\((\d+)\) -> (\w+);/g)) {
-		opcodes.push({num: Number(m[1]), name: m[2]});
+		const name = m[2];
+		if (NON_BOT_OPCODES.has(name)) continue;
+		opcodes.push({num: Number(m[1]), name});
 	}
 	const closeCodes = [];
 	for (const m of src.matchAll(/close_code_to_num\((\w+)\) -> (\d+)\./g)) {
