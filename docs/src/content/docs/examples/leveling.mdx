@@ -1,0 +1,280 @@
+---
+title: Уровневый бот
+description: Бот, считающий XP и уровни участников гильдии — Mee6-подобная механика с SQLite.
+---
+
+import {Aside, Tabs, TabItem} from '@astrojs/starlight/components';
+
+Классика — каждое сообщение даёт 15-25 XP (не чаще раза в минуту с одного юзера, чтобы не гонять спамом), а XP конвертируется в уровень. Команды `!rank` показывают профиль, `!top` — лидерборд гильдии.
+
+## Формула уровней
+
+Чтобы получить уровень N, нужно набрать XP:
+
+```js
+function xpForLevel(level) {
+	return (5 / 6) * level * (2 * level * level + 27 * level + 91);
+}
+
+function levelFromXp(xp) {
+	let lvl = 0;
+	while (xpForLevel(lvl + 1) <= xp) lvl++;
+	return lvl;
+}
+```
+
+| Уровень | Накопленный XP |
+|---------|----------------|
+| 1 | ~100 |
+| 5 | ~1 500 |
+| 10 | ~4 800 |
+| 25 | ~33 000 |
+| 50 | ~220 000 |
+| 100 | ~1.9 млн |
+
+## Схема БД (SQLite)
+
+```sql
+CREATE TABLE IF NOT EXISTS xp (
+	guild_id TEXT NOT NULL,
+	user_id TEXT NOT NULL,
+	username TEXT,
+	xp INTEGER NOT NULL DEFAULT 0,
+	level INTEGER NOT NULL DEFAULT 0,
+	last_gain_at INTEGER NOT NULL DEFAULT 0,
+	PRIMARY KEY (guild_id, user_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_xp_guild_sorted
+	ON xp(guild_id, xp DESC);
+```
+
+## Полный код (Node.js + better-sqlite3)
+
+<Tabs>
+	<TabItem label="src/index.ts">
+```ts
+import {readFileSync} from 'node:fs';
+import {WebSocket} from 'ws';
+import Database from 'better-sqlite3';
+
+const env = Object.fromEntries(
+	readFileSync(new URL('../.env', import.meta.url), 'utf8')
+		.split('\n').filter((l) => l && !l.startsWith('#'))
+		.map((l) => { const i = l.indexOf('='); return [l.slice(0, i), l.slice(i + 1)]; }),
+) as Record<string, string>;
+
+const TOKEN = env.FLOODILKA_BOT_TOKEN;
+const API = 'https://floodilka.com/api/v1';
+const GATEWAY = 'wss://gateway.floodilka.com/?v=1&encoding=json';
+
+const db = new Database('./data/xp.sqlite');
+db.pragma('journal_mode = WAL');
+db.exec(`
+	CREATE TABLE IF NOT EXISTS xp (
+		guild_id TEXT NOT NULL,
+		user_id TEXT NOT NULL,
+		username TEXT,
+		xp INTEGER NOT NULL DEFAULT 0,
+		level INTEGER NOT NULL DEFAULT 0,
+		last_gain_at INTEGER NOT NULL DEFAULT 0,
+		PRIMARY KEY (guild_id, user_id)
+	);
+	CREATE INDEX IF NOT EXISTS idx_xp_sorted ON xp(guild_id, xp DESC);
+`);
+
+const selectXp = db.prepare('SELECT xp, level, last_gain_at FROM xp WHERE guild_id=? AND user_id=?');
+const upsertXp = db.prepare(`
+	INSERT INTO xp (guild_id, user_id, username, xp, level, last_gain_at)
+	VALUES (?, ?, ?, ?, ?, ?)
+	ON CONFLICT(guild_id, user_id) DO UPDATE SET
+		xp = excluded.xp, level = excluded.level,
+		last_gain_at = excluded.last_gain_at, username = excluded.username
+`);
+const selectTop = db.prepare(`
+	SELECT user_id, username, xp, level FROM xp
+	WHERE guild_id = ? ORDER BY xp DESC LIMIT 10
+`);
+const selectRank = db.prepare(`
+	SELECT COUNT(*) + 1 as rank FROM xp WHERE guild_id = ? AND xp > (
+		SELECT xp FROM xp WHERE guild_id = ? AND user_id = ?
+	)
+`);
+
+const XP_MIN = 15, XP_MAX = 25, COOLDOWN_MS = 60_000;
+
+function xpForLevel(level: number) {
+	return (5 / 6) * level * (2 * level * level + 27 * level + 91);
+}
+function levelFromXp(xp: number) {
+	let lvl = 0;
+	while (xpForLevel(lvl + 1) <= xp) lvl++;
+	return lvl;
+}
+
+function awardXp(guildId: string, userId: string, username: string) {
+	const now = Date.now();
+	const row = selectXp.get(guildId, userId) as {xp: number; level: number; last_gain_at: number} | undefined;
+	if (row && now - row.last_gain_at < COOLDOWN_MS) return null;
+
+	const gain = XP_MIN + Math.floor(Math.random() * (XP_MAX - XP_MIN + 1));
+	const newXp = (row?.xp ?? 0) + gain;
+	const oldLevel = row?.level ?? 0;
+	const newLevel = levelFromXp(newXp);
+
+	upsertXp.run(guildId, userId, username, newXp, newLevel, now);
+	return newLevel > oldLevel ? newLevel : null;
+}
+
+// ─── Gateway + REST ────────────────────────────────────────────────
+
+let seq: number | null = null;
+let heartbeat: NodeJS.Timeout | null = null;
+let ws: WebSocket;
+
+function send(op: number, d: unknown) {
+	ws.send(JSON.stringify({op, d}));
+}
+
+async function rest(method: string, path: string, body?: unknown) {
+	const res = await fetch(`${API}${path}`, {
+		method,
+		headers: {Authorization: `Bot ${TOKEN}`, 'Content-Type': 'application/json'},
+		body: body ? JSON.stringify(body) : undefined,
+	});
+	if (!res.ok) throw new Error(`${method} ${path} → ${res.status}: ${await res.text()}`);
+	return res.json();
+}
+
+async function handleCommand(msg: any) {
+	const content = msg.content.trim();
+	const {guild_id, channel_id, author} = msg;
+	if (!guild_id) return; // команды только в гильдиях
+
+	if (content === '!rank') {
+		const row = selectXp.get(guild_id, author.id) as {xp: number; level: number} | undefined;
+		if (!row) return rest('POST', `/channels/${channel_id}/messages`, {content: `${author.username}, у тебя ещё нет XP. Напиши что-нибудь!`});
+		const rank = (selectRank.get(guild_id, guild_id, author.id) as {rank: number}).rank;
+		const nextLevelXp = xpForLevel(row.level + 1);
+		await rest('POST', `/channels/${channel_id}/messages`, {embeds: [{
+			title: `Профиль ${author.username}`,
+			color: 5056227,
+			fields: [
+				{name: 'Уровень', value: String(row.level), inline: true},
+				{name: 'XP', value: `${row.xp} / ${Math.floor(nextLevelXp)}`, inline: true},
+				{name: 'Ранг в гильдии', value: `#${rank}`, inline: true},
+			],
+		}]});
+		return;
+	}
+
+	if (content === '!top') {
+		const rows = selectTop.all(guild_id) as Array<{user_id: string; username: string; xp: number; level: number}>;
+		const body = rows.map((r, i) => `**${i + 1}.** ${r.username} — уровень ${r.level} (${r.xp} XP)`).join('\n') || 'Ещё никто не набрал XP';
+		await rest('POST', `/channels/${channel_id}/messages`, {embeds: [{
+			title: 'Топ-10 болтунов',
+			description: body,
+			color: 5056227,
+		}]});
+		return;
+	}
+}
+
+async function handleDispatch(type: string, data: any) {
+	if (type === 'READY') {
+		console.log(`logged in as ${data.user.username}`);
+		return;
+	}
+	if (type !== 'MESSAGE_CREATE') return;
+	if (data.author?.bot) return;
+
+	// Команды
+	if (data.content.startsWith('!')) return handleCommand(data);
+
+	// Обычное сообщение — начисляем XP
+	if (data.guild_id) {
+		const levelUp = awardXp(data.guild_id, data.author.id, data.author.username);
+		if (levelUp) {
+			await rest('POST', `/channels/${data.channel_id}/messages`, {
+				content: `🎉 <@${data.author.id}> достиг уровня **${levelUp}**!`,
+			});
+		}
+	}
+}
+
+function connect() {
+	ws = new WebSocket(GATEWAY);
+
+	ws.on('message', (raw) => {
+		const msg = JSON.parse(raw.toString());
+		if (msg.s != null) seq = msg.s;
+
+		if (msg.op === 10) {
+			const interval = msg.d.heartbeat_interval;
+			heartbeat = setInterval(() => send(1, seq), interval);
+			send(2, {token: TOKEN, properties: {os: 'linux', browser: 'xpbot', device: 'xpbot'}});
+		} else if (msg.op === 0) {
+			void handleDispatch(msg.t, msg.d);
+		} else if (msg.op === 7) {
+			ws.close(4000);
+		}
+	});
+
+	ws.on('close', (code) => {
+		console.log('closed', code);
+		if (heartbeat) clearInterval(heartbeat);
+		setTimeout(connect, 2500);
+	});
+
+	ws.on('error', (e) => console.error('ws error', e.message));
+}
+
+connect();
+```
+	</TabItem>
+	<TabItem label="package.json">
+```json
+{
+	"name": "xp-bot",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"dev": "tsx watch src/index.ts",
+		"start": "tsx src/index.ts"
+	},
+	"dependencies": {
+		"better-sqlite3": "11.7.0",
+		"ws": "8.18.0"
+	},
+	"devDependencies": {
+		"@types/better-sqlite3": "7.6.12",
+		"@types/node": "24.0.0",
+		"@types/ws": "8.5.14",
+		"tsx": "4.19.2",
+		"typescript": "5.7.3"
+	}
+}
+```
+	</TabItem>
+</Tabs>
+
+## Инвайт-ссылка
+
+Для бота нужны права: View Channel, Send Messages, Read Message History, Embed Links. Сумма — `85056`:
+
+```
+https://floodilka.com/oauth2/authorize?client_id=ВАШ_APP_ID&scope=bot&permissions=85056
+```
+
+## Что можно расширить
+
+- **Персональная роль за уровень** — на каждый 5-й уровень выдавать роль через `PUT /guilds/:id/members/:uid/roles/:role_id`
+- **Мультипликаторы в канале** — тройной XP в `#random`
+- **Бейджи** — `first-100-xp`, `night-owl`, таблица достижений
+- **Вебинтерфейс с рейтингом** — отдельный сайт, читающий ту же SQLite в read-only режиме
+
+## Что дальше
+
+- [Echo-бот](/examples/echo/) — если ещё не прошли этот шаг
+- [Хранение состояния](/building/state/) — почему именно SQLite и как её обслуживать
+- [Деплой / Хостинг](/deployment/hosting/) — куда этот бот поставить на 24/7

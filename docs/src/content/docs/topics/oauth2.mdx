@@ -1,149 +1,86 @@
 ---
-title: OAuth2
-description: Авторизация пользователей, запрос скоупов и интеграция входа через Floodilka.
+title: Приглашение бота
+description: OAuth2-ссылка для добавления бота на сервер — параметры, права, варианты запроса.
 ---
 
 import {Steps, Aside, Tabs, TabItem} from '@astrojs/starlight/components';
 
-OAuth2 в Floodilka следует [RFC 6749](https://datatracker.ietf.org/doc/html/rfc6749). Используйте его, чтобы дать пользователям Floodilka залогиниться на вашем сайте или запросить разрешение действовать от их имени.
+Боты не принимают обычные инвайт-коды. Чтобы попасть на сервер, бот должен быть авторизован через OAuth2 — пользователь с правом **«Управлять сервером»** подтверждает добавление, а Флудилка сама заводит бот-участника.
 
-## Когда использовать OAuth2
+## Ссылка-приглашение
 
-- **«Войти через Floodilka»** на стороннем сайте — скоуп `identify`.
-- **Получить список гильдий пользователя** — чтобы показать, в каких ваших серверах он состоит — `identify guilds`.
-- **Действовать от имени пользователя** (отправлять сообщения, менять профиль) — зависит от скоупа.
-- **Добавить бота на сервер** — см. [Боты](/topics/bots/). Это тоже OAuth2, но большая часть потока автоматическая.
-
-## Эндпоинты
-
-| Назначение | Метод | URL |
-|------------|-------|-----|
-| Страница авторизации | `GET` | `https://floodilka.com/oauth2/authorize` |
-| Обмен токенов | `POST` | `https://floodilka.com/api/v1/oauth2/token` |
-| Отзыв токена | `POST` | `https://floodilka.com/api/v1/oauth2/token/revoke` |
-| Информация о текущей авторизации | `GET` | `https://floodilka.com/api/v1/oauth2/@me` |
-
-## Скоупы
-
-| Скоуп | Что даёт |
-|-------|----------|
-| `identify` | Базовая информация: имя, дискриминатор, аватар, флаги. |
-| `email` | Email пользователя. Требует `identify`. |
-| `guilds` | Список гильдий, в которых состоит пользователь. |
-| `guilds.join` | Добавить пользователя в вашу гильдию (нужна предварительная связь). |
-| `bot` | Добавить бота в гильдию. См. [Боты](/topics/bots/). |
-| `connections` | Привязанные аккаунты (GitHub, Twitch и т.д.). |
-| `messages.read` | Читать сообщения в доступных пользователю каналах. |
-
-Запрашивайте **минимум** нужных скоупов. Пользователи охотнее одобряют скромный запрос.
-
-## Authorization code flow
-
-Стандартный поток для серверных приложений.
-
-<Steps>
-
-1. **Перенаправьте пользователя** на страницу авторизации:
-
-	```
-	https://floodilka.com/oauth2/authorize
-	  ?response_type=code
-	  &client_id=ВАШ_CLIENT_ID
-	  &scope=identify%20email
-	  &redirect_uri=https%3A%2F%2Fyour.app%2Fcallback
-	  &state=CSRF_TOKEN
-	  &prompt=consent
-	```
-
-2. **Пользователь подтверждает.** Floodilka редиректит на ваш `redirect_uri` с `code` и вашим `state`:
-
-	```
-	https://your.app/callback?code=AbC123&state=CSRF_TOKEN
-	```
-
-	Убедитесь, что `state` совпадает, — это защита от CSRF.
-
-3. **Обменяйте код на access token** на своём сервере (никогда в браузере — в запросе используется client secret):
-
-	```bash
-	curl https://floodilka.com/api/v1/oauth2/token \
-	  -X POST \
-	  -H "Content-Type: application/x-www-form-urlencoded" \
-	  -d "grant_type=authorization_code" \
-	  -d "code=AbC123" \
-	  -d "redirect_uri=https://your.app/callback" \
-	  -d "client_id=ВАШ_CLIENT_ID" \
-	  -d "client_secret=ВАШ_CLIENT_SECRET"
-	```
-
-	Ответ:
-
-	```json
-	{
-		"access_token": "...",
-		"token_type": "Bearer",
-		"expires_in": 604800,
-		"refresh_token": "...",
-		"scope": "identify email"
-	}
-	```
-
-4. **Вызывайте API** от имени пользователя:
-
-	```bash
-	curl https://floodilka.com/api/v1/users/@me \
-	  -H "Authorization: Bearer ACCESS_TOKEN"
-	```
-
-</Steps>
-
-## Обновление access token
-
-Access-токены истекают. Используйте refresh-токен, чтобы получить новую пару:
-
-```bash
-curl https://floodilka.com/api/v1/oauth2/token \
-  -X POST \
-  -H "Content-Type: application/x-www-form-urlencoded" \
-  -d "grant_type=refresh_token" \
-  -d "refresh_token=REFRESH_TOKEN" \
-  -d "client_id=ВАШ_CLIENT_ID" \
-  -d "client_secret=ВАШ_CLIENT_SECRET"
+```
+https://floodilka.com/oauth2/authorize
+  ?client_id=ID_ПРИЛОЖЕНИЯ
+  &scope=bot
+  &permissions=МАСКА_ПРАВ
+  &guild_id=ID_ГИЛЬДИИ_ОПЦИОНАЛЬНО
+  &disable_guild_select=true
 ```
 
-<Aside type="note">
-	Refresh-токены ротируются при каждом использовании. Всегда сохраняйте `refresh_token` из ответа — старый перестаёт работать.
+| Параметр | Обязателен | Описание |
+|----------|------------|----------|
+| `client_id` | Да | **Application ID** со страницы приложения, не токен |
+| `scope` | Да | Должен содержать `bot` |
+| `permissions` | Нет | Десятичная битовая маска [прав](/topics/permissions/). Если не указать — бот присоединится без дополнительных прав |
+| `guild_id` | Нет | Пред-выбирает конкретную гильдию |
+| `disable_guild_select` | Нет | `true` — зафиксировать `guild_id` и скрыть выпадающий список |
+
+### Пример: бот отвечает на сообщения
+
+Для обычного бота, который читает и пишет в каналах, нужны:
+
+| Право | Значение |
+|-------|----------|
+| `VIEW_CHANNEL` | `1 << 10 = 1024` |
+| `SEND_MESSAGES` | `1 << 11 = 2048` |
+| `READ_MESSAGE_HISTORY` | `1 << 16 = 65536` |
+| `EMBED_LINKS` | `1 << 14 = 16384` |
+| `ADD_REACTIONS` | `1 << 6 = 64` |
+
+Сумма: **`85056`**
+
+```
+https://floodilka.com/oauth2/authorize?client_id=1496956937664585746&scope=bot&permissions=85056
+```
+
+### Пример: модерационный бот
+
+<Tabs>
+	<TabItem label="JavaScript">
+```js
+const permissions =
+	(1 << 13) |  // MANAGE_MESSAGES
+	(1 << 1)  |  // KICK_MEMBERS
+	(1 << 2)  |  // BAN_MEMBERS
+	(1 << 40n); // MODERATE_MEMBERS (timeout)
+// 40-й бит не помещается в обычный Number, для таких битов BigInt:
+const permsBig = (1n << 13n) | (1n << 1n) | (1n << 2n) | (1n << 40n);
+console.log(permsBig.toString()); // → "1099511636998"
+```
+	</TabItem>
+</Tabs>
+
+<Aside type="tip">
+	Для прав выше 31-го бита (`MODERATE_MEMBERS`, `CREATE_EXPRESSIONS` и т.п.) используйте `BigInt`. Обычный JavaScript `Number` не справится с 64-битной маской.
 </Aside>
 
-## Client credentials flow
+## Публичные и приватные боты
 
-Для app-to-app запросов, не связанных с конкретным пользователем. Выдаёт access-токен, привязанный к самому приложению.
+На вкладке **Общие** приложения можно включать:
 
-```bash
-curl https://floodilka.com/api/v1/oauth2/token \
-  -X POST \
-  -u "ВАШ_CLIENT_ID:ВАШ_CLIENT_SECRET" \
-  -d "grant_type=client_credentials" \
-  -d "scope=identify"
-```
+- **Публичный бот** — кто угодно может использовать OAuth2-ссылку. Отключите, если бот только для одного сервера
+- **Требовать OAuth2 code grant** — запрашивать authorization code перед добавлением. Полезно для верификации, обычно выключено
 
-## Отзыв токенов
+## Что происходит после подтверждения
 
-Когда пользователь отключает вашу интеграцию — отзывайте его токены, чтобы их нельзя было использовать:
+1. Пользователь кликает по ссылке и выбирает сервер
+2. Флудилка проверяет, что у пользователя есть `MANAGE_GUILD` на выбранном сервере
+3. Бот добавляется как участник, ему создаётся роль с запрошенными правами
+4. Gateway-клиент бота (если запущен) получит событие `GUILD_CREATE` с новой гильдией
 
-```bash
-curl https://floodilka.com/api/v1/oauth2/token/revoke \
-  -X POST \
-  -u "ВАШ_CLIENT_ID:ВАШ_CLIENT_SECRET" \
-  -d "token=ACCESS_ИЛИ_REFRESH_TOKEN"
-```
+## Что дальше
 
-## Redirect URIs
-
-Регистрируйте каждый redirect URI на вкладке **Общие** приложения *точно так же*, как будете отправлять — со схемой, хостом, портом и путём. Несовпадения отклоняются с `invalid_request`. Для локальной разработки добавьте `http://localhost:3000/callback` (или ваш порт) рядом с боевым URI.
-
-## Смотрите также
-
-- [Боты](/topics/bots/) — использование OAuth2 для приглашения ботов
-- [Аутентификация](/introduction/authentication/) — Bearer против Bot
-- [Ресурсы/OAuth2](/resources/oauth2/) — справочник по схемам OAuth2-объектов
+- [Быстрый старт](/quickstart/) — если ещё не получили токен
+- [Обзор разработки бота](/topics/bots/) — что делать с ботом дальше
+- [Права доступа](/topics/permissions/) — полная таблица битов

@@ -1,0 +1,189 @@
+---
+title: Команды
+description: Как парсить команды — префиксы, упоминания бота, аргументы, кулдауны.
+---
+
+import {Tabs, TabItem, Aside} from '@astrojs/starlight/components';
+
+У Флудилки нет встроенной системы slash-команд — команды это просто обычные сообщения, которые бот анализирует сам. Этот гайд — про паттерны такого парсинга.
+
+## Выбор триггера
+
+Есть три распространённых способа звать бота:
+
+### 1. Префикс
+
+Чаще всего — `!`, `?`, `.` или `/`:
+
+```
+!ping
+!roll 2d6
+!rank @вася
+```
+
+Плюсы: быстро печатать, знакомо пользователям Discord. Минусы: конфликты между ботами, если их много.
+
+### 2. Упоминание
+
+```
+@мой_бот помоги
+@мой_бot кто я
+```
+
+Плюсы: однозначно — если упомянули именно вашего бота, значит обращаются к нему. Минусы: длиннее печатать.
+
+### 3. Комбинация
+
+Префикс для коротких команд + упоминание для разговоров с ботом. Часто делают так.
+
+## Парсинг
+
+<Tabs>
+	<TabItem label="Префикс + аргументы">
+```js
+const PREFIX = '!';
+
+function handleMessage(msg) {
+	if (msg.author.bot) return;
+	if (!msg.content.startsWith(PREFIX)) return;
+
+	const [command, ...args] = msg.content.slice(PREFIX.length).trim().split(/\s+/);
+
+	switch (command.toLowerCase()) {
+		case 'ping':
+			return sendMessage(msg.channel_id, 'pong 🏓');
+		case 'roll':
+			return handleRoll(msg, args);
+		case 'rank':
+			return handleRank(msg, args);
+	}
+}
+```
+	</TabItem>
+	<TabItem label="Упоминание">
+```js
+async function handleMessage(msg, botId) {
+	if (msg.author.bot) return;
+
+	// Проверяем что бот реально упомянут
+	const mentioned = msg.mentions?.some((u) => u.id === botId);
+	if (!mentioned) return;
+
+	// Убираем упоминание из начала сообщения
+	const content = msg.content
+		.replace(new RegExp(`<@!?${botId}>`), '')
+		.trim();
+
+	// Дальше обработка как обычного текста
+	await sendMessage(msg.channel_id, `Слышу тебя: ${content}`);
+}
+```
+	</TabItem>
+	<TabItem label="Шаблоны (regex)">
+```js
+const patterns = [
+	{re: /^!weather (\w+)$/i, handler: handleWeather},
+	{re: /^!remind me in (\d+)([smh]) (.+)$/i, handler: handleRemind},
+	{re: /^!8ball (.+)\?$/i, handler: handleEightBall},
+];
+
+function handleMessage(msg) {
+	if (msg.author.bot) return;
+	for (const {re, handler} of patterns) {
+		const match = msg.content.match(re);
+		if (match) return handler(msg, ...match.slice(1));
+	}
+}
+```
+	</TabItem>
+</Tabs>
+
+## Кулдауны
+
+Без кулдауна любая команда — DoS-вектор: пользователь спамит `!roll 100d6` и бот упирается в rate-limit. Минимальный анти-спам:
+
+```js
+const cooldowns = new Map(); // key = `${userId}:${command}`, value = resetAt ms
+
+function onCooldown(userId, command, windowMs = 3000) {
+	const key = `${userId}:${command}`;
+	const now = Date.now();
+	const reset = cooldowns.get(key) ?? 0;
+	if (reset > now) return reset - now; // осталось мс
+	cooldowns.set(key, now + windowMs);
+	return 0;
+}
+
+async function handleRoll(msg, args) {
+	const wait = onCooldown(msg.author.id, 'roll');
+	if (wait) {
+		await sendMessage(msg.channel_id, `Подожди ещё ${Math.ceil(wait / 1000)}с 🕒`);
+		return;
+	}
+	// ... обычная обработка
+}
+```
+
+Для стойкости к рестартам — храните `cooldowns` в Redis или SQLite. См. [Хранение состояния](/building/state/).
+
+## Ответ на свои сообщения — не надо
+
+Обязательно проверяйте `msg.author.bot === true` и игнорируйте. Иначе первый же бот, который ответит на ваше сообщение, запустит бесконечный цикл «бот отвечает боту».
+
+<Aside type="caution" title="Отдельный случай: вы сами себя не должны обрабатывать">
+	Ваш бот тоже проходит через `MESSAGE_CREATE`. Без проверки `author.id === botId` бот будет «отвечать» на собственные сообщения — особенно заметно на упоминаниях (бот упоминает пользователя, пользователь видит упоминание себя → начинает строить следующее сообщение).
+</Aside>
+
+## Парсинг аргументов
+
+### Позиционные
+
+```js
+// !kick @вася троллит
+const [target, ...reasonWords] = args;
+const userId = target?.match(/^<@!?(\d+)>$/)?.[1];
+const reason = reasonWords.join(' ');
+```
+
+### Именованные
+
+```js
+// !mute @вася --minutes 30 --reason "спам в канале"
+const parsed = {};
+for (let i = 0; i < args.length; i++) {
+	if (args[i].startsWith('--')) {
+		parsed[args[i].slice(2)] = args[i + 1];
+		i++;
+	}
+}
+```
+
+### Snowflake из упоминания
+
+Упоминания в сообщении выглядят как `<@userId>` (пользователь), `<@&roleId>` (роль), `<#channelId>` (канал). Массив `msg.mentions` уже содержит объекты пользователей — можно брать оттуда, не парся текст руками.
+
+```js
+const targetUser = msg.mentions[0];
+if (!targetUser) return sendMessage(msg.channel_id, 'Укажи пользователя: `!kick @ник`');
+```
+
+## Ошибки, не паникуя
+
+Не роняйте бота на ошибке в одной команде — загибайте только эту команду:
+
+```js
+async function dispatch(command, msg, args) {
+	try {
+		await commandHandlers[command](msg, args);
+	} catch (e) {
+		console.error(`command ${command} failed:`, e);
+		await sendMessage(msg.channel_id, '❌ Что-то пошло не так. Я записал в логи.');
+	}
+}
+```
+
+## Что дальше
+
+- [Работа с событиями](/building/events/) — не только сообщения, ещё и реакции, join/leave
+- [Лимиты запросов](/topics/rate-limits/) — откуда возьмётся 429 и как его избежать
+- [Хранение состояния](/building/state/) — где держать кулдауны и другие данные

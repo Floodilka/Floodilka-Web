@@ -1,0 +1,184 @@
+---
+title: Echo-бот
+description: Минимальный бот — 80 строк TypeScript, подключение к Gateway и отправка pong на команду.
+---
+
+import {Tabs, TabItem} from '@astrojs/starlight/components';
+
+Первый работающий бот — отвечает `pong 🏓` на сообщение `!ping`. Покрывает полный цикл: подключение к Gateway, IDENTIFY, heartbeat, приём `MESSAGE_CREATE`, отправка ответа через REST.
+
+## Что нужно
+
+- Node.js 24+
+- Application и бот-токен — см. [Быстрый старт](/quickstart/)
+- Бот добавлен на тестовую гильдию — см. [Приглашение бота](/topics/oauth2/)
+
+## Проект
+
+```
+echo-bot/
+├── .env              FLOODILKA_BOT_TOKEN=...
+├── package.json
+├── tsconfig.json
+└── src/
+    └── index.ts
+```
+
+<Tabs>
+	<TabItem label="package.json">
+```json
+{
+	"name": "echo-bot",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"dev": "tsx watch src/index.ts",
+		"start": "tsx src/index.ts"
+	},
+	"dependencies": {
+		"ws": "8.18.0"
+	},
+	"devDependencies": {
+		"@types/node": "24.0.0",
+		"@types/ws": "8.5.14",
+		"tsx": "4.19.2",
+		"typescript": "5.7.3"
+	}
+}
+```
+	</TabItem>
+	<TabItem label="tsconfig.json">
+```json
+{
+	"compilerOptions": {
+		"target": "ES2022",
+		"module": "ESNext",
+		"moduleResolution": "Bundler",
+		"esModuleInterop": true,
+		"strict": true,
+		"skipLibCheck": true,
+		"noEmit": true,
+		"allowImportingTsExtensions": true
+	},
+	"include": ["src/**/*.ts"]
+}
+```
+	</TabItem>
+	<TabItem label=".env">
+```
+FLOODILKA_BOT_TOKEN=your_token_here
+FLOODILKA_API=https://floodilka.com/api/v1
+FLOODILKA_GATEWAY=wss://gateway.floodilka.com/?v=1&encoding=json
+```
+	</TabItem>
+</Tabs>
+
+## Код
+
+```ts
+// src/index.ts
+import {readFileSync} from 'node:fs';
+import {WebSocket} from 'ws';
+
+const env = Object.fromEntries(
+	readFileSync(new URL('../.env', import.meta.url), 'utf8')
+		.split('\n')
+		.filter((l) => l && !l.startsWith('#'))
+		.map((l) => l.split('=').flatMap((_, i, a) => (i === 0 ? [a[0], a.slice(1).join('=')] : []))),
+) as Record<string, string>;
+
+const TOKEN = env.FLOODILKA_BOT_TOKEN;
+const API = env.FLOODILKA_API ?? 'https://floodilka.com/api/v1';
+const GATEWAY = env.FLOODILKA_GATEWAY ?? 'wss://gateway.floodilka.com/?v=1&encoding=json';
+
+if (!TOKEN || TOKEN.startsWith('your_')) {
+	console.error('FLOODILKA_BOT_TOKEN is missing in .env');
+	process.exit(1);
+}
+
+type Payload = {op: number; d?: unknown; s?: number | null; t?: string | null};
+
+let seq: number | null = null;
+let heartbeat: NodeJS.Timeout | null = null;
+let ws: WebSocket;
+
+function send(op: number, d: unknown) {
+	ws.send(JSON.stringify({op, d}));
+}
+
+async function rest(method: string, path: string, body?: unknown) {
+	const res = await fetch(`${API}${path}`, {
+		method,
+		headers: {
+			Authorization: `Bot ${TOKEN}`,
+			'Content-Type': 'application/json',
+		},
+		body: body ? JSON.stringify(body) : undefined,
+	});
+	if (!res.ok) throw new Error(`${method} ${path} → ${res.status}: ${await res.text()}`);
+	return res.json();
+}
+
+async function handleDispatch(type: string, data: any) {
+	if (type === 'READY') {
+		console.log(`logged in as ${data.user.username}`);
+	}
+	if (type === 'MESSAGE_CREATE' && !data.author?.bot && data.content === '!ping') {
+		await rest('POST', `/channels/${data.channel_id}/messages`, {content: 'pong 🏓'});
+	}
+}
+
+function connect() {
+	ws = new WebSocket(GATEWAY);
+
+	ws.on('message', (raw) => {
+		const msg = JSON.parse(raw.toString()) as Payload;
+		if (msg.s != null) seq = msg.s;
+
+		if (msg.op === 10) {
+			// HELLO: запускаем heartbeat и отправляем IDENTIFY
+			const interval = (msg.d as {heartbeat_interval: number}).heartbeat_interval;
+			heartbeat = setInterval(() => send(1, seq), interval);
+			send(2, {
+				token: TOKEN,
+				properties: {os: 'linux', browser: 'echo-bot', device: 'echo-bot'},
+			});
+		} else if (msg.op === 0) {
+			void handleDispatch(msg.t ?? '', msg.d);
+		} else if (msg.op === 7) {
+			ws.close(4000);
+		}
+	});
+
+	ws.on('close', (code) => {
+		console.log('closed', code);
+		if (heartbeat) clearInterval(heartbeat);
+		setTimeout(connect, 2500);
+	});
+
+	ws.on('error', (e) => console.error('ws error', e.message));
+}
+
+connect();
+```
+
+## Запуск
+
+```bash
+pnpm install
+pnpm dev
+```
+
+В консоли:
+
+```
+logged in as echo_bot
+```
+
+Пишете `!ping` в канале — бот отвечает `pong 🏓`.
+
+## Что дальше
+
+- [Команды](/building/commands/) — парсинг не только `!ping`, а команд с аргументами
+- [События](/building/events/) — реагировать на присоединения, реакции, изменения
+- [Уровневый бот](/examples/leveling/) — следующий пример, с SQLite и XP

@@ -1,0 +1,177 @@
+---
+title: Хостинг
+description: Где запускать бота на 24/7 — варианты от «ноутбук в углу» до Docker Swarm.
+---
+
+import {Tabs, TabItem, Aside} from '@astrojs/starlight/components';
+
+Бот — это постоянный процесс, который держит WebSocket-соединение с Gateway. Значит он должен где-то крутиться круглосуточно и автоматически подниматься после ребута / краша.
+
+## Выбор хостинга
+
+| Вариант | Когда подходит | Цена |
+|---------|----------------|------|
+| **VPS** (Timeweb, Selectel, Hetzner, DO) | Один-два бота, полный контроль | от 300 ₽/мес |
+| **Serverless** (Cloudflare Workers, AWS Lambda) | Боты **без gateway** — только webhooks или REST-cron. Полноценный бот там не живёт — они убивают долгие соединения | $0-5/мес |
+| **PaaS** (Railway, Fly.io, Render) | Быстрый старт, деплой из git | $5-10/мес |
+| **Своя инфра** (Docker Swarm/K8s) | Несколько ботов, мониторинг, роллинг-апдейты | зависит |
+
+<Aside type="caution" title="Serverless не для обычного бота">
+	Cloudflare Workers / Lambda не умеют держать WebSocket часами — они убьют соединение через несколько минут. Для бота с Gateway нужен долгоживущий процесс. Serverless годится только для webhook-ботов (запросы из Флудилки на ваш URL), но у нас это не реализовано — наши боты всегда через Gateway.
+</Aside>
+
+## Минимум: VPS + systemd
+
+Самый надёжный дешёвый вариант. Арендуете VPS (1 CPU / 1 GB RAM хватит для любого одиночного бота), ставите Node и заводите systemd-юнит.
+
+<Tabs>
+	<TabItem label="Структура">
+```
+/opt/mybot/
+  ├── src/
+  ├── node_modules/
+  ├── data/           ← SQLite здесь
+  ├── .env            ← FLOODILKA_BOT_TOKEN
+  └── package.json
+```
+	</TabItem>
+	<TabItem label="/etc/systemd/system/mybot.service">
+```ini
+[Unit]
+Description=My Floodilka bot
+After=network.target
+
+[Service]
+Type=simple
+User=botuser
+WorkingDirectory=/opt/mybot
+EnvironmentFile=/opt/mybot/.env
+ExecStart=/usr/bin/node /opt/mybot/src/index.js
+Restart=always
+RestartSec=5
+StandardOutput=append:/var/log/mybot.log
+StandardError=append:/var/log/mybot.log
+
+# Безопасность
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ReadWritePaths=/opt/mybot/data /var/log/mybot.log
+
+[Install]
+WantedBy=multi-user.target
+```
+	</TabItem>
+	<TabItem label="Управление">
+```bash
+# Первый запуск
+sudo systemctl daemon-reload
+sudo systemctl enable --now mybot
+
+# Смотреть логи
+sudo journalctl -u mybot -f
+
+# Перезапустить после обновления кода
+sudo systemctl restart mybot
+
+# Остановить
+sudo systemctl stop mybot
+```
+	</TabItem>
+</Tabs>
+
+Основные моменты:
+- `Restart=always` + `RestartSec=5` — systemd поднимет бота после любого падения
+- `NoNewPrivileges`, `PrivateTmp`, `ProtectSystem=strict` — минимальная изоляция
+- Логи в `/var/log/mybot.log` — можно крутить `logrotate`'ом
+
+## Docker
+
+Если вы уже живёте в docker — упаковываете бот в образ и деплоите:
+
+<Tabs>
+	<TabItem label="Dockerfile">
+```dockerfile
+FROM node:24-slim
+WORKDIR /app
+
+# Копируем только package.json и lockfile сначала — ради кеша
+COPY package.json pnpm-lock.yaml* ./
+RUN corepack enable && pnpm install --prod --frozen-lockfile
+
+COPY src ./src
+VOLUME ["/app/data"]
+
+USER node
+CMD ["node", "src/index.js"]
+```
+	</TabItem>
+	<TabItem label="docker-compose.yml">
+```yaml
+services:
+  bot:
+    build: .
+    restart: unless-stopped
+    environment:
+      FLOODILKA_BOT_TOKEN: ${FLOODILKA_BOT_TOKEN}
+    volumes:
+      - ./data:/app/data
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: 5
+```
+	</TabItem>
+</Tabs>
+
+## PaaS: Railway / Fly.io
+
+Быстро и без серверной возни:
+
+- **Railway** — `railway.app`, подключаешь репозиторий, пушишь в main → деплой. `FLOODILKA_BOT_TOKEN` в Variables.
+- **Fly.io** — `fly deploy` из CLI. `fly secrets set FLOODILKA_BOT_TOKEN=...`.
+
+Оба умеют persistent-volumes для SQLite-файла.
+
+<Aside type="note">
+	У бесплатных тарифов обычно «sleep after inactivity» — не подходит для бота, которому надо быть онлайн 24/7. Проверьте тариф.
+</Aside>
+
+## Что точно должно быть независимо от выбора
+
+### 1. Авто-перезапуск
+
+Бот упадёт. WebSocket разорвётся. Процесс закрешится. Любой хостинг-выбор должен давать **автоматический restart** — systemd, Docker `restart: always`, Railway auto-restart.
+
+### 2. Переменные окружения, не файлы
+
+Не коммитьте `.env` в git. Токен живёт в secrets-управлении хостинга (systemd `EnvironmentFile`, Docker compose env, Railway Variables).
+
+### 3. Persistent storage
+
+Если бот пишет в БД — убедитесь что volume переживает рестарт контейнера. Типовой просчёт: Docker-контейнер без volume → SQLite-файл стирается при каждом `docker-compose up`.
+
+### 4. Логи
+
+Минимум — пишите `console.log` со временем в stdout. Systemd/Docker сами сохранят. Для product-grade — см. [Мониторинг](/deployment/monitoring/).
+
+### 5. Graceful shutdown
+
+```js
+function shutdown() {
+	console.log('shutting down...');
+	ws?.close(1000, 'shutdown');
+	db?.close();
+	process.exit(0);
+}
+process.on('SIGTERM', shutdown);
+process.on('SIGINT', shutdown);
+```
+
+Без этого после `systemctl stop` процесс убьётся через `KillMode=mixed` и SQLite может остаться в неконсистентном состоянии.
+
+## Что дальше
+
+- [Мониторинг](/deployment/monitoring/) — как понять что бот жив
+- [Примеры / Уровневый бот](/examples/leveling/) — полный пример с SQLite и systemd-юнитом

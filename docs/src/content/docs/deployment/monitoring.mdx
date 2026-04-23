@@ -1,0 +1,150 @@
+---
+title: Мониторинг
+description: Как понять что бот живой, как быстро узнать о проблеме и что делать дальше.
+---
+
+import {Tabs, TabItem} from '@astrojs/starlight/components';
+
+«Бот молчит» — самый частый фидбек от пользователей. Но узнать об этом **до** того как пользователи пожалуются — значит не терять их доверие.
+
+## Минимальный набор
+
+1. **Логи stdout** — systemd/docker сохранят, можно смотреть через `journalctl` / `docker logs`
+2. **Healthcheck-эндпоинт** — бот отвечает по HTTP «я живой»
+3. **Внешний watcher** — UptimeRobot / cron-job.org пингует healthcheck и шлёт алерт в ТГ/email
+
+## Healthcheck-эндпоинт
+
+Самое простое — поднять HTTP-сервер рядом с Gateway-клиентом:
+
+<Tabs>
+	<TabItem label="Node.js">
+```js
+import {createServer} from 'node:http';
+
+let lastHeartbeatAck = Date.now();
+let botReady = false;
+
+// обновляйте lastHeartbeatAck в обработчике op:11 (HEARTBEAT_ACK)
+// botReady = true после READY, false после CLOSE
+
+const server = createServer((req, res) => {
+	if (req.url !== '/health') {
+		res.writeHead(404);
+		return res.end();
+	}
+
+	const ok = botReady && Date.now() - lastHeartbeatAck < 120_000;
+	res.writeHead(ok ? 200 : 503, {'content-type': 'application/json'});
+	res.end(JSON.stringify({
+		ok,
+		ready: botReady,
+		heartbeat_age_ms: Date.now() - lastHeartbeatAck,
+	}));
+});
+
+server.listen(3000, '0.0.0.0', () => console.log('health on :3000'));
+```
+	</TabItem>
+	<TabItem label="Python">
+```python
+from http.server import BaseHTTPRequestHandler, HTTPServer
+import json, threading, time
+
+class Health(BaseHTTPRequestHandler):
+    def do_GET(self):
+        if self.path != '/health':
+            self.send_response(404); self.end_headers(); return
+        ok = state.ready and (time.time() - state.last_ack) < 120
+        self.send_response(200 if ok else 503)
+        self.send_header('content-type', 'application/json')
+        self.end_headers()
+        self.wfile.write(json.dumps({'ok': ok, 'ready': state.ready}).encode())
+
+def log_message(*_, **__): pass
+Health.log_message = log_message
+threading.Thread(target=lambda: HTTPServer(('0.0.0.0', 3000), Health).serve_forever(), daemon=True).start()
+```
+	</TabItem>
+</Tabs>
+
+Почему не просто отвечать «ok»? Потому что процесс может быть жив, а Gateway-соединение мёртвое (hang). Проверка `heartbeat_age < 2 минут` ловит этот случай.
+
+## Внешний watcher
+
+Варианты:
+
+- **UptimeRobot** (бесплатно до 50 мониторов) — пингует `/health` раз в 5 минут, шлёт email/webhook при падении
+- **cron-job.org** — то же самое, ещё проще
+- **Свой cron** на отдельной машине:
+  ```sh
+  * * * * * curl -fsS https://mybot.example.com/health >/dev/null || curl -X POST https://api.telegram.org/bot$TGTOKEN/sendMessage -d chat_id=$CHAT_ID -d text="mybot down"
+  ```
+
+## Логирование
+
+Логи нужны для разбора инцидентов — «почему бот упал вчера в 3 утра». Минимум:
+
+```js
+function log(level, msg, extra = {}) {
+	console.log(JSON.stringify({
+		t: new Date().toISOString(),
+		level,
+		msg,
+		...extra,
+	}));
+}
+
+log('info', 'ready', {bot_id: 'XP_BOT', guilds: 1});
+log('error', 'rest failed', {endpoint: '/channels/.../messages', status: 403});
+```
+
+JSON-строки на stdout. Потом любой collector (Loki, Datadog, логи systemd с `journalctl -u mybot -o json`) разберёт.
+
+Что обязательно логировать:
+- `READY` / `RESUMED` — когда бот подключился
+- `CLOSE` с кодом и reason
+- Все 4xx/5xx от REST
+- Unhandled exception'ы
+
+Что **не** логировать:
+- Токен
+- Содержимое сообщений пользователей (PII)
+
+## Метрики (опционально)
+
+Когда бот обслуживает десятки серверов — хочется графиков. Минимум-вариант:
+
+```js
+const metrics = {
+	gateway_events: 0,
+	messages_processed: 0,
+	rest_errors: 0,
+	command_executions: {}, // { command_name: count }
+};
+
+// endpoint /metrics в Prometheus-формате
+function prometheus(res) {
+	const lines = [
+		`bot_gateway_events ${metrics.gateway_events}`,
+		`bot_messages_processed ${metrics.messages_processed}`,
+		`bot_rest_errors ${metrics.rest_errors}`,
+	];
+	for (const [cmd, count] of Object.entries(metrics.command_executions)) {
+		lines.push(`bot_command{name="${cmd}"} ${count}`);
+	}
+	res.writeHead(200, {'content-type': 'text/plain'});
+	res.end(lines.join('\n'));
+}
+```
+
+Prometheus + Grafana — стандартная связка для графиков.
+
+## Сравнение с Флудилкой самой
+
+Метрики здоровья бота не должны зависеть от Флудилки. Если `api.floodilka.com` лежит — ваш бот упадёт через 2 минуты (heartbeat timeout) и у всех ботов будет 503. Это платформенная проблема, не ваша. Зато если у вас один бот показывает 503, а остальные работают — значит дело в коде вашего бота.
+
+## Что дальше
+
+- [Хостинг](/deployment/hosting/) — где деплоить
+- [Жизненный цикл соединения](/gateway/connection-lifecycle/) — откуда берутся CLOSE и как их интерпретировать

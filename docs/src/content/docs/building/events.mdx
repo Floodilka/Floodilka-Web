@@ -1,0 +1,181 @@
+---
+title: Работа с событиями
+description: Какие Gateway-события реально нужны боту — и как на них реагировать без граблей.
+---
+
+import {Aside, Tabs, TabItem} from '@astrojs/starlight/components';
+
+Gateway шлёт боту **всё**, что происходит на всех серверах, где он состоит. Большинство событий вам не нужны. Эта страница — про то, какие события реально стоит обрабатывать и как не устроить себе проблемы.
+
+Для полного списка с payload'ами — [Gateway Events](/gateway/events/).
+
+## Минимальный набор для большинства ботов
+
+```js
+if (msg.op === 0) {
+	switch (msg.t) {
+		case 'READY': return onReady(msg.d);
+		case 'MESSAGE_CREATE': return onMessage(msg.d);
+		case 'GUILD_CREATE': return onGuildCreate(msg.d);
+		case 'GUILD_DELETE': return onGuildDelete(msg.d);
+	}
+}
+```
+
+Этого хватит для бота, который отвечает на команды и следит в каких гильдиях он состоит.
+
+## По категориям — что зачем
+
+### Сообщения
+
+| Событие | Когда использовать |
+|---------|--------------------|
+| `MESSAGE_CREATE` | Обработка команд, реакции на ключевые слова, антиспам |
+| `MESSAGE_UPDATE` | Аудит правок, анти-редактирование-после-ответа |
+| `MESSAGE_DELETE` | Кеш «недавно удалённого» для модерации |
+| `MESSAGE_DELETE_BULK` | То же, но массово |
+| `MESSAGE_REACTION_ADD` | Reaction-roles, голосования, игры |
+| `MESSAGE_REACTION_REMOVE` | Обратная сторона reaction-roles |
+
+### Участники
+
+| Событие | Когда использовать |
+|---------|--------------------|
+| `GUILD_MEMBER_ADD` | Приветствие, welcome-канал, выдача стартовой роли |
+| `GUILD_MEMBER_REMOVE` | Логи выходов, анти-подставы (участник ушёл с долгом) |
+| `GUILD_MEMBER_UPDATE` | Слежение за изменением ролей |
+
+### Структура гильдии
+
+| Событие | Когда использовать |
+|---------|--------------------|
+| `GUILD_CREATE` | Первичная загрузка гильдии; срабатывает при старте, после reconnect и при добавлении бота |
+| `GUILD_UPDATE` | Если кешируете имя/иконку гильдии |
+| `GUILD_DELETE` | Бота выкинули с сервера — чистить стейт |
+| `CHANNEL_CREATE/UPDATE/DELETE` | Если кешируете список каналов |
+| `GUILD_ROLE_*` | Если связываете бот-логику с ролями |
+
+### Голос
+
+| Событие | Когда использовать |
+|---------|--------------------|
+| `VOICE_STATE_UPDATE` | Узнать кто вошёл/вышел из голосового канала (для music-ботов или статистики активности) |
+
+### Низкоуровневое (редко нужно)
+
+| Событие | Когда использовать |
+|---------|--------------------|
+| `TYPING_START` | Почти никогда — только если бот следит «а печатает ли он ещё» |
+| `PRESENCE_UPDATE` | Редко — статистика онлайна. Платит трафиком на больших серверах |
+| `PASSIVE_UPDATES` | Внутреннее — игнорируйте |
+| `SESSIONS_REPLACE` | Внутреннее — игнорируйте |
+
+## Что нужно игнорировать
+
+### Свои сообщения
+
+```js
+if (msg.d.author?.bot) return;
+```
+
+Иначе бот попадёт в цикл «я написал → MESSAGE_CREATE → я обработал → я снова написал».
+
+### События от других ботов (опционально)
+
+Если ваш бот не должен реагировать на ботов вообще (а не только на себя) — та же проверка `author.bot`. Реагировать только на живых людей — безопаснее.
+
+### Сообщения до `READY`
+
+В теории события начинают приходить только после READY, но на практике — если у вас race condition — можно получить MESSAGE_CREATE до того, как `sessionReady = true`. Флаг-гард:
+
+```js
+let ready = false;
+function onReady() { ready = true; }
+function onMessage(data) {
+	if (!ready) return;
+	// ...
+}
+```
+
+## Отключение ненужных событий
+
+В `IDENTIFY` можно передать `ignored_events` — массив имён событий, которые боту **не** слать. На больших серверах это существенно снижает нагрузку:
+
+```json
+{
+	"op": 2,
+	"d": {
+		"token": "Bot ...",
+		"properties": {"os": "linux", "browser": "bot", "device": "bot"},
+		"ignored_events": [
+			"TYPING_START",
+			"PRESENCE_UPDATE",
+			"VOICE_STATE_UPDATE",
+			"CHANNEL_PINS_UPDATE"
+		]
+	}
+}
+```
+
+Подумайте об этом, если бот только читает команды в тексте — голос, набор, presence-обновления ему бесполезны.
+
+## Паттерн: отвечать на команду + следить за событиями
+
+Типичный бот — это машина состояний поверх Gateway. Структура кода обычно такая:
+
+```js
+ws.on('message', (raw) => {
+	const msg = JSON.parse(raw);
+
+	// Сервисные опкоды (heartbeat, reconnect, invalid_session)
+	if (msg.op !== 0) return handleOpcode(msg);
+
+	// Dispatch — роутим по типу
+	const handler = dispatchHandlers[msg.t];
+	if (handler) void handler(msg.d);
+});
+
+const dispatchHandlers = {
+	READY: onReady,
+	MESSAGE_CREATE: onMessage,
+	GUILD_CREATE: onGuildCreate,
+	GUILD_DELETE: onGuildDelete,
+	GUILD_MEMBER_ADD: onMemberJoin,
+	MESSAGE_REACTION_ADD: onReactionAdd,
+};
+```
+
+## Частый баг: гонка между GUILD_CREATE и командой
+
+Сразу после READY приходят `GUILD_CREATE` события — по одному на каждую гильдию. Параллельно уже могут приходить `MESSAGE_CREATE`. Если бот обращается к кешу гильдии в обработчике сообщения, а кеш ещё не заполнен — будет ошибка.
+
+Решение: дождаться первой волны `GUILD_CREATE`:
+
+```js
+let pendingGuilds = new Set();
+let hydrated = false;
+
+function onReady(data) {
+	pendingGuilds = new Set(data.guilds.map((g) => g.id));
+	if (pendingGuilds.size === 0) hydrated = true;
+}
+
+function onGuildCreate(guild) {
+	pendingGuilds.delete(guild.id);
+	if (pendingGuilds.size === 0) {
+		hydrated = true;
+		console.log('все гильдии загружены, бот готов');
+	}
+}
+
+function onMessage(data) {
+	if (!hydrated) return; // пропускаем пока не готовы
+	// ...
+}
+```
+
+## Что дальше
+
+- [Gateway Events](/gateway/events/) — справочник всех событий с payload'ами
+- [Жизненный цикл соединения](/gateway/connection-lifecycle/) — что такое READY, RESUME
+- [Команды](/building/commands/) — как парсить команды из `MESSAGE_CREATE`

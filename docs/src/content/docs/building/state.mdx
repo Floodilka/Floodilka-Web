@@ -1,0 +1,189 @@
+---
+title: Хранение состояния
+description: Где и как бот должен хранить данные — от простых кулдаунов до уровневой статистики.
+---
+
+import {Tabs, TabItem, Aside} from '@astrojs/starlight/components';
+
+Рано или поздно ваш бот захочет что-то запоминать между рестартами: кулдауны, XP-очки, настройки гильдий, список подписчиков. Этот гайд — про выбор хранилища под разные задачи.
+
+## Простое правило
+
+| Что храним | Где |
+|------------|-----|
+| Кулдауны на команды (сотни мс жизни) | В памяти (`Map`) |
+| Состояние игры в чате (живёт минуты) | В памяти + периодическое сохранение |
+| Настройки гильдии, XP, статистика | **SQLite** локально |
+| Распределённый бот на нескольких инстансах | **Redis / Postgres** |
+
+Не усложняйте сразу — начните с SQLite и разовьёте если упрётесь.
+
+## В памяти
+
+Годится для всего что живёт короче минут-часов и можно потерять при рестарте.
+
+```js
+const cooldowns = new Map();   // key → timestamp
+const gameState = new Map();   // channelId → текущая партия
+
+function setCooldown(key, ms) {
+	cooldowns.set(key, Date.now() + ms);
+}
+```
+
+Не забудьте чистить — без eviction'а `Map` растёт бесконечно:
+
+```js
+setInterval(() => {
+	const now = Date.now();
+	for (const [k, v] of cooldowns) {
+		if (v < now) cooldowns.delete(k);
+	}
+}, 60_000);
+```
+
+## SQLite
+
+Идеальный старт. Файл рядом с ботом, нулевая настройка, тысячи записей в секунду.
+
+<Tabs>
+	<TabItem label="Schema">
+```sql
+CREATE TABLE IF NOT EXISTS xp (
+	guild_id TEXT NOT NULL,
+	user_id TEXT NOT NULL,
+	username TEXT,
+	xp INTEGER NOT NULL DEFAULT 0,
+	level INTEGER NOT NULL DEFAULT 0,
+	last_gain_at INTEGER NOT NULL DEFAULT 0,
+	PRIMARY KEY (guild_id, user_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_xp_guild_sorted
+	ON xp(guild_id, xp DESC);
+```
+	</TabItem>
+	<TabItem label="Node.js (better-sqlite3)">
+```js
+import Database from 'better-sqlite3';
+
+const db = new Database('./data/bot.sqlite');
+db.pragma('journal_mode = WAL');
+
+const upsertXp = db.prepare(`
+	INSERT INTO xp (guild_id, user_id, username, xp, level, last_gain_at)
+	VALUES (?, ?, ?, ?, ?, ?)
+	ON CONFLICT(guild_id, user_id) DO UPDATE SET
+		xp = excluded.xp,
+		level = excluded.level,
+		last_gain_at = excluded.last_gain_at,
+		username = excluded.username
+`);
+
+const selectTop = db.prepare(`
+	SELECT user_id, username, xp, level
+	FROM xp WHERE guild_id = ?
+	ORDER BY xp DESC LIMIT 10
+`);
+
+function awardXp(guildId, userId, username, gain) {
+	const row = db.prepare('SELECT xp FROM xp WHERE guild_id=? AND user_id=?').get(guildId, userId);
+	const newXp = (row?.xp ?? 0) + gain;
+	upsertXp.run(guildId, userId, username, newXp, levelFromXp(newXp), Date.now());
+}
+```
+	</TabItem>
+	<TabItem label="Python (sqlite3)">
+```python
+import sqlite3
+from pathlib import Path
+
+db = sqlite3.connect(Path('data/bot.sqlite'))
+db.execute('PRAGMA journal_mode = WAL')
+
+def award_xp(guild_id, user_id, username, gain):
+    row = db.execute(
+        'SELECT xp FROM xp WHERE guild_id=? AND user_id=?',
+        (guild_id, user_id),
+    ).fetchone()
+    new_xp = (row[0] if row else 0) + gain
+    db.execute('''
+        INSERT INTO xp (guild_id, user_id, username, xp, level, last_gain_at)
+        VALUES (?, ?, ?, ?, ?, strftime('%s', 'now') * 1000)
+        ON CONFLICT(guild_id, user_id) DO UPDATE SET
+            xp=excluded.xp, level=excluded.level,
+            last_gain_at=excluded.last_gain_at, username=excluded.username
+    ''', (guild_id, user_id, username, new_xp, level_from_xp(new_xp)))
+    db.commit()
+```
+	</TabItem>
+</Tabs>
+
+<Aside type="tip" title="WAL-режим">
+	`PRAGMA journal_mode = WAL` даёт конкурентные чтения + пишущую транзакцию. Для бота с одним процессом и тысячами операций в секунду — must-have.
+</Aside>
+
+### Бэкап
+
+SQLite-файл можно просто копировать, но **не во время транзакции**. Безопасный способ — команда `VACUUM INTO`:
+
+```sh
+sqlite3 data/bot.sqlite "VACUUM INTO 'data/backup-$(date +%F).sqlite';"
+```
+
+Поставьте на cron раз в день.
+
+## Redis
+
+Нужен, когда:
+- Бот шардирован на несколько процессов (им надо делить состояние)
+- Нужны TTL'ы «из коробки» (кулдауны, блэк-листы)
+- Частые инкременты / счётчики под нагрузкой
+
+```js
+import {Redis} from 'ioredis';
+const redis = new Redis(process.env.REDIS_URL);
+
+// Кулдаун с TTL
+async function tryCommand(userId, cmd, windowSec = 3) {
+	const key = `cd:${userId}:${cmd}`;
+	const ok = await redis.set(key, '1', 'EX', windowSec, 'NX');
+	return ok === 'OK'; // false — ещё в кулдауне
+}
+
+// Атомарный инкремент счётчика
+const newCount = await redis.incr(`msgcount:${channelId}`);
+```
+
+## Postgres
+
+Подходит когда:
+- Данных десятки-сотни тысяч записей
+- Нужны сложные выборки (top-N по фильтру, джойны)
+- Несколько инстансов бота пишут параллельно
+- Нужна репликация, бэкап через pg_dump
+
+Для старта бота — overkill. Переходите на Postgres, когда SQLite начнёт упираться или появятся несколько инстансов.
+
+## Что хранить, а что перечитывать
+
+Gateway присылает `GUILD_CREATE` со списком участников, каналов, ролей — **не надо это отдельно дублировать в БД**, это есть в памяти. БД нужна для того, что Gateway не расскажет: пользовательские настройки, XP, кастомные команды.
+
+| Хранить в БД | Не хранить (брать из памяти / Gateway) |
+|--------------|----------------------------------------|
+| XP / очки / бейджи | Имя участника (`msg.author.username`) |
+| Настройки префикса бота по гильдии | Список каналов (из `GUILD_CREATE`) |
+| Напоминания, таймеры | Онлайн / presence |
+| Reaction-role конфигурация | Список ролей гильдии |
+
+## Sharding-оговорка
+
+Когда бот вырастет до 2500+ гильдий, платформа попросит шардирование — несколько процессов делят гильдии по `guild_id % N`. Для этого состояние должно быть **внешним** (Redis/Postgres), иначе шарды будут друг друга не видеть. Если пишете бот с прицелом на большое распространение — сразу на Redis/Postgres, не изобретайте миграцию с SQLite через год.
+
+Маленький бот на один-два сервера? SQLite, не думайте.
+
+## Что дальше
+
+- [Деплой / Хостинг](/deployment/hosting/) — где запускать бота с БД
+- [Примеры / Уровневый бот](/examples/leveling/) — реальная схема SQLite + логика
+- [Команды](/building/commands/) — кулдауны и их хранение
