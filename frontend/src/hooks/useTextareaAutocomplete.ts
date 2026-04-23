@@ -151,7 +151,7 @@ function filterGuildMembers(
 			? membersToUse.filter((member) => canViewChannel(member.user.id))
 			: membersToUse;
 		matchedMembers = matchSorter(filteredByAccess, parsedQuery.usernameQuery, {
-			keys: ['nick', 'user.username', 'user.tag'],
+			keys: ['nick', (member) => member.user.username, (member) => member.user.tag],
 		});
 	}
 
@@ -370,7 +370,7 @@ export function useTextareaAutocomplete({
 		const cachedMembers = GuildMemberStore.getMembers(guildId);
 		if (cachedMembers.length > 0) {
 			const cachedMatches = matchSorter(cachedMembers, searchQuery, {
-				keys: ['nick', 'user.username', 'user.tag'],
+				keys: ['nick', (member) => member.user.username, (member) => member.user.tag],
 			}).slice(0, MEMBER_SEARCH_LIMIT);
 			setMemberSearchResults(cachedMatches);
 		} else {
