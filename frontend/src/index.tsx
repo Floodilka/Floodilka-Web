@@ -86,6 +86,7 @@ if (resolvedSentryDsn) {
 	Sentry.init({
 		dsn: resolvedSentryDsn,
 		environment: Config.PUBLIC_PROJECT_ENV,
+		release: Config.PUBLIC_BUILD_SHA,
 		sendDefaultPii: true,
 		beforeSend(event, hint) {
 			const error = hint.originalException;

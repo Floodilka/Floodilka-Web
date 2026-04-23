@@ -78,6 +78,7 @@ jobs:
           PUBLIC_BUILD_SHA: ${{ github.sha }}
           PUBLIC_BUILD_NUMBER: ${{ github.run_number }}
           PUBLIC_YANDEX_METRIKA_ID: '108307618'
+          PUBLIC_SENTRY_DSN: 'https://9baf2c9bf1814480af078e9a34a8b8a26489d01632354b748e1424a9eb7e3077@k1.hawk.so/0'
         run: |
           export PUBLIC_BUILD_TIMESTAMP=$(date +%s)
           pnpm wasm:codegen
@@ -90,6 +91,13 @@ jobs:
           npx rspack build --mode production
           npx tsx scripts/build-sw.mjs
           echo "{\"sha\":\"$PUBLIC_BUILD_SHA\",\"buildNumber\":$PUBLIC_BUILD_NUMBER,\"buildTimestamp\":\"$PUBLIC_BUILD_TIMESTAMP\"}" > dist/version.json
+
+      - name: Upload sourcemaps to Hawk
+        working-directory: frontend
+        env:
+          HAWK_INTEGRATION_TOKEN: ${{ secrets.HAWK_INTEGRATION_TOKEN }}
+          PUBLIC_BUILD_SHA: ${{ github.sha }}
+        run: node scripts/upload-sourcemaps.mjs
 
       - uses: actions/upload-artifact@v4
         with:
