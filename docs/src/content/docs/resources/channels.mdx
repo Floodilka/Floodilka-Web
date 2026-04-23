@@ -1,12 +1,143 @@
 ---
-title: "Каналы"
-description: "Типы каналов, permission overwrites и эндпоинты каналов."
+title: Каналы
+description: Типы каналов, объект Channel, permission overwrites и эндпоинты управления.
 ---
 
-import {Aside} from '@astrojs/starlight/components';
+Канал — контейнер для сообщений или голоса. Может находиться в гильдии или быть личным (DM / групповой DM).
 
-<Aside type="note">Эта страница в процессе написания. Общая структура зафиксирована, детали дополняются.</Aside>
+## Типы каналов
 
-## Обзор
+| `type` | Название | Описание |
+|--------|----------|----------|
+| `0` | `GUILD_TEXT` | Обычный текстовый канал гильдии |
+| `1` | `DM` | Личное сообщение 1-на-1 |
+| `2` | `GUILD_VOICE` | Голосовой канал гильдии |
+| `3` | `GROUP_DM` | Групповое ЛС (до 10 участников) |
+| `4` | `GUILD_CATEGORY` | Категория — визуальная группировка других каналов |
+| `5` | `GUILD_ANNOUNCEMENT` | Канал-объявление (только для избранных ролей) |
 
-Раздел «Каналы» документации Floodilka активно пишется.
+## Объект Channel
+
+```json
+{
+	"id": "1465759683653402624",
+	"type": 0,
+	"guild_id": "1424883034267582464",
+	"position": 1,
+	"name": "general",
+	"topic": "Основной чат",
+	"nsfw": false,
+	"parent_id": "1424...",
+	"rate_limit_per_user": 0,
+	"permission_overwrites": [],
+	"last_message_id": "1465...",
+	"flags": 0
+}
+```
+
+| Поле | Тип | Описание |
+|------|-----|----------|
+| `id` | snowflake | ID канала |
+| `type` | integer | См. таблицу выше |
+| `guild_id` | snowflake \| null | ID гильдии (нет для DM) |
+| `name` | string | Имя. Для текстовых каналов — `[a-z0-9-_]` |
+| `topic` | string \| null | Описание (до 1024) |
+| `position` | integer | Порядок в сайдбаре |
+| `parent_id` | snowflake \| null | ID категории-родителя |
+| `nsfw` | boolean | Возрастное ограничение |
+| `rate_limit_per_user` | integer | Slowmode в секундах (0 — выключен, до 21600) |
+| `last_message_id` | snowflake \| null | ID последнего сообщения |
+| `permission_overwrites` | array | См. ниже |
+| `bitrate` | integer | (voice) Битрейт в bps |
+| `user_limit` | integer | (voice) Лимит участников (0 — без лимита) |
+| `rtc_region` | string \| null | (voice) Регион LiveKit |
+
+## Permission overwrites
+
+Право на уровне канала может переопределять право роли/участника. Каждый overwrite:
+
+```json
+{
+	"id": "1424...",
+	"type": 0,
+	"allow": "2048",
+	"deny": "0"
+}
+```
+
+| Поле | Описание |
+|------|----------|
+| `id` | snowflake роли или пользователя |
+| `type` | `0` — роль, `1` — пользователь |
+| `allow` | Битовая маска разрешённых прав (строка — это 64-битное число) |
+| `deny` | Битовая маска явно запрещённых прав |
+
+Резолюция прав участника в канале:
+
+```
+effective =
+  (@everyone.base
+   | role[1].base | role[2].base ...)
+  & ~(category.deny.everyone)
+  | category.allow.everyone
+  & ~(category.deny.role)  | category.allow.role
+  & ~(category.deny.user)  | category.allow.user
+  & ~(channel.deny.everyone) | channel.allow.everyone
+  & ~(channel.deny.role)     | channel.allow.role
+  & ~(channel.deny.user)     | channel.allow.user
+```
+
+Биты прав — см. [Права доступа](/topics/permissions/).
+
+## Эндпоинты
+
+### GET /channels/:channel_id
+
+Получить объект канала.
+
+### PATCH /channels/:channel_id
+
+Изменить канал. Требует `MANAGE_CHANNELS`.
+
+### DELETE /channels/:channel_id
+
+Удалить канал. Требует `MANAGE_CHANNELS`. Возвращает объект удалённого канала.
+
+### GET /channels/:channel_id/messages
+
+История сообщений канала. Query-параметры:
+- `around`, `before`, `after` — привязки пагинации
+- `limit` — от 1 до 100, по умолчанию 50
+
+Требует `READ_MESSAGE_HISTORY`.
+
+### PUT /channels/:channel_id/permissions/:overwrite_id
+
+Создать или изменить overwrite. Тело:
+
+```json
+{ "type": 0, "allow": "2048", "deny": "0" }
+```
+
+### DELETE /channels/:channel_id/permissions/:overwrite_id
+
+Убрать overwrite.
+
+### POST /channels/:channel_id/typing
+
+Отправить событие «печатает». Fire-and-forget — других клиентов уведомит событием `TYPING_START`.
+
+### GET /channels/:channel_id/pins
+
+Список закреплённых сообщений (до 50 на канал).
+
+### PUT /channels/:channel_id/pins/:message_id
+### DELETE /channels/:channel_id/pins/:message_id
+
+Закрепить / открепить.
+
+## Что дальше
+
+- [Сообщения](/resources/messages/) — как отправлять и читать сообщения
+- [Права доступа](/topics/permissions/) — битовые маски для overwrites
+- [Гильдии](/resources/guilds/) — каналы в контексте гильдии

@@ -1,12 +1,33 @@
 ---
-title: "Обзор ресурсов"
-description: "Справочник по всем объектам, возвращаемым REST API Floodilka."
+title: Обзор ресурсов
+description: Справочник по объектам Floodilka REST API и эндпоинтам по их работе.
 ---
 
-import {Aside} from '@astrojs/starlight/components';
+import {LinkCard, CardGrid} from '@astrojs/starlight/components';
 
-<Aside type="note">Эта страница в процессе написания. Общая структура зафиксирована, детали дополняются.</Aside>
+REST API Floodilka построен вокруг нескольких ключевых ресурсов. Эта страница — индекс для быстрого перехода к нужному разделу.
 
-## Обзор
+## База
 
-Раздел «Обзор ресурсов» документации Floodilka активно пишется.
+- **Base URL:** `https://floodilka.com/api/v1`
+- **Формат:** JSON в теле запроса и ответа
+- **Аутентификация:** `Authorization: Bot <token>` или `Bearer <access_token>` — см. [Аутентификация](/introduction/authentication/)
+- **Лимиты:** глобальный + бакет, 429 с `Retry-After` — см. [Лимиты запросов](/topics/rate-limits/)
+- **Ошибки:** `{ "code": "...", "message": "..." }` — см. [Коды ошибок](/topics/error-codes/)
+
+## Ресурсы
+
+<CardGrid>
+	<LinkCard title="Пользователи" href="/resources/users/" description="Объект User, @me, управление профилем." />
+	<LinkCard title="Гильдии" href="/resources/guilds/" description="Гильдии, участники, роли, баны." />
+	<LinkCard title="Каналы" href="/resources/channels/" description="Типы каналов, permission overwrites, настройки." />
+	<LinkCard title="Сообщения" href="/resources/messages/" description="Сообщения, реакции, вложения, эмбеды." />
+	<LinkCard title="OAuth2" href="/resources/oauth2/" description="Приложения, скоупы, токены." />
+	<LinkCard title="Приглашения" href="/resources/invites/" description="Инвайт-коды и метаданные." />
+	<LinkCard title="Вебхуки" href="/resources/webhooks/" description="Входящие и исходящие вебхуки." />
+	<LinkCard title="Gateway" href="/resources/gateway/" description="Получение URL для WebSocket-подключения." />
+</CardGrid>
+
+## Snowflake-идентификаторы
+
+Все ID ресурсов — 64-битные snowflake. Никогда не парсите их как число в JavaScript (потеря точности) — используйте `BigInt` или строку. Подробнее: [Snowflake-идентификаторы](/topics/snowflakes/).

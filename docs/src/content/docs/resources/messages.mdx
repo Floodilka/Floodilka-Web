@@ -1,12 +1,209 @@
 ---
-title: "Сообщения"
-description: "Объект Message, вложения, эмбеды, компоненты и эндпоинты."
+title: Сообщения
+description: Объект Message, отправка и модификация сообщений, вложения, эмбеды, реакции.
 ---
 
-import {Aside} from '@astrojs/starlight/components';
+import {Aside, Tabs, TabItem} from '@astrojs/starlight/components';
 
-<Aside type="note">Эта страница в процессе написания. Общая структура зафиксирована, детали дополняются.</Aside>
+## Объект Message
 
-## Обзор
+Типичное сообщение:
 
-Раздел «Сообщения» документации Floodilka активно пишется.
+```json
+{
+	"id": "1465760123456789",
+	"channel_id": "1465759683653402624",
+	"guild_id": "1424883034267582464",
+	"author": {
+		"id": "974...",
+		"username": "puncher",
+		"global_name": "Максим",
+		"avatar": "abcd1234",
+		"bot": false
+	},
+	"content": "привет всем",
+	"timestamp": "2026-04-23T19:40:59.000Z",
+	"edited_timestamp": null,
+	"tts": false,
+	"mention_everyone": false,
+	"mentions": [],
+	"mention_roles": [],
+	"attachments": [],
+	"embeds": [],
+	"reactions": [],
+	"pinned": false,
+	"type": 0,
+	"flags": 0,
+	"referenced_message": null
+}
+```
+
+| Поле | Тип | Описание |
+|------|-----|----------|
+| `id` | snowflake | Уникальный ID сообщения |
+| `channel_id` | snowflake | В каком канале |
+| `guild_id` | snowflake \| null | ID гильдии (нет для DM) |
+| `author` | User | Автор. Для системных сообщений — псевдо-пользователь |
+| `content` | string | Текст. До 4000 символов |
+| `timestamp` | ISO 8601 | Когда создано |
+| `edited_timestamp` | ISO 8601 \| null | Когда отредактировано |
+| `attachments` | array | Прикреплённые файлы |
+| `embeds` | array | Эмбеды (см. ниже) |
+| `reactions` | array | `{emoji, count, me}` для каждой реакции |
+| `mentions` | array | Упомянутые пользователи |
+| `mention_roles` | array | Упомянутые роли |
+| `mention_everyone` | boolean | Был ли `@everyone`/`@here` |
+| `pinned` | boolean | Закреплено ли |
+| `type` | integer | Тип (0 = обычное, 6 = pin-уведомление, 7 = member-join и т.д.) |
+| `flags` | integer | Битовое поле (`URGENT`, `SUPPRESS_EMBEDS` и т.д.) |
+| `referenced_message` | Message \| null | Для reply — сообщение, на которое отвечаем |
+
+## Отправка сообщения
+
+### POST /channels/:channel_id/messages
+
+**Требует:** `SEND_MESSAGES` в канале.
+
+<Tabs>
+	<TabItem label="Текст">
+```bash
+curl https://floodilka.com/api/v1/channels/$CHANNEL_ID/messages \
+  -X POST \
+  -H "Authorization: Bot $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"content": "Привет!"}'
+```
+	</TabItem>
+	<TabItem label="Ответ на сообщение">
+```bash
+curl https://floodilka.com/api/v1/channels/$CHANNEL_ID/messages \
+  -X POST \
+  -H "Authorization: Bot $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "content": "Согласен",
+    "message_reference": {
+      "message_id": "1465...",
+      "channel_id": "'$CHANNEL_ID'",
+      "guild_id": "'$GUILD_ID'"
+    }
+  }'
+```
+	</TabItem>
+	<TabItem label="С эмбедом">
+```bash
+curl https://floodilka.com/api/v1/channels/$CHANNEL_ID/messages \
+  -X POST \
+  -H "Authorization: Bot $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "embeds": [{
+      "title": "Статус бота",
+      "description": "Всё работает ✅",
+      "color": 5763719,
+      "fields": [
+        {"name": "Серверов", "value": "1", "inline": true},
+        {"name": "Пользователей", "value": "42", "inline": true}
+      ]
+    }]
+  }'
+```
+	</TabItem>
+</Tabs>
+
+### Тело запроса
+
+| Поле | Тип | Обязательно | Описание |
+|------|-----|-------------|----------|
+| `content` | string | Одно из трёх | Текст сообщения |
+| `embeds` | array | Одно из трёх | До 10 эмбедов |
+| `attachments` | array | Одно из трёх | Ссылки на загруженные файлы |
+| `tts` | boolean | Нет | Text-to-speech (требует `SEND_TTS_MESSAGES`) |
+| `message_reference` | object | Нет | Reply-цель |
+| `allowed_mentions` | object | Нет | Контроль над тем, кого реально «пингуем» |
+
+Нужно прислать **хотя бы одно** из `content`, `embeds`, `attachments` — пустое сообщение вернёт `CANNOT_SEND_EMPTY_MESSAGE`.
+
+## Эмбеды
+
+Эмбед — структурированный блок с заголовком, описанием, полями, изображениями. Полезны для рангов, статистики, карточек команд.
+
+```json
+{
+	"title": "Заголовок",
+	"description": "Описание. Поддерживает **markdown**.",
+	"url": "https://example.com",
+	"color": 5763719,
+	"author": { "name": "Имя автора", "icon_url": "..." },
+	"thumbnail": { "url": "..." },
+	"image": { "url": "..." },
+	"footer": { "text": "Подвал", "icon_url": "..." },
+	"timestamp": "2026-04-23T19:00:00.000Z",
+	"fields": [
+		{"name": "Поле", "value": "Значение", "inline": true}
+	]
+}
+```
+
+Лимиты:
+- `title` — 256 символов
+- `description` — 4096 символов
+- `fields` — до 25, каждое поле `name` до 256, `value` до 1024
+- **Суммарно** по всем эмбедам сообщения — до 6000 символов
+
+## Прикрепление файлов
+
+Загрузка файлов происходит в два шага:
+
+1. **Запросите URL для загрузки** через `POST /channels/:id/attachments` — получите presigned URL
+2. **PUT файл** на полученный URL
+3. При отправке сообщения включите `attachments: [{id, filename, size}]` с данными из шага 1
+
+## Редактирование и удаление
+
+### PATCH /channels/:channel_id/messages/:message_id
+
+Редактировать можно только своё сообщение (или через `MANAGE_MESSAGES` — чужое, но не все поля).
+
+### DELETE /channels/:channel_id/messages/:message_id
+
+Удалить своё — всегда. Чужое — нужен `MANAGE_MESSAGES`.
+
+### POST /channels/:channel_id/messages/bulk-delete
+
+Массовое удаление от 2 до 100 сообщений за раз. Нужно `MANAGE_MESSAGES`. Сообщения старше 2 недель удалить bulk'ом нельзя — по одному через DELETE.
+
+## Реакции
+
+### PUT /channels/:channel_id/messages/:message_id/reactions/:emoji/@me
+
+Эмоджи в URL нужно URL-кодировать:
+- Unicode: `:emoji` = символ в URL-encoded виде (`%F0%9F%91%8D` для 👍)
+- Кастомное: `:emoji` = `name:id`, например `thumbs_up:974...`
+
+```bash
+curl -X PUT "https://floodilka.com/api/v1/channels/$CID/messages/$MID/reactions/%F0%9F%91%8D/@me" \
+  -H "Authorization: Bot $TOKEN"
+```
+
+### DELETE /channels/:channel_id/messages/:message_id/reactions/:emoji/@me
+
+Убрать **свою** реакцию.
+
+### DELETE /channels/:channel_id/messages/:message_id/reactions/:emoji/:user_id
+
+Убрать реакцию конкретного пользователя (нужно `MANAGE_MESSAGES`).
+
+### DELETE /channels/:channel_id/messages/:message_id/reactions
+
+Очистить все реакции. Нужно `MANAGE_MESSAGES`.
+
+<Aside type="tip">
+	Реакции в Gateway приходят как `MESSAGE_REACTION_ADD` / `MESSAGE_REACTION_REMOVE`. Боту не обязательно делать REST-запрос, чтобы узнать о новой реакции — подпишитесь на события.
+</Aside>
+
+## Что дальше
+
+- [Каналы](/resources/channels/) — типы каналов, в которые можно писать
+- [События](/gateway/events/) — `MESSAGE_CREATE`, `MESSAGE_UPDATE`, `MESSAGE_REACTION_ADD` и другие
+- [Коды ошибок](/topics/error-codes/) — `CANNOT_SEND_EMPTY_MESSAGE`, `SLOWMODE_RATE_LIMITED`, `MISSING_PERMISSIONS`

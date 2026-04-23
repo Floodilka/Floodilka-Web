@@ -1,12 +1,86 @@
 ---
-title: "Приглашения"
-description: "Объект Invite, коды приглашений и связанные эндпоинты."
+title: Приглашения
+description: Invite-коды для вступления в гильдию — создание, лимиты использования, аннулирование.
 ---
 
-import {Aside} from '@astrojs/starlight/components';
+**Приглашение** — короткий код, по которому пользователь может вступить в гильдию (или присоединиться к group-DM). Боты не принимают приглашения — они добавляются через OAuth2 `bot` scope. См. [Боты](/topics/bots/).
 
-<Aside type="note">Эта страница в процессе написания. Общая структура зафиксирована, детали дополняются.</Aside>
+## Объект Invite
 
-## Обзор
+```json
+{
+	"code": "abc123",
+	"guild": {
+		"id": "1424...",
+		"name": "Test server",
+		"icon": null
+	},
+	"channel": {
+		"id": "1465...",
+		"name": "general",
+		"type": 0
+	},
+	"inviter": {
+		"id": "974...",
+		"username": "puncher"
+	},
+	"uses": 0,
+	"max_uses": 0,
+	"max_age": 86400,
+	"temporary": false,
+	"created_at": "2026-04-23T12:00:00.000Z",
+	"expires_at": "2026-04-24T12:00:00.000Z"
+}
+```
 
-Раздел «Приглашения» документации Floodilka активно пишется.
+| Поле | Тип | Описание |
+|------|-----|----------|
+| `code` | string | Уникальный код. Используется в URL `https://floodilka.com/invite/<code>` |
+| `guild` | object | Публичная инфа о гильдии |
+| `channel` | object | В какой канал ведёт инвайт |
+| `inviter` | User \| null | Кто создал (null для системных vanity-URL) |
+| `uses` | integer | Сколько раз использовали |
+| `max_uses` | integer | Лимит использований (`0` — без лимита) |
+| `max_age` | integer | Срок жизни в секундах от `created_at` (`0` — бессрочно) |
+| `temporary` | boolean | Кикнуть при выходе онлайн, если пользователь не получил роль |
+| `expires_at` | ISO \| null | Когда истекает |
+
+## Эндпоинты
+
+### POST /channels/:channel_id/invites
+
+Создать инвайт в канал. Требует `CREATE_INSTANT_INVITE`.
+
+Тело:
+
+```json
+{
+	"max_age": 86400,
+	"max_uses": 0,
+	"temporary": false,
+	"unique": false
+}
+```
+
+- `unique: true` — форсит создание нового кода, даже если уже есть похожий
+
+### GET /channels/:channel_id/invites
+
+Список активных инвайтов канала. Требует `MANAGE_CHANNELS`.
+
+### GET /guilds/:guild_id/invites
+
+Все инвайты гильдии. Требует `MANAGE_GUILD`.
+
+### GET /invites/:code
+
+Публичный эндпоинт — работает без авторизации. Возвращает объект инвайта без `inviter` (можно узнать, куда ведёт, не раскрывая кто пригласил). Query `?with_counts=true` добавит `approximate_member_count` и `approximate_presence_count`.
+
+### DELETE /invites/:code
+
+Аннулировать. Требует `MANAGE_CHANNELS` в канале инвайта или `MANAGE_GUILD`.
+
+## Что дальше
+
+- [Боты](/topics/bots/) — инвайт бота — это OAuth2, не обычный Invite
+- [Каналы](/resources/channels/) — `CREATE_INSTANT_INVITE` и permission overwrites

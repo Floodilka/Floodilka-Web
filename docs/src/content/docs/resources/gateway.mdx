@@ -1,12 +1,51 @@
 ---
-title: "Gateway"
-description: "Данные для подключения к Gateway — WSS URL, кол-во шардов, лимиты сессий."
+title: Gateway
+description: REST-эндпоинт для получения URL и лимитов перед подключением к WebSocket Gateway.
 ---
 
-import {Aside} from '@astrojs/starlight/components';
+Перед WebSocket-подключением стоит запросить актуальный адрес и лимиты сессий. Для этого есть один эндпоинт — **`GET /gateway/bot`**. Он доступен только с `Bot`-токеном.
 
-<Aside type="note">Эта страница в процессе написания. Общая структура зафиксирована, детали дополняются.</Aside>
+## GET /api/v1/gateway/bot
 
-## Обзор
+**Требует:** `Authorization: Bot <token>`
 
-Раздел «Gateway» документации Floodilka активно пишется.
+```bash
+curl https://floodilka.com/api/v1/gateway/bot \
+  -H "Authorization: Bot ВАШ_БОТ_ТОКЕН"
+```
+
+### Ответ
+
+```json
+{
+	"url": "wss://gateway.floodilka.com",
+	"shards": 1,
+	"session_start_limit": {
+		"total": 1000,
+		"remaining": 999,
+		"reset_after": 14400000,
+		"max_concurrency": 1
+	}
+}
+```
+
+| Поле | Тип | Описание |
+|------|-----|----------|
+| `url` | string | WSS-адрес для подключения. Добавляйте к нему query-параметры: `?v=1&encoding=json` |
+| `shards` | integer | Рекомендованное число шардов. Для маленьких ботов — всегда `1` |
+| `session_start_limit.total` | integer | Всего новых IDENTIFY в окне |
+| `session_start_limit.remaining` | integer | Осталось в текущем окне |
+| `session_start_limit.reset_after` | integer | Миллисекунды до сброса окна |
+| `session_start_limit.max_concurrency` | integer | Сколько новых IDENTIFY можно отправить параллельно |
+
+<details>
+<summary>Зачем эти лимиты?</summary>
+
+Они защищают кластер от шторма ботов, которые в цикле reconnect → IDENTIFY → crash выжирают ресурсы. Нормально работающий клиент делает 1-2 IDENTIFY за сессию и никогда не упирается в лимит. Если упёрлись — смотрите логи, скорее всего где-то бесконечный реконнект.
+
+</details>
+
+## Что дальше
+
+- [Обзор Gateway](/gateway/overview/) — как подключиться с полученным URL
+- [Жизненный цикл соединения](/gateway/connection-lifecycle/) — IDENTIFY, READY, heartbeat

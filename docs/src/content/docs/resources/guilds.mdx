@@ -1,12 +1,176 @@
 ---
-title: "Гильдии"
-description: "Объект Guild, участники, роли и эндпоинты уровня гильдии."
+title: Гильдии
+description: Гильдия — главный контейнер Флудилки. Объект Guild, участники, роли, баны, эндпоинты.
 ---
 
 import {Aside} from '@astrojs/starlight/components';
 
-<Aside type="note">Эта страница в процессе написания. Общая структура зафиксирована, детали дополняются.</Aside>
+**Гильдия** (в UI — «сервер») — коллекция пользователей, каналов и ролей. Большинство действий бота происходят в контексте конкретной гильдии.
 
-## Обзор
+## Объект Guild
 
-Раздел «Гильдии» документации Floodilka активно пишется.
+Полный ответ большой — ниже ключевые поля:
+
+```json
+{
+	"id": "1424883034267582464",
+	"name": "Test server",
+	"icon": null,
+	"banner": null,
+	"splash": null,
+	"owner_id": "974...",
+	"region": "ru-moscow",
+	"afk_channel_id": null,
+	"afk_timeout": 300,
+	"verification_level": 0,
+	"default_message_notifications": 0,
+	"explicit_content_filter": 0,
+	"roles": [ ... ],
+	"emojis": [ ... ],
+	"stickers": [ ... ],
+	"features": [],
+	"mfa_level": 0,
+	"system_channel_id": "...",
+	"vanity_url_code": null,
+	"description": null,
+	"premium_tier": 0,
+	"premium_subscription_count": 0,
+	"preferred_locale": "ru",
+	"member_count": 3,
+	"channels": [ ... ]
+}
+```
+
+| Поле | Тип | Описание |
+|------|-----|----------|
+| `id` | snowflake | ID гильдии |
+| `name` | string | Название (2-100 символов) |
+| `icon` | string \| null | Hash иконки |
+| `banner` | string \| null | Hash баннера |
+| `owner_id` | snowflake | Владелец (не может быть ботом) |
+| `afk_channel_id` | snowflake \| null | Куда перемещаются AFK-пользователи |
+| `afk_timeout` | integer | Таймаут AFK в секундах |
+| `verification_level` | integer | `0` (нет) – `4` (VERY_HIGH) |
+| `roles` | array | Все роли гильдии |
+| `features` | array of string | Включённые фичи, например `COMMUNITY`, `VERIFIED` |
+| `premium_tier` | integer | `0` – `3` |
+| `member_count` | integer | Сколько участников |
+
+## Объект Role
+
+```json
+{
+	"id": "1424...",
+	"name": "Модератор",
+	"color": 3447003,
+	"hoist": true,
+	"position": 5,
+	"permissions": "268435456",
+	"managed": false,
+	"mentionable": true
+}
+```
+
+| Поле | Тип | Описание |
+|------|-----|----------|
+| `id` | snowflake | ID роли |
+| `name` | string | Имя |
+| `color` | integer | RGB-цвет, `0` — без цвета |
+| `hoist` | boolean | Отделять от остальных в списке участников |
+| `position` | integer | Позиция в иерархии. Больше = выше |
+| `permissions` | string | Битовая маска как строка (64-бит не помещается в Number) |
+| `managed` | boolean | Управляется интеграцией (нельзя редактировать) |
+| `mentionable` | boolean | Можно упоминать через `@` |
+
+## Объект Member
+
+```json
+{
+	"user": { ... },
+	"nick": "Глав мод",
+	"roles": ["1424...", "1424..."],
+	"joined_at": "2026-04-01T12:00:00.000Z",
+	"premium_since": null,
+	"deaf": false,
+	"mute": false,
+	"pending": false,
+	"communication_disabled_until": null
+}
+```
+
+- **`communication_disabled_until`** — таймаут (NULL или ISO-время, до которого участник не может писать)
+- **`pending`** — участник ещё не прошёл required-gate (screening)
+
+## Эндпоинты
+
+### GET /guilds/:guild_id
+
+Полный объект гильдии. Тяжёлый — не вызывайте в горячем пути.
+
+### GET /guilds/:guild_id/members
+
+Список участников с пагинацией:
+- `limit` — 1-1000 (по умолчанию 1)
+- `after` — snowflake последнего полученного участника
+
+**Требует:** нужны права как минимум `VIEW_CHANNEL`.
+
+### GET /guilds/:guild_id/members/:user_id
+
+Конкретный участник.
+
+### PATCH /guilds/:guild_id/members/:user_id
+
+Изменить участника: ник (`MANAGE_NICKNAMES`), роли (`MANAGE_ROLES`), muted/deafened (`MUTE/DEAFEN_MEMBERS`), timeout (`MODERATE_MEMBERS`), перемещение голоса (`MOVE_MEMBERS`).
+
+Пример timeout на 10 минут:
+
+```bash
+curl -X PATCH https://floodilka.com/api/v1/guilds/$GID/members/$UID \
+  -H "Authorization: Bot $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"communication_disabled_until": "2026-04-23T23:00:00.000Z"}'
+```
+
+### PUT /guilds/:guild_id/members/:user_id/roles/:role_id
+### DELETE /guilds/:guild_id/members/:user_id/roles/:role_id
+
+Добавить / убрать роль. Требует `MANAGE_ROLES` и чтобы ваша высшая роль была выше изменяемой.
+
+### DELETE /guilds/:guild_id/members/:user_id
+
+Кик. Требует `KICK_MEMBERS`.
+
+### PUT /guilds/:guild_id/bans/:user_id
+
+Бан. Требует `BAN_MEMBERS`. Тело:
+
+```json
+{ "delete_message_days": 7 }
+```
+
+### GET /guilds/:guild_id/bans
+### DELETE /guilds/:guild_id/bans/:user_id
+
+Список банов / снятие бана.
+
+### GET /guilds/:guild_id/roles
+### POST /guilds/:guild_id/roles
+### PATCH /guilds/:guild_id/roles/:role_id
+### DELETE /guilds/:guild_id/roles/:role_id
+
+CRUD для ролей. Требует `MANAGE_ROLES`.
+
+### GET /guilds/:guild_id/audit-logs
+
+Журнал аудита — [подробнее](/topics/audit-log/).
+
+<Aside type="tip">
+	Для бота не обязательно кешировать всю гильдию. Gateway уже отправит `GUILD_CREATE` с полным снимком при подключении, и потом точечно `GUILD_*_UPDATE` при изменениях. Делайте REST-запросы только когда вам нужен ответ, которого нет в событиях.
+</Aside>
+
+## Что дальше
+
+- [Каналы](/resources/channels/) — каналы внутри гильдий
+- [События](/gateway/events/) — `GUILD_MEMBER_ADD`, `GUILD_ROLE_UPDATE` и прочее
+- [Журнал аудита](/topics/audit-log/) — как читать лог модераторских действий
