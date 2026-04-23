@@ -1,12 +1,72 @@
 ---
 title: "Permissions"
-description: "The permission bitfield, how roles combine, and the overwrite system."
+description: "The permission bitfield: every bit, its numeric value, and how roles combine."
 ---
 
-import {Aside} from '@astrojs/starlight/components';
+{/* Auto-generated from backend/src/constants/Channel.ts. Do not edit by hand — change the source or docs/scripts/generate-from-source.mjs. */}
 
-<Aside type="note">This page is being written. The high-level shape is settled; the details are being filled in.</Aside>
+Permissions in Floodilka are stored as a 64-bit integer. Each bit is a separate permission. A user's roles combine via bitwise OR; channel overwrites are applied on top: **deny** clears bits, **allow** sets them.
 
-## Overview
+Resolution order is `@everyone → roles → category overwrites → channel overwrites`. The `ADMINISTRATOR` bit bypasses every check.
 
-Permissions documentation for the Floodilka platform is in active development.
+## Полный список
+(full list)
+
+| Name | Bit | Value | Description |
+|------|-----|-------|-------------|
+| `CREATE_INSTANT_INVITE` | 0 | `1` | Create invites to the guild. |
+| `KICK_MEMBERS` | 1 | `2` | Kick members. |
+| `BAN_MEMBERS` | 2 | `4` | Ban members. |
+| `ADMINISTRATOR` | 3 | `8` | All permissions. Bypasses every permission check and overwrite. |
+| `MANAGE_CHANNELS` | 4 | `16` | Create, edit, and delete channels. |
+| `MANAGE_GUILD` | 5 | `32` | Edit guild settings: name, region, features. |
+| `ADD_REACTIONS` | 6 | `64` | Add new reactions to messages. |
+| `VIEW_AUDIT_LOG` | 7 | `128` | Read the audit log. |
+| `PRIORITY_SPEAKER` | 8 | `256` | Priority speaker in voice. |
+| `STREAM` | 9 | `512` | Start a video or screen-share stream. |
+| `VIEW_CHANNEL` | 10 | `1024` | View the channel or connect to voice. |
+| `SEND_MESSAGES` | 11 | `2048` | Send messages in the channel. |
+| `SEND_TTS_MESSAGES` | 12 | `4096` | Send text-to-speech messages. |
+| `MANAGE_MESSAGES` | 13 | `8192` | Delete others' messages, pin/unpin, and manage published messages. |
+| `EMBED_LINKS` | 14 | `16384` | Auto-embed links. |
+| `ATTACH_FILES` | 15 | `32768` | Attach files to messages. |
+| `READ_MESSAGE_HISTORY` | 16 | `65536` | Read channel message history. |
+| `MENTION_EVERYONE` | 17 | `131072` | Use @everyone, @here, and @role mentions (when the role is mentionable). |
+| `USE_EXTERNAL_EMOJIS` | 18 | `262144` | Use custom emojis from other servers. |
+| `CONNECT` | 20 | `1048576` | Connect to a voice channel. |
+| `SPEAK` | 21 | `2097152` | Speak in voice. |
+| `MUTE_MEMBERS` | 22 | `4194304` | Mute other members in voice. |
+| `DEAFEN_MEMBERS` | 23 | `8388608` | Deafen other members in voice. |
+| `MOVE_MEMBERS` | 24 | `16777216` | Move members between voice channels. |
+| `USE_VAD` | 25 | `33554432` | Use voice activity detection (no push-to-talk required). |
+| `CHANGE_NICKNAME` | 26 | `67108864` | Change own nickname in the guild. |
+| `MANAGE_NICKNAMES` | 27 | `134217728` | Change other members' nicknames. |
+| `MANAGE_ROLES` | 28 | `268435456` | Create, edit, and delete roles below your highest role. |
+| `MANAGE_WEBHOOKS` | 29 | `536870912` | Manage webhooks. |
+| `MANAGE_EXPRESSIONS` | 30 | `1073741824` | Manage server emojis, stickers, and sounds. |
+| `USE_EXTERNAL_STICKERS` | 37 | `137438953472` | Use stickers from other servers. |
+| `MODERATE_MEMBERS` | 40 | `1099511627776` | Timeout members and other soft-moderation actions. |
+| `CREATE_EXPRESSIONS` | 43 | `8796093022208` | Create (but not manage others') emojis and stickers. |
+| `PIN_MESSAGES` | 51 | `2251799813685248` | Pin messages without MANAGE_MESSAGES. |
+| `BYPASS_SLOWMODE` | 52 | `4503599627370496` | Bypass channel slowmode limits. |
+| `UPDATE_RTC_REGION` | 53 | `9007199254740992` | Change the voice channel RTC region. |
+
+## Building a permissions bitfield for invite URLs
+
+OR the values together:
+
+```js
+const permissions =
+	(1 << 10) |  // VIEW_CHANNEL
+	(1 << 11) |  // SEND_MESSAGES
+	(1 << 16);   // READ_MESSAGE_HISTORY
+// → 68608
+```
+
+Drop the number into the OAuth2 URL `permissions` parameter:
+
+```
+https://floodilka.com/oauth2/authorize?client_id=APP_ID&scope=bot&permissions=68608
+```
+
+For bits >= 32 use `BigInt`: `(1n << 40n)` instead of `1 << 40`.

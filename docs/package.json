@@ -9,7 +9,8 @@
 		"start": "astro dev",
 		"build": "astro build",
 		"preview": "astro preview",
-		"astro": "astro"
+		"astro": "astro",
+		"generate:from-source": "node scripts/generate-from-source.mjs"
 	},
 	"dependencies": {
 		"@astrojs/starlight": "0.38.4",

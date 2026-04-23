@@ -1,12 +1,14 @@
 ---
-title: "Close Codes"
-description: "Gateway close codes and the right way to react to each one."
+title: "Gateway Close Codes"
+description: "WebSocket close codes the Gateway can send, and reconnect guidance."
 ---
 
-import {Aside} from '@astrojs/starlight/components';
+{/* Auto-generated from gateway/src/utils/constants.erl. Do not edit by hand — change the source or docs/scripts/generate-from-source.mjs. */}
 
-<Aside type="note">This page is being written. The high-level shape is settled; the details are being filled in.</Aside>
+Gateway closes connections on protocol or authentication errors. Codes in 4000-4999 are application-level, issued by the server. For standard close codes (1000-1015), reconnecting is safe.
 
-## Overview
+**Reconnect: No** means the issue cannot be fixed without developer action (wrong token, outdated API version). Looping reconnects will turn into a self-inflicted DoS.
 
-Close Codes documentation for the Floodilka platform is in active development.
+| Code | Name | Reconnect | Description |
+|------|------|-----------|-------------|
+| 4012 | `INVALID_API_VERSION` | No | URL contains an unsupported `v=`. Use `v=1`. |
