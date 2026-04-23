@@ -1,12 +1,152 @@
 ---
-title: "Обзор Gateway"
-description: "Обзор Floodilka Gateway — что это, как подключаться и когда использовать."
+title: Обзор Gateway
+description: WebSocket-API для получения событий в реальном времени — URL, версии, энкодинги, сжатие.
 ---
 
-import {Aside} from '@astrojs/starlight/components';
+import {Aside, Tabs, TabItem} from '@astrojs/starlight/components';
 
-<Aside type="note">Эта страница в процессе написания. Общая структура зафиксирована, детали дополняются.</Aside>
+**Gateway** — это постоянное WebSocket-соединение с Floodilka. Через него клиент получает события (новые сообщения, присоединения участников, изменения голосового состояния и т.д.) и отправляет служебные команды (heartbeat, обновление статуса, запрос списка участников).
 
-## Обзор
+REST API нужен для действий (отправить сообщение, создать канал). Gateway — для подписки на то, что происходит.
 
-Раздел «Обзор Gateway» документации Floodilka активно пишется.
+## URL подключения
+
+Основной адрес:
+
+```
+wss://gateway.floodilka.com/
+```
+
+Но рекомендуется сначала получить актуальный URL из REST — так клиент автоматически подхватит миграцию на другой кластер:
+
+```bash
+curl https://floodilka.com/api/v1/gateway/bot \
+  -H "Authorization: Bot ВАШ_БОТ_ТОКЕН"
+```
+
+Ответ:
+
+```json
+{
+	"url": "wss://gateway.floodilka.com",
+	"shards": 1,
+	"session_start_limit": {
+		"total": 1000,
+		"remaining": 999,
+		"reset_after": 14400000,
+		"max_concurrency": 1
+	}
+}
+```
+
+- **`url`** — к нему надо подключаться. Может меняться при инфраструктурных работах
+- **`session_start_limit`** — сколько новых IDENTIFY разрешено. Ограничение мягкое, но ретраи в цикле IDENTIFY → INVALID_SESSION → IDENTIFY съедают бюджет быстро
+
+## Query-параметры
+
+URL принимает параметры в query-строке:
+
+| Параметр | Значения | Описание |
+|----------|----------|----------|
+| `v` | `1` | **Обязательный.** Версия протокола. Без — `4012 INVALID_API_VERSION` |
+| `encoding` | `json` | Формат сообщений. Сейчас поддержан только `json` |
+| `compress` | `none` (по умолчанию), `zstd-stream` | Сжатие потоковых сообщений через zstd |
+
+Типичный URL:
+
+```
+wss://gateway.floodilka.com/?v=1&encoding=json
+```
+
+С zstd-сжатием (полезно для ботов на больших серверах):
+
+```
+wss://gateway.floodilka.com/?v=1&encoding=json&compress=zstd-stream
+```
+
+## Формат сообщений
+
+Каждое сообщение — JSON-объект с четырьмя полями:
+
+```json
+{
+	"op": 0,
+	"d": { "content": "hello" },
+	"s": 42,
+	"t": "MESSAGE_CREATE"
+}
+```
+
+| Поле | Когда есть | Значение |
+|------|------------|----------|
+| `op` | Всегда | Опкод. См. [Опкоды](/gateway/opcodes/) |
+| `d` | Почти всегда | Payload. Форма зависит от `op` или `t` |
+| `s` | Только при `op: 0` | Номер события в сессии. Его надо помнить для heartbeat и RESUME |
+| `t` | Только при `op: 0` | Тип события. См. [События](/gateway/events/) |
+
+## Простой пример на Node.js
+
+<Tabs>
+	<TabItem label="JavaScript">
+```js
+import {WebSocket} from 'ws';
+
+const ws = new WebSocket('wss://gateway.floodilka.com/?v=1&encoding=json');
+
+ws.on('message', (raw) => {
+	const msg = JSON.parse(raw.toString());
+	if (msg.op === 10) {
+		// HELLO — запускаем heartbeat и отправляем IDENTIFY
+		setInterval(() => ws.send(JSON.stringify({op: 1, d: null})), msg.d.heartbeat_interval);
+		ws.send(JSON.stringify({
+			op: 2,
+			d: {
+				token: process.env.FLOODILKA_BOT_TOKEN,
+				properties: {os: 'linux', browser: 'mybot', device: 'mybot'},
+			},
+		}));
+	}
+	if (msg.op === 0 && msg.t === 'READY') console.log('ready', msg.d.user.username);
+	if (msg.op === 0 && msg.t === 'MESSAGE_CREATE') console.log('msg', msg.d.content);
+});
+```
+	</TabItem>
+	<TabItem label="Python">
+```python
+import json, os, threading, websocket
+
+def on_message(ws, raw):
+    msg = json.loads(raw)
+    if msg['op'] == 10:
+        interval = msg['d']['heartbeat_interval'] / 1000
+        def heartbeat():
+            while True:
+                threading.Event().wait(interval)
+                ws.send(json.dumps({'op': 1, 'd': None}))
+        threading.Thread(target=heartbeat, daemon=True).start()
+        ws.send(json.dumps({
+            'op': 2,
+            'd': {
+                'token': os.environ['FLOODILKA_BOT_TOKEN'],
+                'properties': {'os': 'linux', 'browser': 'mybot', 'device': 'mybot'},
+            },
+        }))
+    if msg['op'] == 0 and msg['t'] == 'MESSAGE_CREATE':
+        print('msg', msg['d']['content'])
+
+ws = websocket.WebSocketApp('wss://gateway.floodilka.com/?v=1&encoding=json', on_message=on_message)
+ws.run_forever()
+```
+	</TabItem>
+</Tabs>
+
+<Aside type="caution" title="Это упрощённо">
+	Настоящий клиент должен отслеживать `s`, реагировать на `op: 7` (RECONNECT) и `op: 9` (INVALID_SESSION), уметь RESUME, обрабатывать close-коды. Полный flow — в [Жизненном цикле соединения](/gateway/connection-lifecycle/).
+</Aside>
+
+## Что дальше
+
+- [Жизненный цикл соединения](/gateway/connection-lifecycle/) — HELLO, IDENTIFY, heartbeat, RESUME, реконнект
+- [Опкоды](/gateway/opcodes/) — все `op`-значения
+- [Коды закрытия](/gateway/close-codes/) — как интерпретировать дисконнект
+- [События](/gateway/events/) — полный список `t`-значений с примерами payload

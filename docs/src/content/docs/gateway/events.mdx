@@ -1,12 +1,347 @@
 ---
-title: "События"
-description: "Полный список Gateway-событий, их полезные нагрузки и когда они срабатывают."
+title: События Gateway
+description: Полный список dispatch-событий Gateway с примерами payload и пояснением контекста.
 ---
 
 import {Aside} from '@astrojs/starlight/components';
 
-<Aside type="note">Эта страница в процессе написания. Общая структура зафиксирована, детали дополняются.</Aside>
+**Dispatch-событие** приходит с опкодом `0`, полями `t` (имя события) и `d` (payload). Каждое событие также инкрементирует `s` — номер в сессии.
 
-## Обзор
+```json
+{ "op": 0, "s": 42, "t": "MESSAGE_CREATE", "d": { ... } }
+```
 
-Раздел «События» документации Floodilka активно пишется.
+Отписаться от категорий событий, которые боту не нужны, можно через `ignored_events` в [IDENTIFY](/gateway/connection-lifecycle/#фаза-2-identify) — передайте туда массив имён событий.
+
+## Категории
+
+События можно сгруппировать по префиксу:
+
+| Префикс | Категория |
+|---------|-----------|
+| `READY`, `RESUMED`, `SESSIONS_REPLACE` | Жизненный цикл сессии |
+| `GUILD_*` | Гильдии, роли, участники, баны, эмоджи, стикеры |
+| `CHANNEL_*` | Каналы и permission overwrites |
+| `MESSAGE_*` | Сообщения, реакции, пины |
+| `PRESENCE_*`, `TYPING_*`, `USER_*` | Активность и профили пользователей |
+| `VOICE_*`, `CALL_*` | Голос и звонки |
+| `INVITE_*`, `WEBHOOKS_*` | Интеграции |
+| `RELATIONSHIP_*` | Дружбы и блокировки |
+
+## Ключевые события
+
+Ниже — подробные описания событий, с которыми чаще всего работают боты.
+
+### READY
+
+Отправляется после успешного IDENTIFY. Содержит информацию о текущем пользователе и первичный снимок гильдий.
+
+```json
+{
+	"v": 1,
+	"user": {
+		"id": "1496956937664585746",
+		"username": "my_bot",
+		"global_name": null,
+		"bot": true,
+		"flags": 0
+	},
+	"session_id": "a1b2c3d4e5f6",
+	"resume_gateway_url": "wss://gateway.floodilka.com",
+	"guilds": [
+		{ "id": "142...", "unavailable": true }
+	],
+	"user_settings": {}
+}
+```
+
+Гильдии помечены `unavailable: true` — реальные данные придут следом в `GUILD_CREATE`.
+
+### RESUMED
+
+Отправляется в ответ на успешный RESUME. `d` пустой. После этого события клиент догоняется пропущенными событиями — они приходят до RESUMED.
+
+### MESSAGE_CREATE
+
+Новое сообщение в канале, на который у клиента есть `READ_MESSAGE_HISTORY`.
+
+```json
+{
+	"id": "1465760123456789",
+	"channel_id": "1465759683653402624",
+	"guild_id": "1424883034267582464",
+	"author": {
+		"id": "974...",
+		"username": "puncher",
+		"global_name": "Максим",
+		"avatar": "abcd1234",
+		"bot": false
+	},
+	"member": {
+		"roles": ["1424..."],
+		"joined_at": "2026-04-01T12:00:00.000Z",
+		"nick": null
+	},
+	"content": "привет всем",
+	"timestamp": "2026-04-23T19:40:59.000Z",
+	"edited_timestamp": null,
+	"attachments": [],
+	"embeds": [],
+	"mentions": [],
+	"mention_roles": [],
+	"mention_everyone": false,
+	"pinned": false,
+	"type": 0
+}
+```
+
+Поле `member` присутствует только для сообщений в гильдиях (не в DM).
+
+<Aside type="tip">
+	`author.bot === true` — сообщение от бота. Почти всегда такие надо фильтровать, чтобы избежать циклов «бот отвечает сам себе».
+</Aside>
+
+### MESSAGE_UPDATE
+
+Изменение сообщения. Payload — объект Message с обновлёнными полями. Поле `edited_timestamp` больше не `null`.
+
+### MESSAGE_DELETE
+
+```json
+{ "id": "1465...", "channel_id": "1465...", "guild_id": "1424..." }
+```
+
+### MESSAGE_DELETE_BULK
+
+Массовое удаление (обычно через модерацию):
+
+```json
+{
+	"ids": ["1465...", "1465..."],
+	"channel_id": "1465...",
+	"guild_id": "1424..."
+}
+```
+
+### MESSAGE_REACTION_ADD
+
+```json
+{
+	"user_id": "974...",
+	"channel_id": "1465...",
+	"guild_id": "1424...",
+	"message_id": "1465...",
+	"member": { ... },
+	"emoji": { "id": null, "name": "👍" }
+}
+```
+
+`emoji.id === null` — unicode-эмоджи, `name` содержит символ. `emoji.id !== null` — кастомный эмоджи, `name` — имя, `id` — snowflake.
+
+### MESSAGE_REACTION_REMOVE / REMOVE_EMOJI / REMOVE_ALL
+
+Аналогично, но описывает удаление. `REMOVE_ALL` — очищены все реакции на сообщении.
+
+### GUILD_CREATE
+
+Полные данные гильдии — приходит после READY (для каждой гильдии из `READY.guilds`), а также когда бота добавляют в новую гильдию.
+
+```json
+{
+	"id": "1424883034267582464",
+	"name": "Test server",
+	"icon": null,
+	"owner_id": "974...",
+	"roles": [ ... ],
+	"emojis": [ ... ],
+	"channels": [ ... ],
+	"members": [ ... ],
+	"voice_states": [ ... ],
+	"presences": [ ... ],
+	"member_count": 3,
+	"features": [],
+	"system_channel_id": "..."
+}
+```
+
+### GUILD_UPDATE / GUILD_DELETE
+
+`GUILD_UPDATE` — частичное изменение гильдии. `GUILD_DELETE` — бот был удалён или гильдия стала недоступна: `{"id": "...", "unavailable": true}`.
+
+### GUILD_MEMBER_ADD
+
+Новый участник присоединился. Payload — объект Member плюс `guild_id`:
+
+```json
+{
+	"guild_id": "1424...",
+	"user": { "id": "...", "username": "...", ... },
+	"roles": [],
+	"joined_at": "2026-04-23T20:00:00.000Z",
+	"nick": null
+}
+```
+
+### GUILD_MEMBER_REMOVE
+
+```json
+{
+	"guild_id": "1424...",
+	"user": { "id": "...", "username": "...", ... }
+}
+```
+
+### GUILD_MEMBER_UPDATE
+
+Изменение ролей/ника участника.
+
+### CHANNEL_CREATE / CHANNEL_UPDATE / CHANNEL_DELETE
+
+Изменения в структуре каналов гильдии. Payload — объект Channel.
+
+### PRESENCE_UPDATE
+
+Изменение статуса и активностей участника:
+
+```json
+{
+	"user": { "id": "..." },
+	"guild_id": "1424...",
+	"status": "online",
+	"activities": [
+		{ "name": "Minecraft", "type": 0, "created_at": 1714000000 }
+	],
+	"client_status": { "desktop": "online" }
+}
+```
+
+Значения `status`: `online`, `idle`, `dnd`, `offline`, `invisible`.
+
+### TYPING_START
+
+Пользователь начал печатать. Через ~10 секунд событие не повторяется — учитывайте таймаут клиентом.
+
+```json
+{
+	"channel_id": "1465...",
+	"guild_id": "1424...",
+	"user_id": "974...",
+	"member": { ... },
+	"timestamp": 1714000000
+}
+```
+
+### VOICE_STATE_UPDATE
+
+Кто-то присоединился, вышел или поменял состояние в голосовом канале:
+
+```json
+{
+	"guild_id": "1424...",
+	"channel_id": "1465...",
+	"user_id": "974...",
+	"member": { ... },
+	"session_id": "a1b2c3",
+	"deaf": false,
+	"mute": false,
+	"self_deaf": false,
+	"self_mute": false,
+	"self_video": false,
+	"suppress": false
+}
+```
+
+Когда `channel_id: null` — пользователь покинул голос.
+
+## Полный список событий
+
+<Aside type="note">
+	Перечисленные ниже события могут приходить клиенту. Детальные payload-схемы для большинства из них будут добавлены в ближайших обновлениях документации. До этого момента — используйте реальный gateway как референс: подключите бота, включите логирование всех dispatch-событий и посмотрите, как выглядит `d`.
+</Aside>
+
+### Сессия
+- `READY`
+- `RESUMED`
+- `SESSIONS_REPLACE`
+- `AUTH_SESSION_CHANGE`
+
+### Пользователь
+- `USER_UPDATE`
+- `USER_SETTINGS_UPDATE`
+- `USER_GUILD_SETTINGS_UPDATE`
+- `USER_PINNED_DMS_UPDATE`
+- `USER_NOTE_UPDATE`
+
+### Гильдия
+- `GUILD_CREATE`
+- `GUILD_UPDATE`
+- `GUILD_DELETE`
+- `GUILD_SYNC`
+- `GUILD_BAN_ADD`
+- `GUILD_BAN_REMOVE`
+- `GUILD_EMOJIS_UPDATE`
+- `GUILD_STICKERS_UPDATE`
+- `GUILD_MEMBER_ADD`
+- `GUILD_MEMBER_UPDATE`
+- `GUILD_MEMBER_REMOVE`
+- `GUILD_MEMBER_LIST_UPDATE`
+- `GUILD_MEMBERS_CHUNK`
+- `GUILD_ROLE_CREATE`
+- `GUILD_ROLE_UPDATE`
+- `GUILD_ROLE_UPDATE_BULK`
+- `GUILD_ROLE_DELETE`
+
+### Канал
+- `CHANNEL_CREATE`
+- `CHANNEL_UPDATE`
+- `CHANNEL_UPDATE_BULK`
+- `CHANNEL_DELETE`
+- `CHANNEL_PINS_UPDATE`
+- `CHANNEL_PINS_ACK`
+- `CHANNEL_RECIPIENT_ADD`
+- `CHANNEL_RECIPIENT_REMOVE`
+
+### Сообщения
+- `MESSAGE_CREATE`
+- `MESSAGE_UPDATE`
+- `MESSAGE_DELETE`
+- `MESSAGE_DELETE_BULK`
+- `MESSAGE_ACK`
+- `MESSAGE_REACTION_ADD`
+- `MESSAGE_REACTION_REMOVE`
+- `MESSAGE_REACTION_REMOVE_ALL`
+- `MESSAGE_REACTION_REMOVE_EMOJI`
+- `RECENT_MENTION_DELETE`
+- `SAVED_MESSAGE_CREATE`
+- `SAVED_MESSAGE_DELETE`
+- `FAVORITE_MEME_CREATE`
+- `FAVORITE_MEME_UPDATE`
+- `FAVORITE_MEME_DELETE`
+
+### Активность
+- `PRESENCE_UPDATE`
+- `TYPING_START`
+- `PASSIVE_UPDATES`
+
+### Голос и звонки
+- `VOICE_STATE_UPDATE`
+- `VOICE_SERVER_UPDATE`
+- `CALL_CREATE`
+- `CALL_UPDATE`
+- `CALL_DELETE`
+
+### Интеграции
+- `INVITE_CREATE`
+- `INVITE_DELETE`
+- `WEBHOOKS_UPDATE`
+
+### Социальные
+- `RELATIONSHIP_ADD`
+- `RELATIONSHIP_UPDATE`
+- `RELATIONSHIP_REMOVE`
+
+## Что дальше
+
+- [Жизненный цикл соединения](/gateway/connection-lifecycle/) — как получить READY и начать обрабатывать события
+- [Опкоды](/gateway/opcodes/) — протокол нижнего уровня
+- [Коды ошибок](/topics/error-codes/) — REST-ошибки
