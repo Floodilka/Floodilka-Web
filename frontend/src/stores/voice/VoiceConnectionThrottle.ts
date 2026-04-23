@@ -19,16 +19,12 @@
 
 import {makeAutoObservable, runInAction} from 'mobx';
 
-const CONNECT_THROTTLE_MS = 1000;
-
 export interface ConnectionThrottleState {
-	lastConnectRequestAt: number | null;
 	connectAttemptId: number;
 	inFlightConnect: boolean;
 }
 
 const initialThrottleState: ConnectionThrottleState = {
-	lastConnectRequestAt: null,
 	connectAttemptId: 0,
 	inFlightConnect: false,
 };
@@ -48,23 +44,8 @@ export class VoiceConnectionThrottle {
 		return this.throttleState.inFlightConnect;
 	}
 
-	shouldThrottle(): boolean {
-		const now = Date.now();
-		const last = this.throttleState.lastConnectRequestAt ?? 0;
-		return now - last < CONNECT_THROTTLE_MS;
-	}
-
 	isLatestAttempt(id: number): boolean {
 		return id === this.throttleState.connectAttemptId;
-	}
-
-	recordConnectRequest(): void {
-		runInAction(() => {
-			this.throttleState = {
-				...this.throttleState,
-				lastConnectRequestAt: Date.now(),
-			};
-		});
 	}
 
 	incrementAttemptId(): void {

@@ -120,12 +120,6 @@ class VoiceConnectionManager {
 	}
 
 	startConnection(guildId: string | null, channelId: string): void {
-		if (this.throttle.shouldThrottle()) {
-			logger.warn('Connection throttled');
-			return;
-		}
-
-		this.throttle.recordConnectRequest();
 		this.throttle.incrementAttemptId();
 
 		runInAction(() => {
