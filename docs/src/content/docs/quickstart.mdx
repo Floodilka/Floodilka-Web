@@ -1,0 +1,102 @@
+---
+title: Быстрый старт
+description: Создайте приложение Floodilka, получите бот-токен и отправьте первый авторизованный запрос.
+---
+
+import {Steps, Aside, Tabs, TabItem} from '@astrojs/starlight/components';
+
+Эта страница проведёт вас от нуля до рабочей интеграции с Floodilka примерно за пять минут. В конце у вас будет бот-аккаунт, токен и проверенный запрос к REST API.
+
+## Предварительные требования
+
+- Аккаунт на [floodilka.com](https://floodilka.com)
+- Терминал с `curl` (или любой HTTP-клиент)
+
+## Создание приложения
+
+<Steps>
+
+1. Откройте Floodilka и перейдите в **Настройки → Приложения и боты**.
+
+2. Нажмите **Новое приложение**, введите имя и подтвердите.
+
+3. На странице приложения две вкладки: **Общие** (настройки OAuth2, client secret, redirect URIs) и **Бот** (имя бота, аватар, токен).
+
+4. Откройте вкладку **Бот** и нажмите **Сбросить токен**. Токен показывается **один раз** — сразу скопируйте его и сохраните в надёжном месте. Если потеряете — всегда можно сбросить и получить новый.
+
+</Steps>
+
+<Aside type="caution" title="Относитесь к бот-токену как к паролю">
+	Любой, у кого есть этот токен, может действовать от имени вашего бота. Никогда не коммитьте его в git, не вставляйте в клиентские приложения и не показывайте на скриншотах.
+</Aside>
+
+## Первый запрос
+
+С токеном в руках проверьте, что всё работает — запросите данные самого бота.
+
+<Tabs>
+	<TabItem label="cURL">
+```bash
+curl https://api.floodilka.com/v1/users/@me \
+  -H "Authorization: Bot ВАШ_БОТ_ТОКЕН"
+```
+	</TabItem>
+	<TabItem label="JavaScript">
+```js
+const res = await fetch('https://api.floodilka.com/v1/users/@me', {
+	headers: {Authorization: `Bot ${process.env.FLOODILKA_BOT_TOKEN}`},
+});
+console.log(await res.json());
+```
+	</TabItem>
+	<TabItem label="Python">
+```python
+import os, requests
+
+r = requests.get(
+    "https://api.floodilka.com/v1/users/@me",
+    headers={"Authorization": f"Bot {os.environ['FLOODILKA_BOT_TOKEN']}"},
+)
+print(r.json())
+```
+	</TabItem>
+</Tabs>
+
+Успешный ответ выглядит так:
+
+```json
+{
+	"id": "974839103102976000",
+	"username": "my-bot",
+	"discriminator": "0001",
+	"bot": true,
+	"avatar": null,
+	"flags": 0
+}
+```
+
+Если пришёл `401 Unauthorized` — токен неправильный, обрезан или был сброшен. Сбросьте ещё раз и скопируйте новый целиком.
+
+## Добавление бота на сервер
+
+Сгенерируйте OAuth2-ссылку-приглашение и отправьте владельцу сервера (или используйте сами на своём сервере):
+
+```
+https://floodilka.com/oauth2/authorize
+  ?client_id=ID_ВАШЕГО_ПРИЛОЖЕНИЯ
+  &scope=bot
+  &permissions=БИТОВАЯ_МАСКА_ПРАВ
+```
+
+- `client_id` — это ID приложения, **не токен**.
+- `scope=bot` говорит Floodilka добавить бота на выбранный пользователем сервер.
+- `permissions` — десятичная битовая маска, см. [Права доступа](/topics/permissions/).
+
+После подтверждения бот становится участником гильдии, и вы можете вызывать любые эндпоинты, принимающие бот-токен.
+
+## Что дальше
+
+- [Боты](/topics/bots/) — жизненный цикл, токены, приглашения, отличия от обычных пользователей
+- [OAuth2](/topics/oauth2/) — полное руководство включая authorization code flow
+- [Обзор Gateway](/gateway/overview/) — подключение к WebSocket и получение событий
+- [Ресурсы](/resources/overview/) — справочник по всем REST-объектам

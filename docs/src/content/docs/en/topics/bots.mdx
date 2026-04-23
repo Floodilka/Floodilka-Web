@@ -1,0 +1,153 @@
+---
+title: Bots
+description: Create a Floodilka bot, manage its token, and invite it to servers.
+---
+
+import {Steps, Aside, Tabs, TabItem, LinkCard, CardGrid} from '@astrojs/starlight/components';
+
+A **bot** on Floodilka is a special kind of user account that belongs to an application. Bots authenticate with a bot token, can be added to guilds via OAuth2, and behave like regular users for most API operations — with a few intentional restrictions.
+
+## How bots differ from users
+
+| Capability | User | Bot |
+|------------|------|-----|
+| Log in with email/password | Yes | No — bot token only |
+| Receive/send friend requests | Yes | No |
+| Join guilds by invite | Yes | No — must be added via OAuth2 `bot` scope |
+| Own guilds | Yes | No — ownership cannot be transferred to a bot |
+| Use the official client UI | Yes | No |
+| REST API access | Yes | Yes |
+| Gateway (WebSocket) access | Yes | Yes |
+
+## Create a bot
+
+Every bot is backed by an **application**. Creating an application automatically provisions a dedicated bot user and issues a bot token.
+
+<Steps>
+
+1. Open **User Settings → Applications & Bots**.
+
+2. Click **New Application**, name it, and confirm. Floodilka creates both the application and its paired bot user.
+
+3. Open the application, go to the **Bot** tab, click **Reset Token**, and copy the token that appears. You will not see it again.
+
+4. Configure the bot's username, avatar, and bio on the same tab. These are what users see when your bot posts messages.
+
+</Steps>
+
+## Bot token
+
+A bot token has the shape:
+
+```
+<application_id>.<secret>
+```
+
+Both halves are required. Use it as `Authorization: Bot <token>` on every request.
+
+<Aside type="caution" title="Never expose a bot token">
+	Bot tokens grant full access to the bot account. Never embed one in a mobile app, browser extension, or public repository. Use environment variables or a secret manager.
+</Aside>
+
+### Rotating the token
+
+If a token leaks, rotate it immediately from **Bot → Reset Token**. The old token stops working the moment the new one is issued. Update every running process with the new value.
+
+## Invite a bot to a guild
+
+Bots cannot accept regular invites. Instead, a user with `Manage Server` permission authorizes the bot via OAuth2, and Floodilka adds the bot to the selected guild.
+
+### Invite URL
+
+```
+https://floodilka.com/oauth2/authorize
+  ?client_id=APPLICATION_ID
+  &scope=bot
+  &permissions=PERMISSIONS_BITFIELD
+  &guild_id=OPTIONAL_GUILD_ID
+  &disable_guild_select=true
+```
+
+| Parameter | Required | Description |
+|-----------|----------|-------------|
+| `client_id` | Yes | The Application ID, not the token. |
+| `scope` | Yes | Must include `bot`. Add more scopes (space-separated) if your bot also needs Bearer access. |
+| `permissions` | No | Decimal permission bitfield. If omitted, the bot joins with no extra permissions. |
+| `guild_id` | No | Pre-selects a specific guild in the authorization screen. |
+| `disable_guild_select` | No | `true` to force the pre-selected `guild_id` and hide the picker. |
+
+### Permission bitfield
+
+Build the bitfield by OR-ing the permission values you need. For example, a moderation bot might want:
+
+```js
+const permissions =
+	(1 << 13) |  // MANAGE_MESSAGES
+	(1 << 10) |  // KICK_MEMBERS
+	(1 << 2);    // BAN_MEMBERS
+// → 9220
+```
+
+See [Permissions](/topics/permissions/) for the full table.
+
+## Authenticating as a bot
+
+Once the bot is in a guild, use the token on any endpoint:
+
+<Tabs>
+	<TabItem label="Send a message">
+```bash
+curl https://api.floodilka.com/v1/channels/CHANNEL_ID/messages \
+  -X POST \
+  -H "Authorization: Bot YOUR_BOT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"content": "Hello from my bot!"}'
+```
+	</TabItem>
+	<TabItem label="List guild members">
+```bash
+curl https://api.floodilka.com/v1/guilds/GUILD_ID/members?limit=100 \
+  -H "Authorization: Bot YOUR_BOT_TOKEN"
+```
+	</TabItem>
+	<TabItem label="Set presence (Gateway)">
+```js
+socket.send(JSON.stringify({
+	op: 3,
+	d: {
+		status: 'online',
+		activities: [{name: 'with the API', type: 0}],
+		since: null,
+		afk: false,
+	},
+}));
+```
+	</TabItem>
+</Tabs>
+
+## Receiving events in real time
+
+For anything reactive (respond to messages, track member joins, handle voice state), connect to the [Gateway](/gateway/overview/). Identify with your bot token and the `intents` bitfield that declares which event categories you want.
+
+## Public vs. private bots
+
+On the application's **General** tab you can toggle:
+
+- **Public Bot** — anyone can use the OAuth2 invite URL to add the bot. Leave off if the bot is for one specific server.
+- **Require OAuth2 Code Grant** — require the full authorization code flow before the bot joins. Useful for verification, most bots leave this off.
+
+## Limits and policy
+
+- One bot user per application.
+- Bot usernames must match `[A-Za-z0-9_]{2,32}`.
+- Bots cannot be marked as the owner of a guild.
+- Bulk-DMing users who have no prior interaction with your bot will get your application flagged.
+
+## Next steps
+
+<CardGrid>
+	<LinkCard title="OAuth2" href="/topics/oauth2/" description="Full OAuth2 flow, scopes, and bearer tokens for user-facing apps." />
+	<LinkCard title="Gateway" href="/gateway/overview/" description="Open a WebSocket and receive events in real time." />
+	<LinkCard title="Permissions" href="/topics/permissions/" description="Bitfield values for every permission." />
+	<LinkCard title="Rate limits" href="/topics/rate-limits/" description="How to stay within your bucket." />
+</CardGrid>

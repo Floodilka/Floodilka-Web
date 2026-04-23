@@ -1,0 +1,102 @@
+---
+title: Quickstart
+description: Create a Floodilka application, get a bot token, and make your first authenticated request.
+---
+
+import {Steps, Aside, Tabs, TabItem} from '@astrojs/starlight/components';
+
+This page walks you from zero to a working Floodilka integration in about five minutes. By the end, you will have a bot account, a token, and a verified request against the REST API.
+
+## Prerequisites
+
+- A Floodilka account at [floodilka.com](https://floodilka.com)
+- A terminal with `curl` available (or any HTTP client)
+
+## Create an application
+
+<Steps>
+
+1. Open Floodilka and go to **User Settings → Applications & Bots**.
+
+2. Click **New Application**, give it a name, and confirm.
+
+3. On the application page you will see two tabs: **General** (OAuth2 settings, client secret, redirect URIs) and **Bot** (bot username, avatar, token).
+
+4. Open the **Bot** tab and click **Reset Token**. The token is shown **once** — copy it now and store it somewhere safe. If you lose it, you can always rotate and get a new one.
+
+</Steps>
+
+<Aside type="caution" title="Treat your bot token like a password">
+	Anyone with this token can act as your bot. Never commit it to git, never paste it into a client-side app, and never share it in screenshots.
+</Aside>
+
+## Make your first request
+
+With your bot token in hand, confirm it works by fetching the bot's own user object.
+
+<Tabs>
+	<TabItem label="cURL">
+```bash
+curl https://api.floodilka.com/v1/users/@me \
+  -H "Authorization: Bot YOUR_BOT_TOKEN"
+```
+	</TabItem>
+	<TabItem label="JavaScript">
+```js
+const res = await fetch('https://api.floodilka.com/v1/users/@me', {
+	headers: {Authorization: `Bot ${process.env.FLOODILKA_BOT_TOKEN}`},
+});
+console.log(await res.json());
+```
+	</TabItem>
+	<TabItem label="Python">
+```python
+import os, requests
+
+r = requests.get(
+    "https://api.floodilka.com/v1/users/@me",
+    headers={"Authorization": f"Bot {os.environ['FLOODILKA_BOT_TOKEN']}"},
+)
+print(r.json())
+```
+	</TabItem>
+</Tabs>
+
+A successful response looks like:
+
+```json
+{
+	"id": "974839103102976000",
+	"username": "my-bot",
+	"discriminator": "0001",
+	"bot": true,
+	"avatar": null,
+	"flags": 0
+}
+```
+
+If you get `401 Unauthorized`, the token is wrong, truncated, or was rotated — reset it and copy the new one in full.
+
+## Invite your bot to a server
+
+Generate an OAuth2 invite URL and send it to a server owner (or use it yourself on a server you own):
+
+```
+https://floodilka.com/oauth2/authorize
+  ?client_id=YOUR_APPLICATION_ID
+  &scope=bot
+  &permissions=YOUR_PERMISSIONS_BITFIELD
+```
+
+- `client_id` is the Application ID, **not** the token.
+- `scope=bot` tells Floodilka to add the bot to the guild the user selects.
+- `permissions` is a decimal bitfield — see [Permissions](/topics/permissions/).
+
+Once a user authorizes the URL, your bot becomes a member of the guild and you can call any endpoint that accepts a bot token.
+
+## Next steps
+
+- [Bots](/topics/bots/) — lifecycle, tokens, invite flow, differences from user accounts
+- [OAuth2](/topics/oauth2/) — full OAuth2 guide including authorization code flow
+- [Gateway overview](/gateway/overview/) — connect to the WebSocket and receive real-time events
+- [Resources](/resources/overview/) — reference for every REST object

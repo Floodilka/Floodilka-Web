@@ -107,6 +107,22 @@ services:
         - action: rebuild
           path: ../admin/tailwind.css
 
+  docs:
+    image: node:24-bookworm-slim
+    working_dir: /workspace
+    command: bash -lc "corepack enable pnpm && CI=true pnpm install && pnpm dev:compose"
+    environment:
+      - CI=true
+      - DOCS_SITE=http://localhost:4321
+    ports:
+      - '4321:4321'
+    volumes:
+      - ../docs:/workspace
+      - docs_node_modules:/workspace/node_modules
+    networks:
+      - floodilka-shared
+    restart: on-failure
+
   gateway:
     image: erlang:28-slim
     working_dir: /workspace
@@ -343,5 +359,6 @@ volumes:
   clickhouse_logs:
   api_node_modules:
   media_node_modules:
+  docs_node_modules:
   admin_build:
   gateway_build:

@@ -1,0 +1,19 @@
+{
+	"name": "floodilka-docs",
+	"version": "1.0.0",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"dev": "astro dev",
+		"dev:compose": "astro dev --host 0.0.0.0 --port 4321",
+		"start": "astro dev",
+		"build": "astro build",
+		"preview": "astro preview",
+		"astro": "astro"
+	},
+	"dependencies": {
+		"@astrojs/starlight": "0.38.4",
+		"astro": "6.1.9",
+		"sharp": "0.34.2"
+	}
+}

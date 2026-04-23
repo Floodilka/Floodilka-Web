@@ -1,0 +1,49 @@
+---
+title: Authentication
+description: How to authenticate REST and Gateway requests against the Floodilka API.
+---
+
+import {Aside} from '@astrojs/starlight/components';
+
+Every request to the Floodilka API (REST and Gateway) must include an `Authorization` header. There are three token types, each with a different prefix.
+
+## Token types
+
+| Prefix | Who it identifies | How you get one |
+|--------|-------------------|-----------------|
+| `Bot` | An application's bot user | Application settings → Bot tab → Reset Token |
+| `Bearer` | A user who authorized your app via OAuth2 | OAuth2 authorization code exchange |
+| *(none)* | A user logged in through the official client | Login endpoint — **for first-party use only** |
+
+## Bot tokens
+
+Use the `Bot` prefix when your integration is a bot:
+
+```http
+GET /v1/users/@me HTTP/1.1
+Host: api.floodilka.com
+Authorization: Bot MTIzNDU2Nzg5MDEyMzQ1Njc4OQ.ZjBkYjE5ODI3NjQ4MGY4MTc1NzFjMjY1
+```
+
+The token has the shape `<application_id>.<secret>`. The application ID is not sensitive; the secret half is. Both halves together are what grants access.
+
+<Aside type="tip">
+	Rotate the token any time from the **Bot** tab. Old tokens are invalidated immediately — any running process using the old token will start receiving `401 Unauthorized`.
+</Aside>
+
+## Bearer tokens
+
+Use the `Bearer` prefix when acting on behalf of a user who authorized your application through OAuth2:
+
+```http
+Authorization: Bearer <access_token>
+```
+
+Bearer tokens are scoped — the operations you can perform depend on the scopes the user granted during authorization. See [OAuth2](/topics/oauth2/) for the full flow.
+
+## Missing or invalid tokens
+
+- `401 Unauthorized` — no token, malformed token, or wrong prefix
+- `403 Forbidden` — token is valid but the action is not permitted (missing scope, missing permission, or the bot is not in the guild)
+
+See [Error Codes](/topics/error-codes/) for the full list of API error codes.
