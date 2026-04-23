@@ -1,12 +1,347 @@
 ---
-title: "Events"
-description: "The full list of Gateway events, their payloads, and when they fire."
+title: Gateway Events
+description: Full list of Gateway dispatch events with payload examples and context.
 ---
 
 import {Aside} from '@astrojs/starlight/components';
 
-<Aside type="note">This page is being written. The high-level shape is settled; the details are being filled in.</Aside>
+A **dispatch event** arrives with opcode `0`, with `t` (event name) and `d` (payload). Every event also increments `s` — the sequence number in the session.
 
-## Overview
+```json
+{ "op": 0, "s": 42, "t": "MESSAGE_CREATE", "d": { ... } }
+```
 
-Events documentation for the Floodilka platform is in active development.
+To mute categories you don't need, pass their names in `ignored_events` inside [IDENTIFY](/en/gateway/connection-lifecycle/#phase-2-identify).
+
+## Categories
+
+Events group by prefix:
+
+| Prefix | Category |
+|--------|----------|
+| `READY`, `RESUMED`, `SESSIONS_REPLACE` | Session lifecycle |
+| `GUILD_*` | Guilds, roles, members, bans, emojis, stickers |
+| `CHANNEL_*` | Channels and permission overwrites |
+| `MESSAGE_*` | Messages, reactions, pins |
+| `PRESENCE_*`, `TYPING_*`, `USER_*` | User activity and profiles |
+| `VOICE_*`, `CALL_*` | Voice and calls |
+| `INVITE_*`, `WEBHOOKS_*` | Integrations |
+| `RELATIONSHIP_*` | Friendships and blocks |
+
+## Key events
+
+Detailed descriptions below for events that bots usually care about.
+
+### READY
+
+Sent after a successful IDENTIFY. Carries info about the current user and a first snapshot of guilds.
+
+```json
+{
+	"v": 1,
+	"user": {
+		"id": "1496956937664585746",
+		"username": "my_bot",
+		"global_name": null,
+		"bot": true,
+		"flags": 0
+	},
+	"session_id": "a1b2c3d4e5f6",
+	"resume_gateway_url": "wss://gateway.floodilka.com",
+	"guilds": [
+		{ "id": "142...", "unavailable": true }
+	],
+	"user_settings": {}
+}
+```
+
+Guilds are marked `unavailable: true` — full data arrives next as `GUILD_CREATE` events.
+
+### RESUMED
+
+Sent after a successful RESUME. Empty `d`. The client has already been caught up with replayed events — they arrive *before* RESUMED.
+
+### MESSAGE_CREATE
+
+A new message in a channel where the client has `READ_MESSAGE_HISTORY`.
+
+```json
+{
+	"id": "1465760123456789",
+	"channel_id": "1465759683653402624",
+	"guild_id": "1424883034267582464",
+	"author": {
+		"id": "974...",
+		"username": "puncher",
+		"global_name": "Max",
+		"avatar": "abcd1234",
+		"bot": false
+	},
+	"member": {
+		"roles": ["1424..."],
+		"joined_at": "2026-04-01T12:00:00.000Z",
+		"nick": null
+	},
+	"content": "hi everyone",
+	"timestamp": "2026-04-23T19:40:59.000Z",
+	"edited_timestamp": null,
+	"attachments": [],
+	"embeds": [],
+	"mentions": [],
+	"mention_roles": [],
+	"mention_everyone": false,
+	"pinned": false,
+	"type": 0
+}
+```
+
+The `member` field only appears for guild messages (not DMs).
+
+<Aside type="tip">
+	`author.bot === true` — the message is from a bot. Almost always filter these out to avoid bot-answers-itself loops.
+</Aside>
+
+### MESSAGE_UPDATE
+
+A message was edited. Payload is the Message object with updated fields. `edited_timestamp` is no longer `null`.
+
+### MESSAGE_DELETE
+
+```json
+{ "id": "1465...", "channel_id": "1465...", "guild_id": "1424..." }
+```
+
+### MESSAGE_DELETE_BULK
+
+Bulk deletion (usually moderation):
+
+```json
+{
+	"ids": ["1465...", "1465..."],
+	"channel_id": "1465...",
+	"guild_id": "1424..."
+}
+```
+
+### MESSAGE_REACTION_ADD
+
+```json
+{
+	"user_id": "974...",
+	"channel_id": "1465...",
+	"guild_id": "1424...",
+	"message_id": "1465...",
+	"member": { ... },
+	"emoji": { "id": null, "name": "👍" }
+}
+```
+
+`emoji.id === null` — a Unicode emoji, `name` is the character. `emoji.id !== null` — a custom emoji, `name` is its shortcode, `id` is its snowflake.
+
+### MESSAGE_REACTION_REMOVE / REMOVE_EMOJI / REMOVE_ALL
+
+Same shape, but describes removal. `REMOVE_ALL` means all reactions on the message were cleared.
+
+### GUILD_CREATE
+
+Full guild data — sent after READY (for every guild in `READY.guilds`) and also when the bot is added to a new guild.
+
+```json
+{
+	"id": "1424883034267582464",
+	"name": "Test server",
+	"icon": null,
+	"owner_id": "974...",
+	"roles": [ ... ],
+	"emojis": [ ... ],
+	"channels": [ ... ],
+	"members": [ ... ],
+	"voice_states": [ ... ],
+	"presences": [ ... ],
+	"member_count": 3,
+	"features": [],
+	"system_channel_id": "..."
+}
+```
+
+### GUILD_UPDATE / GUILD_DELETE
+
+`GUILD_UPDATE` — partial guild change. `GUILD_DELETE` — the bot was removed, or the guild became unavailable: `{"id": "...", "unavailable": true}`.
+
+### GUILD_MEMBER_ADD
+
+A new member joined. Payload is a Member object plus `guild_id`:
+
+```json
+{
+	"guild_id": "1424...",
+	"user": { "id": "...", "username": "...", ... },
+	"roles": [],
+	"joined_at": "2026-04-23T20:00:00.000Z",
+	"nick": null
+}
+```
+
+### GUILD_MEMBER_REMOVE
+
+```json
+{
+	"guild_id": "1424...",
+	"user": { "id": "...", "username": "...", ... }
+}
+```
+
+### GUILD_MEMBER_UPDATE
+
+Role or nickname changes on a member.
+
+### CHANNEL_CREATE / CHANNEL_UPDATE / CHANNEL_DELETE
+
+Structural changes to guild channels. Payload is a Channel object.
+
+### PRESENCE_UPDATE
+
+A member's status and activities changed:
+
+```json
+{
+	"user": { "id": "..." },
+	"guild_id": "1424...",
+	"status": "online",
+	"activities": [
+		{ "name": "Minecraft", "type": 0, "created_at": 1714000000 }
+	],
+	"client_status": { "desktop": "online" }
+}
+```
+
+`status` values: `online`, `idle`, `dnd`, `offline`, `invisible`.
+
+### TYPING_START
+
+A user started typing. The event isn't repeated within ~10 seconds — your client-side decay timer handles the fade.
+
+```json
+{
+	"channel_id": "1465...",
+	"guild_id": "1424...",
+	"user_id": "974...",
+	"member": { ... },
+	"timestamp": 1714000000
+}
+```
+
+### VOICE_STATE_UPDATE
+
+Someone joined, left, or changed state in a voice channel:
+
+```json
+{
+	"guild_id": "1424...",
+	"channel_id": "1465...",
+	"user_id": "974...",
+	"member": { ... },
+	"session_id": "a1b2c3",
+	"deaf": false,
+	"mute": false,
+	"self_deaf": false,
+	"self_mute": false,
+	"self_video": false,
+	"suppress": false
+}
+```
+
+`channel_id: null` means the user left voice.
+
+## Full event list
+
+<Aside type="note">
+	The events listed below may reach your client. Detailed payload schemas for most of them will land in upcoming documentation updates. Until then, use the live gateway as a reference: connect your bot with verbose logging for all dispatch events and inspect the actual `d`.
+</Aside>
+
+### Session
+- `READY`
+- `RESUMED`
+- `SESSIONS_REPLACE`
+- `AUTH_SESSION_CHANGE`
+
+### User
+- `USER_UPDATE`
+- `USER_SETTINGS_UPDATE`
+- `USER_GUILD_SETTINGS_UPDATE`
+- `USER_PINNED_DMS_UPDATE`
+- `USER_NOTE_UPDATE`
+
+### Guild
+- `GUILD_CREATE`
+- `GUILD_UPDATE`
+- `GUILD_DELETE`
+- `GUILD_SYNC`
+- `GUILD_BAN_ADD`
+- `GUILD_BAN_REMOVE`
+- `GUILD_EMOJIS_UPDATE`
+- `GUILD_STICKERS_UPDATE`
+- `GUILD_MEMBER_ADD`
+- `GUILD_MEMBER_UPDATE`
+- `GUILD_MEMBER_REMOVE`
+- `GUILD_MEMBER_LIST_UPDATE`
+- `GUILD_MEMBERS_CHUNK`
+- `GUILD_ROLE_CREATE`
+- `GUILD_ROLE_UPDATE`
+- `GUILD_ROLE_UPDATE_BULK`
+- `GUILD_ROLE_DELETE`
+
+### Channel
+- `CHANNEL_CREATE`
+- `CHANNEL_UPDATE`
+- `CHANNEL_UPDATE_BULK`
+- `CHANNEL_DELETE`
+- `CHANNEL_PINS_UPDATE`
+- `CHANNEL_PINS_ACK`
+- `CHANNEL_RECIPIENT_ADD`
+- `CHANNEL_RECIPIENT_REMOVE`
+
+### Messages
+- `MESSAGE_CREATE`
+- `MESSAGE_UPDATE`
+- `MESSAGE_DELETE`
+- `MESSAGE_DELETE_BULK`
+- `MESSAGE_ACK`
+- `MESSAGE_REACTION_ADD`
+- `MESSAGE_REACTION_REMOVE`
+- `MESSAGE_REACTION_REMOVE_ALL`
+- `MESSAGE_REACTION_REMOVE_EMOJI`
+- `RECENT_MENTION_DELETE`
+- `SAVED_MESSAGE_CREATE`
+- `SAVED_MESSAGE_DELETE`
+- `FAVORITE_MEME_CREATE`
+- `FAVORITE_MEME_UPDATE`
+- `FAVORITE_MEME_DELETE`
+
+### Activity
+- `PRESENCE_UPDATE`
+- `TYPING_START`
+- `PASSIVE_UPDATES`
+
+### Voice and calls
+- `VOICE_STATE_UPDATE`
+- `VOICE_SERVER_UPDATE`
+- `CALL_CREATE`
+- `CALL_UPDATE`
+- `CALL_DELETE`
+
+### Integrations
+- `INVITE_CREATE`
+- `INVITE_DELETE`
+- `WEBHOOKS_UPDATE`
+
+### Social
+- `RELATIONSHIP_ADD`
+- `RELATIONSHIP_UPDATE`
+- `RELATIONSHIP_REMOVE`
+
+## What's next
+
+- [Connection lifecycle](/en/gateway/connection-lifecycle/) — get to READY and start processing events
+- [Opcodes](/en/gateway/opcodes/) — the lower-level protocol
+- [Error codes](/en/topics/error-codes/) — REST-side errors

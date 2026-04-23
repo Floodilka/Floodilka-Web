@@ -1,12 +1,253 @@
 ---
-title: "Connection Lifecycle"
-description: "Identify, heartbeat, resume, and reconnect — the full Gateway connection lifecycle."
+title: Connection Lifecycle
+description: Full Gateway lifecycle — HELLO, IDENTIFY, heartbeat, RESUME, reconnect.
 ---
 
-import {Aside} from '@astrojs/starlight/components';
+import {Steps, Aside} from '@astrojs/starlight/components';
 
-<Aside type="note">This page is being written. The high-level shape is settled; the details are being filled in.</Aside>
+From the first WebSocket handshake to steady-state traffic, a client moves through several phases. This page is a reference for writing a resilient client that recovers from disconnects on its own.
 
-## Overview
+## Full cycle
 
-Connection Lifecycle documentation for the Floodilka platform is in active development.
+```
+    ┌──────────────────┐
+    │ connect(ws://...)│
+    └────────┬─────────┘
+             │
+             ▼
+    ┌──────────────────┐    HELLO (op 10)
+    │  server → HELLO  │◀───────────────
+    │    heartbeat_    │
+    │    interval      │
+    └────────┬─────────┘
+             │
+             ├─── start heartbeat timer
+             │
+             ▼
+    ┌──────────────────┐    IDENTIFY (op 2) or RESUME (op 6)
+    │ client → IDENTIFY│───────────────▶
+    └────────┬─────────┘
+             │
+             ▼
+    ┌──────────────────┐    READY (op 0, t=READY)
+    │  server → READY  │◀───────────────
+    │  session_id,     │
+    │  user, guilds    │
+    └────────┬─────────┘
+             │
+             ▼
+    ┌──────────────────┐
+    │   steady state   │  ← dispatch events, heartbeat every N ms
+    │                  │
+    └────────┬─────────┘
+             │
+  ┌──────────┼──────────┬──────────────┐
+  │          │          │              │
+  ▼          ▼          ▼              ▼
+ close    INVALID_   RECONNECT    heartbeat
+ code     SESSION    (op 7)       ACK missed
+           (op 9)
+  │          │          │              │
+  └────┬─────┴──────────┴──────────────┘
+       │
+       ▼
+  reconnect → RESUME if session_id still valid, else IDENTIFY
+```
+
+## Phase 1: HELLO
+
+Right after connecting, the server sends opcode **10** (HELLO):
+
+```json
+{
+	"op": 10,
+	"d": { "heartbeat_interval": 41250 }
+}
+```
+
+`heartbeat_interval` is in milliseconds. The client starts a timer that sends a heartbeat every N ms (see below).
+
+<Aside type="tip">
+	Send the first heartbeat at `interval × jitter` where `jitter ∈ [0, 1]`, not at the full interval. This spreads load when many clients reconnect at once.
+</Aside>
+
+## Phase 2: IDENTIFY
+
+The client sends opcode **2** with the token and client info:
+
+```json
+{
+	"op": 2,
+	"d": {
+		"token": "Bot MTIzNDU2...",
+		"properties": {
+			"os": "linux",
+			"browser": "mybot",
+			"device": "mybot"
+		},
+		"presence": null,
+		"ignored_events": [],
+		"initial_guild_id": null,
+		"flags": 0
+	}
+}
+```
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `token` | Yes | `Bot <token>` string for bots, or raw user token for first-party |
+| `properties.os` | Yes | Arbitrary string, e.g. `linux` |
+| `properties.browser` | Yes | Your app name, e.g. `mybot` |
+| `properties.device` | Yes | Device/instance name |
+| `presence` | No | Initial presence — see [PRESENCE_UPDATE](/en/gateway/events/) |
+| `ignored_events` | No | Array of event type names the client does **not** want. Default: receive everything |
+| `initial_guild_id` | No | Which guild to sync first when the client has many |
+| `flags` | No | Feature bitfield. Default `0` |
+
+If the token is invalid the server closes the connection with **4004 AUTHENTICATION_FAILED**. You **must not** reconnect in that case — it will escalate to a ban.
+
+## Phase 3: READY
+
+On a successful IDENTIFY the server sends the **READY** event (`op: 0`, `t: "READY"`):
+
+```json
+{
+	"op": 0,
+	"s": 1,
+	"t": "READY",
+	"d": {
+		"v": 1,
+		"user": { "id": "149...", "username": "my_bot", "bot": true, "flags": 0 },
+		"session_id": "a1b2c3d4...",
+		"resume_gateway_url": "wss://gateway.floodilka.com",
+		"guilds": [
+			{ "id": "142...", "unavailable": true }
+		],
+		"user_settings": { ... }
+	}
+}
+```
+
+Fields you **must persist**:
+- **`session_id`** — needed for RESUME
+- **`resume_gateway_url`** — use this instead of the default URL when RESUMing
+- **`s`** from the envelope (`1` here) — the latest sequence number
+
+`unavailable: true` on a guild means full data hasn't loaded yet. Expect `GUILD_CREATE` dispatches within seconds.
+
+## Phase 4: Heartbeat loop
+
+The client must send opcode **1** every `heartbeat_interval` ms with the latest known `s`:
+
+```json
+{ "op": 1, "d": 42 }
+```
+
+Before any `s` has been seen (right after HELLO) send `d: null`.
+
+The server replies with **11** (HEARTBEAT_ACK):
+
+```json
+{ "op": 11 }
+```
+
+<Aside type="caution" title="If ACK is missing">
+	If the next heartbeat fires before you've seen the previous ACK, the connection is dead. Close the WebSocket with code `4000` and reconnect.
+</Aside>
+
+The server may itself send opcode **1** asking the client to heartbeat immediately — reply right away, don't wait for the timer.
+
+## Phase 5: Handling events
+
+After READY, dispatch messages start arriving:
+
+```json
+{
+	"op": 0,
+	"s": 43,
+	"t": "MESSAGE_CREATE",
+	"d": { "id": "...", "channel_id": "...", "content": "hi", "author": { ... } }
+}
+```
+
+Update `s` from every such message — you'll need it for heartbeats and RESUME.
+
+Full event list: [Events](/en/gateway/events/).
+
+## Phase 6: Disconnect and recovery
+
+A connection can break in three ways:
+
+### RECONNECT (op 7)
+
+The server sends opcode **7** with no `d` — it wants the client to reconnect and resume:
+
+```json
+{ "op": 7, "d": null }
+```
+
+Algorithm:
+1. Close the WebSocket with code `4000` (so the server keeps the session)
+2. Reconnect to `resume_gateway_url` (from READY)
+3. Wait for HELLO, restart the heartbeat timer
+4. Send **RESUME** (op 6) instead of IDENTIFY
+
+### INVALID_SESSION (op 9)
+
+The server sends opcode **9**:
+
+```json
+{ "op": 9, "d": true }
+```
+
+- `d: true` — the session is still alive, RESUME is allowed
+- `d: false` — the session is dead, you must do a **new IDENTIFY** (not RESUME)
+
+In either case wait 1–5 seconds with random jitter before retrying — don't hammer.
+
+### Close code
+
+The WebSocket closed with a close code. See [Close codes](/en/gateway/close-codes/). The key rule:
+
+- `1000`, `1001`, `4000-4003` (except `4004`) — safe to reconnect
+- `4004 AUTHENTICATION_FAILED`, `4010 INVALID_SHARD`, `4011 SHARDING_REQUIRED`, `4012 INVALID_API_VERSION` — **reconnecting won't help**. Fix the client config
+
+## Phase 7: RESUME
+
+RESUME is an IDENTIFY with the previous session's context:
+
+```json
+{
+	"op": 6,
+	"d": {
+		"token": "Bot MTIzNDU2...",
+		"session_id": "a1b2c3d4...",
+		"seq": 42
+	}
+}
+```
+
+`seq` is the last observed `s`. The server catches the client up, replaying events from `seq + 1` onward, then sends **RESUMED** (`op: 0`, `t: "RESUMED"`).
+
+If `seq` is too old for the server to replay, you'll get `op: 9` (INVALID_SESSION with `d: false`) and have to IDENTIFY fresh. Any state you've accumulated in memory must be discarded.
+
+## Resilient reconnect template
+
+<Steps>
+
+1. Connect, wait for HELLO, start the heartbeat timer
+2. If you have stored `session_id` and `seq` — send **RESUME**. Otherwise — **IDENTIFY**
+3. Wait for **READY** or **RESUMED**. Persist `session_id` and `resume_gateway_url`
+4. Process events, update `seq` on every dispatch
+5. On any disconnect:
+   - Exponential backoff with jitter (1s, 2s, 4s, …, max 30s)
+   - If the current attempt was a RESUME and it failed with `op: 9` → clear state and fall back to IDENTIFY
+   - If the close code is `4004/4010/4011/4012` — **stop the bot**, log the error, do not retry
+
+</Steps>
+
+## What's next
+
+- [Opcodes](/en/gateway/opcodes/) — every `op` value
+- [Close codes](/en/gateway/close-codes/) — the full close-code table
+- [Events](/en/gateway/events/) — full list of dispatch events

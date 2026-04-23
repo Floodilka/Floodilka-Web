@@ -1,12 +1,33 @@
 ---
-title: "Resources Overview"
-description: "Reference for every object returned by the Floodilka REST API."
+title: Resources Overview
+description: Reference for Floodilka REST API objects and the endpoints that work with them.
 ---
 
-import {Aside} from '@astrojs/starlight/components';
+import {LinkCard, CardGrid} from '@astrojs/starlight/components';
 
-<Aside type="note">This page is being written. The high-level shape is settled; the details are being filled in.</Aside>
+The Floodilka REST API is organised around several key resources. This page is an index for quick navigation.
 
-## Overview
+## Basics
 
-Resources Overview documentation for the Floodilka platform is in active development.
+- **Base URL:** `https://floodilka.com/api/v1`
+- **Format:** JSON in request bodies and responses
+- **Authentication:** `Authorization: Bot <token>` or `Bearer <access_token>` — see [Authentication](/en/introduction/authentication/)
+- **Limits:** global + bucket, 429 with `Retry-After` — see [Rate limits](/en/topics/rate-limits/)
+- **Errors:** `{ "code": "...", "message": "..." }` — see [Error codes](/en/topics/error-codes/)
+
+## Resources
+
+<CardGrid>
+	<LinkCard title="Users" href="/en/resources/users/" description="User object, @me, profile management." />
+	<LinkCard title="Guilds" href="/en/resources/guilds/" description="Guilds, members, roles, bans." />
+	<LinkCard title="Channels" href="/en/resources/channels/" description="Channel types, permission overwrites, settings." />
+	<LinkCard title="Messages" href="/en/resources/messages/" description="Messages, reactions, attachments, embeds." />
+	<LinkCard title="OAuth2" href="/en/resources/oauth2/" description="Applications, scopes, tokens." />
+	<LinkCard title="Invites" href="/en/resources/invites/" description="Invite codes and metadata." />
+	<LinkCard title="Webhooks" href="/en/resources/webhooks/" description="Incoming and outgoing webhooks." />
+	<LinkCard title="Gateway" href="/en/resources/gateway/" description="Fetch the WebSocket URL before connecting." />
+</CardGrid>
+
+## Snowflake IDs
+
+Every resource ID is a 64-bit snowflake. Never parse them as numbers in JavaScript (precision loss) — use `BigInt` or treat them as strings. Details: [Snowflakes](/en/topics/snowflakes/).

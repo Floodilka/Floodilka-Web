@@ -1,12 +1,51 @@
 ---
-title: "Gateway Resource"
-description: "Gateway connection details — WSS URL, shard count, session limits."
+title: Gateway
+description: REST endpoint for fetching the WebSocket URL and session limits before connecting.
 ---
 
-import {Aside} from '@astrojs/starlight/components';
+Before opening a WebSocket you should ask the API for the current gateway address and session limits. There is one endpoint — **`GET /gateway/bot`**. It requires a `Bot` token.
 
-<Aside type="note">This page is being written. The high-level shape is settled; the details are being filled in.</Aside>
+## GET /api/v1/gateway/bot
 
-## Overview
+**Requires:** `Authorization: Bot <token>`
 
-Gateway Resource documentation for the Floodilka platform is in active development.
+```bash
+curl https://floodilka.com/api/v1/gateway/bot \
+  -H "Authorization: Bot YOUR_BOT_TOKEN"
+```
+
+### Response
+
+```json
+{
+	"url": "wss://gateway.floodilka.com",
+	"shards": 1,
+	"session_start_limit": {
+		"total": 1000,
+		"remaining": 999,
+		"reset_after": 14400000,
+		"max_concurrency": 1
+	}
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `url` | string | WSS URL to connect to. Append query params: `?v=1&encoding=json` |
+| `shards` | integer | Recommended shard count. Small bots always get `1` |
+| `session_start_limit.total` | integer | Total new IDENTIFY calls in the current window |
+| `session_start_limit.remaining` | integer | Calls left in the current window |
+| `session_start_limit.reset_after` | integer | Milliseconds until the window resets |
+| `session_start_limit.max_concurrency` | integer | How many parallel IDENTIFY calls are allowed |
+
+<details>
+<summary>Why these limits?</summary>
+
+They protect the cluster from a storm of bots that hit reconnect → IDENTIFY → crash in a loop and drain resources. A healthy client does 1–2 IDENTIFYs per session and never touches the limit. If you do — check your logs, most likely you have an infinite reconnect loop somewhere.
+
+</details>
+
+## What's next
+
+- [Gateway overview](/en/gateway/overview/) — connect using the URL you got above
+- [Connection lifecycle](/en/gateway/connection-lifecycle/) — IDENTIFY, READY, heartbeat
