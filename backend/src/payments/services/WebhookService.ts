@@ -213,6 +213,51 @@ export class WebhookService {
 			}
 
 			Logger.debug({userId: body.AccountId, transactionId: body.TransactionId, billingCycle}, 'Subscription activated via webhook');
+		} else if (body.SubscriptionId) {
+			if (body.TransactionId != null) {
+				const existing = await this.userRepository.getPaymentByTransactionId(body.TransactionId);
+				if (existing) {
+					Logger.debug(
+						{userId: body.AccountId, transactionId: body.TransactionId, subscriptionId: body.SubscriptionId},
+						'Recurrent pay webhook already processed, skipping',
+					);
+					return {code: 0};
+				}
+			}
+
+			const user = await this.userRepository.findUnique(userId);
+			if (!user) {
+				Logger.warn(
+					{userId: body.AccountId, transactionId: body.TransactionId, subscriptionId: body.SubscriptionId},
+					'User not found for recurrent pay webhook',
+				);
+				return {code: 0};
+			}
+
+			const billingCycle = user.premiumBillingCycle === 'yearly' ? 'yearly' as const : 'monthly' as const;
+			const isYearly = billingCycle === 'yearly';
+			const subDurationMonths = isYearly ? 12 : 1;
+
+			await this.userRepository.createPayment({
+				payment_id: crypto.randomUUID(),
+				user_id: userId,
+				cloudpayments_transaction_id: body.TransactionId != null ? BigInt(body.TransactionId) : null,
+				cloudpayments_subscription_id: body.SubscriptionId,
+				product_type: isYearly ? 'yearly_subscription' : 'monthly_subscription',
+				amount_cents: Math.round((body.Amount || 0) * 100),
+				currency: body.Currency || 'RUB',
+				status: 'completed',
+				is_gift: false,
+				completed_at: new Date(),
+				created_at: new Date(),
+			});
+
+			await this.premiumService.grantPremium(userId, subDurationMonths, billingCycle, true);
+
+			Logger.debug(
+				{userId: body.AccountId, transactionId: body.TransactionId, subscriptionId: body.SubscriptionId, billingCycle},
+				'Recurrent payment processed — premium extended',
+			);
 		}
 
 		Logger.debug({userId: body.AccountId, transactionId: body.TransactionId}, 'Pay webhook processed');
