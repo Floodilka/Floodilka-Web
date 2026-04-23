@@ -332,6 +332,7 @@ handle_voice_token_request(
                 <<"token">> => Token,
                 <<"endpoint">> => Endpoint,
                 <<"guild_id">> => integer_to_binary(GuildId),
+                <<"channel_id">> => integer_to_binary(ChannelId),
                 <<"connection_id">> => ConnectionId
             },
 

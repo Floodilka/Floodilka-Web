@@ -295,7 +295,7 @@ send_voice_server_update_for_move(GuildId, ChannelId, UserId, SessionId, GuildPi
                             Endpoint = maps:get(endpoint, TokenData),
                             ConnectionId = maps:get(connection_id, TokenData),
                             guild_voice_broadcast:broadcast_voice_server_update_to_session(
-                                GuildId, SessionId, Token, Endpoint, ConnectionId, State
+                                GuildId, ChannelId, SessionId, Token, Endpoint, ConnectionId, State
                             );
                         {error, _Reason} ->
                             ok
@@ -369,7 +369,13 @@ send_single_voice_server_update(GuildId, ChannelId, SessionInfo, GuildPid) ->
                             ),
 
                             guild_voice_broadcast:broadcast_voice_server_update_to_session(
-                                GuildId, SessionId, Token, Endpoint, NewConnectionId, StateData
+                                GuildId,
+                                ChannelId,
+                                SessionId,
+                                Token,
+                                Endpoint,
+                                NewConnectionId,
+                                StateData
                             );
                         {error, _Reason} ->
                             ok

@@ -26,7 +26,7 @@
 -export([confirm_voice_connection_from_livekit/2]).
 -export([move_member/2]).
 -export([broadcast_voice_state_update/3]).
--export([broadcast_voice_server_update_to_session/6]).
+-export([broadcast_voice_server_update_to_session/7]).
 -export([send_voice_server_update_for_move/5]).
 -export([send_voice_server_updates_for_move/4]).
 -export([switch_voice_region_handler/2]).
@@ -85,9 +85,11 @@ send_voice_server_updates_for_move(GuildId, ChannelId, SessionDataList, GuildPid
 broadcast_voice_state_update(VoiceState, State, OldChannelIdBin) ->
     guild_voice_broadcast:broadcast_voice_state_update(VoiceState, State, OldChannelIdBin).
 
-broadcast_voice_server_update_to_session(GuildId, SessionId, Token, Endpoint, ConnectionId, State) ->
+broadcast_voice_server_update_to_session(
+    GuildId, ChannelId, SessionId, Token, Endpoint, ConnectionId, State
+) ->
     guild_voice_broadcast:broadcast_voice_server_update_to_session(
-        GuildId, SessionId, Token, Endpoint, ConnectionId, State
+        GuildId, ChannelId, SessionId, Token, Endpoint, ConnectionId, State
     ).
 
 switch_voice_region_handler(Request, State) ->

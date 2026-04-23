@@ -147,28 +147,39 @@ class VoiceConnectionManager {
 		onConnectionFailed?: () => void,
 	): void {
 		const guildId = raw.guild_id ?? null;
+		const rawChannelId = raw.channel_id ?? null;
 		const endpoint = raw.endpoint ?? null;
 		const token = raw.token ?? null;
 		const connectionId = raw.connection_id ?? null;
 
-		const {guildId: expectedGuildId, channelId, connected, room: existingRoom} = this.connectionState;
+		const {guildId: expectedGuildId, channelId: stateChannelId, connected, room: existingRoom} = this.connectionState;
+		const channelId = rawChannelId ?? stateChannelId;
 		const attemptId = this.throttle.connectAttemptId;
 
 		logger.debug('handleVoiceServerUpdate called', {
 			incomingGuildId: guildId,
 			expectedGuildId,
 			channelId,
+			rawChannelId,
+			stateChannelId,
 			endpoint,
 			hasToken: !!token,
 			connectionId,
 			attemptId,
 		});
 
-		if (expectedGuildId !== guildId || channelId == null) {
-			logger.warn('Ignoring VOICE_SERVER_UPDATE: guild or channel mismatch', {
+		if (channelId == null) {
+			logger.warn('Ignoring VOICE_SERVER_UPDATE: no channel_id in payload or state', {
+				rawChannelId,
+				stateChannelId,
+			});
+			return;
+		}
+
+		if (expectedGuildId != null && expectedGuildId !== guildId) {
+			logger.warn('Ignoring VOICE_SERVER_UPDATE: guild mismatch', {
 				expectedGuildId,
 				incomingGuildId: guildId,
-				channelId,
 			});
 			return;
 		}
@@ -194,11 +205,13 @@ class VoiceConnectionManager {
 				connected: false,
 				reconnecting: false,
 				guildId,
+				channelId,
 				voiceServerEndpoint: endpoint,
 				connectionId: connectionId ?? this.connectionState.connectionId,
 			};
 		});
 
+		this.reconnect.setLastConnectedChannel(guildId, channelId);
 		this.throttle.setInFlightConnect(true);
 
 		const room = new LiveKitRoom({adaptiveStream: true, dynacast: true});

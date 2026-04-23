@@ -118,7 +118,7 @@ send_voice_server_update_for_region_switch(
                     ),
 
                     guild_voice_broadcast:broadcast_voice_server_update_to_session(
-                        GuildId, SessionId, Token, Endpoint, ConnectionId, State
+                        GuildId, ChannelId, SessionId, Token, Endpoint, ConnectionId, State
                     );
                 {error, _Reason} ->
                     ok

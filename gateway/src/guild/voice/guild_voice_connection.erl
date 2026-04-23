@@ -345,7 +345,7 @@ get_voice_token_and_create_state(Context, Member, ParsedViewerStreamKey, State) 
                     ),
 
                     maybe_broadcast_voice_server_update(
-                        SessionId, GuildId, Token, Endpoint, ConnectionId, NewState
+                        SessionId, GuildId, ChannelIdValue, Token, Endpoint, ConnectionId, NewState
                     ),
 
                     {reply,
@@ -532,7 +532,11 @@ build_voice_state_from_pending(PendingData, ConnectionId, State) ->
             },
             ServerMute = pending_get_boolean(PendingData, server_mute),
             ServerDeaf = pending_get_boolean(PendingData, server_deaf),
-            ViewerStreamKey = pending_get_value(PendingData, viewer_stream_key),
+            ViewerStreamKey =
+                case pending_get_value(PendingData, viewer_stream_key) of
+                    undefined -> null;
+                    Value -> Value
+                end,
             VoiceState0 = guild_voice_state:create_voice_state(
                 GuildIdBin,
                 ChannelIdBin,
@@ -548,6 +552,19 @@ build_voice_state_from_pending(PendingData, ConnectionId, State) ->
             VoiceState1 = maybe_attach_session_id(VoiceState0, SessionId),
             maybe_attach_member(VoiceState1, Member)
     end.
+
+drop_stale_user_voice_states(UserIdBin, KeepConnectionId, VoiceStates) ->
+    maps:filter(
+        fun(ConnId, VS) ->
+            if
+                ConnId =:= KeepConnectionId ->
+                    true;
+                true ->
+                    maps:get(<<"user_id">>, VS, undefined) =/= UserIdBin
+            end
+        end,
+        VoiceStates
+    ).
 
 pending_get_value(PendingData, Key) ->
     case maps:get(Key, PendingData, undefined) of
@@ -619,13 +636,19 @@ guild_id_binary(Value, Int) ->
         Bin -> Bin
     end.
 
-maybe_broadcast_voice_server_update(undefined, _GuildId, _Token, _Endpoint, _ConnectionId, _State) ->
+maybe_broadcast_voice_server_update(
+    undefined, _GuildId, _ChannelId, _Token, _Endpoint, _ConnectionId, _State
+) ->
     ok;
-maybe_broadcast_voice_server_update(null, _GuildId, _Token, _Endpoint, _ConnectionId, _State) ->
+maybe_broadcast_voice_server_update(
+    null, _GuildId, _ChannelId, _Token, _Endpoint, _ConnectionId, _State
+) ->
     ok;
-maybe_broadcast_voice_server_update(SessionId, GuildId, Token, Endpoint, ConnectionId, State) ->
+maybe_broadcast_voice_server_update(
+    SessionId, GuildId, ChannelId, Token, Endpoint, ConnectionId, State
+) ->
     guild_voice_broadcast:broadcast_voice_server_update_to_session(
-        GuildId, SessionId, Token, Endpoint, ConnectionId, State
+        GuildId, ChannelId, SessionId, Token, Endpoint, ConnectionId, State
     ).
 
 guild_data(State) ->
@@ -666,12 +689,46 @@ confirm_voice_connection_from_livekit(Request, State) ->
 
                     case maps:get(ConnectionId, VoiceStates, undefined) of
                         undefined ->
-                            logger:info(
-                                "[guild_voice_connection] confirm_voice_connection_from_livekit: "
-                                "connection ~p already disconnected, skipping",
-                                [ConnectionId]
-                            ),
-                            {reply, #{success => true}, StateWithoutPending};
+                            case
+                                build_voice_state_from_pending(
+                                    PendingData, ConnectionId, StateWithoutPending
+                                )
+                            of
+                                undefined ->
+                                    logger:info(
+                                        "[guild_voice_connection] confirm_voice_connection_from_livekit: "
+                                        "connection ~p already disconnected and pending metadata "
+                                        "incomplete, skipping",
+                                        [ConnectionId]
+                                    ),
+                                    {reply, #{success => true}, StateWithoutPending};
+                                BuiltVoiceState ->
+                                    BuiltChannelIdBin = maps:get(
+                                        <<"channel_id">>, BuiltVoiceState, null
+                                    ),
+                                    BuiltUserId = maps:get(
+                                        <<"user_id">>, BuiltVoiceState, <<"unknown">>
+                                    ),
+                                    VoiceStatesWithoutStale = drop_stale_user_voice_states(
+                                        BuiltUserId, ConnectionId, VoiceStates
+                                    ),
+                                    NewVoiceStates = maps:put(
+                                        ConnectionId, BuiltVoiceState, VoiceStatesWithoutStale
+                                    ),
+                                    FinalState = maps:put(
+                                        voice_states, NewVoiceStates, StateWithoutPending
+                                    ),
+                                    logger:info(
+                                        "[guild_voice_connection] confirm_voice_connection_from_livekit: "
+                                        "created voice_state from pending on confirm: "
+                                        "user_id=~p channel_id=~p connection_id=~p",
+                                        [BuiltUserId, BuiltChannelIdBin, ConnectionId]
+                                    ),
+                                    guild_voice_broadcast:broadcast_voice_state_update(
+                                        BuiltVoiceState, FinalState, BuiltChannelIdBin
+                                    ),
+                                    {reply, #{success => true}, FinalState}
+                            end;
                         ExistingVoiceState ->
                             ChannelIdBin = maps:get(<<"channel_id">>, ExistingVoiceState, null),
                             UserId = maps:get(<<"user_id">>, ExistingVoiceState, <<"unknown">>),

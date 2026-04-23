@@ -18,7 +18,7 @@
 -module(guild_voice_broadcast).
 
 -export([broadcast_voice_state_update/3]).
--export([broadcast_voice_server_update_to_session/6]).
+-export([broadcast_voice_server_update_to_session/7]).
 
 -ifdef(TEST).
 -define(WARN_MISSING_CONN(_VoiceState), ok).
@@ -93,11 +93,14 @@ broadcast_voice_state_update(VoiceState, State, OldChannelIdBin) ->
             )
     end.
 
-broadcast_voice_server_update_to_session(GuildId, SessionId, Token, Endpoint, ConnectionId, State) ->
+broadcast_voice_server_update_to_session(
+    GuildId, ChannelId, SessionId, Token, Endpoint, ConnectionId, State
+) ->
     VoiceServerUpdate = #{
         <<"token">> => Token,
         <<"endpoint">> => Endpoint,
         <<"guild_id">> => integer_to_binary(GuildId),
+        <<"channel_id">> => integer_to_binary(ChannelId),
         <<"connection_id">> => ConnectionId
     },
 
