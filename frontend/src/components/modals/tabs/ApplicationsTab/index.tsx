@@ -155,6 +155,15 @@ const ApplicationsTab: React.FC = observer(() => {
 								<Trans>Create Application</Trans>
 							</Button>
 						)}
+						<Button
+							variant="secondary"
+							fitContainer={false}
+							fitContent
+							leftIcon={<BookOpenIcon size={16} weight="fill" />}
+							onClick={() => window.open('https://docs.floodilka.com/topics/bots/', '_blank', 'noopener')}
+						>
+							<Trans>Documentation</Trans>
+						</Button>
 					</div>
 					<ApplicationsList applications={store.applications} onSelectApplication={handleSelectApplication} />
 				</SettingsTabSection>
