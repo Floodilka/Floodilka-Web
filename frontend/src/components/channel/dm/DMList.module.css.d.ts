@@ -52,10 +52,6 @@ declare const styles: {
   readonly "dmSectionSeparator": string;
   readonly "iconSize4": string;
   readonly "iconSize5": string;
-  readonly "nameplate": string;
-  readonly "nameplateLayer": string;
-  readonly "nameplateOverlay": string;
-  readonly "nameplateVideo": string;
   readonly "mobileAddFriendBadge": string;
   readonly "mobileAddFriendButton": string;
   readonly "mobileContainer": string;
@@ -75,6 +71,10 @@ declare const styles: {
   readonly "mobileSpecialButtonLabel": string;
   readonly "mobileSpecialButtonSelected": string;
   readonly "mobileSpecialButtonText": string;
+  readonly "nameplate": string;
+  readonly "nameplateLayer": string;
+  readonly "nameplateOverlay": string;
+  readonly "nameplateVideo": string;
   readonly "scrollerContent": string;
   readonly "sendIcon": string;
   readonly "userAreaSlot": string;
