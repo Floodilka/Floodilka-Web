@@ -33,6 +33,7 @@ import type {TrackReferenceOrPlaceholder} from '@livekit/components-react';
 import {
 	ParticipantContext,
 	TrackRefContext,
+	isTrackReference,
 	useConnectionState,
 	useParticipants,
 } from '@livekit/components-react';
@@ -149,9 +150,19 @@ const VoiceCallViewInner = observer(({channel}: {channel: ChannelRecord}) => {
 	} = useVoiceCallTracksAndLayout({channel});
 
 	const pipTrack = useMemo<TrackReferenceOrPlaceholder | null>(() => {
-		if (focusMainTrack) return focusMainTrack as TrackReferenceOrPlaceholder;
+		const isActiveVideo = (tr: TrackReferenceOrPlaceholder | null | undefined) => {
+			if (!tr) return false;
+			if (!isTrackReference(tr)) return false;
+			if (tr.source === Track.Source.ScreenShare) return true;
+			return Boolean(tr.publication) && !tr.publication.isMuted;
+		};
+
+		if (isActiveVideo(focusMainTrack as TrackReferenceOrPlaceholder | null)) {
+			return focusMainTrack as TrackReferenceOrPlaceholder;
+		}
 		if (screenShareTracks.length > 0) return screenShareTracks[0] as TrackReferenceOrPlaceholder;
-		if (filteredCameraTracks.length > 0) return filteredCameraTracks[0] as TrackReferenceOrPlaceholder;
+		const activeCamera = filteredCameraTracks.find(isActiveVideo);
+		if (activeCamera) return activeCamera as TrackReferenceOrPlaceholder;
 		return null;
 	}, [focusMainTrack, screenShareTracks, filteredCameraTracks]);
 
