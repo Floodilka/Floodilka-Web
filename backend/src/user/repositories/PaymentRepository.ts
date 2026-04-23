@@ -160,7 +160,7 @@ export class PaymentRepository {
 
 	async getPaymentByTransactionId(transactionId: number | bigint): Promise<Payment | null> {
 		const mapping = await fetchOne<{payment_id: string}>(FETCH_PAYMENT_BY_TRANSACTION_QUERY, {
-			cloudpayments_transaction_id: transactionId,
+			cloudpayments_transaction_id: typeof transactionId === 'bigint' ? transactionId : BigInt(transactionId),
 		});
 		if (!mapping) return null;
 		return this.getPaymentById(mapping.payment_id);
