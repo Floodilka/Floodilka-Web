@@ -37,13 +37,13 @@ With your bot token in hand, confirm it works by fetching the bot's own user obj
 <Tabs>
 	<TabItem label="cURL">
 ```bash
-curl https://api.floodilka.com/v1/users/@me \
+curl https://floodilka.com/api/v1/users/@me \
   -H "Authorization: Bot YOUR_BOT_TOKEN"
 ```
 	</TabItem>
 	<TabItem label="JavaScript">
 ```js
-const res = await fetch('https://api.floodilka.com/v1/users/@me', {
+const res = await fetch('https://floodilka.com/api/v1/users/@me', {
 	headers: {Authorization: `Bot ${process.env.FLOODILKA_BOT_TOKEN}`},
 });
 console.log(await res.json());
@@ -54,7 +54,7 @@ console.log(await res.json());
 import os, requests
 
 r = requests.get(
-    "https://api.floodilka.com/v1/users/@me",
+    "https://floodilka.com/api/v1/users/@me",
     headers={"Authorization": f"Bot {os.environ['FLOODILKA_BOT_TOKEN']}"},
 )
 print(r.json())
@@ -62,16 +62,23 @@ print(r.json())
 	</TabItem>
 </Tabs>
 
-A successful response looks like:
+A successful response looks like (trimmed for readability):
 
 ```json
 {
-	"id": "974839103102976000",
-	"username": "my-bot",
-	"discriminator": "0001",
-	"bot": true,
+	"id": "1496956937664585746",
+	"username": "my_bot",
+	"global_name": null,
 	"avatar": null,
-	"flags": 0
+	"banner": null,
+	"bio": null,
+	"bot": true,
+	"flags": 0,
+	"premium_type": 0,
+	"mfa_enabled": false,
+	"verified": false,
+	"email": null,
+	"phone": null
 }
 ```
 

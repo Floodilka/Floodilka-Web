@@ -19,9 +19,9 @@ OAuth2 в Floodilka следует [RFC 6749](https://datatracker.ietf.org/doc/h
 | Назначение | Метод | URL |
 |------------|-------|-----|
 | Страница авторизации | `GET` | `https://floodilka.com/oauth2/authorize` |
-| Обмен токенов | `POST` | `https://api.floodilka.com/v1/oauth2/token` |
-| Отзыв токена | `POST` | `https://api.floodilka.com/v1/oauth2/token/revoke` |
-| Информация о текущей авторизации | `GET` | `https://api.floodilka.com/v1/oauth2/@me` |
+| Обмен токенов | `POST` | `https://floodilka.com/api/v1/oauth2/token` |
+| Отзыв токена | `POST` | `https://floodilka.com/api/v1/oauth2/token/revoke` |
+| Информация о текущей авторизации | `GET` | `https://floodilka.com/api/v1/oauth2/@me` |
 
 ## Скоупы
 
@@ -66,7 +66,7 @@ OAuth2 в Floodilka следует [RFC 6749](https://datatracker.ietf.org/doc/h
 3. **Обменяйте код на access token** на своём сервере (никогда в браузере — в запросе используется client secret):
 
 	```bash
-	curl https://api.floodilka.com/v1/oauth2/token \
+	curl https://floodilka.com/api/v1/oauth2/token \
 	  -X POST \
 	  -H "Content-Type: application/x-www-form-urlencoded" \
 	  -d "grant_type=authorization_code" \
@@ -91,7 +91,7 @@ OAuth2 в Floodilka следует [RFC 6749](https://datatracker.ietf.org/doc/h
 4. **Вызывайте API** от имени пользователя:
 
 	```bash
-	curl https://api.floodilka.com/v1/users/@me \
+	curl https://floodilka.com/api/v1/users/@me \
 	  -H "Authorization: Bearer ACCESS_TOKEN"
 	```
 
@@ -102,7 +102,7 @@ OAuth2 в Floodilka следует [RFC 6749](https://datatracker.ietf.org/doc/h
 Access-токены истекают. Используйте refresh-токен, чтобы получить новую пару:
 
 ```bash
-curl https://api.floodilka.com/v1/oauth2/token \
+curl https://floodilka.com/api/v1/oauth2/token \
   -X POST \
   -H "Content-Type: application/x-www-form-urlencoded" \
   -d "grant_type=refresh_token" \
@@ -120,7 +120,7 @@ curl https://api.floodilka.com/v1/oauth2/token \
 Для app-to-app запросов, не связанных с конкретным пользователем. Выдаёт access-токен, привязанный к самому приложению.
 
 ```bash
-curl https://api.floodilka.com/v1/oauth2/token \
+curl https://floodilka.com/api/v1/oauth2/token \
   -X POST \
   -u "ВАШ_CLIENT_ID:ВАШ_CLIENT_SECRET" \
   -d "grant_type=client_credentials" \
@@ -132,7 +132,7 @@ curl https://api.floodilka.com/v1/oauth2/token \
 Когда пользователь отключает вашу интеграцию — отзывайте его токены, чтобы их нельзя было использовать:
 
 ```bash
-curl https://api.floodilka.com/v1/oauth2/token/revoke \
+curl https://floodilka.com/api/v1/oauth2/token/revoke \
   -X POST \
   -u "ВАШ_CLIENT_ID:ВАШ_CLIENT_SECRET" \
   -d "token=ACCESS_ИЛИ_REFRESH_TOKEN"

@@ -83,9 +83,9 @@ https://floodilka.com/oauth2/authorize
 ```js
 const permissions =
 	(1 << 13) |  // MANAGE_MESSAGES
-	(1 << 10) |  // KICK_MEMBERS
+	(1 << 1)  |  // KICK_MEMBERS
 	(1 << 2);    // BAN_MEMBERS
-// → 9220
+// → 8198
 ```
 
 Полная таблица — в разделе [Права доступа](/topics/permissions/).
@@ -97,7 +97,7 @@ const permissions =
 <Tabs>
 	<TabItem label="Отправка сообщения">
 ```bash
-curl https://api.floodilka.com/v1/channels/ID_КАНАЛА/messages \
+curl https://floodilka.com/api/v1/channels/ID_КАНАЛА/messages \
   -X POST \
   -H "Authorization: Bot ВАШ_БОТ_ТОКЕН" \
   -H "Content-Type: application/json" \
@@ -106,7 +106,7 @@ curl https://api.floodilka.com/v1/channels/ID_КАНАЛА/messages \
 	</TabItem>
 	<TabItem label="Список участников гильдии">
 ```bash
-curl https://api.floodilka.com/v1/guilds/ID_ГИЛЬДИИ/members?limit=100 \
+curl https://floodilka.com/api/v1/guilds/ID_ГИЛЬДИИ/members?limit=100 \
   -H "Authorization: Bot ВАШ_БОТ_ТОКЕН"
 ```
 	</TabItem>
@@ -127,7 +127,7 @@ socket.send(JSON.stringify({
 
 ## Приём событий в реальном времени
 
-Для всего реактивного (отвечать на сообщения, отслеживать присоединения участников, работать с голосом) подключайтесь к [Gateway](/gateway/overview/). Идентифицируйтесь бот-токеном и битовой маской `intents`, которая указывает, какие категории событий вы хотите получать.
+Для всего реактивного (отвечать на сообщения, отслеживать присоединения участников, работать с голосом) подключайтесь к [Gateway](/gateway/overview/). Идентифицируйтесь бот-токеном — события приходят автоматически, а ненужные категории можно отключить параметром `ignored_events` в `IDENTIFY`.
 
 ## Публичные и приватные боты
 

@@ -83,9 +83,9 @@ Build the bitfield by OR-ing the permission values you need. For example, a mode
 ```js
 const permissions =
 	(1 << 13) |  // MANAGE_MESSAGES
-	(1 << 10) |  // KICK_MEMBERS
+	(1 << 1)  |  // KICK_MEMBERS
 	(1 << 2);    // BAN_MEMBERS
-// → 9220
+// → 8198
 ```
 
 See [Permissions](/topics/permissions/) for the full table.
@@ -97,7 +97,7 @@ Once the bot is in a guild, use the token on any endpoint:
 <Tabs>
 	<TabItem label="Send a message">
 ```bash
-curl https://api.floodilka.com/v1/channels/CHANNEL_ID/messages \
+curl https://floodilka.com/api/v1/channels/CHANNEL_ID/messages \
   -X POST \
   -H "Authorization: Bot YOUR_BOT_TOKEN" \
   -H "Content-Type: application/json" \
@@ -106,7 +106,7 @@ curl https://api.floodilka.com/v1/channels/CHANNEL_ID/messages \
 	</TabItem>
 	<TabItem label="List guild members">
 ```bash
-curl https://api.floodilka.com/v1/guilds/GUILD_ID/members?limit=100 \
+curl https://floodilka.com/api/v1/guilds/GUILD_ID/members?limit=100 \
   -H "Authorization: Bot YOUR_BOT_TOKEN"
 ```
 	</TabItem>
@@ -127,7 +127,7 @@ socket.send(JSON.stringify({
 
 ## Receiving events in real time
 
-For anything reactive (respond to messages, track member joins, handle voice state), connect to the [Gateway](/gateway/overview/). Identify with your bot token and the `intents` bitfield that declares which event categories you want.
+For anything reactive (respond to messages, track member joins, handle voice state), connect to the [Gateway](/gateway/overview/). Identify with your bot token — events arrive automatically, and you can mute categories you don't need via the `ignored_events` field in `IDENTIFY`.
 
 ## Public vs. private bots
 
