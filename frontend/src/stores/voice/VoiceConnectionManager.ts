@@ -155,6 +155,7 @@ class VoiceConnectionManager {
 		const {guildId: expectedGuildId, channelId: stateChannelId, connected, room: existingRoom} = this.connectionState;
 		const channelId = rawChannelId ?? stateChannelId;
 		const attemptId = this.throttle.connectAttemptId;
+		const stateReset = expectedGuildId === null && stateChannelId === null;
 
 		logger.debug('handleVoiceServerUpdate called', {
 			incomingGuildId: guildId,
@@ -166,6 +167,7 @@ class VoiceConnectionManager {
 			hasToken: !!token,
 			connectionId,
 			attemptId,
+			stateReset,
 		});
 
 		if (channelId == null) {
@@ -176,7 +178,7 @@ class VoiceConnectionManager {
 			return;
 		}
 
-		if (expectedGuildId != null && expectedGuildId !== guildId) {
+		if (!stateReset && expectedGuildId !== guildId) {
 			logger.warn('Ignoring VOICE_SERVER_UPDATE: guild mismatch', {
 				expectedGuildId,
 				incomingGuildId: guildId,
