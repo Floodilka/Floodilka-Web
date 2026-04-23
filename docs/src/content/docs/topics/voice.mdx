@@ -1,12 +1,96 @@
 ---
-title: "Голосовая связь"
-description: "Голосовые каналы, голосовые состояния и передача аудио."
+title: Голосовая связь
+description: Подключение к голосовым каналам Floodilka через LiveKit — краткий обзор для разработчиков.
 ---
 
 import {Aside} from '@astrojs/starlight/components';
 
-<Aside type="note">Эта страница в процессе написания. Общая структура зафиксирована, детали дополняются.</Aside>
+Голосовая связь во Флудилке реализована поверх [LiveKit](https://livekit.io/) — WebRTC-медиасервера. Это отличает нас от чисто Discord-совместимой части API: вместо собственного голосового протокола мы делегируем медиапоток в LiveKit и через Gateway передаём только метаданные (кто где находится, кто говорит, кто стримит).
 
-## Обзор
+## Высокоуровневый flow
 
-Раздел «Голосовая связь» документации Floodilka активно пишется.
+<Aside type="caution" title="Краткий обзор">
+	Полная спецификация голоса (voice-server selection, signaling, шифрование, интеграция с LiveKit SDK) выйдет отдельно. Пока — общий контур, чтобы понять архитектуру.
+</Aside>
+
+1. Клиент присоединяется к голосовому каналу через Gateway, отправляя опкод **4** `VOICE_STATE_UPDATE`:
+
+	```json
+	{
+		"op": 4,
+		"d": {
+			"guild_id": "1424...",
+			"channel_id": "1465...",
+			"self_mute": false,
+			"self_deaf": false,
+			"self_video": false
+		}
+	}
+	```
+
+2. Сервер отвечает двумя событиями:
+   - **`VOICE_STATE_UPDATE`** (dispatch) — обновлённое состояние клиента, доступно всем участникам гильдии
+   - **`VOICE_SERVER_UPDATE`** (dispatch) — адрес LiveKit-сервера и подписанный токен для подключения:
+
+	```json
+	{
+		"guild_id": "1424...",
+		"endpoint": "livekit.floodilka.com",
+		"token": "eyJhbGci..."
+	}
+	```
+
+3. Клиент с этим `token` подключается к LiveKit по стандартному [client-SDK](https://docs.livekit.io/realtime/). Дальнейший медиапоток (аудио, видео, screen-share) идёт напрямую через LiveKit.
+
+## Основные события
+
+| Событие | Когда приходит |
+|---------|----------------|
+| `VOICE_STATE_UPDATE` | Любое изменение состояния участника в голосе: join/leave, мут/размут, раздача экрана, видеокамера |
+| `VOICE_SERVER_UPDATE` | Смена endpoint'а LiveKit или новый токен (обычно при переподключении/миграции) |
+| `CALL_CREATE` | Создан голосовой звонок (в DM или группе) |
+| `CALL_UPDATE` | Изменение участников звонка |
+| `CALL_DELETE` | Звонок завершён |
+
+## Состояние участника
+
+Объект `VoiceState`:
+
+```json
+{
+	"guild_id": "1424...",
+	"channel_id": "1465...",
+	"user_id": "974...",
+	"session_id": "a1b2c3",
+	"deaf": false,
+	"mute": false,
+	"self_deaf": false,
+	"self_mute": false,
+	"self_video": false,
+	"self_stream": false,
+	"suppress": false
+}
+```
+
+- **`deaf` / `mute`** — глушение/мут, сделанные модератором (требуется `DEAFEN_MEMBERS` / `MUTE_MEMBERS`)
+- **`self_deaf` / `self_mute`** — участник сам себя заглушил/замьютил
+- **`self_video`** — включена веб-камера
+- **`self_stream`** — участник стримит экран
+
+Когда пользователь выходит из канала — прилетит `VOICE_STATE_UPDATE` с `channel_id: null`.
+
+## Права голоса
+
+Для входа в голосовой канал нужно `VIEW_CHANNEL` + `CONNECT`. Для разговора — `SPEAK`. Ещё:
+
+- `PRIORITY_SPEAKER` — приоритетное вещание (громкость остальных снижается)
+- `STREAM` — запуск видео/screen-share
+- `MUTE_MEMBERS`, `DEAFEN_MEMBERS`, `MOVE_MEMBERS` — модерация
+
+Полная таблица — [Права доступа](/topics/permissions/).
+
+## Что дальше
+
+- [События](/gateway/events/) — детали `VOICE_STATE_UPDATE`
+- [Права доступа](/topics/permissions/) — голосовые биты (`CONNECT`, `SPEAK`, `PRIORITY_SPEAKER` и т.д.)
+- [Документация LiveKit](https://docs.livekit.io/) — как работать с медиапотоком после получения токена

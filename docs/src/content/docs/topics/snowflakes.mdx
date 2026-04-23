@@ -1,12 +1,93 @@
 ---
-title: "Snowflake-идентификаторы"
-description: "ID в Floodilka — 64-битные snowflake. Как генерировать, парсить и сортировать."
+title: Snowflake-идентификаторы
+description: 64-битные ID Floodilka — структура, извлечение времени создания и генерация на клиенте.
 ---
 
-import {Aside} from '@astrojs/starlight/components';
+import {Aside, Tabs, TabItem} from '@astrojs/starlight/components';
 
-<Aside type="note">Эта страница в процессе написания. Общая структура зафиксирована, детали дополняются.</Aside>
+Все ID во Флудилке (пользователи, гильдии, каналы, сообщения, роли и т.д.) — это **snowflake**: 64-битные целые числа, упакованные в одну строку.
 
-## Обзор
+```
+ 1496956937664585746
+   └─ snowflake, ID бот-пользователя
+```
 
-Раздел «Snowflake-идентификаторы» документации Floodilka активно пишется.
+В JSON snowflake всегда приходит **строкой**, а не числом — 64-битные целые не помещаются в `Number` в JavaScript без потери точности. Работайте с ними через `BigInt` или как со строкой.
+
+## Структура
+
+```
+0b  ┌──────────── 42 бита ────────────┐┌ 10 бит ┐┌ 12 бит ┐
+    │          TIMESTAMP              ││ NODE   ││  SEQ   │
+    └────────────────────────────────┘└────────┘└────────┘
+     63                             22 21     12 11      0
+```
+
+| Диапазон битов | Поле | Значение |
+|----------------|------|----------|
+| 63–22 (42 бита) | **timestamp** | Миллисекунды с Floodilka-эпохи (`2015-01-01T00:00:00.000Z` = `1420070400000`) |
+| 21–12 (10 бит) | **node_id** | ID инстанса бэкенда, сгенерировавшего snowflake (0..1023) |
+| 11–0 (12 бит) | **sequence** | Счётчик в пределах миллисекунды (0..4095), растёт при одновременных запросах |
+
+Один инстанс может безопасно выдать **до 4096 ID в миллисекунду**. При переполнении счётчика — инстанс ждёт следующей миллисекунды.
+
+## Извлечение времени создания
+
+Snowflake содержит точный timestamp. Это удобно — например, можно получить дату создания пользователя без отдельного запроса:
+
+<Tabs>
+	<TabItem label="JavaScript">
+```js
+const FLOODILKA_EPOCH = 1420070400000n;
+
+function snowflakeToDate(snowflake) {
+	const id = BigInt(snowflake);
+	const ms = (id >> 22n) + FLOODILKA_EPOCH;
+	return new Date(Number(ms));
+}
+
+snowflakeToDate('1496956937664585746'); // Date: 2026-04-23T...
+```
+	</TabItem>
+	<TabItem label="Python">
+```python
+FLOODILKA_EPOCH = 1420070400000
+
+def snowflake_to_datetime(snowflake):
+    from datetime import datetime, timezone
+    ms = (int(snowflake) >> 22) + FLOODILKA_EPOCH
+    return datetime.fromtimestamp(ms / 1000, tz=timezone.utc)
+```
+	</TabItem>
+	<TabItem label="Go">
+```go
+const FloodilkaEpoch = 1420070400000
+
+func SnowflakeToTime(snowflake uint64) time.Time {
+	ms := int64(snowflake>>22) + FloodilkaEpoch
+	return time.UnixMilli(ms).UTC()
+}
+```
+	</TabItem>
+</Tabs>
+
+## Сортировка и сравнение
+
+Snowflake монотонно растут по времени. Это значит:
+
+- **Больший snowflake = более позднее создание** (в пределах кластера)
+- Сортировка ID по возрастанию = сортировка по времени создания
+- Сравнивайте snowflake как `BigInt` — лексикографическое сравнение строк надёжно только при одинаковой длине
+
+<Aside type="caution" title="Не сортируйте snowflake как обычные строки">
+	Пока все ID имеют одну длину (сейчас 19 символов), лексикографическое сравнение совпадает с числовым. Но как только timestamp переедет в 20 символов — строковое сравнение начнёт врать. Безопасно: `BigInt(a) < BigInt(b)`.
+</Aside>
+
+## Snowflake и rate-limit-заголовок
+
+Заголовок `X-RateLimit-Reset` в ответе API — это **unix-timestamp в секундах**, не snowflake. Путать их легко, но формат разный.
+
+## Что дальше
+
+- [События](/gateway/events/) — в payload'ах Gateway snowflake приходят часто
+- [Лимиты запросов](/topics/rate-limits/) — как правильно использовать заголовки `X-RateLimit-*`

@@ -1,12 +1,125 @@
 ---
-title: "Лимиты запросов"
-description: "Бакеты по маршрутам, глобальные лимиты и как корректно отступать."
+title: Лимиты запросов
+description: Два уровня лимитов — глобальный и по бакету маршрута, заголовки ответа и корректный back-off.
 ---
 
-import {Aside} from '@astrojs/starlight/components';
+import {Aside, Tabs, TabItem} from '@astrojs/starlight/components';
 
-<Aside type="note">Эта страница в процессе написания. Общая структура зафиксирована, детали дополняются.</Aside>
+Floodilka применяет лимиты к REST API в двух измерениях:
 
-## Обзор
+1. **Глобальный** — максимум запросов в секунду с одного клиента (всех маршрутов вместе)
+2. **По бакету** — отдельный счётчик на каждую группу маршрутов (например, «отправка сообщений в канал X»)
 
-Раздел «Лимиты запросов» документации Floodilka активно пишется.
+Превышение любого из них вернёт `429 Too Many Requests` с информацией, сколько ждать до сброса.
+
+## Глобальный лимит
+
+| Тип клиента | Лимит |
+|-------------|-------|
+| Обычный пользователь / бот | **50 запросов/сек** |
+| Пользователи с флагом `HIGH_GLOBAL_RATE_LIMIT` | **1200 запросов/сек** |
+
+Глобальный лимит идентифицируется по комбинации user-id и IP. Если перебрать — получите 429 с `X-RateLimit-Global: true`.
+
+## Бакеты маршрутов
+
+Каждый REST-маршрут принадлежит некоторому **бакету**. Бакет — это сущность, по которой считаются запросы. Например:
+
+- Отправка сообщений в канал X и канал Y — разные бакеты (ключ содержит channel_id)
+- Удаление сообщения и редактирование сообщения в одном канале — один бакет
+- Создание приглашения в одной гильдии vs другой — разные бакеты
+
+Конкретные лимиты зависят от маршрута и указаны в его справочнике. Типичные значения — 5 запросов за 5 секунд на один бакет.
+
+## Заголовки ответа
+
+Каждый удачный REST-ответ содержит актуальное состояние бакета:
+
+```
+X-RateLimit-Limit: 5
+X-RateLimit-Remaining: 3
+X-RateLimit-Reset: 1714000000
+```
+
+| Заголовок | Значение |
+|-----------|----------|
+| `X-RateLimit-Limit` | Максимум запросов в окне |
+| `X-RateLimit-Remaining` | Сколько осталось до конца текущего окна |
+| `X-RateLimit-Reset` | Unix-timestamp в **секундах**, когда окно сбросится |
+
+При 429-ответе добавляются ещё два:
+
+```
+X-RateLimit-Global: false
+Retry-After: 3
+```
+
+- **`X-RateLimit-Global`** — `true`, если превышен глобальный лимит, `false` — превышен лимит бакета
+- **`Retry-After`** — секунды до первой безопасной попытки (округлено вверх)
+
+Тело ответа:
+
+```json
+{
+	"code": "RATE_LIMITED",
+	"message": "Слишком много запросов. Подождите.",
+	"global": false,
+	"retry_after": 2.5
+}
+```
+
+`retry_after` здесь с десятичной точностью (в секундах) — используйте его, а не округлённый заголовок `Retry-After`, если вам критична точность.
+
+## Правильная обработка 429
+
+<Tabs>
+	<TabItem label="JavaScript">
+```js
+async function apiCall(path, init = {}) {
+	while (true) {
+		const res = await fetch(`https://floodilka.com/api/v1${path}`, {
+			...init,
+			headers: {Authorization: `Bot ${process.env.TOKEN}`, ...init.headers},
+		});
+
+		if (res.status !== 429) return res;
+
+		const body = await res.json();
+		const waitMs = (body.retry_after ?? 1) * 1000;
+		await new Promise((r) => setTimeout(r, waitMs));
+	}
+}
+```
+	</TabItem>
+	<TabItem label="Python">
+```python
+import asyncio, httpx
+
+async def api_call(client, method, path, **kw):
+    while True:
+        r = await client.request(method, f"https://floodilka.com/api/v1{path}", **kw)
+        if r.status_code != 429:
+            return r
+        data = r.json()
+        await asyncio.sleep(data.get("retry_after", 1))
+```
+	</TabItem>
+</Tabs>
+
+## Превентивный back-off
+
+Не ждите 429 — следите за `X-RateLimit-Remaining`. Если он дошёл до нуля:
+
+1. Сохраните `X-RateLimit-Reset` как время, до которого **не делать новых запросов в этот бакет**
+2. Запросы к другим бакетам можно слать как обычно
+3. Не полагайтесь на часы клиента напрямую — `X-RateLimit-Reset` в UTC, сверяйтесь с `Date`-заголовком ответа, чтобы учесть расхождение часов
+
+## Ограничения, не являющиеся rate-limit
+
+- **Slowmode** в канале — отдельная ошибка `SLOWMODE_RATE_LIMITED`, срабатывает для конкретной пары (user, channel) и возвращается с кодом `429`, но содержит другое `code` в теле. См. [Коды ошибок](/topics/error-codes/)
+- **429 от Cloudflare** перед бэкендом — отвечает HTML'ом, не JSON. Встречается очень редко (DDoS-защита). Обрабатывайте как обычный 429 с большим back-off
+
+## Что дальше
+
+- [Коды ошибок](/topics/error-codes/) — `RATE_LIMITED`, `SLOWMODE_RATE_LIMITED` и другие
+- [Аутентификация](/introduction/authentication/) — правильный токен не приведёт к 401, но и не снимет rate-limit
