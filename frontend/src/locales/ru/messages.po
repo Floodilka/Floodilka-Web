@@ -13926,7 +13926,7 @@ msgstr "Удалить из группы"
 #: src/components/modals/EditGroupBottomSheet.tsx:214
 #: src/components/modals/EditGroupModal.tsx:196
 msgid "Remove Icon"
-msgstr "Удалить значок"
+msgstr "Удалить иконку"
 
 #: src/components/popouts/RecentMentionsContent.tsx:230
 msgid "Remove mention"
