@@ -8,6 +8,14 @@
 		file_server
 	}
 
+	@errorReporting path /error-reporting-proxy/*
+	handle @errorReporting {
+		uri strip_prefix /error-reporting-proxy
+		reverse_proxy https://k1.hawk.so {
+			header_up Host k1.hawk.so
+		}
+	}
+
 	# SEO: noindex for auth routes
 	@authRoutes path /login /register /verify /reset /wasntme /invite/*
 	header @authRoutes X-Robots-Tag "noindex, nofollow"
