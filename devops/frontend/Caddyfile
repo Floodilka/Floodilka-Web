@@ -13,6 +13,7 @@
 		rewrite * /api/0/envelope/
 		reverse_proxy https://k1.hawk.so {
 			header_up Host k1.hawk.so
+			header_up X-Sentry-Auth "Sentry sentry_version=7,sentry_key=9baf2c9bf1814480af078e9a34a8b8a26489d01632354b748e1424a9eb7e3077"
 		}
 	}
 
