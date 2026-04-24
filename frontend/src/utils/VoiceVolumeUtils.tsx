@@ -17,15 +17,22 @@
  * along with Floodilka. If not, see <https://www.gnu.org/licenses/>.
  */
 
+export const MAX_VOICE_VOLUME_PERCENT = 200;
+export const MAX_VOICE_TRACK_GAIN = MAX_VOICE_VOLUME_PERCENT / 100;
+
 export function clampVoiceVolumePercent(value: number): number {
 	if (!Number.isFinite(value)) {
 		return 100;
 	}
-	return Math.max(0, Math.min(200, value));
+	return Math.max(0, Math.min(MAX_VOICE_VOLUME_PERCENT, value));
 }
 
-export function voiceVolumePercentToTrackVolume(value: number): number {
+export function voiceVolumePercentToCappedVolume(value: number): number {
 	return Math.max(0, Math.min(1, clampVoiceVolumePercent(value) / 100));
+}
+
+export function voiceVolumePercentToBoostedGain(value: number): number {
+	return Math.max(0, Math.min(MAX_VOICE_TRACK_GAIN, clampVoiceVolumePercent(value) / 100));
 }
 
 export function composeVolumePercent(...volumeParts: Array<number>): number {

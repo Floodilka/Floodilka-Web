@@ -1,5 +1,11 @@
 import {describe, expect, it} from 'vitest';
-import {clampVoiceVolumePercent, composeVolumePercent, voiceVolumePercentToTrackVolume} from './VoiceVolumeUtils';
+import {
+	clampVoiceVolumePercent,
+	composeVolumePercent,
+	MAX_VOICE_TRACK_GAIN,
+	voiceVolumePercentToBoostedGain,
+	voiceVolumePercentToCappedVolume,
+} from './VoiceVolumeUtils';
 
 describe('clampVoiceVolumePercent', () => {
 	it('returns 100 for NaN', () => {
@@ -30,30 +36,62 @@ describe('clampVoiceVolumePercent', () => {
 	});
 });
 
-describe('voiceVolumePercentToTrackVolume', () => {
+describe('voiceVolumePercentToCappedVolume', () => {
 	it('converts 0% to 0.0', () => {
-		expect(voiceVolumePercentToTrackVolume(0)).toBe(0);
+		expect(voiceVolumePercentToCappedVolume(0)).toBe(0);
 	});
 
 	it('converts 50% to 0.5', () => {
-		expect(voiceVolumePercentToTrackVolume(50)).toBe(0.5);
+		expect(voiceVolumePercentToCappedVolume(50)).toBe(0.5);
 	});
 
 	it('converts 100% to 1.0', () => {
-		expect(voiceVolumePercentToTrackVolume(100)).toBe(1);
+		expect(voiceVolumePercentToCappedVolume(100)).toBe(1);
 	});
 
 	it('caps at 1.0 for values above 100%', () => {
-		expect(voiceVolumePercentToTrackVolume(150)).toBe(1);
-		expect(voiceVolumePercentToTrackVolume(200)).toBe(1);
+		expect(voiceVolumePercentToCappedVolume(150)).toBe(1);
+		expect(voiceVolumePercentToCappedVolume(200)).toBe(1);
+		expect(voiceVolumePercentToCappedVolume(10000)).toBe(1);
 	});
 
 	it('returns 0 for negative values', () => {
-		expect(voiceVolumePercentToTrackVolume(-10)).toBe(0);
+		expect(voiceVolumePercentToCappedVolume(-10)).toBe(0);
 	});
 
 	it('returns 1.0 for NaN (defaults to 100)', () => {
-		expect(voiceVolumePercentToTrackVolume(NaN)).toBe(1);
+		expect(voiceVolumePercentToCappedVolume(NaN)).toBe(1);
+	});
+});
+
+describe('voiceVolumePercentToBoostedGain', () => {
+	it('converts 0% to 0.0', () => {
+		expect(voiceVolumePercentToBoostedGain(0)).toBe(0);
+	});
+
+	it('converts 100% to 1.0 (unity gain)', () => {
+		expect(voiceVolumePercentToBoostedGain(100)).toBe(1);
+	});
+
+	it('converts 150% to 1.5 (boost)', () => {
+		expect(voiceVolumePercentToBoostedGain(150)).toBe(1.5);
+	});
+
+	it('converts 200% to 2.0 (max boost)', () => {
+		expect(voiceVolumePercentToBoostedGain(200)).toBe(2);
+	});
+
+	it('caps at MAX_VOICE_TRACK_GAIN for values above 200%', () => {
+		expect(voiceVolumePercentToBoostedGain(250)).toBe(MAX_VOICE_TRACK_GAIN);
+		expect(voiceVolumePercentToBoostedGain(10000)).toBe(MAX_VOICE_TRACK_GAIN);
+	});
+
+	it('returns 0 for negative values', () => {
+		expect(voiceVolumePercentToBoostedGain(-10)).toBe(0);
+	});
+
+	it('returns 1.0 for NaN (defaults to 100)', () => {
+		expect(voiceVolumePercentToBoostedGain(NaN)).toBe(1);
 	});
 });
 
@@ -70,75 +108,81 @@ describe('composeVolumePercent', () => {
 	});
 
 	it('multiplies percentages correctly', () => {
-		// 100 * (50/100) = 50
 		expect(composeVolumePercent(50)).toBe(50);
-
-		// 100 * (50/100) * (50/100) = 25
 		expect(composeVolumePercent(50, 50)).toBe(25);
-
-		// 100 * (100/100) * (100/100) = 100
 		expect(composeVolumePercent(100, 100)).toBe(100);
 	});
 
 	it('handles per-user boost (200%) with global output', () => {
-		// 100 * (200/100) * (100/100) = 200
 		expect(composeVolumePercent(200, 100)).toBe(200);
-
-		// 100 * (200/100) * (50/100) = 100
 		expect(composeVolumePercent(200, 50)).toBe(100);
-
-		// 100 * (150/100) * (80/100) = 120
 		expect(composeVolumePercent(150, 80)).toBe(120);
 	});
 
 	it('clamps result to 200', () => {
-		// Would exceed 200 without clamping: 100 * (200/100) * (200/100) = 400 -> clamped to 200
 		expect(composeVolumePercent(200, 200)).toBe(200);
 	});
 
 	it('composes three volume sources', () => {
-		// 100 * (100/100) * (100/100) * (100/100) = 100
 		expect(composeVolumePercent(100, 100, 100)).toBe(100);
-
-		// 100 * (50/100) * (50/100) * (50/100) = 12.5
 		expect(composeVolumePercent(50, 50, 50)).toBe(12.5);
 	});
 });
 
-describe('end-to-end volume calculation', () => {
+describe('end-to-end volume calculation (capped path — pre-WebAudio / fallback)', () => {
 	it('output volume 0% silences all audio', () => {
-		const userVolume = 100;
-		const outputVolume = 0;
-		const trackVolume = voiceVolumePercentToTrackVolume(composeVolumePercent(userVolume, outputVolume));
+		const trackVolume = voiceVolumePercentToCappedVolume(composeVolumePercent(100, 0));
 		expect(trackVolume).toBe(0);
 	});
 
 	it('output volume 100% with user volume 100% = full volume', () => {
-		const userVolume = 100;
-		const outputVolume = 100;
-		const trackVolume = voiceVolumePercentToTrackVolume(composeVolumePercent(userVolume, outputVolume));
+		const trackVolume = voiceVolumePercentToCappedVolume(composeVolumePercent(100, 100));
 		expect(trackVolume).toBe(1);
 	});
 
 	it('output volume 50% halves the effective volume', () => {
-		const userVolume = 100;
-		const outputVolume = 50;
-		const trackVolume = voiceVolumePercentToTrackVolume(composeVolumePercent(userVolume, outputVolume));
+		const trackVolume = voiceVolumePercentToCappedVolume(composeVolumePercent(100, 50));
 		expect(trackVolume).toBe(0.5);
 	});
 
-	it('per-user boost compensates for low output volume', () => {
-		const userVolume = 200; // 2x boost
-		const outputVolume = 50; // half global
-		// composed: 100 * 2 * 0.5 = 100 -> track: 1.0
-		const trackVolume = voiceVolumePercentToTrackVolume(composeVolumePercent(userVolume, outputVolume));
+	it('per-user boost compensates for low output volume up to 1.0', () => {
+		const trackVolume = voiceVolumePercentToCappedVolume(composeVolumePercent(200, 50));
 		expect(trackVolume).toBe(1);
 	});
 
 	it('output volume 10% makes audio very quiet', () => {
-		const userVolume = 100;
-		const outputVolume = 10;
-		const trackVolume = voiceVolumePercentToTrackVolume(composeVolumePercent(userVolume, outputVolume));
-		expect(trackVolume).toBe(0.1);
+		const trackVolume = voiceVolumePercentToCappedVolume(composeVolumePercent(100, 10));
+		expect(trackVolume).toBeCloseTo(0.1);
+	});
+
+	it('never exceeds 1.0 even with extreme inputs (safe for HTMLMediaElement)', () => {
+		expect(voiceVolumePercentToCappedVolume(composeVolumePercent(200, 200))).toBe(1);
+		expect(voiceVolumePercentToCappedVolume(composeVolumePercent(200, 100))).toBe(1);
+	});
+});
+
+describe('end-to-end volume calculation (boosted path — WebAudio GainNode)', () => {
+	it('output volume 100%, user 200% -> 2x gain', () => {
+		const trackVolume = voiceVolumePercentToBoostedGain(composeVolumePercent(200, 100));
+		expect(trackVolume).toBe(2);
+	});
+
+	it('output volume 50%, user 200% -> composed 100% -> 1.0 gain', () => {
+		const trackVolume = voiceVolumePercentToBoostedGain(composeVolumePercent(200, 50));
+		expect(trackVolume).toBe(1);
+	});
+
+	it('output volume 100%, user 150% -> 1.5x gain', () => {
+		const trackVolume = voiceVolumePercentToBoostedGain(composeVolumePercent(150, 100));
+		expect(trackVolume).toBe(1.5);
+	});
+
+	it('never exceeds MAX_VOICE_TRACK_GAIN even with extreme inputs', () => {
+		expect(voiceVolumePercentToBoostedGain(composeVolumePercent(200, 200))).toBe(MAX_VOICE_TRACK_GAIN);
+	});
+
+	it('still silences at output 0 or user 0', () => {
+		expect(voiceVolumePercentToBoostedGain(composeVolumePercent(200, 0))).toBe(0);
+		expect(voiceVolumePercentToBoostedGain(composeVolumePercent(0, 100))).toBe(0);
 	});
 });

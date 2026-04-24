@@ -23,7 +23,12 @@ import {makeAutoObservable} from 'mobx';
 import {Logger} from '~/lib/Logger';
 import {makePersistent} from '~/lib/MobXPersistence';
 import VoiceSettingsStore from '~/stores/VoiceSettingsStore';
-import {composeVolumePercent, voiceVolumePercentToTrackVolume} from '~/utils/VoiceVolumeUtils';
+import VoiceAudioContextManager from '~/stores/voice/VoiceAudioContextManager';
+import {
+	composeVolumePercent,
+	voiceVolumePercentToBoostedGain,
+	voiceVolumePercentToCappedVolume,
+} from '~/utils/VoiceVolumeUtils';
 
 const logger = new Logger('ParticipantVolumeStore');
 
@@ -103,7 +108,10 @@ class ParticipantVolumeStore {
 			try {
 				const track = pub.track;
 				if (isRemoteAudioTrack(track)) {
-					const effectiveVolume = voiceVolumePercentToTrackVolume(composeVolumePercent(userVolume, outputVolume));
+					const composed = composeVolumePercent(userVolume, outputVolume);
+					const effectiveVolume = VoiceAudioContextManager.isAvailable()
+						? voiceVolumePercentToBoostedGain(composed)
+						: voiceVolumePercentToCappedVolume(composed);
 					track.setVolume(effectiveVolume);
 				}
 

@@ -17,12 +17,13 @@
  * along with Floodilka. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import type {Room} from 'livekit-client';
+import type {Room, RoomOptions} from 'livekit-client';
 import {Room as LiveKitRoom, RoomEvent} from 'livekit-client';
 import {makeAutoObservable, runInAction} from 'mobx';
 import type {Subscription} from 'rxjs';
 import {timer} from 'rxjs';
 import {Logger} from '~/lib/Logger';
+import VoiceAudioContextManager from './VoiceAudioContextManager';
 import {VoiceConnectionThrottle} from './VoiceConnectionThrottle';
 import {VoiceReconnectManager} from './VoiceReconnectManager';
 
@@ -216,7 +217,13 @@ class VoiceConnectionManager {
 		this.reconnect.setLastConnectedChannel(guildId, channelId);
 		this.throttle.setInFlightConnect(true);
 
-		const room = new LiveKitRoom({adaptiveStream: true, dynacast: true});
+		const roomOptions: RoomOptions = {adaptiveStream: true, dynacast: true};
+		const audioContext = VoiceAudioContextManager.get();
+		if (audioContext) {
+			roomOptions.webAudioMix = {audioContext};
+			void VoiceAudioContextManager.resumeIfNeeded();
+		}
+		const room = new LiveKitRoom(roomOptions);
 
 		onRoomCreated(room, attemptId, guildId, channelId);
 

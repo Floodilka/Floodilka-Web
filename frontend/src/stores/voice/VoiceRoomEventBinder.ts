@@ -23,6 +23,8 @@ import * as SoundActionCreators from '~/actions/SoundActionCreators';
 import LocalVoiceStateStore from '~/stores/LocalVoiceStateStore';
 import ParticipantVolumeStore from '~/stores/ParticipantVolumeStore';
 import {SoundType} from '~/utils/SoundUtils';
+import {voiceVolumePercentToBoostedGain, voiceVolumePercentToCappedVolume} from '~/utils/VoiceVolumeUtils';
+import VoiceAudioContextManager from './VoiceAudioContextManager';
 import VoiceConnectionManager from './VoiceConnectionManager';
 import VoiceMediaManager from './VoiceMediaManager';
 import VoiceParticipantManager from './VoiceParticipantManager';
@@ -98,6 +100,7 @@ export function bindRoomEvents(
 	room.on(
 		RoomEvent.Reconnected,
 		guard(attemptId, () => {
+			void VoiceAudioContextManager.resumeIfNeeded();
 			VoiceParticipantManager.hydrateFromRoom(room);
 			VoicePermissionManager.applyDeafen(room, LocalVoiceStateStore.getSelfDeaf());
 			VoiceConnectionManager.markReconnected();
@@ -138,8 +141,11 @@ export function bindRoomEvents(
 				if (pub.kind === Track.Kind.Audio && isRemoteAudioTrack(track)) {
 					const userId = extractUserId(participant.identity);
 					if (userId) {
-						const volume = ParticipantVolumeStore.getVolume(userId) / 100;
-						track.setVolume(volume);
+						const userVolumePercent = ParticipantVolumeStore.getVolume(userId);
+						const trackVolume = VoiceAudioContextManager.isAvailable()
+							? voiceVolumePercentToBoostedGain(userVolumePercent)
+							: voiceVolumePercentToCappedVolume(userVolumePercent);
+						track.setVolume(trackVolume);
 						const locallyMuted = ParticipantVolumeStore.isLocalMuted(userId);
 						const selfDeaf = LocalVoiceStateStore.getSelfDeaf();
 						const isScreenShareAudio = pub.source === Track.Source.ScreenShareAudio;
