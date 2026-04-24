@@ -8,9 +8,9 @@
 		file_server
 	}
 
-	@errorReporting path /error-reporting-proxy/*
+	@errorReporting path /api/tick
 	handle @errorReporting {
-		uri strip_prefix /error-reporting-proxy
+		rewrite * /api/0/envelope/
 		reverse_proxy https://k1.hawk.so {
 			header_up Host k1.hawk.so
 		}

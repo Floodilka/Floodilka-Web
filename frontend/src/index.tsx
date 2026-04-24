@@ -56,35 +56,25 @@ if (Config.PUBLIC_YANDEX_METRIKA_ID) {
 	initYandexMetrika(Config.PUBLIC_YANDEX_METRIKA_ID);
 }
 
-const normalizePathSegment = (value: string): string => value.replace(/^\/+|\/+$/g, '');
-
-function buildRuntimeSentryDsn(): string | null {
+function buildSentryTunnel(): string | undefined {
 	if (typeof window === 'undefined') {
-		return null;
+		return undefined;
 	}
-
-	if (!Config.PUBLIC_SENTRY_PROJECT_ID || !Config.PUBLIC_SENTRY_PUBLIC_KEY) {
-		return null;
+	const path = Config.PUBLIC_SENTRY_PROXY_PATH;
+	if (!path) {
+		return undefined;
 	}
-
 	const origin = window.location.origin;
 	if (!origin) {
-		return null;
+		return undefined;
 	}
-
-	const proxyPath = normalizePathSegment(Config.PUBLIC_SENTRY_PROXY_PATH ?? '/error-reporting-proxy');
-	const projectSegment = normalizePathSegment(Config.PUBLIC_SENTRY_PROJECT_ID);
-
-	const url = new URL(`/${proxyPath}/${projectSegment}`, origin);
-	url.username = Config.PUBLIC_SENTRY_PUBLIC_KEY;
-	return url.toString();
+	return new URL(path, origin).toString();
 }
 
-const resolvedSentryDsn = Config.PUBLIC_SENTRY_DSN ?? buildRuntimeSentryDsn();
-
-if (resolvedSentryDsn) {
+if (Config.PUBLIC_SENTRY_DSN) {
 	Sentry.init({
-		dsn: resolvedSentryDsn,
+		dsn: Config.PUBLIC_SENTRY_DSN,
+		tunnel: buildSentryTunnel(),
 		environment: Config.PUBLIC_PROJECT_ENV,
 		release: Config.PUBLIC_BUILD_SHA,
 		sendDefaultPii: true,
