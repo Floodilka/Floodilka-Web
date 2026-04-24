@@ -79,7 +79,7 @@ jobs:
           PUBLIC_BUILD_NUMBER: ${{ github.run_number }}
           PUBLIC_YANDEX_METRIKA_ID: '108307618'
           PUBLIC_SENTRY_DSN: 'https://9baf2c9bf1814480af078e9a34a8b8a26489d01632354b748e1424a9eb7e3077@k1.hawk.so/0'
-          PUBLIC_SENTRY_PROXY_PATH: '/api/tick'
+          PUBLIC_SENTRY_PROXY_PATH: '/pulse'
         run: |
           export PUBLIC_BUILD_TIMESTAMP=$(date +%s)
           pnpm wasm:codegen

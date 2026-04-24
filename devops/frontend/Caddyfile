@@ -8,7 +8,7 @@
 		file_server
 	}
 
-	@errorReporting path /api/tick
+	@errorReporting path /pulse
 	handle @errorReporting {
 		rewrite * /api/0/envelope/
 		reverse_proxy https://k1.hawk.so {
