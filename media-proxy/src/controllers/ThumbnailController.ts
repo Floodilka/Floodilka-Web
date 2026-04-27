@@ -29,7 +29,7 @@ import {Logger} from '~/Logger';
 import {toBodyData} from '~/lib/BinaryUtils';
 import {createThumbnail} from '~/lib/FFmpegUtils';
 import type {HonoEnv} from '~/lib/MediaTypes';
-import {getMediaCategory, getMimeType} from '~/lib/MimeTypeUtils';
+import {getMediaCategory, getMimeType, getTempFileExtension} from '~/lib/MimeTypeUtils';
 import {readS3Object} from '~/lib/S3Utils';
 
 const ThumbnailRequestSchema = v.object({
@@ -56,7 +56,7 @@ export const handleThumbnailRequest = async (ctx: Context<HonoEnv>): Promise<Res
 			throw new HTTPException(400, {message: 'Not a video file'});
 		}
 
-		const ext = mimeType.split('/')[1] || 'mp4';
+		const ext = getTempFileExtension(upload_filename, mimeType);
 		const tempVideoPath = temporaryFile({extension: ext});
 		ctx.get('tempFiles').push(tempVideoPath);
 		await fs.writeFile(tempVideoPath, data);

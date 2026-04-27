@@ -61,3 +61,16 @@ export const getMediaCategory = (mimeType: string): string | null => {
 	const category = mimeType.split('/')[0];
 	return ['image', 'video', 'audio'].includes(category) ? category : null;
 };
+
+export const getExtensionForMime = (mimeType: string): string | null => {
+	for (const [ext, mime] of Object.entries(SUPPORTED_EXTENSIONS)) {
+		if (mime === mimeType) return ext;
+	}
+	return null;
+};
+
+export const getTempFileExtension = (filename: string, mimeType: string, fallback = 'mp4'): string => {
+	const fromName = filename.includes('.') ? filename.split('.').pop()?.toLowerCase() : null;
+	if (fromName) return fromName;
+	return getExtensionForMime(mimeType) ?? fallback;
+};

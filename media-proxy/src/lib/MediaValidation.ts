@@ -26,7 +26,7 @@ import {validateCodecs} from '~/lib/CodecValidation';
 import {createThumbnail, ffprobe} from '~/lib/FFmpegUtils';
 import {generatePlaceholder} from '~/lib/ImageProcessing';
 import type {HonoEnv} from '~/lib/MediaTypes';
-import {generateFilename, getMediaCategory, getMimeType} from '~/lib/MimeTypeUtils';
+import {generateFilename, getMediaCategory, getMimeType, getTempFileExtension} from '~/lib/MimeTypeUtils';
 
 interface ImageMetadata {
 	format: string;
@@ -87,6 +87,7 @@ export const processMetadata = async (
 	ctx: Context<HonoEnv>,
 	mimeType: string,
 	buffer: Buffer,
+	filename: string,
 ): Promise<MediaMetadata> => {
 	const mediaType = getMediaCategory(mimeType);
 
@@ -105,7 +106,7 @@ export const processMetadata = async (
 		} satisfies ImageMetadata;
 	}
 
-	const ext = mimeType.split('/')[1];
+	const ext = getTempFileExtension(filename, mimeType);
 	const tempPath = temporaryFile({extension: ext});
 	ctx.get('tempFiles').push(tempPath);
 	await fs.writeFile(tempPath, buffer);

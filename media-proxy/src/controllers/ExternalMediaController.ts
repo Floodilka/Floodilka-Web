@@ -33,7 +33,7 @@ import type {InMemoryCoalescer} from '~/lib/InMemoryCoalescer';
 import type {ErrorType, HonoEnv} from '~/lib/MediaTypes';
 import {validateMedia} from '~/lib/MediaValidation';
 import * as metrics from '~/lib/MetricsClient';
-import {generateFilename, getMediaCategory, getMimeType} from '~/lib/MimeTypeUtils';
+import {generateFilename, getMediaCategory, getMimeType, getTempFileExtension} from '~/lib/MimeTypeUtils';
 import {streamToBuffer} from '~/lib/S3Utils';
 import {ExternalQuerySchema} from '~/schemas/ValidationSchemas';
 import * as FetchUtils from '~/utils/FetchUtils';
@@ -104,7 +104,7 @@ export const createExternalMediaHandler = (coalescer: InMemoryCoalescer) => {
 		const result = await coalescer.coalesce(cacheKey, async () => {
 			try {
 				const actualUrl = MediaProxyUtils.reconstructOriginalURL(proxyUrlPath);
-				const {buffer, mimeType} = await fetchAndValidate(actualUrl, ctx);
+				const {buffer, mimeType, filename} = await fetchAndValidate(actualUrl, ctx);
 				const mediaType = getMediaCategory(mimeType);
 
 				if (!mediaType) throw new HTTPException(400, {message: 'Invalid media type'});
@@ -129,7 +129,7 @@ export const createExternalMediaHandler = (coalescer: InMemoryCoalescer) => {
 				}
 
 				if (mediaType === 'video' && format) {
-					const ext = mimeType.split('/')[1];
+					const ext = getTempFileExtension(filename, mimeType);
 					const tempPath = temporaryFile({extension: ext});
 					ctx.get('tempFiles').push(tempPath);
 					await fs.writeFile(tempPath, buffer);

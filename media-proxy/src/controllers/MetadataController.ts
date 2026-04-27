@@ -30,7 +30,7 @@ import {createThumbnail} from '~/lib/FFmpegUtils';
 import type {InMemoryCoalescer} from '~/lib/InMemoryCoalescer';
 import type {HonoEnv} from '~/lib/MediaTypes';
 import {processMetadata, validateMedia} from '~/lib/MediaValidation';
-import {generateFilename, getMimeType} from '~/lib/MimeTypeUtils';
+import {generateFilename, getMimeType, getTempFileExtension} from '~/lib/MimeTypeUtils';
 import type {NSFWDetectionService} from '~/lib/NSFWDetectionService';
 import {readS3Object, streamToBuffer} from '~/lib/S3Utils';
 import * as FetchUtils from '~/utils/FetchUtils';
@@ -118,7 +118,7 @@ export const handleMetadataRequest = (coalescer: InMemoryCoalescer, nsfwDetectio
 			}
 
 			const mimeType = await validateMedia(buffer, effectiveFilename, ctx);
-			const metadata = await processMetadata(ctx, mimeType, buffer);
+			const metadata = await processMetadata(ctx, mimeType, buffer, effectiveFilename);
 			const contentHash = crypto.createHash('sha256').update(buffer).digest('hex');
 
 			let nsfw = false;
@@ -130,7 +130,7 @@ export const handleMetadataRequest = (coalescer: InMemoryCoalescer, nsfwDetectio
 					try {
 						let checkBuffer = buffer;
 						if (mimeType.startsWith('video/')) {
-							const videoExtension = mimeType.split('/')[1] ?? 'tmp';
+							const videoExtension = getTempFileExtension(effectiveFilename, mimeType);
 							const tempPath = temporaryFile({extension: videoExtension});
 							ctx.get('tempFiles').push(tempPath);
 							await fs.writeFile(tempPath, buffer);

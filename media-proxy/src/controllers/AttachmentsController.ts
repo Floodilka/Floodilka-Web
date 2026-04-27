@@ -36,7 +36,7 @@ import type {InMemoryCoalescer} from '~/lib/InMemoryCoalescer';
 import type {HonoEnv} from '~/lib/MediaTypes';
 import {SUPPORTED_MIME_TYPES} from '~/lib/MediaTypes';
 import {validateMedia} from '~/lib/MediaValidation';
-import {getMediaCategory, getMimeType} from '~/lib/MimeTypeUtils';
+import {getMediaCategory, getMimeType, getTempFileExtension} from '~/lib/MimeTypeUtils';
 import {readS3Object, s3Client, streamS3Object} from '~/lib/S3Utils';
 import {ExternalQuerySchema} from '~/schemas/ValidationSchemas';
 
@@ -131,7 +131,7 @@ export const createAttachmentsHandler = (coalescer: InMemoryCoalescer) => {
 				}
 
 				if (mediaType === 'video' && format) {
-					const ext = filename.split('.').pop()?.toLowerCase() || 'mp4';
+					const ext = getTempFileExtension(filename, mimeType);
 					const tempPath = temporaryFile({extension: ext});
 					ctx.get('tempFiles').push(tempPath);
 					await fs.writeFile(tempPath, data);
