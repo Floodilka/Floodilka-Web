@@ -131,7 +131,7 @@ export const createAttachmentsHandler = (coalescer: InMemoryCoalescer) => {
 				}
 
 				if (mediaType === 'video' && format) {
-					const ext = mimeType.split('/')[1];
+					const ext = filename.split('.').pop()?.toLowerCase() || 'mp4';
 					const tempPath = temporaryFile({extension: ext});
 					ctx.get('tempFiles').push(tempPath);
 					await fs.writeFile(tempPath, data);
