@@ -81,11 +81,11 @@ export const validateCodecs = async (buffer: Buffer, filename: string, ctx: Cont
 		};
 
 		for (const stream of probeData.streams || []) {
-			if (stream.codec_type === 'video' || stream.codec_type === 'audio') {
-				if (!validateStream(stream, stream.codec_type)) {
-					Logger.debug({filename, codec: stream.codec_name ?? 'unknown'}, `Unsupported ${stream.codec_type} codec`);
-					return false;
-				}
+			if (stream.codec_type !== 'video' && stream.codec_type !== 'audio') continue;
+			if (!stream.codec_name) continue;
+			if (!validateStream(stream, stream.codec_type)) {
+				Logger.debug({filename, codec: stream.codec_name}, `Unsupported ${stream.codec_type} codec`);
+				return false;
 			}
 		}
 		return true;
