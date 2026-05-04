@@ -20,6 +20,7 @@
 import {Queue, type ConnectionOptions} from 'bullmq';
 import {Redis} from 'ioredis';
 import {Config} from '~/Config';
+import {Logger} from '~/Logger';
 
 export const FLOODILKA_QUEUE_NAME = 'floodilka';
 
@@ -28,7 +29,8 @@ const redisUrl = new URL(Config.redis.url);
 export const bullmqConnection: ConnectionOptions = {
 	host: redisUrl.hostname,
 	port: Number(redisUrl.port || 6379),
-	password: redisUrl.password || undefined,
+	username: redisUrl.username ? decodeURIComponent(redisUrl.username) : undefined,
+	password: redisUrl.password ? decodeURIComponent(redisUrl.password) : undefined,
 	db: redisUrl.pathname.length > 1 ? Number(redisUrl.pathname.slice(1)) : 0,
 	maxRetriesPerRequest: null,
 	enableReadyCheck: false,
@@ -50,6 +52,9 @@ export function getQueue(): Queue {
 					count: 5000,
 				},
 			},
+		});
+		queueSingleton.on('error', (err) => {
+			Logger.error({err}, 'BullMQ Queue error');
 		});
 	}
 	return queueSingleton;
