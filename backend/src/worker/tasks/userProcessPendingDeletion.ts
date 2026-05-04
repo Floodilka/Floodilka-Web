@@ -20,7 +20,7 @@
  * along with Floodilka. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import type {Task} from 'graphile-worker';
+import type {Task} from '~/worker/TaskTypes';
 import {createUserID} from '~/BrandedTypes';
 import {Logger} from '~/Logger';
 import {processUserDeletion} from '~/user/services/UserDeletionService';

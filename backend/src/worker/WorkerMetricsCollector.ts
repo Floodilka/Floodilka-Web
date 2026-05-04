@@ -15,14 +15,10 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU Affero General Public License for more details.
- *
- * You should have received a copy of the GNU Affero General Public License
- * along with Floodilka. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import CronExpressionParser from 'cron-parser';
+import type {Job, Queue} from 'bullmq';
 import type {Redis} from 'ioredis';
-import type {Pool} from 'pg';
 import type {AssetDeletionQueue} from '~/infrastructure/AssetDeletionQueue';
 import type {ICloudflarePurgeQueue} from '~/infrastructure/CloudflarePurgeQueue';
 import type {IMetricsService} from '~/infrastructure/IMetricsService';
@@ -31,15 +27,7 @@ import type {RedisBulkMessageDeletionQueueService} from '~/infrastructure/RedisB
 import {Logger} from '~/Logger';
 
 const DEFAULT_REPORT_INTERVAL_MS = 30000;
-
-const CRON_PATTERNS: Record<string, string> = {
-	processCloudfarePurgeQueue: '* * * * *',
-	processAssetDeletionQueue: '* * * * *',
-	processPendingBulkMessageDeletions: '* * * * *',
-	expireAttachments: '15 * * * *',
-	userProcessPendingDeletions: '0 3 * * *',
-	processInactivityDeletions: '0 4 * * 0',
-};
+const PER_TASK_SCAN_LIMIT = 5000;
 
 interface JobStats {
 	task: string;
@@ -48,20 +36,8 @@ interface JobStats {
 	failed: number;
 }
 
-interface TaskAggregateStats {
-	task: string;
-	totalRetries: number;
-}
-
-interface CronJobStatus {
-	task: string;
-	lastExecution: Date | null;
-	nextExpectedRun: Date | null;
-	isOverdue: boolean;
-}
-
 interface WorkerMetricsCollectorOptions {
-	pgPool: Pool;
+	queue: Queue;
 	redis: Redis;
 	metricsService: IMetricsService;
 	assetDeletionQueue: AssetDeletionQueue;
@@ -73,7 +49,7 @@ interface WorkerMetricsCollectorOptions {
 }
 
 export class WorkerMetricsCollector {
-	private readonly pgPool: Pool;
+	private readonly queue: Queue;
 	private readonly redis: Redis;
 	private readonly metricsService: IMetricsService;
 	private readonly assetDeletionQueue: AssetDeletionQueue;
@@ -83,12 +59,11 @@ export class WorkerMetricsCollector {
 	private readonly reportIntervalMs: number;
 	private readonly workerConcurrency: number;
 	private intervalHandle: ReturnType<typeof setInterval> | null = null;
-	private dbQueryErrorCount = 0;
 	private redisCommandErrorCount = 0;
 	private redisErrorHandler: (() => void) | null = null;
 
 	constructor(options: WorkerMetricsCollectorOptions) {
-		this.pgPool = options.pgPool;
+		this.queue = options.queue;
 		this.redis = options.redis;
 		this.metricsService = options.metricsService;
 		this.assetDeletionQueue = options.assetDeletionQueue;
@@ -138,67 +113,53 @@ export class WorkerMetricsCollector {
 	}
 
 	private async collectAndReport(): Promise<void> {
-		const [jobStats, redisQueueSizes, taskAggregates, cronStatus, avgWaitTime, redisConnectionStatus] =
-			await Promise.all([
-				this.collectGraphileJobStats(),
-				this.collectRedisQueueSizes(),
-				this.collectTaskAggregateStats(),
-				this.collectCronJobStatus(),
-				this.collectAverageWaitTime(),
-				this.collectRedisConnectionStatus(),
-			]);
+		const [jobStats, redisQueueSizes, redisConnectionStatus] = await Promise.all([
+			this.collectBullMQJobStats(),
+			this.collectRedisQueueSizes(),
+			this.collectRedisConnectionStatus(),
+		]);
 
 		this.reportJobStats(jobStats);
 		this.reportRedisQueueSizes(redisQueueSizes);
-		this.reportTaskAggregateStats(taskAggregates);
-		this.reportCronJobStatus(cronStatus);
 		this.reportWorkerConcurrencyUtilization(jobStats);
-		this.reportAverageWaitTime(avgWaitTime);
-		this.reportDbPoolStats();
 		this.reportRedisHealthMetrics(redisConnectionStatus);
 	}
 
-	private async collectGraphileJobStats(): Promise<Array<JobStats>> {
+	private async collectBullMQJobStats(): Promise<Array<JobStats>> {
 		try {
-			const result = await this.pgPool.query<{task_identifier: string; status: string; count: string}>(`
-				SELECT
-					task_identifier,
-					CASE
-						WHEN locked_at IS NOT NULL THEN 'running'
-						WHEN attempts >= max_attempts THEN 'failed'
-						ELSE 'pending'
-					END as status,
-					COUNT(*) as count
-				FROM graphile_worker.jobs
-				GROUP BY task_identifier, status
-			`);
+			const [waiting, active, failed, delayed] = await Promise.all([
+				this.queue.getJobs(['waiting'], 0, PER_TASK_SCAN_LIMIT - 1),
+				this.queue.getJobs(['active'], 0, PER_TASK_SCAN_LIMIT - 1),
+				this.queue.getJobs(['failed'], 0, PER_TASK_SCAN_LIMIT - 1),
+				this.queue.getJobs(['delayed'], 0, PER_TASK_SCAN_LIMIT - 1),
+			]);
 
 			const statsMap = new Map<string, JobStats>();
 
-			for (const row of result.rows) {
-				const task = row.task_identifier;
-				if (!statsMap.has(task)) {
-					statsMap.set(task, {task, pending: 0, running: 0, failed: 0});
+			const ensure = (task: string): JobStats => {
+				let stats = statsMap.get(task);
+				if (!stats) {
+					stats = {task, pending: 0, running: 0, failed: 0};
+					statsMap.set(task, stats);
 				}
-				const stats = statsMap.get(task)!;
-				const count = parseInt(row.count, 10);
+				return stats;
+			};
 
-				switch (row.status) {
-					case 'pending':
-						stats.pending = count;
-						break;
-					case 'running':
-						stats.running = count;
-						break;
-					case 'failed':
-						stats.failed = count;
-						break;
+			const tally = (jobs: Array<Job>, kind: 'pending' | 'running' | 'failed') => {
+				for (const job of jobs) {
+					if (!job?.name) continue;
+					ensure(job.name)[kind]++;
 				}
-			}
+			};
+
+			tally(waiting, 'pending');
+			tally(delayed, 'pending');
+			tally(active, 'running');
+			tally(failed, 'failed');
 
 			return Array.from(statsMap.values());
 		} catch (err) {
-			Logger.error({err}, 'Failed to collect Graphile job stats');
+			Logger.error({err}, 'Failed to collect BullMQ job stats');
 			return [];
 		}
 	}
@@ -289,139 +250,6 @@ export class WorkerMetricsCollector {
 		});
 	}
 
-	private async collectTaskAggregateStats(): Promise<Array<TaskAggregateStats>> {
-		try {
-			const result = await this.pgPool.query<{
-				task_identifier: string;
-				total_retries: string;
-			}>(`
-				SELECT
-					task_identifier,
-					SUM(GREATEST(attempts - 1, 0)) as total_retries
-				FROM graphile_worker.jobs
-				WHERE attempts > 1
-				GROUP BY task_identifier
-			`);
-
-			return result.rows.map((row) => ({
-				task: row.task_identifier,
-				totalRetries: parseInt(row.total_retries, 10),
-			}));
-		} catch (err) {
-			Logger.error({err}, 'Failed to collect task aggregate stats');
-			return [];
-		}
-	}
-
-	private async collectCronJobStatus(): Promise<Array<CronJobStatus>> {
-		try {
-			const result = await this.pgPool.query<{
-				identifier: string;
-				known_since: Date;
-				last_execution: Date | null;
-			}>(`
-				SELECT identifier, known_since, last_execution
-				FROM graphile_worker._private_known_crontabs
-			`);
-
-			const now = new Date();
-			return result.rows.map((row) => {
-				const nextExpectedRun = this.getNextCronRun(row.identifier, row.last_execution);
-				const isOverdue = nextExpectedRun ? now > new Date(nextExpectedRun.getTime() + 60000) : false;
-
-				return {
-					task: row.identifier,
-					lastExecution: row.last_execution,
-					nextExpectedRun,
-					isOverdue,
-				};
-			});
-		} catch (err) {
-			Logger.error({err}, 'Failed to collect cron job status');
-			return [];
-		}
-	}
-
-	private getNextCronRun(identifier: string, lastExecution: Date | null): Date | null {
-		if (!lastExecution) {
-			return null;
-		}
-
-		const pattern = CRON_PATTERNS[identifier];
-		if (!pattern) {
-			return null;
-		}
-
-		try {
-			const expression = CronExpressionParser.parse(pattern, {
-				currentDate: lastExecution,
-			});
-			const nextDate = expression.next();
-			return nextDate.toDate();
-		} catch {
-			return null;
-		}
-	}
-
-	private async collectAverageWaitTime(): Promise<Map<string, number>> {
-		try {
-			const result = await this.pgPool.query<{
-				task_identifier: string;
-				avg_wait_ms: string;
-			}>(`
-				SELECT
-					task_identifier,
-					EXTRACT(EPOCH FROM AVG(locked_at - run_at)) * 1000 as avg_wait_ms
-				FROM graphile_worker.jobs
-				WHERE locked_at IS NOT NULL AND run_at IS NOT NULL
-				GROUP BY task_identifier
-			`);
-
-			const waitTimes = new Map<string, number>();
-			for (const row of result.rows) {
-				const avgWait = parseFloat(row.avg_wait_ms);
-				if (!Number.isNaN(avgWait)) {
-					waitTimes.set(row.task_identifier, avgWait);
-				}
-			}
-			return waitTimes;
-		} catch (err) {
-			Logger.error({err}, 'Failed to collect average wait time');
-			return new Map();
-		}
-	}
-
-	private reportTaskAggregateStats(stats: Array<TaskAggregateStats>): void {
-		for (const stat of stats) {
-			if (stat.totalRetries > 0) {
-				this.metricsService.gauge({
-					name: 'worker.job.retries',
-					dimensions: {task: stat.task},
-					value: stat.totalRetries,
-				});
-			}
-		}
-	}
-
-	private reportCronJobStatus(cronJobs: Array<CronJobStatus>): void {
-		for (const cron of cronJobs) {
-			this.metricsService.gauge({
-				name: 'worker.cron.overdue',
-				dimensions: {task: cron.task},
-				value: cron.isOverdue ? 1 : 0,
-			});
-
-			if (cron.lastExecution) {
-				const msSinceLastRun = Date.now() - cron.lastExecution.getTime();
-				this.metricsService.gauge({
-					name: 'worker.cron.last_run_age_ms',
-					dimensions: {task: cron.task},
-					value: msSinceLastRun,
-				});
-			}
-		}
-	}
-
 	private reportWorkerConcurrencyUtilization(jobStats: Array<JobStats>): void {
 		let totalRunning = 0;
 		for (const stat of jobStats) {
@@ -439,24 +267,6 @@ export class WorkerMetricsCollector {
 		});
 	}
 
-	private reportAverageWaitTime(waitTimes: Map<string, number>): void {
-		for (const [task, avgWaitMs] of waitTimes) {
-			this.metricsService.gauge({
-				name: 'worker.job.avg_wait_time_ms',
-				dimensions: {task},
-				value: avgWaitMs,
-			});
-		}
-
-		if (waitTimes.size > 0) {
-			const totalWait = Array.from(waitTimes.values()).reduce((sum, v) => sum + v, 0);
-			this.metricsService.gauge({
-				name: 'worker.job.avg_wait_time_ms_total',
-				value: totalWait / waitTimes.size,
-			});
-		}
-	}
-
 	private async collectRedisConnectionStatus(): Promise<boolean> {
 		try {
 			const result = await this.redis.ping();
@@ -464,29 +274,6 @@ export class WorkerMetricsCollector {
 		} catch (err) {
 			Logger.error({err}, 'Redis ping failed');
 			return false;
-		}
-	}
-
-	private reportDbPoolStats(): void {
-		this.metricsService.gauge({
-			name: 'db.pool.total',
-			value: this.pgPool.totalCount,
-		});
-		this.metricsService.gauge({
-			name: 'db.pool.idle',
-			value: this.pgPool.idleCount,
-		});
-		this.metricsService.gauge({
-			name: 'db.pool.waiting',
-			value: this.pgPool.waitingCount,
-		});
-
-		if (this.dbQueryErrorCount > 0) {
-			this.metricsService.counter({
-				name: 'db.query.error',
-				value: this.dbQueryErrorCount,
-			});
-			this.dbQueryErrorCount = 0;
 		}
 	}
 
@@ -503,9 +290,5 @@ export class WorkerMetricsCollector {
 			});
 			this.redisCommandErrorCount = 0;
 		}
-	}
-
-	incrementDbQueryError(): void {
-		this.dbQueryErrorCount++;
 	}
 }

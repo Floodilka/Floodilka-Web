@@ -20,7 +20,7 @@
  * along with Floodilka. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import type {Task} from 'graphile-worker';
+import type {Task} from '~/worker/TaskTypes';
 import {createGuildID} from '~/BrandedTypes';
 import {Logger} from '~/Logger';
 import {CommonFields, validatePayload} from '../utils/TaskPayloadValidator';

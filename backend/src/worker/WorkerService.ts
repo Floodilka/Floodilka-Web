@@ -15,15 +15,31 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU Affero General Public License for more details.
- *
- * You should have received a copy of the GNU Affero General Public License
- * along with Floodilka. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import {quickAddJob} from 'graphile-worker';
-import {Config} from '~/Config';
+import type {JobsOptions} from 'bullmq';
 import {Logger} from '~/Logger';
+import {getQueue} from './BullMQConnection';
 import type {IWorkerService, WorkerJobOptions, WorkerJobPayload} from './IWorkerService';
+
+function toBullMQOptions(options?: WorkerJobOptions): JobsOptions {
+	if (!options) return {};
+	const opts: JobsOptions = {};
+	if (options.runAt) {
+		const delay = options.runAt.getTime() - Date.now();
+		opts.delay = Math.max(delay, 0);
+	}
+	if (options.maxAttempts !== undefined) {
+		opts.attempts = options.maxAttempts;
+	}
+	if (options.jobKey !== undefined) {
+		opts.jobId = options.jobKey;
+	}
+	if (options.priority !== undefined) {
+		opts.priority = options.priority;
+	}
+	return opts;
+}
 
 export class WorkerService implements IWorkerService {
 	async addJob<TPayload extends WorkerJobPayload = WorkerJobPayload>(
@@ -32,7 +48,8 @@ export class WorkerService implements IWorkerService {
 		options?: WorkerJobOptions,
 	): Promise<void> {
 		try {
-			await quickAddJob({connectionString: Config.postgres.url}, taskType, payload, options);
+			const queue = getQueue();
+			await queue.add(taskType, payload, toBullMQOptions(options));
 			Logger.debug({taskType, payload}, 'Job queued successfully');
 		} catch (error) {
 			Logger.error({error, taskType, payload}, 'Failed to queue job');

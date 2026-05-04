@@ -20,7 +20,7 @@
  * along with Floodilka. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import type {Task} from 'graphile-worker';
+import type {Task} from '~/worker/TaskTypes';
 import {AttachmentDecayRepository} from '~/attachment/AttachmentDecayRepository';
 import {Config} from '~/Config';
 import {makeAttachmentCdnKey, makeAttachmentCdnUrl} from '~/channel/services/message/MessageHelpers';

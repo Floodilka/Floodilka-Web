@@ -24,7 +24,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import archiver from 'archiver';
-import type {Task} from 'graphile-worker';
+import type {Task} from '~/worker/TaskTypes';
 import {type ChannelID, createUserID, type MessageID} from '~/BrandedTypes';
 import {Config} from '~/Config';
 import {makeAttachmentCdnUrl} from '~/channel/services/message/MessageHelpers';

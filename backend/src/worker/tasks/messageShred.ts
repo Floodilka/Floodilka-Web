@@ -20,7 +20,7 @@
  * along with Floodilka. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import type {JobHelpers, Task} from 'graphile-worker';
+import type {Task, TaskHelpers as JobHelpers} from '~/worker/TaskTypes';
 import type {ChannelID, MessageID} from '~/BrandedTypes';
 import {createChannelID, createMessageID, createUserID} from '~/BrandedTypes';
 import {Logger} from '~/Logger';

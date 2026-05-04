@@ -15,25 +15,23 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU Affero General Public License for more details.
- *
- * You should have received a copy of the GNU Affero General Public License
- * along with Floodilka. If not, see <https://www.gnu.org/licenses/>.
  */
 
 import '../instrument';
 import 'module-alias/register';
 import * as Sentry from '@sentry/node';
-import {run} from 'graphile-worker';
+import {type Job, Worker as BullMQWorker} from 'bullmq';
 import {Redis} from 'ioredis';
-import {Pool} from 'pg';
 import {Config} from '~/Config';
 import {getMetricsService, initializeMetricsService} from '~/infrastructure/MetricsService';
 import {SnowflakeService} from '~/infrastructure/SnowflakeService';
 import {Logger} from '~/Logger';
 import {initializeMeilisearch} from '~/Meilisearch';
+import {bullmqConnection, FLOODILKA_QUEUE_NAME, getQueue, shutdownQueue} from '~/worker/BullMQConnection';
 import applicationProcessDeletion from '~/worker/tasks/applicationProcessDeletion';
 import batchGuildAuditLogMessageDeletes from '~/worker/tasks/batchGuildAuditLogMessageDeletes';
 import bulkDeleteUserMessages from '~/worker/tasks/bulkDeleteUserMessages';
+import calculateRetention from '~/worker/tasks/calculateRetention';
 import deleteUserMessagesInGuildByTime from '~/worker/tasks/deleteUserMessagesInGuildByTime';
 import expireAttachments from '~/worker/tasks/expireAttachments';
 import extractEmbeds from '~/worker/tasks/extractEmbeds';
@@ -42,7 +40,6 @@ import harvestGuildData from '~/worker/tasks/harvestGuildData';
 import harvestUserData from '~/worker/tasks/harvestUserData';
 import indexChannelMessages from '~/worker/tasks/indexChannelMessages';
 import messageShred from '~/worker/tasks/messageShred';
-import calculateRetention from '~/worker/tasks/calculateRetention';
 import processAssetDeletionQueue from '~/worker/tasks/processAssetDeletionQueue';
 import processCloudfarePurgeQueue from '~/worker/tasks/processCloudfarePurgeQueue';
 import processInactivityDeletions from '~/worker/tasks/processInactivityDeletions';
@@ -51,18 +48,57 @@ import refreshSearchIndex from '~/worker/tasks/refreshSearchIndex';
 import {sendScheduledMessage} from '~/worker/tasks/sendScheduledMessage';
 import userProcessPendingDeletion from '~/worker/tasks/userProcessPendingDeletion';
 import userProcessPendingDeletions from '~/worker/tasks/userProcessPendingDeletions';
+import type {Task, TaskHelpers, TaskLogger} from '~/worker/TaskTypes';
 import {setWorkerDependencies} from './WorkerContext';
 import {initializeWorkerDependencies, shutdownWorkerDependencies} from './WorkerDependencies';
 import {WorkerMetricsCollector} from './WorkerMetricsCollector';
+import {WorkerService} from './WorkerService';
+
+const taskList: Record<string, Task> = {
+	applicationProcessDeletion,
+	batchGuildAuditLogMessageDeletes,
+	bulkDeleteUserMessages,
+	calculateRetention,
+	deleteUserMessagesInGuildByTime,
+	expireAttachments,
+	extractEmbeds,
+	handleMentions,
+	harvestGuildData,
+	harvestUserData,
+	indexChannelMessages,
+	messageShred,
+	processAssetDeletionQueue,
+	processCloudfarePurgeQueue,
+	processInactivityDeletions,
+	processPendingBulkMessageDeletions,
+	refreshSearchIndex,
+	sendScheduledMessage,
+	userProcessPendingDeletion,
+	userProcessPendingDeletions,
+};
+
+const cronSchedule: Array<{taskName: string; pattern: string}> = [
+	{taskName: 'processCloudfarePurgeQueue', pattern: '* * * * *'},
+	{taskName: 'processAssetDeletionQueue', pattern: '* * * * *'},
+	{taskName: 'processPendingBulkMessageDeletions', pattern: '* * * * *'},
+	{taskName: 'expireAttachments', pattern: '15 * * * *'},
+	{taskName: 'userProcessPendingDeletions', pattern: '0 3 * * *'},
+	{taskName: 'processInactivityDeletions', pattern: '0 4 * * 0'},
+	{taskName: 'calculateRetention', pattern: '0 23 * * *'},
+];
+
+function createTaskLogger(job: Job): TaskLogger {
+	return Logger.child({task: job.name, jobId: job.id});
+}
 
 async function main() {
-	Logger.info('Starting Graphile Worker...');
+	Logger.info('Starting BullMQ Worker...');
 
 	initializeMetricsService(Config.metrics.host ?? null);
 	Logger.info('MetricsService initialized');
 
-	const redis = new Redis(Config.redis.url);
-	const snowflakeService = new SnowflakeService(redis);
+	const snowflakeRedis = new Redis(Config.redis.url);
+	const snowflakeService = new SnowflakeService(snowflakeRedis);
 	await snowflakeService.initialize();
 	Logger.info('Shared SnowflakeService initialized');
 
@@ -70,116 +106,137 @@ async function main() {
 
 	setWorkerDependencies(dependencies);
 
-	const workerConcurrency = 5;
-	const runnerOptions = {
-		connectionString: Config.postgres.url,
-		concurrency: workerConcurrency,
-		noHandleSignals: false,
-		pollInterval: 1000,
-		taskList: {
-			applicationProcessDeletion,
-			batchGuildAuditLogMessageDeletes,
-			bulkDeleteUserMessages,
-			calculateRetention,
-			deleteUserMessagesInGuildByTime,
-			extractEmbeds,
-			handleMentions,
-			harvestUserData,
-			harvestGuildData,
-			indexChannelMessages,
-			expireAttachments,
-			processAssetDeletionQueue,
-			processCloudfarePurgeQueue,
-			processInactivityDeletions,
-			messageShred,
-			refreshSearchIndex,
-			sendScheduledMessage,
-			userProcessPendingDeletion,
-			userProcessPendingDeletions,
-			processPendingBulkMessageDeletions,
-		},
-		crontabFile: './src/worker/.crontab',
-	};
+	const workerService = new WorkerService();
 
 	try {
 		await initializeMeilisearch();
 
-		const runner = await run(runnerOptions);
+		const queue = getQueue();
+
+		Logger.info('Registering cron jobs as BullMQ Job Schedulers');
+		for (const {taskName, pattern} of cronSchedule) {
+			await queue.upsertJobScheduler(
+				`cron-${taskName}`,
+				{pattern},
+				{
+					name: taskName,
+					data: {},
+					opts: {removeOnComplete: true, removeOnFail: {age: 24 * 60 * 60}},
+				},
+			);
+		}
+		Logger.info({count: cronSchedule.length}, 'Cron jobs registered');
+
+		const workerConcurrency = 5;
+
 		const jobTimings = new Map<string, number>();
 
-		runner.events.on('job:start', ({job}) => {
-			jobTimings.set(job.id, performance.now());
+		const bullWorker = new BullMQWorker(
+			FLOODILKA_QUEUE_NAME,
+			async (job: Job) => {
+				const handler = taskList[job.name];
+				if (!handler) {
+					throw new Error(`Unknown task type: ${job.name}`);
+				}
+				const helpers: TaskHelpers = {
+					logger: createTaskLogger(job),
+					addJob: (taskType, payload, options) => workerService.addJob(taskType, payload, options),
+				};
+				await handler(job.data, helpers);
+			},
+			{
+				connection: bullmqConnection,
+				concurrency: workerConcurrency,
+			},
+		);
 
-			const waitTimeMs = Date.now() - job.run_at.getTime();
-			if (waitTimeMs > 0) {
-				getMetricsService().histogram({
-					name: 'worker.job.wait_time',
-					dimensions: {task: job.task_identifier},
-					valueMs: waitTimeMs,
-				});
+		bullWorker.on('active', (job) => {
+			jobTimings.set(job.id ?? `${job.name}:${job.timestamp}`, performance.now());
+
+			if (job.opts.delay) {
+				const waitTimeMs = Date.now() - job.timestamp;
+				if (waitTimeMs > 0) {
+					getMetricsService().histogram({
+						name: 'worker.job.wait_time',
+						dimensions: {task: job.name},
+						valueMs: waitTimeMs,
+					});
+				}
 			}
 		});
 
-		runner.events.on('job:success', ({job}) => {
-			const startTime = jobTimings.get(job.id) ?? performance.now();
+		bullWorker.on('completed', (job) => {
+			const key = job.id ?? `${job.name}:${job.timestamp}`;
+			const startTime = jobTimings.get(key) ?? performance.now();
 			const durationMs = performance.now() - startTime;
-			jobTimings.delete(job.id);
+			jobTimings.delete(key);
 
 			getMetricsService().counter({
 				name: 'worker.job.success',
-				dimensions: {task: job.task_identifier},
+				dimensions: {task: job.name},
 			});
 			getMetricsService().histogram({
 				name: 'worker.job.latency',
-				dimensions: {task: job.task_identifier, status: 'success'},
+				dimensions: {task: job.name, status: 'success'},
 				valueMs: durationMs,
 			});
 		});
 
-		runner.events.on('job:error', ({job, error}) => {
-			const startTime = jobTimings.get(job.id) ?? performance.now();
+		bullWorker.on('failed', (job, error) => {
+			if (!job) {
+				Logger.error({err: error}, 'Job failed without job context');
+				Sentry.captureException(error);
+				return;
+			}
+			const key = job.id ?? `${job.name}:${job.timestamp}`;
+			const startTime = jobTimings.get(key) ?? performance.now();
 			const durationMs = performance.now() - startTime;
-			jobTimings.delete(job.id);
+			jobTimings.delete(key);
 
 			getMetricsService().counter({
 				name: 'worker.job.error',
-				dimensions: {task: job.task_identifier},
+				dimensions: {task: job.name},
 			});
 			getMetricsService().histogram({
 				name: 'worker.job.latency',
-				dimensions: {task: job.task_identifier, status: 'error'},
+				dimensions: {task: job.name, status: 'error'},
 				valueMs: durationMs,
 			});
 
-			if (job.attempts > 1) {
+			const attemptsMade = job.attemptsMade ?? 0;
+			const maxAttempts = job.opts.attempts ?? 1;
+			const willRetry = attemptsMade < maxAttempts;
+
+			if (attemptsMade > 1) {
 				getMetricsService().counter({
 					name: 'worker.job.retry',
-					dimensions: {task: job.task_identifier},
+					dimensions: {task: job.name},
 				});
 			}
-
-			const willRetry = job.attempts < job.max_attempts;
 			getMetricsService().counter({
 				name: willRetry ? 'worker.job.retry_scheduled' : 'worker.job.permanently_failed',
-				dimensions: {task: job.task_identifier},
+				dimensions: {task: job.name},
 			});
 
 			Sentry.withScope((scope) => {
-				scope.setTag('task', job.task_identifier);
+				scope.setTag('task', job.name);
 				scope.setExtra('job_id', job.id);
-				scope.setExtra('attempts', job.attempts);
-				scope.setExtra('max_attempts', job.max_attempts);
-				scope.setExtra('payload', job.payload);
-				scope.setExtra('job_queue_id', job.job_queue_id);
+				scope.setExtra('attempts_made', attemptsMade);
+				scope.setExtra('max_attempts', maxAttempts);
+				scope.setExtra('payload', job.data);
 				Sentry.captureException(error);
 			});
 		});
 
-		Logger.info('Graphile Worker started successfully');
+		bullWorker.on('error', (error) => {
+			Logger.error({err: error}, 'BullMQ Worker error');
+			Sentry.captureException(error);
+		});
 
-		const pgPool = new Pool({connectionString: Config.postgres.url});
+		Logger.info({concurrency: workerConcurrency}, 'BullMQ Worker started successfully');
+
 		const metricsCollector = new WorkerMetricsCollector({
-			pgPool,
+			queue,
 			redis: dependencies.redis,
 			metricsService: getMetricsService(),
 			assetDeletionQueue: dependencies.assetDeletionQueue,
@@ -192,13 +249,13 @@ async function main() {
 		Logger.info('WorkerMetricsCollector started');
 
 		const shutdown = async () => {
-			Logger.info('Shutting down Graphile Worker...');
+			Logger.info('Shutting down BullMQ Worker...');
 			metricsCollector.stop();
-			await pgPool.end();
+			await bullWorker.close();
+			await shutdownQueue();
 			await snowflakeService.shutdown();
 			await shutdownWorkerDependencies(dependencies);
-			await redis.quit();
-			await runner.stop();
+			await snowflakeRedis.quit();
 			process.exit(0);
 		};
 
@@ -219,9 +276,11 @@ async function main() {
 			shutdown();
 		});
 
-		await runner.promise;
+		await new Promise<void>(() => {
+			// Keep the process alive; bullWorker handles its own loop
+		});
 	} catch (error) {
-		Logger.error({err: error}, 'Failed to start Graphile Worker');
+		Logger.error({err: error}, 'Failed to start BullMQ Worker');
 		Sentry.captureException(error);
 		await Sentry.flush(2000);
 		process.exit(1);

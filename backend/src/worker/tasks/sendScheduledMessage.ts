@@ -20,7 +20,7 @@
  * along with Floodilka. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import type {Task} from 'graphile-worker';
+import type {Task} from '~/worker/TaskTypes';
 import {ScheduledMessageExecutor, type SendScheduledMessageParams} from '~/worker/executors/ScheduledMessageExecutor';
 import {CommonFields, validatePayload} from '~/worker/utils/TaskPayloadValidator';
 import {getWorkerDependencies} from '~/worker/WorkerContext';
