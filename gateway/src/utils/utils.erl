@@ -131,7 +131,8 @@ partial_user_fields() ->
         <<"flags">>,
         <<"banner">>,
         <<"banner_color">>,
-        <<"nameplate">>
+        <<"nameplate">>,
+        <<"premium_type">>
     ].
 
 check_user_data_differs(CurrentUserData, NewUserData) ->
