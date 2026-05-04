@@ -53,9 +53,10 @@ import SavedMessagesStore from '~/stores/SavedMessagesStore';
 import SelectedChannelStore from '~/stores/SelectedChannelStore';
 import SelectedGuildStore from '~/stores/SelectedGuildStore';
 import MediaEngineStore from '~/stores/voice/MediaEngineFacade';
+import {toElectronAccelerator} from '~/utils/KeybindUtils';
 import {goToMessage} from '~/utils/MessageNavigator';
 import {checkNativePermission} from '~/utils/NativePermissions';
-import {getElectronAPI, isNativeMacOS} from '~/utils/NativeUtils';
+import {getElectronAPI, isNativeMacOS, isNativeWindows} from '~/utils/NativeUtils';
 import * as RouterUtils from '~/utils/RouterUtils';
 import {jsKeyToUiohookKeycode} from '~/utils/UiohookKeycodes';
 import {SoundType} from '~/utils/SoundUtils';
@@ -63,8 +64,10 @@ import {ComponentDispatch} from './ComponentDispatch';
 import {type KeybindDescriptor, resolveBindingCode, ShortcutMatcher, type ShortcutSource} from './ShortcutMatcher';
 
 type KeybindHandler = (payload: {type: 'press' | 'release'; source: ShortcutSource}) => void;
+const SHORTCUT_INVOKE_DEDUPE_MS = 250;
 
 interface ActiveBinding {
+	id: string;
 	action: KeybindAction;
 	combo: KeyCombo;
 	allowGlobal: boolean;
@@ -79,6 +82,7 @@ const isAltOnlyArrowCombo = (combo: KeyCombo): boolean => {
 
 const computeAllowInEditable = (action: KeybindAction, combo: KeyCombo): boolean => {
 	if (action === 'push_to_talk') return true;
+	if (combo.global) return true;
 	const hasNonShiftModifier = !!(combo.ctrl || combo.ctrlOrMeta || combo.alt || combo.meta);
 	if (!hasNonShiftModifier) return false;
 	if (isAltOnlyArrowCombo(combo)) return false;
@@ -95,7 +99,14 @@ class KeybindManager {
 	private accessibilityStatus: 'unknown' | 'granted' | 'denied' = 'unknown';
 	private pttReleaseTimer: ReturnType<typeof setTimeout> | null = null;
 	private globalKeyHookUnsubscribes: Array<() => void> = [];
+	private globalShortcutUnsubscribe: (() => void) | null = null;
+	private globalShortcutDomUnsubscribe: (() => void) | null = null;
 	private globalKeyHookStarted = false;
+	private readonly lastGlobalShortcutBridgeEventAt = new Map<string, number>();
+	private readonly lastBindingInvokeAt = new Map<string, number>();
+	private readonly registeredGlobalBindingIds = new Set<string>();
+	private readonly activeGlobalBindings = new Map<string, ActiveBinding>();
+	private globalShortcutRefreshRun = 0;
 
 	private get currentChannelId(): string | null {
 		return SelectedChannelStore.currentChannelId;
@@ -132,15 +143,16 @@ class KeybindManager {
 	private get activeKeybinds(): Array<ActiveBinding> {
 		const result: Array<ActiveBinding> = [];
 		for (const entry of KeybindStore.getAll()) {
-			for (const combo of entry.combos) {
-				if (!(combo.enabled ?? true)) continue;
+			entry.combos.forEach((combo, index) => {
+				if (!(combo.enabled ?? true)) return;
 				result.push({
+					id: `${entry.action}:${index}`,
 					action: entry.action,
 					combo,
 					allowGlobal: entry.allowGlobal ?? false,
 					scope: entry.scope,
 				});
-			}
+			});
 		}
 		return result;
 	}
@@ -155,7 +167,10 @@ class KeybindManager {
 
 	private get activeGlobalKeybinds(): Array<ActiveBinding> {
 		return this.activeKeybinds.filter(
-			(k) => k.allowGlobal && (k.combo.global ?? false) && ((k.combo.key ?? '') !== '' || (k.combo.code ?? '') !== ''),
+			(k) =>
+				k.allowGlobal &&
+				(k.combo.global ?? false) &&
+				((k.combo.key ?? '') !== '' || (k.combo.code ?? '') !== '' || k.combo.mouseButton !== undefined),
 		);
 	}
 
@@ -241,7 +256,8 @@ class KeybindManager {
 
 		this.disposers.push(
 			autorun(() => {
-				void this.refreshGlobalShortcuts();
+				const keybinds = this.activeGlobalKeybinds;
+				void this.refreshGlobalShortcuts(keybinds);
 			}),
 		);
 
@@ -268,12 +284,12 @@ class KeybindManager {
 			),
 		);
 
-		await this.refreshGlobalShortcuts();
+		await this.refreshGlobalShortcuts(this.activeGlobalKeybinds);
 	}
 
 	async reapplyGlobalShortcuts() {
 		if (!this.initialized) return;
-		await this.refreshGlobalShortcuts();
+		await this.refreshGlobalShortcuts(this.activeGlobalKeybinds);
 	}
 
 	destroy() {
@@ -290,13 +306,65 @@ class KeybindManager {
 
 		const electronApi = getElectronAPI();
 		void electronApi?.globalKeyHookUnregisterAll?.().catch(() => {});
+		void electronApi?.unregisterAllGlobalShortcuts?.().catch(() => {});
 
 		this.stopGlobalKeyHook();
+		this.stopGlobalShortcutBridge();
+		this.registeredGlobalBindingIds.clear();
+		this.activeGlobalBindings.clear();
+		this.lastGlobalShortcutBridgeEventAt.clear();
+		this.lastBindingInvokeAt.clear();
 
 		this.handlers.clear();
 
 		this.matcher?.detach();
 		this.matcher = null;
+	}
+
+	private canUseElectronGlobalShortcut(binding: ActiveBinding): boolean {
+		if (binding.action === 'push_to_talk') return false;
+		if (binding.combo.mouseButton) return false;
+		return toElectronAccelerator(binding.combo) !== null;
+	}
+
+	private invokeBinding(binding: ActiveBinding, type: 'press' | 'release', source: ShortcutSource): void {
+		if (!this.isScopeActive(binding.scope)) return;
+		const handler = this.handlers.get(binding.action);
+		if (!handler) return;
+		const dedupeKey = `${binding.id}:${type}`;
+		const now = Date.now();
+		const lastInvokeAt = this.lastBindingInvokeAt.get(dedupeKey) ?? 0;
+		if (now - lastInvokeAt < SHORTCUT_INVOKE_DEDUPE_MS) return;
+		this.lastBindingInvokeAt.set(dedupeKey, now);
+		handler({type, source});
+	}
+
+	private findGlobalBinding(id: string): ActiveBinding | undefined {
+		const exact = this.activeGlobalBindings.get(id);
+		if (exact) return exact;
+
+		const action = id.split(':')[0] as KeybindAction;
+		return (
+			this.activeGlobalBindings.get(`${action}:0`) ??
+			[...this.activeGlobalBindings.values()].find((binding) => binding.action === action)
+		);
+	}
+
+	private invokeGlobalBinding(id: string, type: 'press' | 'release'): void {
+		if (this.suspended) return;
+
+		const binding = this.findGlobalBinding(id);
+		if (!binding) {
+			const action = id.split(':')[0] as KeybindAction;
+			const handler = this.handlers.get(action);
+			if (handler) {
+				handler({type, source: 'global'});
+				return;
+			}
+			console.warn('[PTT:KeybindManager] Global shortcut received for unknown binding', {id});
+			return;
+		}
+		this.invokeBinding(binding, type, 'global');
 	}
 
 	private async startGlobalKeyHook(): Promise<boolean> {
@@ -315,7 +383,7 @@ class KeybindManager {
 		this.globalKeyHookStarted = true;
 
 		const triggeredUnsub = electronApi.onGlobalKeybindTriggered?.((event) => {
-			this.matcher?.triggerFromGlobal(event.id, event.type === 'keydown' ? 'press' : 'release');
+			this.invokeGlobalBinding(event.id, event.type === 'keydown' ? 'press' : 'release');
 		});
 		if (triggeredUnsub) this.globalKeyHookUnsubscribes.push(triggeredUnsub);
 
@@ -333,6 +401,40 @@ class KeybindManager {
 		}
 
 		this.globalKeyHookStarted = false;
+	}
+
+	private stopGlobalShortcutBridge(): void {
+		this.globalShortcutUnsubscribe?.();
+		this.globalShortcutUnsubscribe = null;
+		this.globalShortcutDomUnsubscribe?.();
+		this.globalShortcutDomUnsubscribe = null;
+	}
+
+	private startGlobalShortcutBridge(electronApi: NonNullable<ReturnType<typeof getElectronAPI>>): void {
+		const handleShortcut = (id: string, _bridge: 'ipc' | 'dom') => {
+			const now = Date.now();
+			const lastEventAt = this.lastGlobalShortcutBridgeEventAt.get(id) ?? 0;
+			if (now - lastEventAt < 100) return;
+			this.lastGlobalShortcutBridgeEventAt.set(id, now);
+			this.invokeGlobalBinding(id, 'press');
+		};
+
+		this.globalShortcutUnsubscribe =
+			electronApi.onGlobalShortcut?.((id) => {
+				handleShortcut(id, 'ipc');
+			}) ?? null;
+
+		const domHandler = (event: Event) => {
+			const id = (event as CustomEvent<{id?: string}>).detail?.id;
+			if (!id) return;
+			handleShortcut(id, 'dom');
+		};
+		window.addEventListener('floodilka-global-shortcut', domHandler);
+		window.addEventListener('floodilka-global-shortcut-main', domHandler);
+		this.globalShortcutDomUnsubscribe = () => {
+			window.removeEventListener('floodilka-global-shortcut', domHandler);
+			window.removeEventListener('floodilka-global-shortcut-main', domHandler);
+		};
 	}
 
 	suspend(): void {
@@ -800,24 +902,42 @@ class KeybindManager {
 		});
 	}
 
-	private async refreshGlobalShortcuts() {
+	private async refreshGlobalShortcuts(keybinds = this.activeGlobalKeybinds) {
+		const refreshRun = ++this.globalShortcutRefreshRun;
+		const isCurrentRefresh = () => refreshRun === this.globalShortcutRefreshRun;
 		const electronApi = getElectronAPI();
-		if (!electronApi?.globalKeyHookStart) {
-			console.info('[PTT:refreshGlobal] No electronApi.globalKeyHookStart — web mode');
+		const hasGlobalKeyHook = !!electronApi?.globalKeyHookStart;
+		const hasGlobalShortcut = !!electronApi?.registerGlobalShortcut;
+		if (!hasGlobalKeyHook && !hasGlobalShortcut) {
+			console.info('[PTT:refreshGlobal] No global shortcut backend available');
 			return;
 		}
+
+		this.registeredGlobalBindingIds.clear();
+		this.activeGlobalBindings.clear();
+		this.lastGlobalShortcutBridgeEventAt.clear();
+		this.lastBindingInvokeAt.clear();
+		this.stopGlobalShortcutBridge();
 
 		try {
 			await electronApi.globalKeyHookUnregisterAll?.();
 		} catch (error) {
 			console.error('Failed to unregister global keybinds', error);
 		}
+		if (!isCurrentRefresh()) return;
 
-		const keybinds = this.activeGlobalKeybinds;
+		try {
+			await electronApi.unregisterAllGlobalShortcuts?.();
+		} catch (error) {
+			console.error('Failed to unregister global shortcuts', error);
+		}
+		if (!isCurrentRefresh()) return;
+
 		console.info(
 			'[PTT:refreshGlobal] Active global keybinds:',
 			keybinds.map((k) => ({
 				action: k.action,
+				id: k.id,
 				key: k.combo.key,
 				code: k.combo.code,
 				global: k.combo.global,
@@ -826,28 +946,84 @@ class KeybindManager {
 		);
 
 		if (!keybinds.length) {
-			console.info('[PTT:refreshGlobal] No global keybinds → stopping hook');
+			console.info('[PTT:refreshGlobal] No global keybinds -> stopping hook');
 			this.globalShortcutsEnabled = false;
 			this.stopGlobalKeyHook();
 			return;
 		}
 
+		const shortcutBindings: Array<ActiveBinding> = [];
+		const hookBindings: Array<ActiveBinding> = [];
+
+		for (const binding of keybinds) {
+			if (isNativeWindows() && this.canUseElectronGlobalShortcut(binding)) {
+				shortcutBindings.push(binding);
+			} else {
+				hookBindings.push(binding);
+			}
+		}
+
+		if (shortcutBindings.length > 0) {
+			this.startGlobalShortcutBridge(electronApi);
+			hookBindings.push(...shortcutBindings);
+		}
+
+		for (const binding of shortcutBindings) {
+			const accelerator = toElectronAccelerator(binding.combo);
+			if (!accelerator) {
+				hookBindings.push(binding);
+				continue;
+			}
+
+			try {
+				const success = await electronApi.registerGlobalShortcut?.(accelerator, binding.id);
+				if (!isCurrentRefresh()) return;
+				if (success) {
+					this.registeredGlobalBindingIds.add(binding.id);
+					this.activeGlobalBindings.set(binding.id, binding);
+					continue;
+				}
+				console.warn('[PTT:refreshGlobal] Electron global shortcut registration returned false', {
+					id: binding.id,
+					action: binding.action,
+					accelerator,
+				});
+			} catch (error) {
+				console.error(`Failed to register Electron global shortcut ${binding.id}`, error);
+			}
+		}
+
+		if (hookBindings.length === 0) {
+			this.stopGlobalKeyHook();
+			this.globalShortcutsEnabled = this.registeredGlobalBindingIds.size > 0;
+			console.info('[PTT:refreshGlobal] Done, globalShortcutsEnabled =', this.globalShortcutsEnabled);
+			return;
+		}
+
 		if (!(await this.checkInputMonitoringPermission())) {
+			if (!isCurrentRefresh()) return;
 			console.warn('[PTT:refreshGlobal] Input monitoring permission denied');
+			this.stopGlobalKeyHook();
+			this.globalShortcutsEnabled = this.registeredGlobalBindingIds.size > 0;
 			return;
 		}
 
 		const started = await this.startGlobalKeyHook();
+		if (!isCurrentRefresh()) return;
 		if (!started) {
 			console.warn('[PTT:refreshGlobal] Failed to start global key hook');
+			this.stopGlobalKeyHook();
+			this.globalShortcutsEnabled = this.registeredGlobalBindingIds.size > 0;
 			return;
 		}
 
 		const isMac = isNativeMacOS();
 
-		for (const keybind of keybinds) {
+		for (const keybind of hookBindings) {
 			const mouseButton = keybind.combo.mouseButton;
-			const keycode = mouseButton ? null : jsKeyToUiohookKeycode(keybind.combo.code ?? keybind.combo.key);
+			const keycode = mouseButton
+				? null
+				: (jsKeyToUiohookKeycode(keybind.combo.code) ?? jsKeyToUiohookKeycode(keybind.combo.key));
 			if (!mouseButton && keycode === null) {
 				console.warn('[PTT:refreshGlobal] SKIP: no keycode/mouseButton for', keybind);
 				continue;
@@ -855,7 +1031,7 @@ class KeybindManager {
 
 			try {
 				await electronApi.globalKeyHookRegister?.({
-					id: keybind.action,
+					id: keybind.id,
 					keycode: keycode ?? 0,
 					mouseButton,
 					ctrl: !!(keybind.combo.ctrl || (!isMac && keybind.combo.ctrlOrMeta)),
@@ -863,13 +1039,16 @@ class KeybindManager {
 					shift: !!keybind.combo.shift,
 					meta: !!(keybind.combo.meta || (isMac && keybind.combo.ctrlOrMeta)),
 				});
+				if (!isCurrentRefresh()) return;
+				this.registeredGlobalBindingIds.add(keybind.id);
+				this.activeGlobalBindings.set(keybind.id, keybind);
 			} catch (error) {
 				console.error(`Failed to register global keybind ${keybind.action}`, error);
 			}
 		}
 
-		this.globalShortcutsEnabled = true;
-		console.info('[PTT:refreshGlobal] Done, globalShortcutsEnabled = true');
+		this.globalShortcutsEnabled = this.registeredGlobalBindingIds.size > 0;
+		console.info('[PTT:refreshGlobal] Done, globalShortcutsEnabled =', this.globalShortcutsEnabled);
 	}
 
 	private refreshLocalShortcuts() {
@@ -885,16 +1064,10 @@ class KeybindManager {
 	}
 
 	private buildDescriptor(entry: ActiveBinding): KeybindDescriptor<KeybindAction> | null {
-		const handler = this.handlers.get(entry.action);
-		if (!handler) return null;
+		if (!this.handlers.has(entry.action)) return null;
 
 		const {action, combo, scope} = entry;
 		const isPtt = action === 'push_to_talk';
-
-		const invoke = (type: 'press' | 'release', source: ShortcutSource): void => {
-			if (source === 'local' && this.globalShortcutsEnabled && (combo.global ?? false)) return;
-			handler({type, source});
-		};
 
 		return {
 			action,
@@ -902,8 +1075,8 @@ class KeybindManager {
 			allowInEditable: computeAllowInEditable(action, combo),
 			preventDefault: !isPtt,
 			isActive: scope ? () => this.isScopeActive(scope) : undefined,
-			onPress: (source) => invoke('press', source),
-			onRelease: (source) => invoke('release', source),
+			onPress: (source) => this.invokeBinding(entry, 'press', source),
+			onRelease: (source) => this.invokeBinding(entry, 'release', source),
 		};
 	}
 }

@@ -418,7 +418,8 @@ const getDefaultKeybinds = (i18n: I18n): ReadonlyArray<KeybindConfig> =>
 			action: 'toggle_screen_share',
 			label: i18n._(msg`Toggle Screen Share`),
 			description: i18n._(msg`Start / stop screen sharing`),
-			defaultCombo: {key: 's', ctrlOrMeta: true, shift: true},
+			defaultCombo: {key: 's', ctrlOrMeta: true, shift: true, global: true, enabled: true},
+			allowGlobal: true,
 			category: 'voice',
 		},
 		{
