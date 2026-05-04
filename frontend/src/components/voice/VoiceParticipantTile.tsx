@@ -360,9 +360,8 @@ function useScreenshareWatchSubscription(opts: {
 	trackRef: TrackReferenceOrPlaceholder;
 	userWantsToWatch: boolean;
 	videoLocallyDisabled: boolean;
-	isWindowFocused: boolean;
 }) {
-	const {isScreenShare, trackRef, userWantsToWatch, videoLocallyDisabled, isWindowFocused} = opts;
+	const {isScreenShare, trackRef, userWantsToWatch, videoLocallyDisabled} = opts;
 
 	// Keep a stable ref to the current publication so cleanup doesn't chase trackRef changes
 	const pubRef = useRef<RemoteTrackPublication | null>(null);
@@ -446,26 +445,6 @@ function useScreenshareWatchSubscription(opts: {
 		// trackRef changes on every track state update and would cause subscribe/unsubscribe loops.
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [shouldWatch]);
-
-	// Handle enable/disable based on window focus separately (no subscribe/unsubscribe)
-	useEffect(() => {
-		if (!shouldWatch) return;
-
-		if (pubRef.current && typeof pubRef.current.setEnabled === 'function') {
-			try {
-				pubRef.current.setEnabled(isWindowFocused);
-			} catch (err) {
-				console.error('[Screenshare] setEnabled failed', err);
-			}
-		}
-		for (const audioPub of audioPubsRef.current) {
-			try {
-				audioPub.setEnabled(isWindowFocused);
-			} catch {
-				// ignore
-			}
-		}
-	}, [shouldWatch, isWindowFocused]);
 }
 
 function useWindowFocus() {
@@ -648,7 +627,6 @@ const VoiceParticipantTileInner = observer(function VoiceParticipantTileInner({
 		trackRef,
 		userWantsToWatch,
 		videoLocallyDisabled,
-		isWindowFocused,
 	});
 
 	useEffect(() => {

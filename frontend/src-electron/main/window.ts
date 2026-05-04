@@ -399,6 +399,7 @@ export function createWindow(onReady?: () => void): BrowserWindow {
 			webSecurity: true,
 			allowRunningInsecureContent: false,
 			spellcheck: true,
+			backgroundThrottling: false,
 		},
 	};
 

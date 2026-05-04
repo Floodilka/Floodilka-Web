@@ -61,10 +61,9 @@ if (process.platform === 'win32') {
 }
 
 app.commandLine.appendSwitch('autoplay-policy', 'no-user-gesture-required');
-if (process.platform === 'win32') {
-	app.commandLine.appendSwitch('disable-background-timer-throttling');
-	app.commandLine.appendSwitch('disable-renderer-backgrounding');
-}
+app.commandLine.appendSwitch('disable-background-timer-throttling');
+app.commandLine.appendSwitch('disable-renderer-backgrounding');
+app.commandLine.appendSwitch('disable-backgrounding-occluded-windows');
 
 if (process.platform === 'win32') {
 	const appId = isCanary ? 'com.floodilka.desktop.canary' : 'com.floodilka.desktop';
