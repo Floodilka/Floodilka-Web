@@ -77,6 +77,8 @@ import {getMainWindow} from './window.js';
 import {setWindowsBadgeOverlay} from './windows-badge.js';
 
 const registeredShortcuts = new Map<string, string>();
+const lastGlobalShortcutTriggerAt = new Map<string, number>();
+const GLOBAL_SHORTCUT_REPEAT_SUPPRESS_MS = 350;
 
 interface ActiveNotification {
 	notification: Notification;
@@ -536,15 +538,38 @@ export function registerIpcHandlers(): void {
 			globalShortcut.unregister(accelerator);
 		}
 
-		const success = globalShortcut.register(accelerator, () => {
-			const mainWindow = getMainWindow();
-			if (mainWindow) {
-				mainWindow.webContents.send('global-shortcut-triggered', id);
-			}
-		});
+		let success = false;
+		try {
+			success = globalShortcut.register(accelerator, () => {
+				const now = Date.now();
+				const lastTriggeredAt = lastGlobalShortcutTriggerAt.get(id) ?? 0;
+				if (now - lastTriggeredAt < GLOBAL_SHORTCUT_REPEAT_SUPPRESS_MS) {
+					return;
+				}
+				lastGlobalShortcutTriggerAt.set(id, now);
+				const mainWindow = getMainWindow();
+				if (mainWindow) {
+					mainWindow.webContents.send('global-shortcut-triggered', id);
+					mainWindow.webContents
+						.executeJavaScript(
+							`window.dispatchEvent(new CustomEvent('floodilka-global-shortcut-main', { detail: { id: ${JSON.stringify(
+								id,
+							)} } }))`,
+						)
+						.catch((error) => {
+							console.error('[globalShortcut] failed to dispatch renderer event', {id, error});
+						});
+				}
+			});
+		} catch (error) {
+			console.error('[globalShortcut] register failed', {accelerator, id, error});
+			return false;
+		}
 
 		if (success) {
 			registeredShortcuts.set(accelerator, id);
+		} else {
+			console.warn('[globalShortcut] register returned false', {accelerator, id});
 		}
 
 		return success;
@@ -552,14 +577,17 @@ export function registerIpcHandlers(): void {
 
 	ipcMain.handle('unregister-global-shortcut', (_event, accelerator: string): void => {
 		if (registeredShortcuts.has(accelerator)) {
+			const id = registeredShortcuts.get(accelerator);
 			globalShortcut.unregister(accelerator);
 			registeredShortcuts.delete(accelerator);
+			if (id) lastGlobalShortcutTriggerAt.delete(id);
 		}
 	});
 
 	ipcMain.handle('unregister-all-global-shortcuts', (): void => {
 		globalShortcut.unregisterAll();
 		registeredShortcuts.clear();
+		lastGlobalShortcutTriggerAt.clear();
 	});
 
 	ipcMain.handle('check-media-access', (_event, type: MediaAccessType): string => {

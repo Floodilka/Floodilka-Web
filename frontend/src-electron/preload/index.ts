@@ -319,6 +319,10 @@ const api: ElectronAPI = {
 		ipcRenderer.invoke('spellcheck-add-word-to-dictionary', word),
 };
 
+ipcRenderer.on('global-shortcut-triggered', (_event, id: string) => {
+	window.dispatchEvent(new CustomEvent('floodilka-global-shortcut', {detail: {id}}));
+});
+
 window.addEventListener(
 	'contextmenu',
 	(event) => {
