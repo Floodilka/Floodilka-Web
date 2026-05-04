@@ -31,6 +31,7 @@ let UiohookKey: typeof import('uiohook-napi').UiohookKey | null = null;
 interface KeybindRegistration {
 	id: string;
 	keycode: number;
+	keycodes: Set<number>;
 	mouseButton?: number;
 	modifiers: {
 		ctrl: boolean;
@@ -39,6 +40,8 @@ interface KeybindRegistration {
 		meta: boolean;
 	};
 }
+
+type ModifierState = KeybindRegistration['modifiers'];
 
 const registeredKeybinds = new Map<string, KeybindRegistration>();
 const activeKeys = new Set<number>();
@@ -133,9 +136,59 @@ function keycodeToKeyName(keycode: number): string {
 		[UiohookKey.End]: 'End',
 		[UiohookKey.PageUp]: 'PageUp',
 		[UiohookKey.PageDown]: 'PageDown',
+		[UiohookKey.NumpadHome]: 'Home',
+		[UiohookKey.NumpadEnd]: 'End',
+		[UiohookKey.NumpadPageUp]: 'PageUp',
+		[UiohookKey.NumpadPageDown]: 'PageDown',
+		[UiohookKey.NumpadInsert]: 'Insert',
+		[UiohookKey.NumpadDelete]: 'Delete',
 	};
 
 	return keyMap[keycode] ?? `Key${keycode}`;
+}
+
+function expandKeycodeAliases(keycode: number): Set<number> {
+	const keycodes = new Set([keycode]);
+	if (!UiohookKey) return keycodes;
+
+	const aliasGroups = [
+		[UiohookKey.Home, UiohookKey.NumpadHome],
+		[UiohookKey.End, UiohookKey.NumpadEnd],
+		[UiohookKey.PageUp, UiohookKey.NumpadPageUp],
+		[UiohookKey.PageDown, UiohookKey.NumpadPageDown],
+		[UiohookKey.Insert, UiohookKey.NumpadInsert],
+		[UiohookKey.Delete, UiohookKey.NumpadDelete],
+		[UiohookKey.ArrowUp, UiohookKey.NumpadArrowUp],
+		[UiohookKey.ArrowDown, UiohookKey.NumpadArrowDown],
+		[UiohookKey.ArrowLeft, UiohookKey.NumpadArrowLeft],
+		[UiohookKey.ArrowRight, UiohookKey.NumpadArrowRight],
+	];
+
+	for (const group of aliasGroups) {
+		if (group.includes(keycode)) {
+			group.forEach((alias) => keycodes.add(alias));
+			break;
+		}
+	}
+
+	return keycodes;
+}
+
+function hasActiveModifierKey(keycodes: Array<number | undefined>): boolean {
+	return keycodes.some((keycode) => keycode !== undefined && activeKeys.has(keycode));
+}
+
+function getModifierState(event: UiohookKeyboardEvent): ModifierState {
+	return {
+		ctrl: Boolean(event.ctrlKey) || hasActiveModifierKey([UiohookKey?.Ctrl, UiohookKey?.CtrlRight]),
+		alt: Boolean(event.altKey) || hasActiveModifierKey([UiohookKey?.Alt, UiohookKey?.AltRight]),
+		shift: Boolean(event.shiftKey) || hasActiveModifierKey([UiohookKey?.Shift, UiohookKey?.ShiftRight]),
+		meta: Boolean(event.metaKey) || hasActiveModifierKey([UiohookKey?.Meta, UiohookKey?.MetaRight]),
+	};
+}
+
+function modifiersEqual(a: ModifierState, b: ModifierState): boolean {
+	return a.ctrl === b.ctrl && a.alt === b.alt && a.shift === b.shift && a.meta === b.meta;
 }
 
 function handleKeyEvent(event: UiohookKeyboardEvent, type: 'keydown' | 'keyup') {
@@ -151,23 +204,21 @@ function handleKeyEvent(event: UiohookKeyboardEvent, type: 'keydown' | 'keyup') 
 		activeKeys.delete(keycode);
 	}
 
+	const modifiers = getModifierState(event);
+
 	mainWindow.webContents.send('global-key-event', {
 		type,
 		keycode,
 		keyName,
-		altKey: event.altKey,
-		ctrlKey: event.ctrlKey,
-		shiftKey: event.shiftKey,
-		metaKey: event.metaKey,
+		altKey: modifiers.alt,
+		ctrlKey: modifiers.ctrl,
+		shiftKey: modifiers.shift,
+		metaKey: modifiers.meta,
 	});
 
 	for (const [id, keybind] of registeredKeybinds) {
-		if (keybind.keycode === keycode) {
-			const modifiersMatch =
-				keybind.modifiers.ctrl === event.ctrlKey &&
-				keybind.modifiers.alt === event.altKey &&
-				keybind.modifiers.shift === event.shiftKey &&
-				keybind.modifiers.meta === event.metaKey;
+		if (keybind.keycodes.has(keycode)) {
+			const modifiersMatch = modifiersEqual(keybind.modifiers, modifiers);
 
 			if (modifiersMatch || !Object.values(keybind.modifiers).some(Boolean)) {
 				mainWindow.webContents.send('global-keybind-triggered', {
@@ -314,9 +365,11 @@ export function registerGlobalKeyHookHandlers(): void {
 				meta?: boolean;
 			},
 		): void => {
+			const keycode = options.keycode ?? 0;
 			registeredKeybinds.set(options.id, {
 				id: options.id,
-				keycode: options.keycode ?? 0,
+				keycode,
+				keycodes: expandKeycodeAliases(keycode),
 				mouseButton: options.mouseButton,
 				modifiers: {
 					ctrl: options.ctrl ?? false,
