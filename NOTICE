@@ -1,0 +1,59 @@
+Floodilka
+=========
+
+Floodilka is an instant messaging and VoIP platform, distributed under the
+GNU Affero General Public License version 3 (AGPLv3). See the LICENSE file
+for the full license text.
+
+Origin
+------
+
+Floodilka is a fork of Fluxer (https://github.com/fluxerapp/fluxer),
+originally created by Hampus Kraft and the Fluxer Contributors. Fluxer is
+licensed under the GNU Affero General Public License version 3 by Fluxer
+Platform AB.
+
+The Floodilka project was forked from Fluxer in March 2026. Subsequent
+modifications were made by Floodilka Contributors and are also licensed under
+AGPLv3.
+
+Copyright
+---------
+
+  Copyright (C) 2020-2026 Fluxer Contributors
+  Copyright (C) 2025-2026 Eldar Tengizov
+  Copyright (C) 2026 Floodilka Contributors
+
+Source code
+-----------
+
+The complete corresponding source code for the Floodilka web client, desktop
+client, and server-side components is available at:
+
+  https://github.com/Floodilka/Floodilka-Web
+
+This source repository satisfies the requirements of AGPLv3 sections 6 and 13
+for code that is conveyed in binary form and for code that is interacted with
+remotely over a network.
+
+Mobile clients
+--------------
+
+The Floodilka iOS and Android mobile clients are independent works authored
+from scratch by Floodilka Contributors and are not derived from Fluxer or any
+AGPLv3-licensed code. They are distributed under their own proprietary
+license, separate from this repository.
+
+The mobile clients connect to AGPLv3-licensed Floodilka server components
+over a network protocol; per AGPLv3 section 13, source code for the server
+components is made available at the URL above.
+
+Trademarks
+----------
+
+"Fluxer" and the Fluxer logos are properties of Fluxer Platform AB. They are
+referenced in this NOTICE solely for the purpose of attribution under
+AGPLv3 sections 4, 5(a) and 5(b). Use of the "Fluxer" name does not imply
+endorsement by or affiliation with Fluxer Platform AB.
+
+"Floodilka" and the Floodilka logos are properties of Floodilka Contributors.

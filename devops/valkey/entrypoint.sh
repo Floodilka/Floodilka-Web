@@ -1,8 +1,11 @@
 #!/bin/sh
 
+# Copyright (C) 2020-2026 Fluxer Contributors
 # Copyright (C) 2026 Floodilka Contributors
 #
-# This file is part of Floodilka.
+# This file is part of Floodilka, a fork of Fluxer
+# (https://github.com/fluxerapp/fluxer).
+# Modified by Floodilka Contributors starting March 2026.
 #
 # Floodilka is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published by

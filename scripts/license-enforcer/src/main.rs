@@ -1,9 +1,12 @@
 #![allow(clippy::four_forward_slashes)]
 
 /*
+ * Copyright (C) 2020-2026 Fluxer Contributors
  * Copyright (C) 2026 Floodilka Contributors
  *
- * This file is part of Floodilka.
+ * This file is part of Floodilka, a fork of Fluxer
+ * (https://github.com/fluxerapp/fluxer).
+ * Modified by Floodilka Contributors starting March 2026.
  *
  * Floodilka is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -26,9 +29,12 @@ use std::path::{Path, PathBuf};
 use walkdir::WalkDir;
 
 const TS_LICENSE_HEADER: &str = r"/*
+ * Copyright (C) 2020-2026 Fluxer Contributors
  * Copyright (C) {year} Floodilka Contributors
  *
- * This file is part of Floodilka.
+ * This file is part of Floodilka, a fork of Fluxer
+ * (https://github.com/fluxerapp/fluxer).
+ * Modified by Floodilka Contributors starting March 2026.
  *
  * Floodilka is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -44,9 +50,12 @@ const TS_LICENSE_HEADER: &str = r"/*
  * along with Floodilka. If not, see <https://www.gnu.org/licenses/>.
  */";
 
-const ERLANG_LICENSE_HEADER: &str = r"%% Copyright (C) {year} Floodilka Contributors
+const ERLANG_LICENSE_HEADER: &str = r"%% Copyright (C) 2020-2026 Fluxer Contributors
+%% Copyright (C) {year} Floodilka Contributors
 %%
-%% This file is part of Floodilka.
+%% This file is part of Floodilka, a fork of Fluxer
+%% (https://github.com/fluxerapp/fluxer).
+%% Modified by Floodilka Contributors starting March 2026.
 %%
 %% Floodilka is free software: you can redistribute it and/or modify
 %% it under the terms of the GNU Affero General Public License as published by
@@ -61,9 +70,12 @@ const ERLANG_LICENSE_HEADER: &str = r"%% Copyright (C) {year} Floodilka Contribu
 %% You should have received a copy of the GNU Affero General Public License
 %% along with Floodilka. If not, see <https://www.gnu.org/licenses/>.";
 
-const GLEAM_LICENSE_HEADER: &str = r"//// Copyright (C) {year} Floodilka Contributors
+const GLEAM_LICENSE_HEADER: &str = r"//// Copyright (C) 2020-2026 Fluxer Contributors
+//// Copyright (C) {year} Floodilka Contributors
 ////
-//// This file is part of Floodilka.
+//// This file is part of Floodilka, a fork of Fluxer
+//// (https://github.com/fluxerapp/fluxer).
+//// Modified by Floodilka Contributors starting March 2026.
 ////
 //// Floodilka is free software: you can redistribute it and/or modify
 //// it under the terms of the GNU Affero General Public License as published by
@@ -78,9 +90,12 @@ const GLEAM_LICENSE_HEADER: &str = r"//// Copyright (C) {year} Floodilka Contrib
 //// You should have received a copy of the GNU Affero General Public License
 //// along with Floodilka. If not, see <https://www.gnu.org/licenses/>.";
 
-const SHELL_LICENSE_HEADER: &str = r"# Copyright (C) {year} Floodilka Contributors
+const SHELL_LICENSE_HEADER: &str = r"# Copyright (C) 2020-2026 Fluxer Contributors
+# Copyright (C) {year} Floodilka Contributors
 #
-# This file is part of Floodilka.
+# This file is part of Floodilka, a fork of Fluxer
+# (https://github.com/fluxerapp/fluxer).
+# Modified by Floodilka Contributors starting March 2026.
 #
 # Floodilka is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published by

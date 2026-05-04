@@ -1,10 +1,18 @@
           Floodilka - An instant messaging and VoIP platform
+
+  Floodilka is a fork of Fluxer (https://github.com/fluxerapp/fluxer),
+  originally created by Hampus Kraft and the Fluxer Contributors.
+
+                Copyright (C) 2020-2026 Fluxer Contributors
                 Copyright (C) 2025-2026 Eldar Tengizov
                 Copyright (C) 2026 Floodilka Contributors
 
-  This program is free software: you can redistribute it and/or modify 
+  See the NOTICE file for the history of the fork and the scope of
+  modifications by Floodilka Contributors.
+
+  This program is free software: you can redistribute it and/or modify
   it under the terms of the GNU Affero General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or 
+    the Free Software Foundation, either version 3 of the License, or
                 (at your option) any later version.
 
                     GNU AFFERO GENERAL PUBLIC LICENSE
