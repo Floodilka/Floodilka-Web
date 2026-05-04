@@ -73,3 +73,81 @@ export const formatKeyCombo = (combo: KeyCombo): string => {
 	}
 	return parts.join(' + ');
 };
+
+const CODE_TO_ACCELERATOR_KEY: Record<string, string> = {
+	Backquote: '`',
+	Minus: '-',
+	Equal: '=',
+	Backspace: 'Backspace',
+	Tab: 'Tab',
+	BracketLeft: '[',
+	BracketRight: ']',
+	Backslash: '\\',
+	CapsLock: 'CapsLock',
+	Semicolon: ';',
+	Quote: "'",
+	Enter: 'Enter',
+	Comma: ',',
+	Period: '.',
+	Slash: '/',
+	Space: 'Space',
+	Delete: 'Delete',
+	Insert: 'Insert',
+	Home: 'Home',
+	End: 'End',
+	PageUp: 'PageUp',
+	PageDown: 'PageDown',
+	NumpadHome: 'Home',
+	NumpadEnd: 'End',
+	NumpadPageUp: 'PageUp',
+	NumpadPageDown: 'PageDown',
+	NumpadInsert: 'Insert',
+	NumpadDelete: 'Delete',
+	NumpadArrowUp: 'Up',
+	NumpadArrowDown: 'Down',
+	NumpadArrowLeft: 'Left',
+	NumpadArrowRight: 'Right',
+	ArrowUp: 'Up',
+	ArrowDown: 'Down',
+	ArrowLeft: 'Left',
+	ArrowRight: 'Right',
+	Escape: 'Escape',
+};
+
+const codeToAcceleratorKey = (code: string): string | null => {
+	if (KEY_CODE_RE.test(code)) return code.slice(3);
+	if (DIGIT_CODE_RE.test(code)) return code.slice(5);
+	if (/^F([1-9]|1[0-9]|2[0-4])$/.test(code)) return code;
+	if (/^[a-zA-Z]$/.test(code)) return code.toUpperCase();
+	if (/^[0-9]$/.test(code)) return code;
+	return CODE_TO_ACCELERATOR_KEY[code] ?? null;
+};
+
+export const toElectronAccelerator = (combo: KeyCombo): string | null => {
+	if (combo.mouseButton) return null;
+
+	const parts: Array<string> = [];
+	if (combo.ctrlOrMeta) {
+		parts.push('CommandOrControl');
+	}
+	if (combo.ctrl) {
+		parts.push('Ctrl');
+	}
+	if (combo.meta) {
+		parts.push('Super');
+	}
+	if (combo.alt) {
+		parts.push('Alt');
+	}
+	if (combo.shift) {
+		parts.push('Shift');
+	}
+
+	const key = combo.code ? codeToAcceleratorKey(combo.code) : null;
+	const fallbackKey = combo.key ? codeToAcceleratorKey(combo.key) : null;
+	const acceleratorKey = key ?? fallbackKey;
+	if (!acceleratorKey) return null;
+
+	parts.push(acceleratorKey);
+	return parts.join('+');
+};

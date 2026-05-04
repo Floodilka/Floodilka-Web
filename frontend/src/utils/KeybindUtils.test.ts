@@ -21,7 +21,7 @@
  */
 
 import {describe, expect, test} from 'vitest';
-import {formatKeyCombo, resolveComboKey} from '~/utils/KeybindUtils';
+import {formatKeyCombo, resolveComboKey, toElectronAccelerator} from '~/utils/KeybindUtils';
 
 describe('resolveComboKey', () => {
 	describe('KeyX code normalization', () => {
@@ -195,5 +195,14 @@ describe('formatKeyCombo', () => {
 			const result = formatKeyCombo({key: 'Enter', code: 'Enter'});
 			expect(result).toBe('Enter');
 		});
+	});
+});
+
+describe('toElectronAccelerator', () => {
+	test('uses key fallback when physical numpad navigation code cannot be registered directly', () => {
+		expect(toElectronAccelerator({key: 'PageUp', code: 'NumpadPageUp'})).toBe('PageUp');
+		expect(toElectronAccelerator({key: 'PageDown', code: 'NumpadPageDown'})).toBe('PageDown');
+		expect(toElectronAccelerator({key: 'Home', code: 'NumpadHome'})).toBe('Home');
+		expect(toElectronAccelerator({key: 'End', code: 'NumpadEnd'})).toBe('End');
 	});
 });
