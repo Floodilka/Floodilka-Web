@@ -23,8 +23,6 @@
 process.env.NODE_ENV = 'development';
 process.env.PORT = '3000';
 
-process.env.DATABASE_URL = 'postgresql://test:test@localhost:5432/test';
-
 process.env.CASSANDRA_HOSTS = 'localhost';
 process.env.CASSANDRA_KEYSPACE = 'floodilka';
 process.env.CASSANDRA_LOCAL_DC = 'datacenter1';

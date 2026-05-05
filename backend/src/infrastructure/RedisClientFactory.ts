@@ -41,13 +41,21 @@ function buildSentinelOptions(extra: RedisOptions = {}): RedisOptions {
 	};
 }
 
+function requireUrl(): string {
+	if (!Config.redis.url) {
+		throw new Error('Redis configuration missing: set VALKEY_SENTINELS or REDIS_URL');
+	}
+	return Config.redis.url;
+}
+
 function buildUrlOptions(extra: RedisOptions = {}): {url: string; opts: RedisOptions} {
-	const url = new URL(Config.redis.url);
+	const rawUrl = requireUrl();
+	const url = new URL(rawUrl);
 	const decoded: RedisOptions = {
 		password: url.password ? decodeURIComponent(url.password) : undefined,
 		username: url.username ? decodeURIComponent(url.username) : undefined,
 	};
-	return {url: Config.redis.url, opts: {...decoded, ...extra}};
+	return {url: rawUrl, opts: {...decoded, ...extra}};
 }
 
 export function createRedisClient(extra: RedisOptions = {}): Redis {
@@ -66,7 +74,7 @@ export function buildBullMQConnectionOptions(): RedisOptions {
 	if (isSentinelMode()) {
 		return buildSentinelOptions(base);
 	}
-	const url = new URL(Config.redis.url);
+	const url = new URL(requireUrl());
 	return {
 		host: url.hostname,
 		port: Number(url.port || 6379),

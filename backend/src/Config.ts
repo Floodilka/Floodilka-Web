@@ -88,10 +88,6 @@ const ConfigSchema = z.object({
 	nodeEnv: z.enum(['development', 'production']),
 	port: z.number(),
 
-	postgres: z.object({
-		url: z.string(),
-	}),
-
 	cassandra: z.object({
 		hosts: z.string(),
 		keyspace: z.string(),
@@ -101,7 +97,7 @@ const ConfigSchema = z.object({
 	}),
 
 	redis: z.object({
-		url: z.string(),
+		url: z.string().optional(),
 		sentinels: z.array(z.object({host: z.string(), port: z.number()})).optional(),
 		sentinelMasterName: z.string().optional(),
 		password: z.string().optional(),
@@ -330,10 +326,6 @@ function loadConfig() {
 		nodeEnv: optional('NODE_ENV') || 'development',
 		port: optionalInt('FLOODILKA_API_PORT', 8080),
 
-		postgres: {
-			url: required('DATABASE_URL'),
-		},
-
 		cassandra: {
 			hosts: required('CASSANDRA_HOSTS'),
 			keyspace: required('CASSANDRA_KEYSPACE'),
@@ -343,7 +335,7 @@ function loadConfig() {
 		},
 
 		redis: {
-			url: required('REDIS_URL'),
+			url: optional('REDIS_URL'),
 			sentinels: optional('VALKEY_SENTINELS')
 				? parseCommaSeparated(required('VALKEY_SENTINELS')).map((entry) => {
 						const [host, port] = entry.split(':');
