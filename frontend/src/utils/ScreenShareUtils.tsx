@@ -72,6 +72,7 @@ export function getScreenShareOptions(
 					}
 				: false,
 			selfBrowserSurface: 'include' as const,
+			systemAudio: includeAudio ? 'include' : 'exclude',
 			contentHint: 'motion' as const,
 			resolution: preset.resolution,
 		},

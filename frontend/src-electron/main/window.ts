@@ -29,6 +29,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 import {app, BrowserWindow, desktopCapturer, ipcMain, screen, shell} from 'electron';
 import log from 'electron-log';
 import {BUILD_CHANNEL} from '../common/build-channel.js';
+import type {ScreenShareAudioMode} from '../common/types.js';
 import {
 	CANARY_APP_URL,
 	DEFAULT_WINDOW_HEIGHT,
@@ -153,6 +154,14 @@ interface PendingDisplayMediaRequest {
 const pendingDisplayMediaRequests = new Map<string, PendingDisplayMediaRequest>();
 let displayMediaRequestCounter = 0;
 
+// Chromium accepts these display-media loopback device IDs even though
+// Electron's public typings only list loopback and loopbackWithMute.
+const CHROMIUM_LOOPBACK_WITHOUT_CHROME_AUDIO_SOURCE = 'loopbackWithoutChrome';
+
+function getDisplayMediaAudioSource(audioMode: ScreenShareAudioMode): string | undefined {
+	return audioMode === 'system' ? CHROMIUM_LOOPBACK_WITHOUT_CHROME_AUDIO_SOURCE : undefined;
+}
+
 function setupDisplayMediaHandler(session: Electron.Session, webContents: Electron.WebContents): void {
 	session.setDisplayMediaRequestHandler((request, callback) => {
 		const requestId = `display-media-${++displayMediaRequestCounter}`;
@@ -212,7 +221,7 @@ export function registerDisplayMediaHandlers(): void {
 
 	ipcMain.on(
 		'select-display-media-source',
-		async (_event, requestId: string, sourceId: string | null, withAudio: boolean) => {
+		async (_event, requestId: string, sourceId: string | null, audioMode: ScreenShareAudioMode) => {
 			const pending = pendingDisplayMediaRequests.get(requestId);
 			if (!pending) {
 				log.warn('[selectDisplayMediaSource] No pending request for:', requestId);
@@ -239,17 +248,18 @@ export function registerDisplayMediaHandlers(): void {
 					return;
 				}
 
+				const audioSource = getDisplayMediaAudioSource(audioMode);
+
 				log.info('[selectDisplayMediaSource] Selected source:', {
 					id: selectedSource.id,
 					name: selectedSource.name,
-					withAudio,
+					audioMode,
+					audioSource,
 				});
-
-				const audioSource = withAudio ? 'loopback' : undefined;
 
 				pending.callback({
 					video: selectedSource,
-					audio: audioSource,
+					audio: audioSource as Electron.Streams['audio'],
 				});
 			} catch (error) {
 				log.error('[selectDisplayMediaSource] Failed:', error);

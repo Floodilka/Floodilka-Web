@@ -13,6 +13,14 @@ msgstr ""
 "Language-Team: \n"
 "Plural-Forms: \n"
 
+#: src/components/modals/ScreenShareSettingsModal.tsx:142
+msgid "Share system audio, excluding Floodilka voice"
+msgstr "Share system audio, excluding Floodilka voice"
+
+#: src/components/modals/ScreenShareSourceModal.tsx:44
+msgid "System audio will be shared without Floodilka voice."
+msgstr "System audio will be shared without Floodilka voice."
+
 #: src/components/modals/tabs/AccessibilityTab/VisualTab.tsx:115
 msgid "Control when message previews are shown in the DM list"
 msgstr "Control when message previews are shown in the DM list"

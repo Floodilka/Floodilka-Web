@@ -196,8 +196,8 @@ const api: ElectronAPI = {
 			ipcRenderer.removeListener('display-media-requested', handler);
 		};
 	},
-	selectDisplayMediaSource: (requestId: string, sourceId: string | null, withAudio: boolean): void => {
-		ipcRenderer.send('select-display-media-source', requestId, sourceId, withAudio);
+	selectDisplayMediaSource: (requestId: string, sourceId: string | null, audioMode): void => {
+		ipcRenderer.send('select-display-media-source', requestId, sourceId, audioMode);
 	},
 
 	showNotification: (options: NotificationOptions): Promise<NotificationResult> =>

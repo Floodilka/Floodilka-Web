@@ -21,32 +21,25 @@
  */
 
 import {Trans, useLingui} from '@lingui/react/macro';
-import type {DesktopSource} from '~/../src-electron/common/types';
+import type {DesktopSource, ScreenShareAudioMode} from '~/../src-electron/common/types';
 import * as Modal from '~/components/modals/Modal';
 import styles from '~/components/modals/ScreenShareSourceModal.module.css';
 import {Button} from '~/components/uikit/Button/Button';
 import FocusRing from '~/components/uikit/FocusRing/FocusRing';
-import {isNativeMacOS} from '~/utils/NativeUtils';
 
 interface ScreenShareSourceModalProps {
 	sources: Array<DesktopSource>;
-	audioRequested: boolean;
+	audioMode: ScreenShareAudioMode;
 	onSelect: (sourceId: string | null) => void;
 }
 
-const getAudioHintText = (audioRequested: boolean): string => {
+export const ScreenShareSourceModal = ({sources, audioMode, onSelect}: ScreenShareSourceModalProps) => {
 	const {t} = useLingui();
-	if (!audioRequested) {
-		return t`Audio is disabled for this share.`;
-	}
-	if (isNativeMacOS()) {
-		return t`Audio will be included with this screen share.`;
-	}
-	return t`System audio capture is not supported on this platform.`;
-};
+	const audioHintText =
+		audioMode === 'off'
+			? t`Audio is disabled for this share.`
+			: t`System audio will be shared without Floodilka voice.`;
 
-export const ScreenShareSourceModal = ({sources, audioRequested, onSelect}: ScreenShareSourceModalProps) => {
-	const {t} = useLingui();
 	return (
 		<Modal.Root size="xlarge" onClose={() => onSelect(null)}>
 			<Modal.Header title={t`Select screen or window`} />
@@ -71,7 +64,7 @@ export const ScreenShareSourceModal = ({sources, audioRequested, onSelect}: Scre
 						</FocusRing>
 					))}
 				</div>
-				<p className={styles.audioHint}>{getAudioHintText(audioRequested)}</p>
+				<p className={styles.audioHint}>{audioHintText}</p>
 			</Modal.Content>
 			<Modal.Footer>
 				<Button variant="secondary" onClick={() => onSelect(null)}>

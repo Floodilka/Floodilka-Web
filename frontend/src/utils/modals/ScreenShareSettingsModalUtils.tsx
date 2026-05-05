@@ -60,7 +60,7 @@ export const useScreenShareSettingsModal = ({onStartShare}: ScreenShareSettingsM
 	const [selectedFrameRate, setSelectedFrameRate] = React.useState<number>(
 		!hasPremium && voiceSettings.videoFrameRate > 30 ? 30 : voiceSettings.videoFrameRate,
 	);
-	const [includeAudio, setIncludeAudio] = React.useState<boolean>(LocalVoiceStateStore.getSelfStreamAudio());
+	const [includeAudio, setIncludeAudio] = React.useState(LocalVoiceStateStore.getSelfStreamAudio());
 
 	const handleStartShare = React.useCallback(async () => {
 		setIsSharing(true);
