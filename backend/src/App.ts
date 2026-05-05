@@ -26,7 +26,8 @@ import {serve} from '@hono/node-server';
 import * as Sentry from '@sentry/node';
 import {Hono} from 'hono';
 import {logger} from 'hono/logger';
-import {createRedisClient} from '~/infrastructure/RedisClientFactory';
+import {pingCassandra, shutdownCassandra} from '~/database/Cassandra';
+import {createRedisClient, pingRedis, shutdownHealthClient} from '~/infrastructure/RedisClientFactory';
 import {registerAdminControllers} from '~/admin/controllers';
 import {AuthController} from '~/auth/AuthController';
 import {Config} from '~/Config';
@@ -177,6 +178,8 @@ export interface HonoEnv {
 
 export type HonoApp = typeof app;
 
+let isReady = false;
+
 const routes = new Hono<HonoEnv>({strict: true});
 
 routes.use(
@@ -228,6 +231,17 @@ routes.onError(AppErrorHandler);
 routes.notFound(AppNotFoundHandler);
 
 routes.get('/_health', async (ctx) => ctx.text('OK'));
+
+routes.get('/_ready', async (ctx) => {
+	if (!isReady) return ctx.text('NOT_READY', 503);
+	try {
+		await Promise.all([pingCassandra(), pingRedis()]);
+		return ctx.text('OK');
+	} catch (err) {
+		const message = err instanceof Error ? err.message : String(err);
+		return ctx.text(`UNHEALTHY: ${message}`, 503);
+	}
+});
 
 GatewayController(routes);
 GeoIPController(routes);
@@ -339,27 +353,45 @@ const server = serve({
 	port: Config.port,
 });
 
+isReady = true;
+
+const LB_DRAIN_DELAY_MS = 12_000;
+const FORCE_EXIT_TIMEOUT_MS = 25_000;
+
 let isShuttingDown = false;
 
 const shutdown = async () => {
 	if (isShuttingDown) return;
 	isShuttingDown = true;
+	isReady = false;
 
-	Logger.info('Shutting down gracefully...');
+	const forceExit = setTimeout(() => {
+		Logger.warn('Forced shutdown after timeout');
+		process.exit(1);
+	}, FORCE_EXIT_TIMEOUT_MS);
+	forceExit.unref();
 
-	server.close(() => {
-		Logger.info('HTTP server closed');
+	Logger.info({drainMs: LB_DRAIN_DELAY_MS}, 'Shutdown: marked unready, waiting for LB drain');
+	await new Promise((resolve) => setTimeout(resolve, LB_DRAIN_DELAY_MS));
+
+	Logger.info('Shutdown: closing HTTP server');
+	await new Promise<void>((resolve) => {
+		server.close(() => resolve());
+		server.closeIdleConnections();
 	});
-	server.closeIdleConnections();
 
 	shutdownGatewayService();
 	shutdownReportService();
 	ipBanCache.shutdown();
 
-	setTimeout(() => {
-		Logger.warn('Forced shutdown after timeout');
-		process.exit(1);
-	}, 25000).unref();
+	try {
+		await Promise.allSettled([shutdownCassandra(), shutdownHealthClient()]);
+	} catch (err) {
+		Logger.warn({err}, 'Shutdown: client close errors');
+	}
+
+	Logger.info('Shutdown: complete');
+	process.exit(0);
 };
 
 process.on('SIGINT', shutdown);

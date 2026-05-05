@@ -45,6 +45,22 @@ export function createRedisClient(extra: RedisOptions = {}): Redis {
 	return attachErrorLogger(new Redis(buildOptions(extra)));
 }
 
+let healthClient: Redis | null = null;
+
+export async function pingRedis(): Promise<void> {
+	if (!healthClient) {
+		healthClient = createRedisClient();
+	}
+	await healthClient.ping();
+}
+
+export async function shutdownHealthClient(): Promise<void> {
+	if (healthClient) {
+		await healthClient.quit();
+		healthClient = null;
+	}
+}
+
 export function buildBullMQConnectionOptions(): RedisOptions {
 	return buildOptions({
 		maxRetriesPerRequest: null,

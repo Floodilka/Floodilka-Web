@@ -249,6 +249,14 @@ if (Config.cassandra.username && Config.cassandra.password) {
 
 const client = new cassandra.Client(clientOptions);
 
+export async function pingCassandra(): Promise<void> {
+	await client.execute('SELECT release_version FROM system.local');
+}
+
+export async function shutdownCassandra(): Promise<void> {
+	await client.shutdown();
+}
+
 const DEFAULT_MAX_PARTITION_KEYS_PER_QUERY = 100;
 
 function chunkArray<T>(items: Array<T>, size: number): Array<Array<T>> {
