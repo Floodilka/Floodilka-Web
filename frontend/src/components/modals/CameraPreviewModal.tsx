@@ -39,7 +39,6 @@ import * as Modal from '~/components/modals/Modal';
 import {Button} from '~/components/uikit/Button/Button';
 import {Spinner} from '~/components/uikit/Spinner';
 import {Tooltip} from '~/components/uikit/Tooltip/Tooltip';
-import LocalVoiceStateStore from '~/stores/LocalVoiceStateStore';
 import MobileLayoutStore from '~/stores/MobileLayoutStore';
 import VoiceSettingsStore, {BLUR_BACKGROUND_ID, NONE_BACKGROUND_ID} from '~/stores/VoiceSettingsStore';
 import MediaEngineStore from '~/stores/voice/MediaEngineFacade';
@@ -375,12 +374,9 @@ const CameraPreviewModalContent = observer((props: CameraPreviewModalProps) => {
 
 		try {
 			const voiceSettings = VoiceSettingsStore;
-			await localParticipant.setCameraEnabled(true, {
+			await MediaEngineStore.setCameraEnabled(true, {
 				deviceId: voiceSettings.videoDeviceId !== 'default' ? voiceSettings.videoDeviceId : undefined,
 			});
-
-			LocalVoiceStateStore.updateSelfVideo(true);
-			MediaEngineStore.syncLocalVoiceStateWithServer({self_video: true});
 
 			onEnabled?.();
 			onEnableCamera?.();
