@@ -134,7 +134,7 @@ export const ScreenShareSettingsModal = observer(({onStartShare}: ScreenShareSet
 									<Trans>Share Audio</Trans>
 								</div>
 								<div className={styles.audioToggleDescription}>
-									<Trans>Include audio from your screen in the share</Trans>
+									<Trans>Share system audio, excluding Floodilka voice</Trans>
 								</div>
 							</div>
 							<Switch value={includeAudio} onChange={setIncludeAudio} />
