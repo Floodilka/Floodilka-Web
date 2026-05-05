@@ -21,11 +21,12 @@
  */
 
 import type {Room, ScreenShareCaptureOptions, TrackPublishOptions} from 'livekit-client';
-import {type LocalAudioTrack, Track, VideoPresets} from 'livekit-client';
+import {type LocalAudioTrack, type LocalVideoTrack, Track} from 'livekit-client';
 import {makeAutoObservable} from 'mobx';
 import * as ModalActionCreators from '~/actions/ModalActionCreators';
 import {modal} from '~/actions/ModalActionCreators';
 import * as SoundActionCreators from '~/actions/SoundActionCreators';
+import * as ToastActionCreators from '~/actions/ToastActionCreators';
 import {CameraPermissionDeniedModal} from '~/components/alerts/CameraPermissionDeniedModal';
 import {MicrophonePermissionDeniedModal} from '~/components/alerts/MicrophonePermissionDeniedModal';
 import {Logger} from '~/lib/Logger';
@@ -37,6 +38,7 @@ import LocalVoiceStateStore from '~/stores/LocalVoiceStateStore';
 import MediaPermissionStore from '~/stores/MediaPermissionStore';
 import VoiceSettingsStore from '~/stores/VoiceSettingsStore';
 import VoiceDevicePermissionStore from '~/stores/voice/VoiceDevicePermissionStore';
+import {buildCameraCaptureOptions, getCameraOptions} from '~/utils/CameraUtils';
 import {ensureNativePermission} from '~/utils/NativePermissions';
 import {isDesktop} from '~/utils/NativeUtils';
 import {SoundType} from '~/utils/SoundUtils';
@@ -174,6 +176,11 @@ class VoiceMediaManager {
 			const exists = inputDeviceId === 'default' || deviceState.inputDevices.some((d) => d.deviceId === inputDeviceId);
 
 			if (!exists && deviceState.inputDevices.length > 0) {
+				logger.warn('[enableMicrophone] Stored input device unavailable, falling back to default', {
+					storedDeviceId: inputDeviceId,
+					availableCount: deviceState.inputDevices.length,
+				});
+				ToastActionCreators.error('Selected microphone is unavailable. Using default device.');
 				inputDeviceId = 'default';
 			}
 
@@ -280,9 +287,11 @@ class VoiceMediaManager {
 		try {
 			const participant = room.localParticipant;
 			const resolution = VoiceSettingsStore.getCameraResolution();
-			const videoResolution = this.getVideoPreset(resolution);
+			const frameRate = VoiceSettingsStore.getVideoFrameRate();
+			const deviceId = restOptions.deviceId ?? VoiceSettingsStore.getVideoDeviceId();
+			const {captureOptions, publishOptions} = getCameraOptions(resolution, frameRate, deviceId);
 
-			await participant.setCameraEnabled(enabled, {resolution: videoResolution, ...restOptions});
+			await participant.setCameraEnabled(enabled, captureOptions, enabled ? publishOptions : undefined);
 
 			LocalVoiceStateStore.updateSelfVideo(enabled);
 			if (sendUpdate) this.syncVoiceState({self_video: enabled});
@@ -294,7 +303,7 @@ class VoiceMediaManager {
 			} else {
 				SoundActionCreators.playSound(SoundType.CameraOff);
 			}
-			logger.info('[setCameraEnabled] Success', {enabled});
+			logger.info('[setCameraEnabled] Success', {enabled, resolution, frameRate});
 		} catch (e) {
 			logger.error('[setCameraEnabled] Failed', {enabled, error: e});
 			const actual = room.localParticipant?.isCameraEnabled ?? false;
@@ -309,14 +318,24 @@ class VoiceMediaManager {
 		}
 	}
 
-	private getVideoPreset(resolution: string) {
-		switch (resolution) {
-			case 'high':
-				return VideoPresets.h1080;
-			case 'medium':
-				return VideoPresets.h720;
-			default:
-				return VideoPresets.h360;
+	async applyVideoSettings(): Promise<void> {
+		const room = this.getRoomFromMediaEngineStore();
+		if (!room?.localParticipant) return;
+		if (!LocalVoiceStateStore.getSelfVideo()) return;
+
+		const pub = room.localParticipant.getTrackPublication(Track.Source.Camera);
+		const track = pub?.track as LocalVideoTrack | undefined;
+		if (!track) return;
+
+		const resolution = VoiceSettingsStore.getCameraResolution();
+		const frameRate = VoiceSettingsStore.getVideoFrameRate();
+		const deviceId = VoiceSettingsStore.getVideoDeviceId();
+
+		try {
+			await track.restartTrack(buildCameraCaptureOptions(resolution, frameRate, deviceId));
+			logger.info('[applyVideoSettings] Restarted camera track', {resolution, frameRate});
+		} catch (e) {
+			logger.error('[applyVideoSettings] Failed to restart camera track', e);
 		}
 	}
 

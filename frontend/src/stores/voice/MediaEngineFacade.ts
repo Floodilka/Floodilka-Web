@@ -421,6 +421,11 @@ class MediaEngineFacade {
 	applyLocalInputVolume(): void {
 		VoiceMediaManager.applyLocalInputVolume();
 	}
+	applyVideoSettings(): void {
+		VoiceMediaManager.applyVideoSettings().catch((e) => {
+			logger.error('[applyVideoSettings] Failed', e);
+		});
+	}
 	setLocalVideoDisabled(identity: string, disabled: boolean): void {
 		VoiceMediaManager.setLocalVideoDisabled(identity, disabled, this.room, this.connectionId);
 	}

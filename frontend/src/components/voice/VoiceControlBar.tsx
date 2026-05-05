@@ -38,7 +38,7 @@ import {
 import {clsx} from 'clsx';
 import {observer} from 'mobx-react-lite';
 import type React from 'react';
-import {useCallback, useEffect, useState} from 'react';
+import {useCallback, useEffect, useRef, useState} from 'react';
 import * as ContextMenuActionCreators from '~/actions/ContextMenuActionCreators';
 import * as ModalActionCreators from '~/actions/ModalActionCreators';
 import {modal} from '~/actions/ModalActionCreators';
@@ -102,46 +102,53 @@ const VoiceControlBarInner = observer(function VoiceControlBarInner() {
 		onOpenMobile: () => setAudioSettingsOpen(true),
 	});
 
+	const isMicrophoneEnabledRef = useRef(isMicrophoneEnabled);
+	const isCameraEnabledRef = useRef(isCameraEnabled);
+	const lastInputDeviceIdRef = useRef<string | null>(null);
+	const lastVideoDeviceIdRef = useRef<string | null>(null);
+
+	useEffect(() => {
+		isMicrophoneEnabledRef.current = isMicrophoneEnabled;
+		isCameraEnabledRef.current = isCameraEnabled;
+	});
+
 	useEffect(() => {
 		if (!localParticipant) return;
+		const nextDeviceId = voiceSettings.inputDeviceId;
+		if (lastInputDeviceIdRef.current === nextDeviceId) return;
+		lastInputDeviceIdRef.current = nextDeviceId;
+		if (!isMicrophoneEnabledRef.current || !nextDeviceId) return;
 
-		const switchMicrophone = async () => {
-			if (isMicrophoneEnabled && voiceSettings.inputDeviceId) {
-				try {
-					await localParticipant.setMicrophoneEnabled(true, {
-						deviceId: voiceSettings.inputDeviceId,
-						echoCancellation: true,
-						noiseSuppression: true,
-						autoGainControl: true,
-					});
-					MediaEngineStore.reconcileTransmissionState();
-				} catch (error) {
-					console.error('Failed to switch microphone:', error);
-				}
+		(async () => {
+			try {
+				await localParticipant.setMicrophoneEnabled(true, {
+					deviceId: nextDeviceId,
+					echoCancellation: true,
+					noiseSuppression: true,
+					autoGainControl: true,
+				});
+				MediaEngineStore.reconcileTransmissionState();
+			} catch (error) {
+				console.error('Failed to switch microphone:', error);
 			}
-		};
+		})();
+	}, [voiceSettings.inputDeviceId, localParticipant]);
 
-		const switchCamera = async () => {
-			if (isCameraEnabled && voiceSettings.videoDeviceId) {
-				try {
-					await localParticipant.setCameraEnabled(true, {
-						deviceId: voiceSettings.videoDeviceId,
-					});
-				} catch (error) {
-					console.error('Failed to switch camera:', error);
-				}
+	useEffect(() => {
+		if (!localParticipant) return;
+		const nextDeviceId = voiceSettings.videoDeviceId;
+		if (lastVideoDeviceIdRef.current === nextDeviceId) return;
+		lastVideoDeviceIdRef.current = nextDeviceId;
+		if (!isCameraEnabledRef.current || !nextDeviceId) return;
+
+		(async () => {
+			try {
+				await MediaEngineStore.setCameraEnabled(true, {deviceId: nextDeviceId});
+			} catch (error) {
+				console.error('Failed to switch camera:', error);
 			}
-		};
-
-		switchMicrophone();
-		switchCamera();
-	}, [
-		voiceSettings.inputDeviceId,
-		voiceSettings.videoDeviceId,
-		localParticipant,
-		isMicrophoneEnabled,
-		isCameraEnabled,
-	]);
+		})();
+	}, [voiceSettings.videoDeviceId, localParticipant]);
 
 	const handleToggleMute = useCallback(() => {
 		VoiceStateActionCreators.toggleSelfMute(null);

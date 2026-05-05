@@ -54,4 +54,8 @@ export const update = (
 	if (settings.noiseSuppression !== undefined) {
 		MediaEngineStore.applyNoiseSuppression();
 	}
+
+	if (settings.videoFrameRate !== undefined || settings.cameraResolution !== undefined) {
+		MediaEngineStore.applyVideoSettings();
+	}
 };

@@ -208,7 +208,31 @@ export function bindRoomEvents(
 				VoiceMediaManager.syncVoiceState({self_stream: false});
 				SoundActionCreators.playSound(SoundType.ScreenShareStop);
 			}
+			if (pub.source === Track.Source.Camera) {
+				const intentionallyDisabled = !LocalVoiceStateStore.getSelfVideo();
+				console.warn('[VoiceRoomEventBinder] Camera track unpublished', {
+					trackSid: pub.trackSid,
+					intentionallyDisabled,
+					trackEnded: pub.track?.mediaStreamTrack?.readyState === 'ended',
+					connectionState: room.state,
+				});
+				if (!intentionallyDisabled) {
+					VoiceMediaManager.setCameraEnabled(true).catch((err) => {
+						console.error('[VoiceRoomEventBinder] Camera self-republish failed', err);
+					});
+				}
+			}
 			VoiceParticipantManager.upsertParticipant(p);
+		}),
+	);
+
+	room.on(
+		RoomEvent.MediaDevicesError,
+		guard(attemptId, (error: Error) => {
+			console.error('[VoiceRoomEventBinder] MediaDevicesError', {
+				name: error.name,
+				message: error.message,
+			});
 		}),
 	);
 
