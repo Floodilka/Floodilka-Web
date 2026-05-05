@@ -91,3 +91,6 @@ frontend/examples/
 livekit.yaml
 gateway/config/sys.config
 gateway/config/vm.args
+
+# Claude Code local state
+.claude/

@@ -22,16 +22,9 @@
 
 import {Redis, type RedisOptions} from 'ioredis';
 import {Config} from '~/Config';
+import {Logger} from '~/Logger';
 
-function isSentinelMode(): boolean {
-	return !!(
-		Config.redis.sentinels &&
-		Config.redis.sentinels.length > 0 &&
-		Config.redis.sentinelMasterName
-	);
-}
-
-function buildSentinelOptions(extra: RedisOptions = {}): RedisOptions {
+function buildOptions(extra: RedisOptions = {}): RedisOptions {
 	return {
 		sentinels: Config.redis.sentinels,
 		name: Config.redis.sentinelMasterName,
@@ -41,46 +34,20 @@ function buildSentinelOptions(extra: RedisOptions = {}): RedisOptions {
 	};
 }
 
-function requireUrl(): string {
-	if (!Config.redis.url) {
-		throw new Error('Redis configuration missing: set VALKEY_SENTINELS or REDIS_URL');
-	}
-	return Config.redis.url;
-}
-
-function buildUrlOptions(extra: RedisOptions = {}): {url: string; opts: RedisOptions} {
-	const rawUrl = requireUrl();
-	const url = new URL(rawUrl);
-	const decoded: RedisOptions = {
-		password: url.password ? decodeURIComponent(url.password) : undefined,
-		username: url.username ? decodeURIComponent(url.username) : undefined,
-	};
-	return {url: rawUrl, opts: {...decoded, ...extra}};
+function attachErrorLogger(client: Redis): Redis {
+	client.on('error', (err) => {
+		Logger.warn({err: err.message}, 'ioredis client error');
+	});
+	return client;
 }
 
 export function createRedisClient(extra: RedisOptions = {}): Redis {
-	if (isSentinelMode()) {
-		return new Redis(buildSentinelOptions(extra));
-	}
-	const {url, opts} = buildUrlOptions(extra);
-	return new Redis(url, opts);
+	return attachErrorLogger(new Redis(buildOptions(extra)));
 }
 
 export function buildBullMQConnectionOptions(): RedisOptions {
-	const base: RedisOptions = {
+	return buildOptions({
 		maxRetriesPerRequest: null,
 		enableReadyCheck: false,
-	};
-	if (isSentinelMode()) {
-		return buildSentinelOptions(base);
-	}
-	const url = new URL(requireUrl());
-	return {
-		host: url.hostname,
-		port: Number(url.port || 6379),
-		username: url.username ? decodeURIComponent(url.username) : undefined,
-		password: url.password ? decodeURIComponent(url.password) : undefined,
-		db: url.pathname.length > 1 ? Number(url.pathname.slice(1)) : 0,
-		...base,
-	};
+	});
 }

@@ -27,7 +27,8 @@ process.env.CASSANDRA_HOSTS = 'localhost';
 process.env.CASSANDRA_KEYSPACE = 'floodilka';
 process.env.CASSANDRA_LOCAL_DC = 'datacenter1';
 
-process.env.REDIS_URL = 'redis://localhost:6379';
+process.env.VALKEY_SENTINELS = '127.0.0.1:26379';
+process.env.VALKEY_MASTER_NAME = 'floodilka-master';
 
 process.env.FLOODILKA_GATEWAY_RPC_HOST = 'localhost';
 process.env.FLOODILKA_GATEWAY_RPC_PORT = '9082';

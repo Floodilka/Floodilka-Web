@@ -10,7 +10,6 @@
 		"start": "tsx src/App.ts",
 		"start:worker": "tsx src/worker/Worker.ts",
 		"start:clean": "tsx src/App.ts",
-		"replay:scheduled": "tsx src/worker/scripts/replayScheduledMessages.ts",
 		"kill": "../scripts/force-kill.sh",
 		"db:start": "../scripts/start-db.sh",
 		"db:stop": "../scripts/stop-db.sh",
