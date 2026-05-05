@@ -24,6 +24,7 @@
 const config = (() => {
 	const channel = process.env.BUILD_CHANNEL === 'canary' ? 'canary' : 'stable';
 	const isCanary = channel === 'canary';
+	const embedWebBundle = process.env.FLOODILKA_EMBED_WEB_BUNDLE === '1';
 
 	const appId = isCanary ? 'com.floodilka.desktop.canary' : 'com.floodilka.desktop';
 	const productName = isCanary ? 'Floodilka Canary' : 'Floodilka';
@@ -99,6 +100,7 @@ const config = (() => {
 			{from: `${iconsDir}/_compiled/Assets.car`, to: 'Assets.car'},
 			{from: 'src-electron/assets/splash.html', to: 'splash.html'},
 			{from: 'public/icons/logo_nobg.png', to: 'logo_nobg.png'},
+			...(embedWebBundle ? [{from: 'dist', to: 'web'}] : []),
 		],
 
 		mac: {

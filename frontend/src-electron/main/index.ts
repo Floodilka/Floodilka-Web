@@ -30,6 +30,7 @@ import {registerAutostartHandlers} from './autostart.js';
 import {handleOpenUrl, handleSecondInstance, initializeDeepLinks} from './deep-links.js';
 import {cleanupGlobalKeyHook, registerGlobalKeyHookHandlers} from './global-key-hook.js';
 import {cleanupIpcHandlers, registerIpcHandlers} from './ipc-handlers.js';
+import {registerLocalWebBundleInterceptor} from './local-web-bundle-interceptor.js';
 import {startMediaProxyServer, stopMediaProxyServer} from './media-proxy-server.js';
 import {createApplicationMenu} from './menu.js';
 import {startRpcServer, stopRpcServer} from './rpc-server.js';
@@ -131,6 +132,12 @@ if (!gotTheLock) {
 		createSplashWindow();
 
 		await checkForUpdateOnStartup();
+
+		try {
+			registerLocalWebBundleInterceptor();
+		} catch (error: unknown) {
+			log.error('[Init] Failed to register packaged web bundle interceptor:', error);
+		}
 
 		createWindow(() => {
 			closeSplashWindow();

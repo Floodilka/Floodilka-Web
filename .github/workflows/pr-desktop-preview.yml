@@ -1,0 +1,164 @@
+name: PR Desktop Preview
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - '.github/workflows/pr-desktop-preview.yml'
+      - 'frontend/**'
+  workflow_dispatch:
+
+concurrency:
+  group: pr-desktop-preview-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
+jobs:
+  build-windows-preview:
+    name: Build Windows ZIP
+    runs-on: windows-latest
+    timeout-minutes: 45
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: frontend/crates/libfluxcore
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+          cache-dependency-path: frontend/scripts/go.sum
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.26.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Get pnpm store path
+        id: pnpm-store
+        shell: bash
+        run: echo "path=$(pnpm store path --silent)" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/cache@v4
+        with:
+          path: ${{ steps.pnpm-store.outputs.path }}
+          key: pnpm-pr-desktop-win-${{ hashFiles('frontend/pnpm-lock.yaml') }}
+          restore-keys: pnpm-pr-desktop-win-
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Build renderer bundle
+        working-directory: frontend
+        env:
+          PUBLIC_PROJECT_ENV: stable
+          PUBLIC_BUILD_SHA: ${{ github.sha }}
+          PUBLIC_BUILD_NUMBER: ${{ github.run_number }}
+          PUBLIC_BOOTSTRAP_API_ENDPOINT: /api
+          PUBLIC_BOOTSTRAP_API_PUBLIC_ENDPOINT: /api
+        run: |
+          $env:PUBLIC_BUILD_TIMESTAMP = [int][double]::Parse((Get-Date -UFormat %s))
+          pnpm wasm:codegen
+          pnpm generate:colors
+          pnpm generate:masks
+          pnpm generate:css-types
+          pnpm exec tsc --noEmit
+          pnpm exec lingui compile --strict
+          if (Test-Path dist) { Remove-Item -Recurse -Force dist }
+          pnpm exec rspack build --mode production
+
+      - name: Build Electron app
+        working-directory: frontend
+        env:
+          BUILD_CHANNEL: stable
+          FLOODILKA_EMBED_WEB_BUNDLE: '1'
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+        run: |
+          pnpm electron:compile
+          pnpm exec electron-builder --dir --config electron-builder.config.cjs --config.npmRebuild=false --config.win.signAndEditExecutable=false --publish never
+
+      - name: Pack portable ZIP
+        working-directory: frontend
+        run: |
+          $zip = "dist-electron/floodilka-pr-desktop-preview-win-x64.zip"
+          if (Test-Path $zip) { Remove-Item -Force $zip }
+          Compress-Archive -Path dist-electron/win-unpacked/* -DestinationPath $zip -Force
+
+      - name: Upload ZIP artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: floodilka-pr-desktop-preview-win-x64
+          path: frontend/dist-electron/floodilka-pr-desktop-preview-win-x64.zip
+          retention-days: 14
+
+      - name: Comment artifact link
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const marker = '<!-- floodilka-pr-desktop-preview -->';
+            const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            const body = [
+              marker,
+              '### Desktop preview ZIP',
+              '',
+              `A Windows preview build for this PR is available in [workflow run #${context.runNumber}](${runUrl}).`,
+              '',
+              'Artifact: `floodilka-pr-desktop-preview-win-x64`',
+              '',
+              'This build uses the renderer bundle from this PR while keeping the app origin/API on `https://floodilka.com`.',
+            ].join('\n');
+
+            const {owner, repo} = context.repo;
+            const issue_number = context.issue.number;
+            const {data: comments} = await github.rest.issues.listComments({
+              owner,
+              repo,
+              issue_number,
+              per_page: 100,
+            });
+            const existing = comments.find(
+              (comment) => comment.user?.type === 'Bot' && comment.body?.includes(marker),
+            );
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner,
+                repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner,
+                repo,
+                issue_number,
+                body,
+              });
+            }
+
+      - name: Write summary
+        shell: bash
+        run: |
+          {
+            echo "### Desktop preview build"
+            echo ""
+            echo "- Artifact: \`floodilka-pr-desktop-preview-win-x64\`"
+            echo "- Renderer bundle: built from this PR"
+            echo "- App origin and API: \`https://floodilka.com\` / \`/api\`"
+            echo "- Build type: unsigned portable \`win-unpacked\` ZIP"
+          } >> "$GITHUB_STEP_SUMMARY"
