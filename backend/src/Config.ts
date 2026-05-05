@@ -102,6 +102,9 @@ const ConfigSchema = z.object({
 
 	redis: z.object({
 		url: z.string(),
+		sentinels: z.array(z.object({host: z.string(), port: z.number()})).optional(),
+		sentinelMasterName: z.string().optional(),
+		password: z.string().optional(),
 	}),
 
 	gateway: z.object({
@@ -341,6 +344,14 @@ function loadConfig() {
 
 		redis: {
 			url: required('REDIS_URL'),
+			sentinels: optional('VALKEY_SENTINELS')
+				? parseCommaSeparated(required('VALKEY_SENTINELS')).map((entry) => {
+						const [host, port] = entry.split(':');
+						return {host, port: Number.parseInt(port, 10)};
+					})
+				: undefined,
+			sentinelMasterName: optional('VALKEY_MASTER_NAME'),
+			password: optional('VALKEY_PASSWORD'),
 		},
 
 		gateway: {

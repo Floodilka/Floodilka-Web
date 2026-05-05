@@ -20,7 +20,7 @@
  * along with Floodilka. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import {Redis} from 'ioredis';
+import type {Redis} from 'ioredis';
 import {AdminRepository} from '~/admin/AdminRepository';
 import {AdminArchiveRepository} from '~/admin/repositories/AdminArchiveRepository';
 import {Config} from '~/Config';
@@ -74,6 +74,7 @@ import {UserPermissionUtils} from '~/utils/UserPermissionUtils';
 import {VoiceRepository} from '~/voice/VoiceRepository';
 import {VoiceTopology} from '~/voice/VoiceTopology';
 import {WebhookRepository} from '~/webhook/WebhookRepository';
+import {createRedisClient} from '~/infrastructure/RedisClientFactory';
 import {WorkerService} from './WorkerService';
 
 export interface WorkerDependencies {
@@ -129,7 +130,7 @@ export interface WorkerDependencies {
 export async function initializeWorkerDependencies(snowflakeService: SnowflakeService): Promise<WorkerDependencies> {
 	Logger.info('Initializing worker dependencies...');
 
-	const redis = new Redis(Config.redis.url);
+	const redis = createRedisClient();
 
 	const userRepository = new UserRepository();
 	const channelRepository = new ChannelRepository();

@@ -26,7 +26,7 @@ import {serve} from '@hono/node-server';
 import * as Sentry from '@sentry/node';
 import {Hono} from 'hono';
 import {logger} from 'hono/logger';
-import {Redis} from 'ioredis';
+import {createRedisClient} from '~/infrastructure/RedisClientFactory';
 import {registerAdminControllers} from '~/admin/controllers';
 import {AuthController} from '~/auth/AuthController';
 import {Config} from '~/Config';
@@ -265,7 +265,7 @@ app.route('/', routes);
 app.onError(AppErrorHandler);
 app.notFound(AppNotFoundHandler);
 
-const ipBanSubscriber = new Redis(Config.redis.url);
+const ipBanSubscriber = createRedisClient();
 ipBanCache.setRefreshSubscriber(ipBanSubscriber);
 await ipBanCache.initialize();
 
@@ -280,7 +280,7 @@ initializeMetricsService(Config.metrics.host ?? null);
 await initializeOAuth();
 
 try {
-	const redis = new Redis(Config.redis.url);
+	const redis = createRedisClient();
 	const userRepository = new UserRepository();
 	const redisDeletionQueue = new RedisAccountDeletionQueueService(redis, userRepository);
 

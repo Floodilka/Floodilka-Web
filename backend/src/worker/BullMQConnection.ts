@@ -19,22 +19,12 @@
 
 import {Queue, type ConnectionOptions} from 'bullmq';
 import {Redis} from 'ioredis';
-import {Config} from '~/Config';
+import {buildBullMQConnectionOptions, createRedisClient} from '~/infrastructure/RedisClientFactory';
 import {Logger} from '~/Logger';
 
 export const FLOODILKA_QUEUE_NAME = 'floodilka';
 
-const redisUrl = new URL(Config.redis.url);
-
-export const bullmqConnection: ConnectionOptions = {
-	host: redisUrl.hostname,
-	port: Number(redisUrl.port || 6379),
-	username: redisUrl.username ? decodeURIComponent(redisUrl.username) : undefined,
-	password: redisUrl.password ? decodeURIComponent(redisUrl.password) : undefined,
-	db: redisUrl.pathname.length > 1 ? Number(redisUrl.pathname.slice(1)) : 0,
-	maxRetriesPerRequest: null,
-	enableReadyCheck: false,
-};
+export const bullmqConnection: ConnectionOptions = buildBullMQConnectionOptions();
 
 let queueSingleton: Queue | null = null;
 
@@ -68,7 +58,7 @@ export async function shutdownQueue(): Promise<void> {
 }
 
 export function createBullMQRedis(): Redis {
-	return new Redis(Config.redis.url, {
+	return createRedisClient({
 		maxRetriesPerRequest: null,
 		enableReadyCheck: false,
 	});

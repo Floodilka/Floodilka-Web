@@ -21,7 +21,7 @@
  */
 
 import type {Context} from 'hono';
-import {Redis} from 'ioredis';
+import {createRedisClient} from '~/infrastructure/RedisClientFactory';
 import type {HonoApp, HonoEnv} from '~/App';
 import {AttachmentDecayRepository} from '~/attachment/AttachmentDecayRepository';
 import {AttachmentDecayService} from '~/attachment/AttachmentDecayService';
@@ -427,7 +427,7 @@ export const TestHarnessController = (app: HonoApp) => {
 
 		const updated = await userRepository.patchUpsert(userId, updates);
 
-		const redis = new Redis(Config.redis.url);
+		const redis = createRedisClient();
 		const redisDeletionQueue = new RedisAccountDeletionQueueService(redis, userRepository);
 		try {
 			await redisDeletionQueue.scheduleDeletion(userId, date, user.deletionReasonCode ?? 0);
@@ -1105,7 +1105,7 @@ export const TestHarnessController = (app: HonoApp) => {
 		console.log('[test/worker/process-pending-deletions] Request received');
 
 		const userRepository = new UserRepository();
-		const redis = new Redis(Config.redis.url);
+		const redis = createRedisClient();
 		const redisDeletionQueue = new RedisAccountDeletionQueueService(redis, userRepository);
 
 		const snowflakeService = new SnowflakeService(redis);
@@ -1215,7 +1215,7 @@ export const TestHarnessController = (app: HonoApp) => {
 		});
 
 		try {
-			const redis = new Redis(Config.redis.url);
+			const redis = createRedisClient();
 			const snowflakeService = new SnowflakeService(redis);
 			await snowflakeService.initialize();
 
@@ -1250,7 +1250,7 @@ export const TestHarnessController = (app: HonoApp) => {
 
 		console.log('[test/worker/process-inactivity-deletions] Request received');
 
-		const redis = new Redis(Config.redis.url);
+		const redis = createRedisClient();
 		const snowflakeService = new SnowflakeService(redis);
 		await snowflakeService.initialize();
 
@@ -1296,7 +1296,7 @@ export const TestHarnessController = (app: HonoApp) => {
 		const userId = createUserID(BigInt(ctx.req.param('userId')));
 		const scheduledMessageId = createMessageID(BigInt(ctx.req.param('scheduledMessageId')));
 
-		const redis = new Redis(Config.redis.url);
+		const redis = createRedisClient();
 		const snowflakeService = new SnowflakeService(redis);
 		await snowflakeService.initialize();
 
@@ -1548,7 +1548,7 @@ export const TestHarnessController = (app: HonoApp) => {
 
 		console.log('[test/worker/expire-attachments] Request received');
 
-		const redis = new Redis(Config.redis.url);
+		const redis = createRedisClient();
 		const snowflakeService = new SnowflakeService(redis);
 		await snowflakeService.initialize();
 
@@ -1596,7 +1596,7 @@ export const TestHarnessController = (app: HonoApp) => {
 
 		try {
 			const userRepository = new UserRepository();
-			const redis = new Redis(Config.redis.url);
+			const redis = createRedisClient();
 
 			try {
 				await userRepository.patchUpsert(userId, {

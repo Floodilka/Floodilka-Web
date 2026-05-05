@@ -21,7 +21,7 @@
  */
 
 import {createMiddleware} from 'hono/factory';
-import {Redis} from 'ioredis';
+import type {Redis} from 'ioredis';
 import type {HonoEnv} from '~/App';
 import {AdminRepository} from '~/admin/AdminRepository';
 import {AdminService} from '~/admin/AdminService';
@@ -73,6 +73,7 @@ import {RedisAccountDeletionQueueService} from '~/infrastructure/RedisAccountDel
 import {RedisActivityTracker} from '~/infrastructure/RedisActivityTracker';
 import {RedisBulkMessageDeletionQueueService} from '~/infrastructure/RedisBulkMessageDeletionQueueService';
 import {RedisCacheService} from '~/infrastructure/RedisCacheService';
+import {createRedisClient} from '~/infrastructure/RedisClientFactory';
 import {SMSService} from '~/infrastructure/SMSService';
 import {SnowflakeService} from '~/infrastructure/SnowflakeService';
 import {StorageService as ProdStorageService} from '~/infrastructure/StorageService';
@@ -150,7 +151,7 @@ export function shutdownGatewayService(): void {
 	gatewayServiceInstance.destroy();
 }
 
-const redis = new Redis(Config.redis.url);
+const redis = createRedisClient();
 
 const cacheService: ICacheService = new RedisCacheService(redis);
 const rateLimitService = new RateLimitService(cacheService);
@@ -161,11 +162,11 @@ const cloudflarePurgeQueue: ICloudflarePurgeQueue = Config.cloudflare.purgeEnabl
 const assetDeletionQueue: IAssetDeletionQueue = new AssetDeletionQueue(redis);
 
 const featureFlagRepository = new FeatureFlagRepository();
-const featureFlagSubscriber = new Redis(Config.redis.url);
+const featureFlagSubscriber = createRedisClient();
 const featureFlagService = new FeatureFlagService(featureFlagRepository, cacheService, featureFlagSubscriber);
 let featureFlagServiceInitialized = false;
 const snowflakeReservationRepository = new SnowflakeReservationRepository();
-const snowflakeReservationSubscriber = new Redis(Config.redis.url);
+const snowflakeReservationSubscriber = createRedisClient();
 const snowflakeReservationService = new SnowflakeReservationService(
 	snowflakeReservationRepository,
 	snowflakeReservationSubscriber,
@@ -200,7 +201,7 @@ export async function ensureVoiceResourcesInitialized(): Promise<void> {
 		voiceInitializationPromise = (async () => {
 			const voiceRepository = new VoiceRepository();
 			if (!voiceConfigSubscriber) {
-				voiceConfigSubscriber = new Redis(Config.redis.url);
+				voiceConfigSubscriber = createRedisClient();
 			}
 			const topology = new VoiceTopology(voiceRepository, voiceConfigSubscriber);
 			await topology.initialize();

@@ -21,9 +21,9 @@ import '../instrument';
 import 'module-alias/register';
 import * as Sentry from '@sentry/node';
 import {type Job, Worker as BullMQWorker} from 'bullmq';
-import {Redis} from 'ioredis';
 import {Config} from '~/Config';
 import {getMetricsService, initializeMetricsService} from '~/infrastructure/MetricsService';
+import {createRedisClient} from '~/infrastructure/RedisClientFactory';
 import {SnowflakeService} from '~/infrastructure/SnowflakeService';
 import {Logger} from '~/Logger';
 import {initializeMeilisearch} from '~/Meilisearch';
@@ -97,7 +97,7 @@ async function main() {
 	initializeMetricsService(Config.metrics.host ?? null);
 	Logger.info('MetricsService initialized');
 
-	const snowflakeRedis = new Redis(Config.redis.url);
+	const snowflakeRedis = createRedisClient();
 	const snowflakeService = new SnowflakeService(snowflakeRedis);
 	await snowflakeService.initialize();
 	Logger.info('Shared SnowflakeService initialized');
