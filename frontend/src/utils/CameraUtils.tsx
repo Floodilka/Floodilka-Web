@@ -74,9 +74,8 @@ export function buildCameraCaptureOptions(
 export function buildCameraPublishOptions(resolution: CameraResolution, frameRate: number): TrackPublishOptions {
 	const preset = buildCameraPreset(resolution, frameRate);
 	return {
-		videoCodec: 'vp9',
+		videoCodec: 'h264',
 		videoEncoding: preset.encoding,
-		backupCodec: {codec: 'vp8', encoding: preset.encoding},
 		degradationPreference: 'maintain-framerate',
 	};
 }
