@@ -24,6 +24,9 @@ services:
     stop_grace_period: 15s
     deploy:
       replicas: 1
+      placement:
+        constraints:
+          - node.labels.role == infra
       update_config:
         order: stop-first
         failure_action: rollback

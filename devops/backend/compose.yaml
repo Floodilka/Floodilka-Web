@@ -12,7 +12,10 @@ services:
       - floodilka-shared
     stop_grace_period: 30s
     deploy:
-      replicas: 2
+      replicas: 3
+      placement:
+        constraints:
+          - node.labels.role == backend
       update_config:
         order: start-first
         failure_action: rollback
@@ -24,7 +27,7 @@ services:
       resources:
         limits:
           cpus: '3'
-          memory: 4G
+          memory: 3G
         reservations:
           cpus: '0.5'
           memory: 512M
@@ -33,7 +36,7 @@ services:
         caddy.handle_path: /api/*
         caddy.handle_path.reverse_proxy: '{{upstreams 8080}}'
     healthcheck:
-      test: ['CMD-SHELL', 'curl -fs http://localhost:8080/_health > /dev/null || exit 1']
+      test: ['CMD-SHELL', 'curl -fs http://localhost:8080/_ready > /dev/null || exit 1']
       interval: 30s
       timeout: 10s
       retries: 3
@@ -50,6 +53,9 @@ services:
     stop_grace_period: 60s
     deploy:
       replicas: 1
+      placement:
+        constraints:
+          - node.labels.role == worker
       update_config:
         order: stop-first
         failure_action: rollback

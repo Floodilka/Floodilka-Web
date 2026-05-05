@@ -22,6 +22,9 @@ services:
         mode: host
     deploy:
       replicas: 1
+      placement:
+        constraints:
+          - node.labels.role == infra
       restart_policy:
         condition: on-failure
         delay: 10s
