@@ -29,7 +29,7 @@ interface RequireXForwardedForOptions {
 	exemptPaths?: Array<string>;
 }
 
-const defaultExemptPaths: Array<string> = ['/_health', '/_rpc', '/webhooks/livekit', '/test'];
+const defaultExemptPaths: Array<string> = ['/_health', '/_ready', '/_rpc', '/webhooks/livekit', '/test'];
 
 export const RequireXForwardedForMiddleware = ({exemptPaths = defaultExemptPaths}: RequireXForwardedForOptions = {}) =>
 	createMiddleware<HonoEnv>(async (ctx, next) => {
