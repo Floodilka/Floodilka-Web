@@ -272,6 +272,16 @@ jobs:
             ssh production "docker pull ghcr.io/floodilka/${image}:${SHA} && docker tag ghcr.io/floodilka/${image}:${SHA} ${image}:latest && docker tag ghcr.io/floodilka/${image}:${SHA} ${image}:${SHA}"
           done
 
+          # Phase 6: floodilka-backend runs on 4 worker nodes (back-1/2/3/back-worker).
+          # Swarm needs the image present on each node before a task can be scheduled there.
+          # The prod manager already pulled and tagged above; propagate to backend workers.
+          for node_ip in 192.168.0.193 192.168.0.189 192.168.0.233 192.168.0.210; do
+            ssh production "ssh -o StrictHostKeyChecking=accept-new -o ConnectTimeout=10 root@${node_ip} \
+              'docker pull ghcr.io/floodilka/floodilka-backend:${SHA} && \
+               docker tag ghcr.io/floodilka/floodilka-backend:${SHA} floodilka-backend:latest && \
+               docker tag ghcr.io/floodilka/floodilka-backend:${SHA} floodilka-backend:${SHA}'"
+          done
+
           ssh production "
             docker stack deploy -c /var/www/floodilka/devops/backend/compose.yaml backend &&
             docker stack deploy -c /var/www/floodilka/devops/media-proxy/compose.yaml media &&
