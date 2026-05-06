@@ -38,7 +38,13 @@ services:
       labels:
         caddy: floodilka.com
         caddy.handle_path: /api/*
-        caddy.handle_path.reverse_proxy: '{{upstreams 8080}}'
+        caddy.handle_path.reverse_proxy: 10.100.0.40:8080 10.100.0.41:8080 10.100.0.42:8080
+        caddy.handle_path.reverse_proxy.lb_policy: least_conn
+        caddy.handle_path.reverse_proxy.lb_try_duration: 30s
+        caddy.handle_path.reverse_proxy.health_uri: /_ready
+        caddy.handle_path.reverse_proxy.health_interval: 5s
+        caddy.handle_path.reverse_proxy.health_timeout: 3s
+        caddy.handle_path.reverse_proxy.fail_duration: 10s
     healthcheck:
       test: ['CMD-SHELL', 'curl -fs http://localhost:8080/_ready > /dev/null || exit 1']
       interval: 30s
