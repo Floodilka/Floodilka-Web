@@ -45,6 +45,14 @@ services:
       labels:
         caddy_gw: gateway.floodilka.com
         caddy_gw.reverse_proxy: '{{upstreams 8080}}'
+        caddy_gw.reverse_proxy.lb_policy: header Authorization
+        caddy_gw.reverse_proxy.lb_try_duration: 30s
+        caddy_gw.reverse_proxy.lb_retries: 5
+        caddy_gw.reverse_proxy.health_uri: /_health
+        caddy_gw.reverse_proxy.health_interval: 5s
+        caddy_gw.reverse_proxy.health_timeout: 3s
+        caddy_gw.reverse_proxy.transport: http
+        caddy_gw.reverse_proxy.transport.dial_timeout: 1s
     healthcheck:
       test: ['CMD-SHELL', 'curl -fs http://localhost:8080/_health > /dev/null || exit 1']
       interval: 30s
