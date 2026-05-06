@@ -36,6 +36,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 COPY --from=build /usr/src/app/_build/prod/rel/floodilka_gateway .
 
+COPY prod-entrypoint.sh /usr/local/bin/prod-entrypoint.sh
+RUN chmod +x /usr/local/bin/prod-entrypoint.sh
+
 RUN useradd -r -s /sbin/nologin -d /opt/floodilka_gateway floodilka && \
 	chown -R floodilka:floodilka /opt/floodilka_gateway
 
@@ -45,4 +48,4 @@ EXPOSE 8080 8081
 
 ENV RELX_REPLACE_OS_VARS=true
 
-ENTRYPOINT ["/opt/floodilka_gateway/bin/floodilka_gateway", "foreground"]
+ENTRYPOINT ["/usr/local/bin/prod-entrypoint.sh"]

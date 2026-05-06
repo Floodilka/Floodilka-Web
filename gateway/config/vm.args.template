@@ -1,4 +1,5 @@
 -name ${RELEASE_NODE}
+-setcookie ${NODE_COOKIE}
 +K true
 +A30
 +P 5000000

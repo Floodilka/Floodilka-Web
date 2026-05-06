@@ -96,7 +96,8 @@ build_config() ->
         vapid_public_key => env_binary("VAPID_PUBLIC_KEY", vapid_public_key, undefined),
         vapid_private_key => env_binary("VAPID_PRIVATE_KEY", vapid_private_key, undefined),
         gateway_metrics_enabled => app_env_optional_bool(gateway_metrics_enabled),
-        gateway_metrics_report_interval_ms => app_env_optional_int(gateway_metrics_report_interval_ms)
+        gateway_metrics_report_interval_ms => app_env_optional_int(gateway_metrics_report_interval_ms),
+        cluster_discovery_dns => env_optional_string("CLUSTER_DISCOVERY_DNS", cluster_discovery_dns)
     }.
 
 -spec env_int(string(), atom(), integer()) -> integer().

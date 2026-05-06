@@ -10,9 +10,11 @@ services:
         soft: 65536
         hard: 65536
     environment:
-      - RELEASE_NODE=floodilka_gateway@gateway
+      # RELEASE_NODE is computed by prod-entrypoint.sh from the container IP so each
+      # replica gets a unique distributed-Erlang name in a multi-node cluster.
       - CLUSTER_NAME=floodilka_gateway
-      - CLUSTER_DISCOVERY_DNS=gateway
+      # CLUSTER_DISCOVERY_DNS will be set to "tasks.gateway" together with
+      # endpoint_mode: dnsrr when we move to replicas > 1 in Phase 7 cutover.
       - NODE_COOKIE=floodilka_prod_cookie
       - LOGGER_LEVEL=info
       - FLOODILKA_API_HOST=api:8080

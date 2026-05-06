@@ -82,8 +82,16 @@ init([]) ->
         shutdown => 5000,
         type => worker
     },
+    ClusterBootstrap = #{
+        id => cluster_bootstrap,
+        start => {cluster_bootstrap, start_link, []},
+        restart => permanent,
+        shutdown => 5000,
+        type => worker
+    },
     {ok,
         {{one_for_one, 5, 10}, [
+            ClusterBootstrap,
             SessionManager,
             PresenceCache,
             PresenceBus,
