@@ -10,16 +10,14 @@ services:
       - /var/www/floodilka/backend/firebase-service-account.json:/var/www/floodilka/backend/firebase-service-account.json:ro
     networks:
       - floodilka-shared
-    ports:
-      - target: 8080
-        published: 8080
-        mode: host
     stop_grace_period: 30s
     deploy:
       replicas: 3
       placement:
         constraints:
           - node.labels.role == backend
+        preferences:
+          - spread: node.hostname
       update_config:
         order: start-first
         failure_action: rollback
