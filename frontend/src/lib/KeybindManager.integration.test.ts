@@ -217,6 +217,12 @@ describe('KeybindManager integration', () => {
 				combo: {key: 'm', code: 'KeyM', ctrl: true, enabled: true, global: true},
 				allowGlobal: true,
 			},
+			{
+				id: 'toggle_screen_share:0',
+				action: 'toggle_screen_share',
+				combo: {key: 'Enter', code: 'NumpadEnter', enabled: true, global: true},
+				allowGlobal: true,
+			},
 		]);
 
 		expect(electronApi.registerGlobalShortcut).not.toHaveBeenCalled();
@@ -234,5 +240,32 @@ describe('KeybindManager integration', () => {
 				ctrl: true,
 			}),
 		);
+		expect(electronApi.globalKeyHookRegister).toHaveBeenCalledWith(
+			expect.objectContaining({
+				id: 'toggle_screen_share:0',
+				keycode: UiohookKeycode.NumpadEnter,
+			}),
+		);
+	});
+
+	test('Windows global shortcut fallback does not register NumpadEnter as regular Enter', async () => {
+		setNavigatorPlatform('Win32');
+		const electronApi = {
+			platform: 'win32',
+			unregisterAllGlobalShortcuts: vi.fn(async () => undefined),
+			registerGlobalShortcut: vi.fn(async () => true),
+		};
+		Object.defineProperty(window, 'electron', {value: electronApi, configurable: true});
+
+		await (KeybindManager as any).refreshGlobalShortcuts([
+			{
+				id: 'toggle_mute:0',
+				action: 'toggle_mute',
+				combo: {key: 'Enter', code: 'NumpadEnter', enabled: true, global: true},
+				allowGlobal: true,
+			},
+		]);
+
+		expect(electronApi.registerGlobalShortcut).not.toHaveBeenCalled();
 	});
 });

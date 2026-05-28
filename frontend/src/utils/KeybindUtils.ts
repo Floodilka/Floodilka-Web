@@ -129,6 +129,24 @@ const CODE_TO_ACCELERATOR_KEY: Record<string, string> = {
 	Escape: 'Escape',
 };
 
+const LOGICAL_NUMPAD_ACCELERATOR_CODES = new Set([
+	'NumpadHome',
+	'NumpadEnd',
+	'NumpadPageUp',
+	'NumpadPageDown',
+	'NumpadInsert',
+	'NumpadDelete',
+	'NumpadArrowUp',
+	'NumpadArrowDown',
+	'NumpadArrowLeft',
+	'NumpadArrowRight',
+]);
+
+const canUseKeyFallbackForAccelerator = (code: string | undefined): boolean => {
+	if (!code?.startsWith('Numpad')) return true;
+	return LOGICAL_NUMPAD_ACCELERATOR_CODES.has(code);
+};
+
 const codeToAcceleratorKey = (code: string): string | null => {
 	if (KEY_CODE_RE.test(code)) return code.slice(3);
 	if (DIGIT_CODE_RE.test(code)) return code.slice(5);
@@ -159,7 +177,7 @@ export const toElectronAccelerator = (combo: KeyCombo): string | null => {
 	}
 
 	const key = combo.code ? codeToAcceleratorKey(combo.code) : null;
-	const fallbackKey = combo.key ? codeToAcceleratorKey(combo.key) : null;
+	const fallbackKey = canUseKeyFallbackForAccelerator(combo.code) && combo.key ? codeToAcceleratorKey(combo.key) : null;
 	const acceleratorKey = key ?? fallbackKey;
 	if (!acceleratorKey) return null;
 
