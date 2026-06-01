@@ -12,6 +12,7 @@ import {modal} from '~/actions/ModalActionCreators';
 import {ScreenRecordingPermissionDeniedModal} from '~/components/alerts/ScreenRecordingPermissionDeniedModal';
 import {ScreenShareUnsupportedModal} from '~/components/alerts/ScreenShareUnsupportedModal';
 import {ScreenRecordingPermissionDeniedError} from '~/utils/errors/ScreenRecordingPermissionDeniedError';
+import {isDesktop} from '~/utils/NativeUtils';
 
 export type ScreenShareResolution = 'low' | 'medium' | 'high';
 
@@ -47,16 +48,24 @@ export function getScreenShareOptions(
 	includeAudio: boolean,
 ): {captureOptions: ScreenShareCaptureOptions; publishOptions: TrackPublishOptions} {
 	const preset = getScreenSharePreset(resolution, frameRate);
+	const excludeFloodilkaBrowserTab = !isDesktop();
+	const audioOptions = includeAudio
+		? isDesktop()
+			? {
+					autoGainControl: false,
+					echoCancellation: false,
+					noiseSuppression: false,
+				}
+			: true
+		: false;
+
 	return {
 		captureOptions: {
-			audio: includeAudio
-				? {
-						autoGainControl: false,
-						echoCancellation: false,
-						noiseSuppression: false,
-					}
-				: false,
-			selfBrowserSurface: 'include' as const,
+			audio: audioOptions,
+			video: excludeFloodilkaBrowserTab && includeAudio ? {displaySurface: 'browser'} : true,
+			selfBrowserSurface: excludeFloodilkaBrowserTab ? 'exclude' : 'include',
+			surfaceSwitching: excludeFloodilkaBrowserTab ? 'exclude' : 'include',
+			preferCurrentTab: false,
 			systemAudio: includeAudio ? 'include' : 'exclude',
 			contentHint: 'motion' as const,
 			resolution: preset.resolution,

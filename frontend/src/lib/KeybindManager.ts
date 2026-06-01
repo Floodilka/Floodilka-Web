@@ -312,6 +312,12 @@ class KeybindManager {
 		return toElectronAccelerator(binding.combo) !== null;
 	}
 
+	private shouldUseElectronGlobalShortcut(binding: ActiveBinding, hasGlobalKeyHook: boolean): boolean {
+		if (!isNativeWindows()) return false;
+		if (hasGlobalKeyHook) return false;
+		return this.canUseElectronGlobalShortcut(binding);
+	}
+
 	private invokeBinding(binding: ActiveBinding, type: 'press' | 'release', source: ShortcutSource): void {
 		if (!this.isScopeActive(binding.scope)) return;
 		const handler = this.handlers.get(binding.action);
@@ -941,7 +947,7 @@ class KeybindManager {
 		const hookBindings: Array<ActiveBinding> = [];
 
 		for (const binding of keybinds) {
-			if (isNativeWindows() && this.canUseElectronGlobalShortcut(binding)) {
+			if (this.shouldUseElectronGlobalShortcut(binding, hasGlobalKeyHook)) {
 				shortcutBindings.push(binding);
 			} else {
 				hookBindings.push(binding);

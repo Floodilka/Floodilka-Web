@@ -16,6 +16,7 @@ import styles from '~/components/modals/ScreenShareSettingsModal.module.css';
 import {Button} from '~/components/uikit/Button/Button';
 import FocusRing from '~/components/uikit/FocusRing/FocusRing';
 import {useScreenShareSettingsModal} from '~/utils/modals/ScreenShareSettingsModalUtils';
+import {isDesktop} from '~/utils/NativeUtils';
 
 interface ScreenShareSettingsModalProps {
 	onStartShare: (
@@ -48,6 +49,9 @@ export const ScreenShareSettingsModal = observer(({onStartShare}: ScreenShareSet
 	);
 
 	const framerateOptions = useMemo(() => FRAMERATE_OPTIONS.map((option) => ({...option, label: t(option.label)})), [t]);
+	const audioDescription = isDesktop()
+		? t`Share system audio, excluding Floodilka voice`
+		: t`Share audio from the selected browser tab`;
 
 	const getOptionButtonClass = (isSelected: boolean, isLocked: boolean) =>
 		clsx(styles.optionButton, {
@@ -119,7 +123,7 @@ export const ScreenShareSettingsModal = observer(({onStartShare}: ScreenShareSet
 									<Trans>Share Audio</Trans>
 								</div>
 								<div className={styles.audioToggleDescription}>
-									<Trans>Share system audio, excluding Floodilka voice</Trans>
+									{audioDescription}
 								</div>
 							</div>
 							<Switch value={includeAudio} onChange={setIncludeAudio} />

@@ -125,6 +125,11 @@ describe('jsKeyToEventCode', () => {
 		expect(jsKeyToEventCode('Backspace')).toBe('Backspace');
 		expect(jsKeyToEventCode('ArrowUp')).toBe('ArrowUp');
 		expect(jsKeyToEventCode('PageUp')).toBe('PageUp');
+		expect(jsKeyToEventCode('Control')).toBe('ControlLeft');
+		expect(jsKeyToEventCode('Ctrl')).toBe('ControlLeft');
+		expect(jsKeyToEventCode('Shift')).toBe('ShiftLeft');
+		expect(jsKeyToEventCode('Alt')).toBe('AltLeft');
+		expect(jsKeyToEventCode('Meta')).toBe('MetaLeft');
 	});
 
 	test('function keys', () => {
@@ -372,6 +377,30 @@ describe('ShortcutMatcher — IME and blur', () => {
 });
 
 describe('ShortcutMatcher — release semantics', () => {
+	test('modifier-only shortcut fires press then release', () => {
+		const calls: Array<RecordedCall> = [];
+		const matcher = new ShortcutMatcher({isMac: false});
+		matcher.setBindings([
+			makeDescriptor(
+				'push_to_talk',
+				{key: 'Control', code: 'ControlLeft', ctrl: true},
+				{allowInEditable: true, preventDefault: false},
+				calls,
+			),
+		]);
+
+		fireKey(matcher, 'keydown', {code: 'ControlLeft', ctrlKey: true});
+		expect(calls).toEqual([{action: 'push_to_talk', type: 'press', source: 'local'}]);
+
+		fireKey(matcher, 'keyup', {code: 'ControlLeft'});
+		expect(calls).toEqual([
+			{action: 'push_to_talk', type: 'press', source: 'local'},
+			{action: 'push_to_talk', type: 'release', source: 'local'},
+		]);
+
+		matcher.detach();
+	});
+
 	test('release fires when main key released', () => {
 		const calls: Array<RecordedCall> = [];
 		const matcher = new ShortcutMatcher({isMac: false});

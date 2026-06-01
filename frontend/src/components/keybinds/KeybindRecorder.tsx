@@ -53,13 +53,16 @@ const normalizeKeyForCombo = (key: string): string => {
 	return key;
 };
 
+const isMacPlatform = (): boolean => /Mac|iPod|iPhone|iPad/.test(navigator.platform ?? '');
+
 const keyboardEventToCombo = (event: KeyboardEvent): KeyCombo => ({
 	key: normalizeKeyForCombo(event.key),
 	code: event.code,
-	ctrlOrMeta: event.metaKey || event.ctrlKey,
+	ctrlOrMeta: isMacPlatform() ? event.metaKey : event.ctrlKey,
 	ctrl: event.ctrlKey,
 	alt: event.altKey,
 	shift: event.shiftKey,
+	meta: event.metaKey,
 });
 
 interface KeybindEditorPopoutProps {
@@ -86,6 +89,7 @@ const KeybindEditorPopout: React.FC<KeybindEditorPopoutProps> = ({
 	const {t, i18n} = useLingui();
 	const [recording, setRecording] = React.useState(false);
 	const [previewCombo, setPreviewCombo] = React.useState<KeyCombo | null>(null);
+	const modifierOnlyComboRef = React.useRef<KeyCombo | null>(null);
 
 	const currentCombo = previewCombo ?? value;
 	const displayValue = formatKeyCombo(currentCombo) || '';
@@ -100,15 +104,18 @@ const KeybindEditorPopout: React.FC<KeybindEditorPopoutProps> = ({
 	const cancelRecording = React.useCallback(() => {
 		setRecording(false);
 		setPreviewCombo(null);
+		modifierOnlyComboRef.current = null;
 	}, []);
 
 	const finishRecording = React.useCallback((combo: KeyCombo) => {
 		setRecording(false);
 		setPreviewCombo(combo);
+		modifierOnlyComboRef.current = null;
 	}, []);
 
 	const startRecording = React.useCallback(() => {
 		setPreviewCombo(null);
+		modifierOnlyComboRef.current = null;
 		setRecording(true);
 	}, []);
 
@@ -129,8 +136,30 @@ const KeybindEditorPopout: React.FC<KeybindEditorPopoutProps> = ({
 			const combo = keyboardEventToCombo(event);
 			setPreviewCombo(combo);
 
-			if (isModifierKey(event.key)) return;
+			if (isModifierKey(event.key)) {
+				modifierOnlyComboRef.current = combo;
+				return;
+			}
 			if (!combo.key && !combo.code) return;
+
+			modifierOnlyComboRef.current = null;
+			const savedCombo = {
+				...combo,
+				global: value.global,
+				enabled: true,
+			};
+			onSave(savedCombo);
+			finishRecording(savedCombo);
+		};
+
+		const handleKeyUp = (event: KeyboardEvent) => {
+			if (!isModifierKey(event.key)) return;
+			const combo = modifierOnlyComboRef.current;
+			if (!combo) return;
+			if (combo.code && event.code && combo.code !== event.code) return;
+
+			event.preventDefault();
+			event.stopPropagation();
 
 			const savedCombo = {
 				...combo,
@@ -155,18 +184,22 @@ const KeybindEditorPopout: React.FC<KeybindEditorPopoutProps> = ({
 				ctrl: event.ctrlKey,
 				alt: event.altKey,
 				shift: event.shiftKey,
+				meta: event.metaKey,
 				global: value.global,
 				enabled: true,
 			};
+			modifierOnlyComboRef.current = null;
 			setPreviewCombo(savedCombo);
 			onSave(savedCombo);
 			finishRecording(savedCombo);
 		};
 
 		window.addEventListener('keydown', handleKeyDown, true);
+		window.addEventListener('keyup', handleKeyUp, true);
 		window.addEventListener('mousedown', handleMouseDown, true);
 		return () => {
 			window.removeEventListener('keydown', handleKeyDown, true);
+			window.removeEventListener('keyup', handleKeyUp, true);
 			window.removeEventListener('mousedown', handleMouseDown, true);
 		};
 	}, [recording, onSave, cancelRecording, finishRecording, value.global]);

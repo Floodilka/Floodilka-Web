@@ -37,6 +37,12 @@ describe('jsKeyToUiohookKeycode', () => {
 		test('maps Space code to correct keycode', () => {
 			expect(jsKeyToUiohookKeycode('Space')).toBe(UiohookKeycode.Space);
 		});
+
+		test('maps modifier codes to correct keycodes', () => {
+			expect(jsKeyToUiohookKeycode('ControlLeft')).toBe(UiohookKeycode.ControlLeft);
+			expect(jsKeyToUiohookKeycode('AltLeft')).toBe(UiohookKeycode.AltLeft);
+			expect(jsKeyToUiohookKeycode('ShiftLeft')).toBe(UiohookKeycode.ShiftLeft);
+		});
 	});
 
 	describe('event.key values (from default combos without code)', () => {
@@ -54,6 +60,13 @@ describe('jsKeyToUiohookKeycode', () => {
 
 		test('maps space character to Space keycode', () => {
 			expect(jsKeyToUiohookKeycode(' ')).toBe(UiohookKeycode.Space);
+		});
+
+		test('maps modifier key names to left-side keycodes', () => {
+			expect(jsKeyToUiohookKeycode('Control')).toBe(UiohookKeycode.ControlLeft);
+			expect(jsKeyToUiohookKeycode('ctrl')).toBe(UiohookKeycode.ControlLeft);
+			expect(jsKeyToUiohookKeycode('Alt')).toBe(UiohookKeycode.AltLeft);
+			expect(jsKeyToUiohookKeycode('Shift')).toBe(UiohookKeycode.ShiftLeft);
 		});
 	});
 

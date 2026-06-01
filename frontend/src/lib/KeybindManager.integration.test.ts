@@ -11,6 +11,7 @@ import {afterEach, beforeEach, describe, expect, test, vi} from 'vitest';
 import CallStateStore from '~/stores/CallStateStore';
 import type {KeybindAction} from '~/stores/KeybindStore';
 import KeybindStore from '~/stores/KeybindStore';
+import {UiohookKeycode} from '~/utils/UiohookKeycodes';
 import KeybindManager from './KeybindManager';
 
 const mockI18n = {_: (descriptor: any) => descriptor?.message ?? descriptor ?? ''} as unknown as I18n;
@@ -58,6 +59,10 @@ function spyOnHandler(action: KeybindAction) {
 	return spy;
 }
 
+function setNavigatorPlatform(platform: string): void {
+	Object.defineProperty(navigator, 'platform', {value: platform, configurable: true});
+}
+
 describe('KeybindManager integration', () => {
 	beforeEach(async () => {
 		resetStores();
@@ -67,6 +72,7 @@ describe('KeybindManager integration', () => {
 
 	afterEach(() => {
 		KeybindManager.destroy();
+		delete (window as any).electron;
 	});
 
 	test('Ctrl+K fires quick_switcher handler', () => {
@@ -183,5 +189,50 @@ describe('KeybindManager integration', () => {
 		dispatchKey('keydown', {code: 'KeyL', ctrlKey: true});
 		dispatchKey('keyup', {code: 'KeyL'});
 		expect(spy).toHaveBeenCalledTimes(2);
+	});
+
+	test('Windows global keyboard shortcuts use the native hook when available', async () => {
+		setNavigatorPlatform('Win32');
+		const electronApi = {
+			platform: 'win32',
+			globalKeyHookStart: vi.fn(async () => true),
+			globalKeyHookStop: vi.fn(),
+			globalKeyHookUnregisterAll: vi.fn(async () => undefined),
+			unregisterAllGlobalShortcuts: vi.fn(async () => undefined),
+			registerGlobalShortcut: vi.fn(async () => true),
+			globalKeyHookRegister: vi.fn(async () => undefined),
+		};
+		Object.defineProperty(window, 'electron', {value: electronApi, configurable: true});
+
+		await (KeybindManager as any).refreshGlobalShortcuts([
+			{
+				id: 'toggle_mute:0',
+				action: 'toggle_mute',
+				combo: {key: ' ', code: 'Space', enabled: true, global: true},
+				allowGlobal: true,
+			},
+			{
+				id: 'toggle_deafen:0',
+				action: 'toggle_deafen',
+				combo: {key: 'm', code: 'KeyM', ctrl: true, enabled: true, global: true},
+				allowGlobal: true,
+			},
+		]);
+
+		expect(electronApi.registerGlobalShortcut).not.toHaveBeenCalled();
+		expect(electronApi.globalKeyHookStart).toHaveBeenCalled();
+		expect(electronApi.globalKeyHookRegister).toHaveBeenCalledWith(
+			expect.objectContaining({
+				id: 'toggle_mute:0',
+				keycode: UiohookKeycode.Space,
+			}),
+		);
+		expect(electronApi.globalKeyHookRegister).toHaveBeenCalledWith(
+			expect.objectContaining({
+				id: 'toggle_deafen:0',
+				keycode: UiohookKeycode.KeyM,
+				ctrl: true,
+			}),
+		);
 	});
 });

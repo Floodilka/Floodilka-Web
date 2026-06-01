@@ -13,6 +13,23 @@ const CONTROL_KEY_SYMBOL = '⌃';
 
 const KEY_CODE_RE = /^Key[A-Z]$/;
 const DIGIT_CODE_RE = /^Digit[0-9]$/;
+const MODIFIER_LABELS: Record<string, {mac: string; other: string}> = {
+	Control: {mac: CONTROL_KEY_SYMBOL, other: 'Ctrl'},
+	ControlLeft: {mac: CONTROL_KEY_SYMBOL, other: 'Ctrl'},
+	ControlRight: {mac: CONTROL_KEY_SYMBOL, other: 'Ctrl'},
+	Ctrl: {mac: CONTROL_KEY_SYMBOL, other: 'Ctrl'},
+	Shift: {mac: SHIFT_KEY_SYMBOL, other: 'Shift'},
+	ShiftLeft: {mac: SHIFT_KEY_SYMBOL, other: 'Shift'},
+	ShiftRight: {mac: SHIFT_KEY_SYMBOL, other: 'Shift'},
+	Alt: {mac: 'вЊҐ', other: 'Alt'},
+	AltLeft: {mac: 'вЊҐ', other: 'Alt'},
+	AltRight: {mac: 'вЊҐ', other: 'Alt'},
+	Meta: {mac: 'вЊ', other: 'Win'},
+	MetaLeft: {mac: 'вЊ', other: 'Win'},
+	MetaRight: {mac: 'вЊ', other: 'Win'},
+	OS: {mac: 'вЊ', other: 'Win'},
+	Command: {mac: 'вЊ', other: 'Win'},
+};
 
 /**
  * Normalizes event.code values (physical key identifiers) to standard key names.
@@ -27,6 +44,12 @@ export const resolveComboKey = (combo: {code?: string; key?: string}): string =>
 	if (KEY_CODE_RE.test(raw)) return raw.slice(3);
 	if (DIGIT_CODE_RE.test(raw)) return raw.slice(5);
 	return raw;
+};
+
+const getModifierKeyLabel = (key: string): string | null => {
+	const labels = MODIFIER_LABELS[key];
+	if (!labels) return null;
+	return isMac() ? labels.mac : labels.other;
 };
 
 export const formatKeyCombo = (combo: KeyCombo): string => {
@@ -49,6 +72,13 @@ export const formatKeyCombo = (combo: KeyCombo): string => {
 		return parts.join(' + ');
 	}
 	const key = resolveComboKey(combo);
+	const modifierKeyLabel = getModifierKeyLabel(key);
+	if (modifierKeyLabel) {
+		if (!parts.includes(modifierKeyLabel)) {
+			parts.push(modifierKeyLabel);
+		}
+		return parts.join(' + ');
+	}
 	if (key === ' ') {
 		parts.push('Space');
 	} else if (key.length === 1) {

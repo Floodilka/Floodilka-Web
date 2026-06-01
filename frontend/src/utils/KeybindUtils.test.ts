@@ -148,6 +148,13 @@ describe('formatKeyCombo', () => {
 			const result = formatKeyCombo({key: 'c', ctrl: true});
 			expect(result).toBe('Ctrl + C');
 		});
+
+		test('formats modifier-only keys without duplicating the label', () => {
+			expect(formatKeyCombo({key: 'Control', code: 'ControlLeft', ctrl: true})).toBe('Ctrl');
+			expect(formatKeyCombo({key: 'Alt', code: 'AltLeft', alt: true})).toBe('Alt');
+			expect(formatKeyCombo({key: 'Shift', code: 'ShiftLeft', shift: true})).toBe('Shift');
+			expect(formatKeyCombo({key: 'Control', code: 'ControlLeft', ctrl: true, alt: true})).toBe('Ctrl + Alt');
+		});
 	});
 
 	describe('bug reproduction: code normalization in display', () => {

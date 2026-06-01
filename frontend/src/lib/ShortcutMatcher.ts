@@ -85,6 +85,13 @@ const NAMED_TO_CODE: Record<string, string> = {
 	Insert: 'Insert',
 	Delete: 'Delete',
 	CapsLock: 'CapsLock',
+	Control: 'ControlLeft',
+	Ctrl: 'ControlLeft',
+	Shift: 'ShiftLeft',
+	Alt: 'AltLeft',
+	Meta: 'MetaLeft',
+	OS: 'MetaLeft',
+	Command: 'MetaLeft',
 };
 
 const KEY_CODE_RE = /^Key[A-Z]$/;
