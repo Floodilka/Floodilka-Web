@@ -74,7 +74,14 @@ export class CheckoutService {
 			Name: name,
 			AccountId: userId.toString(),
 			Description: `Floodilka Premium — ${billingCycle === 'yearly' ? 'Годовая' : 'Месячная'} подписка`,
-			JsonData: {paymentId, productType: product.type},
+			JsonData: {
+				paymentId,
+				productType: product.type,
+				plan: billingCycle,
+				billing_cycle: billingCycle,
+				duration_months: product.durationMonths,
+				isGift: false,
+			},
 		});
 
 		if (!result.Success || !result.Model) {
@@ -162,7 +169,13 @@ export class CheckoutService {
 			Name: name,
 			AccountId: userId.toString(),
 			Description: `Floodilka Premium — Подарочный код (${durationMonths === 12 ? '1 год' : '1 месяц'})`,
-			JsonData: {paymentId, productType: product.type, isGift: true},
+			JsonData: {
+				paymentId,
+				productType: product.type,
+				plan: durationMonths === 12 ? 'gift1Year' : 'gift1Month',
+				duration_months: product.durationMonths,
+				isGift: true,
+			},
 		});
 
 		if (!result.Success || !result.Model) {

@@ -80,6 +80,8 @@ export const PremiumContent: React.FC<{defaultGiftMode?: boolean}> = observer(({
 	const isClaimed = currentUser?.isClaimed() ?? false;
 	const purchaseDisabled = !isClaimed;
 	const purchaseDisabledTooltip = <Trans>Claim your account to purchase Floodilka Premium.</Trans>;
+	const shouldShowPlanCheckout =
+		!subscriptionStatus.shouldShowPremiumCard || subscriptionStatus.gracePeriodInfo.isExpired;
 	const handleSelectPlanGuarded = React.useCallback(
 		(plan: 'monthly' | 'yearly' | 'gift1Month' | 'gift1Year') => {
 			if (purchaseDisabled) return;
@@ -199,7 +201,7 @@ export const PremiumContent: React.FC<{defaultGiftMode?: boolean}> = observer(({
 				</section>
 			)}
 
-			{!subscriptionStatus.shouldShowPremiumCard ? (
+			{shouldShowPlanCheckout ? (
 				<PricingSection
 					isGiftMode={isGiftMode}
 					setIsGiftMode={setIsGiftMode}

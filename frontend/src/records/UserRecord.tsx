@@ -98,6 +98,8 @@ export type PendingBulkMessageDeletion = Readonly<{
 	messageCount: number;
 }>;
 
+const PREMIUM_GRACE_PERIOD_MS = 3 * 24 * 60 * 60 * 1000;
+
 export class UserRecord {
 	readonly id: string;
 	readonly username: string;
@@ -423,7 +425,30 @@ export class UserRecord {
 		if (RuntimeConfigStore.isSelfHosted()) {
 			return true;
 		}
-		return this.premiumType != null && this.premiumType > 0;
+		if (this.premiumEnabledOverride === true) {
+			return true;
+		}
+
+		const premiumType = this.premiumType;
+		if (premiumType == null || premiumType <= 0) {
+			return false;
+		}
+
+		const premiumUntil = this.premiumUntil;
+		if (premiumUntil == null) {
+			return true;
+		}
+
+		const premiumUntilMs = premiumUntil.getTime();
+		if (Number.isNaN(premiumUntilMs)) {
+			return false;
+		}
+
+		if (this.premiumWillCancel) {
+			return Date.now() <= premiumUntilMs;
+		}
+
+		return Date.now() <= premiumUntilMs + PREMIUM_GRACE_PERIOD_MS;
 	}
 
 	get maxGuilds(): number {

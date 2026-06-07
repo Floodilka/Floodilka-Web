@@ -17,6 +17,12 @@ import type {GiftCode, User} from '~/Models';
 import type {IUserRepository} from '~/user/IUserRepository';
 import {mapUserToPrivateResponse} from '~/user/UserModel';
 import {verifyCloudPaymentsWebhook} from '../PaymentUtils';
+import {
+	getProductByType,
+	getProductForGift,
+	getProductForSubscription,
+	type ProductInfo,
+} from '../ProductRegistry';
 import type {GiftService} from './GiftService';
 import type {PremiumService} from './PremiumService';
 import type {SubscriptionService} from './SubscriptionService';
@@ -41,6 +47,10 @@ export interface HandleWebhookParams {
 	body: string;
 	signature: string;
 	parsedBody: WebhookBody;
+}
+
+interface ResolvedWebhookProduct {
+	product: ProductInfo;
 }
 
 export class WebhookService {
@@ -112,12 +122,12 @@ export class WebhookService {
 		}
 
 		const existingPaymentId = jsonData.paymentId as string | undefined;
+		const existingPayment = existingPaymentId ? await this.userRepository.getPaymentById(existingPaymentId) : null;
 
-		if (existingPaymentId) {
-			const payment = await this.userRepository.getPaymentById(existingPaymentId);
-			if (payment && payment.status === 'pending') {
+		if (existingPayment) {
+			if (existingPayment.status === 'pending') {
 				await this.userRepository.updatePayment({
-					...payment.toRow(),
+					...existingPayment.toRow(),
 					cloudpayments_transaction_id: body.TransactionId != null ? BigInt(body.TransactionId) : null,
 					status: 'completed',
 					completed_at: new Date(),
@@ -131,17 +141,10 @@ export class WebhookService {
 			});
 		}
 
-		const plan = jsonData.plan as string | undefined;
-		const isGift = plan === 'gift1Month' || plan === 'gift1Year';
-		const durationMonths = (jsonData.duration_months as number) || (plan === 'gift1Year' ? 12 : 1);
+		const webhookProduct = resolveWebhookProduct(jsonData);
 
-		if (isGift) {
-			const {getProductForGift} = await import('../ProductRegistry');
-			const product = getProductForGift(durationMonths);
-			if (!product) {
-				Logger.error({plan, durationMonths}, 'Unknown gift product in pay webhook');
-				return {code: 0};
-			}
+		if (webhookProduct?.product.isGift) {
+			const {product} = webhookProduct;
 
 			const paymentId = existingPaymentId ?? crypto.randomUUID();
 
@@ -163,17 +166,26 @@ export class WebhookService {
 			const user = await this.userRepository.findUnique(userId);
 			if (user) {
 				await this.giftService.createGiftCode(paymentId, user, product, body.TransactionId);
-				Logger.debug({userId: body.AccountId, transactionId: body.TransactionId, durationMonths}, 'Gift code created via webhook');
+				Logger.debug(
+					{userId: body.AccountId, transactionId: body.TransactionId, durationMonths: product.durationMonths},
+					'Gift code created via webhook',
+				);
 			}
-		} else if (plan === 'monthly' || plan === 'yearly' || jsonData.billing_cycle) {
-			const billingCycle = (jsonData.billing_cycle as string) || plan;
-			const isYearly = billingCycle === 'yearly';
-			const subDurationMonths = isYearly ? 12 : 1;
+		} else if (webhookProduct?.product.billingCycle) {
+			const {product} = webhookProduct;
+			const billingCycle = product.billingCycle;
+			const alreadyFulfilledUser =
+				existingPayment?.status === 'completed' ? await this.userRepository.findUnique(userId) : null;
+
+			if (alreadyFulfilledUser?.isPremium()) {
+				Logger.debug(
+					{userId: body.AccountId, transactionId: body.TransactionId, paymentId: existingPayment.paymentId},
+					'Subscription pay webhook already fulfilled, skipping',
+				);
+				return {code: 0};
+			}
 
 			if (!existingPaymentId) {
-				const {getProductForSubscription} = await import('../ProductRegistry');
-				const product = getProductForSubscription(isYearly ? 'yearly' : 'monthly');
-
 				await this.userRepository.createPayment({
 					payment_id: crypto.randomUUID(),
 					user_id: userId,
@@ -188,15 +200,14 @@ export class WebhookService {
 				});
 			}
 
-			await this.premiumService.grantPremium(userId, subDurationMonths, isYearly ? 'yearly' : 'monthly', true);
+			await this.premiumService.grantPremium(userId, product.durationMonths, billingCycle, true);
 
 			if (body.Token) {
-				const cycle = isYearly ? 'yearly' as const : 'monthly' as const;
 				const uid = userId;
 				const token = body.Token;
 				const accountId = body.AccountId;
 				setTimeout(() => {
-					this.createSubscriptionWithRetry(uid, token, cycle, accountId);
+					this.createSubscriptionWithRetry(uid, token, billingCycle, accountId);
 				}, 2000);
 			}
 
@@ -459,4 +470,30 @@ export class WebhookService {
 			data: mapUserToPrivateResponse(user),
 		});
 	}
+}
+
+function resolveWebhookProduct(jsonData: Record<string, unknown>): ResolvedWebhookProduct | null {
+	const productType = typeof jsonData.productType === 'string' ? jsonData.productType : undefined;
+	if (productType) {
+		const product = getProductByType(productType);
+		if (product) return {product};
+		Logger.warn({productType}, 'Unknown product type in pay webhook');
+	}
+
+	const plan = typeof jsonData.plan === 'string' ? jsonData.plan : undefined;
+	const billingCycle = typeof jsonData.billing_cycle === 'string' ? jsonData.billing_cycle : plan;
+
+	if (billingCycle === 'monthly' || billingCycle === 'yearly') {
+		return {product: getProductForSubscription(billingCycle)};
+	}
+
+	if (plan === 'gift1Month' || plan === 'gift1Year' || jsonData.isGift === true) {
+		const durationMonths =
+			typeof jsonData.duration_months === 'number' ? jsonData.duration_months : plan === 'gift1Year' ? 12 : 1;
+		const product = getProductForGift(durationMonths);
+		if (product) return {product};
+		Logger.error({plan, durationMonths}, 'Unknown gift product in pay webhook');
+	}
+
+	return null;
 }
