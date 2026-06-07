@@ -59,7 +59,7 @@ export class UserSearchService {
 		try {
 			this.index = this.meilisearch.index<SearchableUser>(USER_INDEX_NAME);
 
-			await this.index.updateSettings({
+			const task = await this.index.updateSettings({
 				searchableAttributes: ['username', 'id', 'email', 'phone'],
 				filterableAttributes: [
 					'isBot',
@@ -80,6 +80,7 @@ export class UserSearchService {
 					maxTotalHits: SEARCH_MAX_TOTAL_HITS,
 				},
 			});
+			await this.waitForTask(task.taskUid);
 
 			Logger.debug('User search index initialized successfully');
 		} catch (error) {
@@ -113,7 +114,8 @@ export class UserSearchService {
 		const searchableUsers = users.map((user) => this.convertToSearchableUser(user));
 
 		try {
-			await this.index.addDocuments(searchableUsers, {primaryKey: 'id'});
+			const task = await this.index.addDocuments(searchableUsers, {primaryKey: 'id'});
+			await this.waitForTask(task.taskUid);
 		} catch (error) {
 			Logger.error({count: users.length, error}, 'Failed to index users');
 			throw error;
@@ -211,7 +213,8 @@ export class UserSearchService {
 		}
 
 		try {
-			await this.index.deleteAllDocuments();
+			const task = await this.index.deleteAllDocuments();
+			await this.waitForTask(task.taskUid);
 			Logger.debug('All user documents deleted from search index');
 		} catch (error) {
 			Logger.error({error}, 'Failed to delete all user documents');
@@ -272,6 +275,10 @@ export class UserSearchService {
 		}
 
 		return filterStrings;
+	}
+
+	private async waitForTask(taskUid: number): Promise<void> {
+		await this.meilisearch.waitForTask(taskUid);
 	}
 
 	private buildSortField(filters: UserSearchFilters): Array<string> {

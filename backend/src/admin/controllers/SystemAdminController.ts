@@ -9,16 +9,20 @@ import * as fs from 'node:fs';
 import * as os from 'node:os';
 import {PrometheusQueryService} from '~/admin/services/PrometheusQueryService';
 import type {HonoApp} from '~/App';
-import {createUserID} from '~/BrandedTypes';
+import {createUserID, type UserID} from '~/BrandedTypes';
 import {Config} from '~/Config';
 import {AdminACLs} from '~/Constants';
+import type {ICacheService} from '~/infrastructure/ICacheService';
 import {Logger} from '~/Logger';
-import {getUserSearchService} from '~/Meilisearch';
 import {requireAdminACL} from '~/middleware/AdminMiddleware';
 import {RateLimitMiddleware} from '~/middleware/RateLimitMiddleware';
 import {RateLimitConfigs} from '~/RateLimitConfig';
+import type {IUserRepository} from '~/user/IUserRepository';
 
 const prometheus = new PrometheusQueryService(Config.prometheus.url);
+const USER_TOTAL_COUNT_CACHE_KEY = 'admin:system:stats:user_total_count';
+const USER_TOTAL_COUNT_CACHE_TTL_SECONDS = 300;
+const USER_TOTAL_COUNT_BATCH_SIZE = 1000;
 
 export const SystemAdminController = (app: HonoApp) => {
 	app.get(
@@ -28,6 +32,7 @@ export const SystemAdminController = (app: HonoApp) => {
 		async (ctx) => {
 			const gatewayService = ctx.get('gatewayService');
 			const userRepository = ctx.get('userRepository');
+			const cacheService = ctx.get('cacheService');
 
 			const [clusterStats, gatewayStats, onlineUserIds, totalUserCount] = await Promise.all([
 				prometheus.getClusterStatsSafe(),
@@ -39,16 +44,10 @@ export const SystemAdminController = (app: HonoApp) => {
 					Logger.warn({err}, '[admin] failed to get online user ids');
 					return [] as Array<string>;
 				}),
-				(async () => {
-					const userSearchService = getUserSearchService();
-					if (!userSearchService) return 0;
-					try {
-						return await userSearchService.getTotalCount();
-					} catch (err) {
-						Logger.warn({err}, '[admin] failed to get total user count');
-						return 0;
-					}
-				})(),
+				getCachedTotalUserCount(userRepository, cacheService).catch((err: unknown) => {
+					Logger.warn({err}, '[admin] failed to get total user count');
+					return 0;
+				}),
 			]);
 
 			let onlineUsers: Array<{
@@ -61,7 +60,7 @@ export const SystemAdminController = (app: HonoApp) => {
 
 			if (onlineUserIds.length > 0) {
 				try {
-					const userIdsBigInt = onlineUserIds.map((id) => createUserID(BigInt(id)));
+					const userIdsBigInt = parseOnlineUserIds(onlineUserIds);
 					const users = await userRepository.listUsers(userIdsBigInt);
 					onlineUsers = users.map((u) => ({
 						id: u.id.toString(),
@@ -151,6 +150,51 @@ export const SystemAdminController = (app: HonoApp) => {
 		},
 	);
 };
+
+async function getCachedTotalUserCount(userRepository: IUserRepository, cacheService: ICacheService): Promise<number> {
+	const cached = await cacheService.get<number>(USER_TOTAL_COUNT_CACHE_KEY);
+	if (typeof cached === 'number') return cached;
+
+	const total = await countAllUsers(userRepository);
+	await cacheService.set(USER_TOTAL_COUNT_CACHE_KEY, total, USER_TOTAL_COUNT_CACHE_TTL_SECONDS);
+	return total;
+}
+
+async function countAllUsers(userRepository: IUserRepository): Promise<number> {
+	let total = 0;
+	let lastUserId: UserID | undefined;
+	let hasMore = true;
+
+	while (hasMore) {
+		const users = await userRepository.listAllUsersPaginated(USER_TOTAL_COUNT_BATCH_SIZE, lastUserId);
+		total += users.length;
+
+		if (users.length === 0) {
+			hasMore = false;
+			continue;
+		}
+
+		lastUserId = users[users.length - 1].id;
+		hasMore = users.length === USER_TOTAL_COUNT_BATCH_SIZE;
+	}
+
+	return total;
+}
+
+function parseOnlineUserIds(userIds: Array<string>): Array<UserID> {
+	const uniqueUserIds = new Set(userIds);
+	const parsedUserIds: Array<UserID> = [];
+
+	for (const userId of uniqueUserIds) {
+		try {
+			parsedUserIds.push(createUserID(BigInt(userId)));
+		} catch (err) {
+			Logger.warn({err, userId}, '[admin] gateway returned invalid online user id');
+		}
+	}
+
+	return parsedUserIds;
+}
 
 function localCpu() {
 	const cpus = os.cpus();

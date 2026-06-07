@@ -94,7 +94,15 @@ export class AdminSearchService {
 			},
 		);
 
-		const userIds = hits.map((hit) => createUserID(BigInt(hit.id)));
+		const userIds: Array<UserID> = [];
+		for (const hit of hits) {
+			try {
+				userIds.push(createUserID(BigInt(hit.id)));
+			} catch (error) {
+				Logger.warn({error, userId: hit.id}, '[AdminSearchService] searchUsers - Skipping invalid search hit');
+			}
+		}
+
 		const users = await userRepository.listUsers(userIds);
 
 		const {cacheService} = this.deps;

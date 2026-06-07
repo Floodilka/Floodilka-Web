@@ -125,9 +125,7 @@ const refreshSearchIndex: Task = async (payload, helpers) => {
 				const users = await userRepository.listAllUsersPaginated(BATCH_SIZE, lastUserId);
 
 				if (users.length > 0) {
-					for (const user of users) {
-						await userSearchService.indexUser(user);
-					}
+					await userSearchService.indexUsers(users);
 					indexedCount += users.length;
 					lastUserId = users[users.length - 1].id;
 
